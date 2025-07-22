@@ -943,37 +943,72 @@
                 
                 // Aplica SELIC antes do início da graça
                 let selicAntesGraca = [];
+                let periodoAntesGraca = '';
                 if (dataBase < inicioGraca) {
-                    selicAntesGraca = dadosselic
-                        .filter(item => {
-                            const dataItem = strParaData(item.data);
-                            return dataBase <= dataItem && dataItem < inicioGraca;
-                        })
-                        .map(item => parseFloat(item.valor.replace(',', '.')));
+                    const dadosAntesGraca = dadosselic.filter(item => {
+                        const dataItem = strParaData(item.data);
+                        return dataBase <= dataItem && dataItem < inicioGraca;
+                    });
+                    
+                    selicAntesGraca = dadosAntesGraca.map(item => parseFloat(item.valor.replace(',', '.')));
+                    
+                    // Definir período antes da graça
+                    if (dadosAntesGraca.length > 0) {
+                        const primeiraData = dadosAntesGraca[0].data;
+                        const ultimaData = dadosAntesGraca[dadosAntesGraca.length - 1].data;
+                        periodoAntesGraca = `${primeiraData} a ${ultimaData}`;
+                    }
                 }
                 
                 // Aplica SELIC após o fim da graça
-                const selicAposGraca = dadosselic
-                    .filter(item => {
-                        const dataItem = strParaData(item.data);
-                        return dataItem > fimGraca;
-                    })
-                    .map(item => parseFloat(item.valor.replace(',', '.')));
+                const dadosAposGraca = dadosselic.filter(item => {
+                    const dataItem = strParaData(item.data);
+                    return dataItem > fimGraca;
+                });
+                
+                const selicAposGraca = dadosAposGraca.map(item => parseFloat(item.valor.replace(',', '.')));
+                
+                // Definir período após a graça
+                let periodoAposGraca = '';
+                if (dadosAposGraca.length > 0) {
+                    const primeiraData = dadosAposGraca[0].data;
+                    const ultimaData = dadosAposGraca[dadosAposGraca.length - 1].data;
+                    periodoAposGraca = `${primeiraData} a ${ultimaData}`;
+                }
                 
                 // Soma da SELIC
-                
-                const somaSelic = selicAntesGraca.reduce((sum, val) => sum + val, 0) + 
-                                selicAposGraca.reduce((sum, val) => sum + val, 0);
+                const somaSelicAntes = selicAntesGraca.reduce((sum, val) => sum + val, 0);
+                const somaSelicApos = selicAposGraca.reduce((sum, val) => sum + val, 0);
+                const somaSelic = somaSelicAntes + somaSelicApos;
                 
                 const indiceselic = 1 + (somaSelic / 100);
+                const indiceSelicAntes = somaSelicAntes > 0 ? 1 + (somaSelicAntes / 100) : 1.0;
+                const indiceSelicApos = somaSelicApos > 0 ? 1 + (somaSelicApos / 100) : 1.0;
                 
-                return indiceselic;
+                return {
+                    indiceselic,
+                    indiceSelicAntes,
+                    indiceSelicApos,
+                    periodoAntesGraca,
+                    periodoAposGraca,
+                    temSelicAntes: selicAntesGraca.length > 0,
+                    temSelicApos: selicAposGraca.length > 0
+                };
                 
             } catch (error) {
                 console.error(`Erro ao obter dados da SELIC: ${error}`);
-                return 1.00; // Valor padrão em caso de erro
+                return {
+                    indiceselic: 1.00,
+                    indiceSelicAntes: 1.00,
+                    indiceSelicApos: 1.00,
+                    periodoAntesGraca: '',
+                    periodoAposGraca: '',
+                    temSelicAntes: false,
+                    temSelicApos: false
+                };
             }
         }
+
 
         // Função para calcular IPCA-e acumulado
         async function calcularIpca(dataBase, inicioGraca, fimGraca) {
@@ -1079,13 +1114,13 @@
             const dataBase = criarDataBase(dados.mesBase, dados.anoBase);
             const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
             const indicesCNJ = obterIndiceCNJ(dados.mesBase, dados.anoBase); // CNJ
-            const indiceselic = await calcularSelic(dataBase, inicioGraca, fimGraca);// SELIC
+            const dadosSelic = await calcularSelic(dataBase, inicioGraca, fimGraca);// SELIC
             const indiceipca = await calcularIpca(dataBase, inicioGraca, fimGraca); // IPCA
             const jurosmora = 1.0; // Juros de Mora
 
             // Cálculos básicos
-            const indiceprinc = indicesCNJ * indiceselic * indiceipca;
-            const indicejur = indiceselic * indiceipca;
+            const indiceprinc = indicesCNJ * dadosSelic.indiceselic * indiceipca;
+            const indicejur = dadosSelic.indiceselic * indiceipca;
 
             const valorjurosmora = dados.valorPrincipal * indicesCNJ * (jurosmora - 1);
             const juros = valorjurosmora + (dados.valorJuros * indicesCNJ);
@@ -1175,7 +1210,7 @@
                 aliquotaIR,
                 // Índices para exibição
                 indicesCNJ,
-                indiceselic,
+                dadosSelic,
                 indiceipca,
                 jurosmora
             };
@@ -1199,7 +1234,30 @@
 
         function exibirResultados(resultados, dados) {
             const container = document.getElementById('resultadosContent');
-            
+            // Preparar linhas da SELIC discriminada
+            let linhasSelicHTML = '';
+            if (resultados.dadosSelic.temSelicAntes) {
+                linhasSelicHTML += `
+                <tr>
+                    <td>SELIC Antes da Graça</td>
+                    <td>${resultados.dadosSelic.indiceSelicAntes.toFixed(6)}</td>
+                    <td>${resultados.dadosSelic.periodoAntesGraca}</td>
+                </tr>`;
+            }
+            if (resultados.dadosSelic.temSelicApos) {
+                linhasSelicHTML += `
+                <tr>
+                    <td>SELIC Após a Graça</td>
+                    <td>${resultados.dadosSelic.indiceSelicApos.toFixed(6)}</td>
+                    <td>${resultados.dadosSelic.periodoAposGraca}</td>
+                </tr>`;
+            }
+            linhasSelicHTML += `
+            <tr>
+                <td>SELIC Acumulada</td>
+                <td>${resultados.dadosSelic.indiceselic.toFixed(6)}</td>
+                <td>Total dos períodos aplicáveis</td>
+            </tr>`;
             const html = `
                 <div class="table-container">
                     <h3>📈 Resumo dos Cálculos</h3>
@@ -1210,19 +1268,19 @@
                         </tr>
                         <tr>
                             <td>Valor Principal Atualizado</td>
-                            <td>R$ ${resultados.valorprincatt.toFixed(2)}</td>
+                            <td>R$ ${resultados.valorprincatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         <tr>
                             <td>Valor Juros Atualizado</td>
-                            <td>R$ ${resultados.valorjurosatt.toFixed(2)}</td>
+                            <td>R$ ${resultados.valorprincatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         <tr class="highlight">
                             <td>Total Atualizado</td>
-                            <td>R$ ${resultados.valortotatt.toFixed(2)}</td>
+                            <td>R$ ${resultados.valortotatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         <tr class="highlight">
                             <td>Valor Base para Cálculo</td>
-                            <td>R$ ${resultados.valorBase.toFixed(2)}</td>
+                            <td>R$ ${resultados.valortotatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                     </table>
                 </div>
@@ -1240,11 +1298,7 @@
                             <td>${resultados.indicesCNJ.toFixed(6)}</td>
                             <td>${dados.mesBase}/${dados.anoBase}</td>
                         </tr>
-                        <tr>
-                            <td>SELIC Acumulada</td>
-                            <td>${resultados.indiceselic.toFixed(6)}</td>
-                            <td>Exceto período de graça</td>
-                        </tr>
+                        ${linhasSelicHTML}
                         <tr>
                             <td>IPCA-e Acumulado</td>
                             <td>${resultados.indiceipca.toFixed(6)}</td>
@@ -1267,7 +1321,7 @@
                         </tr>
                         <tr>
                             <td>Valor Devido</td>
-                            <td>R$ ${(resultados.valorBase - resultados.valorHonorarioTotal).toFixed(2)}</td>
+                            <td>R$ ${(resultados.valorBase - resultados.valorHonorarioTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         <tr>
                             <td>Alíquota Efetiva Previdência</td>
@@ -1275,7 +1329,7 @@
                         </tr>
                         <tr>
                             <td>Previdência</td>
-                            <td>R$ ${resultados.valorPrevidencia.toFixed(2)}</td>
+                            <td>R$ ${(resultados.valorPrevidencia).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         <tr>
                             <td>Alíquota IR</td>
@@ -1283,11 +1337,11 @@
                         </tr>
                         <tr>
                             <td>Imposto de Renda</td>
-                            <td>R$ ${resultados.valorIR.toFixed(2)}</td>
+                            <td>R$ ${(resultados.valorIR).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         <tr class="highlight">
                             <td>Valor Líquido</td>
-                            <td>R$ ${(resultados.valorBase - resultados.valorHonorarioTotal - resultados.valorPrevidencia - resultados.valorIR).toFixed(2)}</td>
+                            <td>R$ ${(resultados.valorBase - resultados.valorHonorarioTotal - resultados.valorPrevidencia - resultados.valorIR).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                     </table>
                 </div>
@@ -1307,9 +1361,9 @@
                         <tr>
                             <td>${h.nome}</td>
                             <td>${h.tipo}</td>
-                            <td>R$ ${h.valorBruto.toFixed(2)}</td>
-                            <td>R$ ${h.ir.toFixed(2)}</td>
-                            <td>R$ ${h.valorLiquido.toFixed(2)}</td>
+                            <td>R$ ${h.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td>R$ ${h.ir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td>R$ ${h.valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         `).join('')}
                     </table>
