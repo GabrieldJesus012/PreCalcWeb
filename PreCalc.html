@@ -913,13 +913,121 @@
             return { inicioGraca, fimGraca };
         }
         
+        function criarDataBase(mesBase, anoBase) {
+            const numeroMes = meses[mesBase.toLowerCase()];
+            return new Date(anoBase, numeroMes - 1, 1);
+        }
 
-        function calcular() {
+        async function calcularSelic(dataBase, inicioGraca, fimGraca) {
+            try {
+                // Descobre a data final como o último dia do mês anterior ao mês atual
+                const hoje = new Date();
+                const primeiroDiaMesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+                const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
+                const dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
+
+                const urlselic = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.4390/dados?formato=json&dataInicial=01/12/2021&dataFinal=${dataFinal}`;
+                
+                const response = await fetch(urlselic);
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+                
+                const dadosselic = await response.json();
+                
+                // Função para converter string de data da API em Date
+                function strParaData(dataStr) {
+                    const [dia, mes, ano] = dataStr.split('/');
+                    return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+                }
+                
+                // Aplica SELIC antes do início da graça
+                let selicAntesGraca = [];
+                if (dataBase < inicioGraca) {
+                    selicAntesGraca = dadosselic
+                        .filter(item => {
+                            const dataItem = strParaData(item.data);
+                            return dataBase <= dataItem && dataItem < inicioGraca;
+                        })
+                        .map(item => parseFloat(item.valor.replace(',', '.')));
+                }
+                
+                // Aplica SELIC após o fim da graça
+                const selicAposGraca = dadosselic
+                    .filter(item => {
+                        const dataItem = strParaData(item.data);
+                        return dataItem > fimGraca;
+                    })
+                    .map(item => parseFloat(item.valor.replace(',', '.')));
+                
+                // Soma da SELIC
+                const somaSelic = selicAntesGraca.reduce((sum, val) => sum + val, 0) + 
+                                selicAposGraca.reduce((sum, val) => sum + val, 0);
+                
+                const indiceselic = 1 + (somaSelic / 100);
+                
+                return indiceselic;
+                
+            } catch (error) {
+                console.error(`Erro ao obter dados da SELIC: ${error}`);
+                return 1.00; // Valor padrão em caso de erro
+            }
+        }
+
+        // Função para calcular IPCA-e acumulado
+        async function calcularIpca(dataBase, inicioGraca, fimGraca) {
+            try {
+                // Descobre a data final como o último dia do mês anterior ao mês atual
+                const hoje = new Date();
+                const primeiroDiaMesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+                const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
+                const dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
+
+                const urlipca = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.10764/dados?formato=json&dataInicial=01/12/2021&dataFinal=${dataFinal}`;
+                
+                const response = await fetch(urlipca);
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+                
+                const dadosipca = await response.json();
+                
+                // Função para converter string de data da API em Date
+                function strParaData(dataStr) {
+                    const [dia, mes, ano] = dataStr.split('/');
+                    return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+                }
+                
+                // Aplica IPCA durante a graça
+                const ipcaGraca = dadosipca
+                    .filter(item => {
+                        const dataItem = strParaData(item.data);
+                        return inicioGraca <= dataItem && dataItem <= fimGraca;
+                    })
+                    .map(item => parseFloat(item.valor.replace(',', '.')));
+                
+                // Fator acumulado IPCA
+                let indiceipca = 1.0;
+                for (const valor of ipcaGraca) {
+                    indiceipca *= 1 + (valor / 100);
+                }
+                
+                console.log(`➡️ Fator IPCA-e durante período de graça: ${indiceipca.toFixed(6)}`);
+                
+                return indiceipca;
+                
+            } catch (error) {
+                console.error(`Erro ao obter dados do IPCA: ${error}`);
+                return 1.0; // Valor padrão em caso de erro
+            }
+        }
+
+        async function calcular() {
             // Coletar dados do formulário
             const dados = coletarDados();
             
             // Simular cálculos (versão simplificada dos cálculos do Python)
-            const resultados = calcularValores(dados);
+            const resultados = await calcularValores(dados);
             
             // Exibir resultados
             exibirResultados(resultados, dados);
@@ -964,13 +1072,15 @@
             return dados;
         }
 
-        function calcularValores(dados) {
+        async function calcularValores(dados) {
             // Simulação simplificada dos cálculos
             // Índices simulados (valores aproximados)
+            const dataBase = criarDataBase(dados.mesBase, dados.anoBase);
+            const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
             const indicesCNJ = obterIndiceCNJ(dados.mesBase, dados.anoBase); // CNJ
-            const indiceselic = 1.08; // SELIC
-            const indiceipca = 1.06; // IPCA
-            const jurosmora = 1.03; // Juros de Mora
+            const indiceselic = await calcularSelic(dataBase, inicioGraca, fimGraca);// SELIC
+            const indiceipca = await calcularIpca(dataBase, inicioGraca, fimGraca); // IPCA
+            const jurosmora = 1.0; // Juros de Mora
 
             // Cálculos básicos
             const indiceprinc = indicesCNJ * indiceselic * indiceipca;
