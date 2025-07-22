@@ -961,6 +961,7 @@
                     .map(item => parseFloat(item.valor.replace(',', '.')));
                 
                 // Soma da SELIC
+                
                 const somaSelic = selicAntesGraca.reduce((sum, val) => sum + val, 0) + 
                                 selicAposGraca.reduce((sum, val) => sum + val, 0);
                 
@@ -1035,7 +1036,7 @@
 
         function coletarDados() {
             const dados = {
-                anoOrcamento: parseInt(document.getElementById('anoOrcamento').value)|| 2025,
+                anoOrcamento: parseInt(document.getElementById('anoOrcamento').value)|| 2026,
                 beneficiario: document.getElementById('beneficiario').value|| 'beneficiario',
                 mesBase: document.getElementById('mesBase').value,
                 anoBase: parseInt(document.getElementById('anoBase').value),
