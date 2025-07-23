@@ -1232,26 +1232,6 @@
         }
 
         //para juros mora
-        function gerarMesesEntreDatas(dataInicio, dataFim) {
-            const meses = [];
-            const atual = new Date(dataInicio);
-            while (atual <= dataFim) {
-                meses.push({
-                    mes: atual.getMonth() + 1,
-                    ano: atual.getFullYear(),
-                    data: new Date(atual)
-                });
-                atual.setMonth(atual.getMonth() + 1);
-            }
-            return meses;
-        }
-
-        //para juros mora
-        function estaNoPeriodoGraca(data, inicioGraca, fimGraca) {
-            return data >= inicioGraca && data <= fimGraca;
-        }
-
-        //para juros mora
         function obterTaxaJuros(mes, ano, natureza) {
             const dataConsulta = new Date(ano, mes - 1, 1);
 
@@ -1266,6 +1246,26 @@
             return 0;
         }
         
+        //para juros mora
+        function estaNoPeriodoGraca(data, inicioGraca, fimGraca) {
+            return data >= inicioGraca && data <= fimGraca;
+        }
+
+        //para juros mora
+        function gerarMesesEntreDatas(dataInicio, dataFim) {
+            const meses = [];
+            const atual = new Date(dataInicio);
+            while (atual <= dataFim) {
+                meses.push({
+                    mes: atual.getMonth() + 1,
+                    ano: atual.getFullYear(),
+                    data: new Date(atual)
+                });
+                atual.setMonth(atual.getMonth() + 1);
+            }
+            return meses;
+        }
+
         //para juros mora
         function calcularSomaJurosMora(mesBase, anoBase, natureza, inicioGraca = null, fimGraca = null) {
             const dataBase = criarDataBase(mesBase, anoBase);
