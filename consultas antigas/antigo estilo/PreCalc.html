@@ -13,504 +13,144 @@
             <p>Cálculos de Precatórios</p>
         </div>
 
-        <div class="tabs-container">
-            <div class="tabs-nav">
-                <button class="tab-button active" onclick="showTab('tab1')">📅 Informações Gerais</button>
-                <button class="tab-button" onclick="showTab('tab2')">💰 Informações Financeiras</button>
-                <button class="tab-button" onclick="showTab('tab3')">🏦 Deduções Legais</button>
-                <button class="tab-button" onclick="showTab('tab4')">👩‍💼 Deduções Acessórias</button>
-                <button class="tab-button" onclick="showTab('tab5')">👥 Herdeiros</button>
-                <button class="tab-button" onclick="showTab('tab6')">🔄 Cessões de Crédito</button>
-                <button class="tab-button" onclick="showTab('tab7')">📊 Resultados</button>
-            </div>
-
-            <!-- Tab 1: Informações Gerais -->
-            <div id="tab1" class="tab-content active">
-                <form id="calculatorForm" class="form-section">
-                    <div class="form-group">
-                        <h3>📅 Informações Gerais</h3>
-                        <div class="input-group">
-                            <label>Processo:</label>
-                            <input type="text" id="numprocesso" placeholder="Número do processo">
-                        </div>
-                        <div class="input-group">
-                            <label>Beneficiário Principal:</label>
-                            <input type="text" id="beneficiario" placeholder="Nome do beneficiário principal">
-                        </div>
-                        <div class="input-group">
-                            <label>Devedor:</label>
-                            <input type="text" id="credor" placeholder="Nome do Devedor">
-                        </div>
-                        <h3>⚖️ Configurações do Processo</h3>
-                        <div class="input-group">
-                            <label>Natureza da Ação:</label>
-                            <select id="natureza">
-                                <option value="alimentar">Alimentar</option>
-                                <option value="comum">Comum</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>Tipo de Cálculo:</label>
-                            <select id="tipoCalculo">
-                                <option value="ordem">Ordem</option>
-                                <option value="preferencia">Preferência</option>
-                                <option value="acordo">Acordo</option>
-                            </select>
-                        </div>
-                        <div class="input-group" id="tetoPreferencia" style="display: none;">
-                            <label>Teto de Preferência (R$):</label>
-                            <input type="number" id="tetoPreferenciaPrincipal" step="0.01" placeholder="0.00">
-                        </div>
-                        <div class="input-group" id="percentualAcordo" style="display: none;">
-                            <label>% do Deságio (ex: 0.2 para 20%):</label>
-                            <input type="number" id="percentualAcordoValor" step="0.01" min="0" max="1" placeholder="0.00">
-                        </div>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Tab 2: Informações Financeiras -->
-            <div id="tab2" class="tab-content">
-                <div class="form-section">
-                    <div class="form-group">
-                        <h3>📅 Datas-base de cálculos</h3>
-                        <div class="input-group">
-                            <label>Ano do Orçamento:</label>
-                            <input type="number" id="anoOrcamento" placeholder="Ano do Orçamento">
-                        </div>
-                        <h3>📅 Inf. do Cálculo Homologado</h3>
-                        <div class="input-group">
-                            <label>Mês Base:</label>
-                            <select id="mesBase">
-                                <option value="janeiro">Janeiro</option>
-                                <option value="fevereiro">Fevereiro</option>
-                                <option value="março">Março</option>
-                                <option value="abril">Abril</option>
-                                <option value="maio">Maio</option>
-                                <option value="junho">Junho</option>
-                                <option value="julho">Julho</option>
-                                <option value="agosto">Agosto</option>
-                                <option value="setembro">Setembro</option>
-                                <option value="outubro">Outubro</option>
-                                <option value="novembro">Novembro</option>
-                                <option value="dezembro">Dezembro</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>Ano Base:</label>
-                            <input type="number" id="anoBase" placeholder="Ano Base">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <h3>💰 Informações Financeiras</h3>
-                        <div class="input-group">
-                            <label>Valor Principal (R$):</label>
-                            <input type="number" id="valorPrincipal" step="0.01" placeholder="0.00">
-                        </div>
-                        <div class="input-group">
-                            <label>Valor dos Juros (R$):</label>
-                            <input type="number" id="valorJuros" step="0.01" placeholder="0.00">
-                        </div>
-                        <div class="input-group">
-                            <label>Valor Selic (R$):</label>
-                            <input type="number" id="valorSelic" step="0.01" placeholder="0.00">
-                        </div>
-                        <div class="input-group">
-                            <label>RRA:</label>
-                            <input type="number" id="rra" value="0" min="0">
-                        </div>
-                    </div>
+        <form id="calculatorForm" class="form-section">
+            <div class="form-group">
+                <h3>📅 Informações Gerais</h3>
+                <div class="input-group">
+                    <label>Processo:</label>
+                    <input type="text" id="numprocesso" placeholder="Número do processo">
+                </div>
+                <div class="input-group">
+                    <label>Beneficiário:</label>
+                    <input type="text" id="beneficiario" placeholder="Nome do beneficiário">
+                </div>
+                <div class="input-group">
+                    <label>Devedor:</label>
+                    <input type="text" id="credor" placeholder="Nome do Devedor">
+                </div>
+                <div class="input-group">
+                    <label>Ano do Orçamento:</label>
+                    <input type="number" id="anoOrcamento" placeholder="Ano do Orçamento">
+                </div>
+                <div class="input-group">
+                    <label>Mês Base:</label>
+                    <select id="mesBase">
+                        <option value="janeiro">Janeiro</option>
+                        <option value="fevereiro">Fevereiro</option>
+                        <option value="março">Março</option>
+                        <option value="abril">Abril</option>
+                        <option value="maio">Maio</option>
+                        <option value="junho">Junho</option>
+                        <option value="julho">Julho</option>
+                        <option value="agosto">Agosto</option>
+                        <option value="setembro">Setembro</option>
+                        <option value="outubro">Outubro</option>
+                        <option value="novembro">Novembro</option>
+                        <option value="dezembro">Dezembro</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Ano Base:</label>
+                    <input type="number" id="anoBase" placeholder="Ano Base">
                 </div>
             </div>
 
-            <!-- Tab 3: Deduções Legais -->
-            <div id="tab3" class="tab-content">
-                <div class="form-section">
-                    <div class="form-group">
-                        <h3>🏦 Impostos e Contribuições</h3>
-                        <div class="input-group">
-                            <label>Incidência de IR:</label>
-                            <select id="incidenciaIR">
-                                <option value="sim">Sim</option>
-                                <option value="nao">Não</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>Incidência de Previdência:</label>
-                            <select id="incidenciaPrevidencia">
-                                <option value="sim">Sim</option>
-                                <option value="nao">Não</option>
-                            </select>
-                        </div>
-                        <div class="input-group" id="tipoPrevidenciaDiv" style="display: none;">
-                            <label>Tipo de Previdência:</label>
-                            <select id="tipoPrevidencia">
-                                <option value="inss">INSS</option>
-                                <option value="fixa">Alíquota Fixa</option>
-                            </select>
-                        </div>
-                        <div class="input-group" id="aliquotaFixaDiv" style="display: none;">
-                            <label>Alíquota Fixa (ex: 0.14 para 14%):</label>
-                            <input type="number" id="aliquotaFixa" step="0.01" min="0" max="1" placeholder="0.00">
-                        </div>
-                    </div>
+            <div class="form-group">
+                <h3>💰 Informações Financeiras</h3>
+                <div class="input-group">
+                    <label>Valor Principal (R$):</label>
+                    <input type="number" id="valorPrincipal" step="0.01" placeholder="0.00">
+                </div>
+                <div class="input-group">
+                    <label>Valor dos Juros (R$):</label>
+                    <input type="number" id="valorJuros" step="0.01" placeholder="0.00">
+                </div>
+                <div class="input-group">
+                    <label>Valor Selic (R$):</label>
+                    <input type="number" id="valorSelic" step="0.01" placeholder="0.00">
+                </div>
+                <div class="input-group">
+                    <label>RRA:</label>
+                    <input type="number" id="rra" value="0" min="0">
                 </div>
             </div>
 
-            <!-- Tab 4: Deduções Acessórias (Honorários) -->
-            <div id="tab4" class="tab-content">
-                <div class="form-section">
-                    <div class="form-group">
-                        <h3>👩‍💼 Honorários Contratuais</h3>
-                        <div class="input-group">
-                            <label>Quantidade de Advogados:</label>
-                            <input type="number" id="quantAdvogados" value="0" min="0" onchange="gerarCamposAdvogados()">
-                        </div>
-                        <div id="advogadosContainer"></div>
-                    </div>
+            <div class="form-group">
+                <h3>⚖️ Configurações Legais</h3>
+                <div class="input-group">
+                    <label>Natureza da Ação:</label>
+                    <select id="natureza">
+                        <option value="alimentar">Alimentar</option>
+                        <option value="comum">Comum</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Tipo de Cálculo:</label>
+                    <select id="tipoCalculo">
+                        <option value="ordem">Ordem</option>
+                        <option value="preferencia">Preferência</option>
+                        <option value="acordo">Acordo</option>
+                    </select>
+                </div>
+                <div class="input-group" id="tetoPreferencia" style="display: none;">
+                    <label>Teto de Preferência (R$):</label>
+                    <input type="number" id="tetoPreferenciaPrincipal" step="0.01" placeholder="0.00">
+                </div>
+                <div class="input-group" id="percentualAcordo" style="display: none;">
+                    <label>% do Deságio (ex: 0.2 para 20%):</label>
+                    <input type="number" id="percentualAcordoValor" step="0.01" min="0" max="1" placeholder="0.00">
                 </div>
             </div>
 
-            <!-- Tab 5: Herdeiros  -->
-            <div id="tab5" class="tab-content">
-                <div class="form-section">
-                    <div class="form-group">
-                        <h3>👥 Herdeiros</h3>
-                        <div class="input-group">
-                            <label>Quantidade de Herdeiros:</label>
-                            <input type="number" id="quantHerdeiros" value="0" min="0" onchange="gerarCamposHerdeiros()">
-                        </div>
-                        <div id="herdeirosContainer"></div>
-                    </div>
+            <div class="form-group">
+                <h3>🏦 Impostos e Contribuições</h3>
+                <div class="input-group">
+                    <label>Incidência de IR:</label>
+                    <select id="incidenciaIR">
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Incidência de Previdência:</label>
+                    <select id="incidenciaPrevidencia">
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+                <div class="input-group" id="tipoPrevidenciaDiv" style="display: none;">
+                    <label>Tipo de Previdência:</label>
+                    <select id="tipoPrevidencia">
+                        <option value="inss">INSS</option>
+                        <option value="fixa">Alíquota Fixa</option>
+                    </select>
+                </div>
+                <div class="input-group" id="aliquotaFixaDiv" style="display: none;">
+                    <label>Alíquota Fixa (ex: 0.14 para 14%):</label>
+                    <input type="number" id="aliquotaFixa" step="0.01" min="0" max="1" placeholder="0.00">
                 </div>
             </div>
 
-            <!-- Tab 6: Cessão  -->
-            <div id="tab6" class="tab-content">
-                <div class="form-section">
-                    <div class="form-group">
-                        <h3>🔄 Cessões</h3>
-                        <div class="input-group">
-                            <label>Quantidade de Cessões:</label>
-                            <input type="number" id="quantCessoes" value="0" min="0" onchange="gerarCamposCessao()">
-                        </div>
-                        <div id="cessaoContainer"></div>
-                    </div>
+            <div class="form-group">
+                <h3>👩‍💼 Honorários Contratuais</h3>
+                <div class="input-group">
+                    <label>Quantidade de Advogados:</label>
+                    <input type="number" id="quantAdvogados" value="0" min="0" max="10">
                 </div>
+                <div id="advogadosContainer"></div>
             </div>
+        </form>
 
-            <!-- Tab 7: Resultados -->
-            <div id="tab7" class="tab-content">
-                <div id="results" class="results">
-                    <div class="section-title">📊 Resultados dos Cálculos</div>
-                    <div id="resultadosContent">
-                        <p class="loading">Execute o cálculo para ver os resultados aqui...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
         <div class="btn-container">
-            <button type="button" class="btn btn-secondary" onclick="limparFormulario()">🗑️ Limpar Formulário</button>
             <button type="button" class="btn" onclick="calcular()">🧮 Calcular Valores</button>
         </div>
+
+        <div id="results" class="results hidden">
+            <div class="section-title">📊 Resultados dos Cálculos</div>
+            <div id="resultadosContent"></div>
+        </div>
     </div>
-
     <script>
-        function showTab(tabId) {
-            // Esconder todas as abas
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-
-            // Mostrar aba selecionada
-            document.getElementById(tabId).classList.add('active');
-
-            // Remover 'active' de todos os botões
-            document.querySelectorAll('.tab-button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-
-            // Ativar o botão correspondente
-            document.querySelectorAll('.tab-button').forEach(btn => {
-                // Procura o botão que chama showTab com esse tabId
-                const onclick = btn.getAttribute('onclick');
-                if (onclick && onclick.includes(`showTab('${tabId}')`)) {
-                    btn.classList.add('active');
-                }
-            });
-        }
-
-        // Event listeners
-        document.getElementById('tipoCalculo').addEventListener('change', function() {
-            const tipo = this.value;
-            const natureza = document.getElementById('natureza').value;
-            
-            document.getElementById('tetoPreferencia').style.display = 
-                (tipo === 'preferencia' && natureza === 'alimentar') ? 'block' : 'none';
-            document.getElementById('percentualAcordo').style.display = 
-                tipo === 'acordo' ? 'block' : 'none';
-        });
-
-        document.getElementById('natureza').addEventListener('change', function() {
-            const natureza = this.value;
-            const tipo = document.getElementById('tipoCalculo').value;
-            
-            document.getElementById('tetoPreferencia').style.display = 
-                (tipo === 'preferencia' && natureza === 'alimentar') ? 'block' : 'none';
-        });
-
-        document.getElementById('incidenciaPrevidencia').addEventListener('change', function() {
-            const incidencia = this.value;
-            const tipoDiv = document.getElementById('tipoPrevidenciaDiv');
-            const aliquotaDiv = document.getElementById('aliquotaFixaDiv');
-            
-            if (incidencia === 'sim') {
-                tipoDiv.style.display = 'block';
-                // Verifica se já está como fixa para mostrar a alíquota
-                const tipoPrevidencia = document.getElementById('tipoPrevidencia').value;
-                aliquotaDiv.style.display = tipoPrevidencia === 'fixa' ? 'block' : 'none';
-            } else {
-                tipoDiv.style.display = 'none';
-                aliquotaDiv.style.display = 'none';
-            }
-        });
-
-        document.getElementById('tipoPrevidencia').addEventListener('change', function() {
-            const tipo = this.value;
-            const incidencia = document.getElementById('incidenciaPrevidencia').value;
-            // Só mostra se a incidência também está como 'sim'
-            document.getElementById('aliquotaFixaDiv').style.display = 
-                (tipo === 'fixa' && incidencia === 'sim') ? 'block' : 'none';
-        });
-
-        // Inicialização dos campos na carga da página
-        window.addEventListener('load', function() {
-            // Trigger dos eventos para configurar estado inicial
-            document.getElementById('tipoCalculo').dispatchEvent(new Event('change'));
-            document.getElementById('natureza').dispatchEvent(new Event('change'));
-            document.getElementById('incidenciaPrevidencia').dispatchEvent(new Event('change'));
-            document.getElementById('tipoPrevidencia').dispatchEvent(new Event('change'));
-        });
-
-        // Função para atualizar as opções de cessão baseado nos cadastros existentes
-        function atualizarOpcoesCessao() {
-            const quantAdvogados = parseInt(document.getElementById('quantAdvogados').value) || 0;
-            const quantHerdeiros = parseInt(document.getElementById('quantHerdeiros').value) || 0;
-            const beneficiarioPrincipal = document.getElementById('beneficiario').value.trim();
-            
-            // Recriar as cessões existentes com as novas opções
-            const quantCessoes = parseInt(document.getElementById('quantCessoes').value) || 0;
-            if (quantCessoes > 0) {
-                criarCessoes(quantCessoes);
-            }
-            
-            // Atualizar todos os cedentes existentes
-            atualizarTodosCedentes();
-        }
-
-        // Função para criar as opções de tipo de cessão
-        function criarOpcoesTipoCessao() {
-            const quantAdvogados = parseInt(document.getElementById('quantAdvogados').value) || 0;
-            const quantHerdeiros = parseInt(document.getElementById('quantHerdeiros').value) || 0;
-            
-            let opcoes = [];
-            
-            // Sempre incluir cessão do beneficiário principal
-            opcoes.push('<option value="cessaobenPrincipal">Do Beneficiário Principal</option>');
-            
-            // Só adicionar cessão de advogado se houver advogados cadastrados
-            if (quantAdvogados > 0) {
-                opcoes.push('<option value="cessaoAdv">Do Advogado</option>');
-            }
-            
-            // Só adicionar cessão de herdeiro se houver herdeiros cadastrados
-            if (quantHerdeiros > 0) {
-                opcoes.push('<option value="cessaoherdeiro">Do Herdeiro</option>');
-            }
-            
-            return opcoes.join('');
-        }
-
-        // Função para criar as opções de cedente baseado no tipo selecionado
-        function criarOpcoesCedente(tipoCessao, index) {
-            const beneficiarioPrincipal = document.getElementById('beneficiario').value.trim() || 'Beneficiário Principal';
-            let opcoes = ['<option value="">Selecione o cedente</option>'];
-            
-            switch(tipoCessao) {
-                case 'cessaobenPrincipal':
-                    opcoes.push(`<option value="${beneficiarioPrincipal}">${beneficiarioPrincipal}</option>`);
-                    break;
-                    
-                case 'cessaoAdv':
-                    const quantAdvogados = parseInt(document.getElementById('quantAdvogados').value) || 0;
-                    for (let i = 0; i < quantAdvogados; i++) {
-                        const nomeAdv = document.getElementById(`advNome${i}`)?.value.trim() || `Advogado ${i + 1}`;
-                        opcoes.push(`<option value="${nomeAdv}">${nomeAdv}</option>`);
-                    }
-                    break;
-                    
-                case 'cessaoherdeiro':
-                    const quantHerdeiros = parseInt(document.getElementById('quantHerdeiros').value) || 0;
-                    if (quantHerdeiros > 0) {
-                        for (let i = 0; i < quantHerdeiros; i++) {
-                            const nomeHerd = document.getElementById(`herdNome${i}`)?.value.trim() || `Herdeiro ${i + 1}`;
-                            opcoes.push(`<option value="${nomeHerd}">${nomeHerd}</option>`);
-                        }
-                    } else {
-                        // Se não há herdeiros, usar o beneficiário principal
-                        opcoes.push(`<option value="${beneficiarioPrincipal}">${beneficiarioPrincipal}</option>`);
-                    }
-                    break;
-            }
-            
-            return opcoes.join('');
-        }
-
-        function criarCessoes(quant) {
-            const container = document.getElementById('cessaoContainer');
-            container.innerHTML = '';
-            
-            for (let i = 0; i < quant; i++) {
-                const cessaoDiv = document.createElement('div');
-                cessaoDiv.className = 'advogado-item';
-                cessaoDiv.innerHTML = `
-                    <div class="advogado-header">Cessionário ${i + 1}</div>
-                    <div class="advogado-row">
-                        <div class="input-group">
-                            <label>Tipo de Cessão:</label>
-                            <select id="cessaoTipo${i}" onchange="atualizarCedentes(${i})">
-                                ${criarOpcoesTipoCessao()}
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>Cedente ${i + 1}:</label>
-                            <select id="cedenteNome${i}">
-                                <option value="">Selecione primeiro o tipo de cessão</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>Cessionário ${i + 1}:</label>
-                            <input type="text" id="cessionarioNome${i}" placeholder="Nome do Cessionário">
-                        </div>
-                        <div class="input-group">
-                            <label>Percentual Cedido (ex: 0.1 para 10%):</label>
-                            <input type="number" id="cessaoPercentual${i}" step="0.01" min="0" max="1" placeholder="0.00">
-                        </div>
-                    </div>
-                `;
-                container.appendChild(cessaoDiv);
-                        // Se só tem uma opção (beneficiário principal), selecionar automaticamente
-                const opcoesTipo = criarOpcoesTipoCessao();
-                const numOpcoes = (opcoesTipo.match(/<option/g) || []).length;
-                if (numOpcoes === 1) {
-                    document.getElementById(`cessaoTipo${i}`).value = 'cessaobenPrincipal';
-                    atualizarCedentes(i);
-                }
-            }
-        }
-        
-        // Função para atualizar as opções de cedente quando o tipo de cessão muda
-        function atualizarCedentes(index) {
-            const tipoCessao = document.getElementById(`cessaoTipo${index}`).value;
-            const cedenteSelect = document.getElementById(`cedenteNome${index}`);
-            
-            cedenteSelect.innerHTML = criarOpcoesCedente(tipoCessao, index);
-        }
-
-        // Função para atualizar todos os cedentes existentes
-        function atualizarTodosCedentes() {
-            const quantCessoes = parseInt(document.getElementById('quantCessoes').value) || 0;
-            for (let i = 0; i < quantCessoes; i++) {
-                const cessaoTipoElement = document.getElementById(`cessaoTipo${i}`);
-                if (cessaoTipoElement && cessaoTipoElement.value) {
-                    atualizarCedentes(i);
-                }
-            }
-        }
-        
-        document.getElementById('quantAdvogados').addEventListener('change', function() {
-            const quant = parseInt(this.value);
-            const container = document.getElementById('advogadosContainer');
-            container.innerHTML = '';
-            
-            for (let i = 0; i < quant; i++) {
-                const advDiv = document.createElement('div');
-                advDiv.className = 'advogado-item';
-                advDiv.innerHTML = `
-                    <div class="advogado-header">Advogado ${i + 1}</div>
-                    <div class="advogado-row">
-                        <div class="input-group">
-                            <label>Nome ${i + 1}:</label>
-                            <input type="text" id="advNome${i}" placeholder="Nome do advogado" onchange="atualizarOpcoesCessao()">
-                        </div>
-                        <div class="input-group">
-                            <label>Tipo:</label>
-                            <select id="advTipo${i}">
-                                <option value="PF">Pessoa Física</option>
-                                <option value="PJ">Pessoa Jurídica</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>Percentual (ex: 0.1 para 10%):</label>
-                            <input type="number" id="advPercentual${i}" step="0.01" min="0" max="1" placeholder="0.00">
-                        </div>
-                    </div>
-                `;
-                container.appendChild(advDiv);
-            }
-            atualizarOpcoesCessao();
-        });
-
-        document.getElementById('quantHerdeiros').addEventListener('change', function() {
-            const quant = parseInt(this.value);
-            const container = document.getElementById('herdeirosContainer');
-            container.innerHTML = '';
-            
-            for (let i = 0; i < quant; i++) {
-                const herdDiv = document.createElement('div');
-                herdDiv.className = 'advogado-item';
-                herdDiv.innerHTML = `
-                    <div class="advogado-header">Herdeiro ${i + 1}</div>
-                    <div class="advogado-row">
-                        <div class="input-group">
-                            <label>Nome ${i + 1}:</label>
-                            <input type="text" id="herdNome${i}" placeholder="Nome do herdeiro" onchange="atualizarOpcoesCessao()">
-                        </div>
-                        <div class="input-group">
-                            <label>Percentual (ex: 0.1 para 10%):</label>
-                            <input type="number" id="herdPercentual${i}" step="0.01" min="0" max="1" placeholder="0.00">
-                        </div>
-                    </div>
-                `;
-                container.appendChild(herdDiv);
-            }
-            atualizarOpcoesCessao();
-        });
-
-        document.getElementById('quantCessoes').addEventListener('change', function() {
-            const quant = parseInt(this.value);
-            criarCessoes(quant);
-        });
-        
-        document.getElementById('beneficiario').addEventListener('change', atualizarOpcoesCessao);
-
-        function limparFormulario() {
-            document.getElementById('calculatorForm').reset();
-            document.getElementById('quantAdvogados').value = 0;
-            document.getElementById('advogadosContainer').innerHTML = '';
-            document.getElementById('quantHerdeiros').value = 0;
-            document.getElementById('herdeirosContainer').innerHTML = '';
-            document.getElementById('quantCessoes').value = 0;
-            document.getElementById('cessaoContainer').innerHTML = '';
-
-            document.getElementById('resultadosContent').innerHTML = '<p class="loading">Execute o cálculo para ver os resultados aqui...</p>';
-            
-            // Voltar para a primeira aba
-            showTab('tab1');
-            document.querySelector('.tab-button').classList.add('active');
-        }
-        
         // Configurações e dados simulados
         const meses = {
             "janeiro": 1, "fevereiro": 2, "março": 3, "abril": 4,
@@ -1162,6 +802,89 @@
             "novembro-2021":1.0117,
             "dezembro-2021":1
         };
+
+        // Event listeners
+        document.getElementById('tipoCalculo').addEventListener('change', function() {
+            const tipo = this.value;
+            const natureza = document.getElementById('natureza').value;
+            
+            document.getElementById('tetoPreferencia').style.display = 
+                (tipo === 'preferencia' && natureza === 'alimentar') ? 'block' : 'none';
+            document.getElementById('percentualAcordo').style.display = 
+                tipo === 'acordo' ? 'block' : 'none';
+        });
+
+        document.getElementById('natureza').addEventListener('change', function() {
+            const natureza = this.value;
+            const tipo = document.getElementById('tipoCalculo').value;
+            
+            document.getElementById('tetoPreferencia').style.display = 
+                (tipo === 'preferencia' && natureza === 'alimentar') ? 'block' : 'none';
+        });
+
+        document.getElementById('incidenciaPrevidencia').addEventListener('change', function() {
+            const incidencia = this.value;
+            const tipoDiv = document.getElementById('tipoPrevidenciaDiv');
+            const aliquotaDiv = document.getElementById('aliquotaFixaDiv');
+            
+            if (incidencia === 'sim') {
+                tipoDiv.style.display = 'block';
+                // Verifica se já está como fixa para mostrar a alíquota
+                const tipoPrevidencia = document.getElementById('tipoPrevidencia').value;
+                aliquotaDiv.style.display = tipoPrevidencia === 'fixa' ? 'block' : 'none';
+            } else {
+                tipoDiv.style.display = 'none';
+                aliquotaDiv.style.display = 'none';
+            }
+        });
+
+        document.getElementById('tipoPrevidencia').addEventListener('change', function() {
+            const tipo = this.value;
+            const incidencia = document.getElementById('incidenciaPrevidencia').value;
+            // Só mostra se a incidência também está como 'sim'
+            document.getElementById('aliquotaFixaDiv').style.display = 
+                (tipo === 'fixa' && incidencia === 'sim') ? 'block' : 'none';
+        });
+
+        // Inicialização dos campos na carga da página
+        window.addEventListener('load', function() {
+            // Trigger dos eventos para configurar estado inicial
+            document.getElementById('tipoCalculo').dispatchEvent(new Event('change'));
+            document.getElementById('natureza').dispatchEvent(new Event('change'));
+            document.getElementById('incidenciaPrevidencia').dispatchEvent(new Event('change'));
+            document.getElementById('tipoPrevidencia').dispatchEvent(new Event('change'));
+        });
+
+        document.getElementById('quantAdvogados').addEventListener('change', function() {
+            const quant = parseInt(this.value);
+            const container = document.getElementById('advogadosContainer');
+            container.innerHTML = '';
+            
+            for (let i = 0; i < quant; i++) {
+                const advDiv = document.createElement('div');
+                advDiv.innerHTML = `
+                    <h4>Advogado ${i + 1}:</h4>
+                    <div class="input-group">
+                        <label>Nome:</label>
+                        <input type="text" id="advNome${i}" placeholder="Nome do advogado">
+                    </div>
+                    <div class="input-group">
+                        <label>Tipo:</label>
+                        <select id="advTipo${i}">
+                            <option value="PF">Pessoa Física</option>
+                            <option value="PJ">Pessoa Jurídica</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Percentual (ex: 0.1 para 10%):</label>
+                        <input type="number" id="advPercentual${i}" step="0.01" min="0" max="1" placeholder="0.00">
+                    </div>
+                    <hr style="margin: 15px 0; border: 1px solid #e9ecef;">
+                `;
+                container.appendChild(advDiv);
+            }
+        });
+        
         
         // Função para obter o índice CNJ
         function obterIndiceCNJ(mesBase, anoBase) {
@@ -1646,14 +1369,15 @@
                     </table>
                 </div>
                 ` : ''}
+
+                
             `;
 
             container.innerHTML = html;
-            showTab('tab7');
-            document.querySelectorAll('.tab-button')[7].classList.add('active');
-            document.querySelectorAll('.tab-button').forEach((btn, index) => {
-                if (index !== 5) btn.classList.remove('active');
-            });
+            document.getElementById('results').classList.remove('hidden');
+            
+            // Scroll para os resultados
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
         }
     </script>
 </body>
