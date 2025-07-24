@@ -1441,6 +1441,7 @@
             const dados = {
                 anoOrcamento: parseInt(document.getElementById('anoOrcamento').value)|| 2026,
                 beneficiario: document.getElementById('beneficiario').value|| 'beneficiario',
+                credor: document.getElementById('credor').value|| 'credor',
                 mesBase: document.getElementById('mesBase').value,
                 anoBase: parseInt(document.getElementById('anoBase').value),
                 valorPrincipal: parseFloat(document.getElementById('valorPrincipal').value) || 0,
@@ -1627,7 +1628,37 @@
                 <td>Total dos períodos aplicáveis</td>
             </tr>`;
             
+            
             const html = `
+                <!-- Cabeçalho com informações do processo -->
+
+                <div class="table-container">
+                    <h3>📋 Identificação do Processo</h3>
+                    <table>
+                        <tr>
+                            <th>Descrição</th>
+                            <th>Informação</th>
+                        </tr>
+                        <tr>
+                            <td>Número do Processo</td>
+                            <td>${dados.numprocesso || 'Não informado'}</td>
+                        </tr>
+                        <tr>
+                            <td>Beneficiário Principal</td>
+                            <td>${dados.beneficiario || 'Não informado'}</td>
+                        </tr>
+                        <tr>
+                            <td>Devedor</td>
+                            <td>${dados.credor || 'Não informado'}</td>
+                        </tr>
+                        <tr>
+                            <td>Natureza do Processo</td>
+                            <td>${dados.natureza === 'alimentar' ? '⚖️ Alimentar' : '⚖️ Comum'}</td>
+                        </tr>
+                    </table>
+                </div>
+
+
                 <div class="table-container">
                     <h3>📈 Resumo dos Cálculos</h3>
                     <table>
