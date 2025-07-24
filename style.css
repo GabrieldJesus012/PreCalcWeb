@@ -260,6 +260,12 @@ tr:hover {
     color: #155724;
 }
 
+.selic-acumulada {
+    background-color: #e8e6fa; /* tom claro de roxo */
+    font-weight: bold;
+    color: #2c2c54; /* azul escuro ou roxo escuro */
+}
+
 @media (max-width: 768px) {
     .tabs-nav {
         overflow-x: auto;
