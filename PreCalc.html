@@ -1440,8 +1440,8 @@
         function coletarDados() {
             const dados = {
                 anoOrcamento: parseInt(document.getElementById('anoOrcamento').value)|| 2026,
-                beneficiario: document.getElementById('beneficiario').value|| 'beneficiario',
-                credor: document.getElementById('credor').value|| 'credor',
+                beneficiario: document.getElementById('beneficiario').value|| 'Beneficiario',
+                credor: document.getElementById('credor').value|| 'Devedor',
                 mesBase: document.getElementById('mesBase').value,
                 anoBase: parseInt(document.getElementById('anoBase').value),
                 valorPrincipal: parseFloat(document.getElementById('valorPrincipal').value) || 0,
@@ -1456,6 +1456,8 @@
                 quantAdvogados: parseInt(document.getElementById('quantAdvogados').value) || 0,
                 advogados: []
             };
+
+            dados.valorTotal = dados.valorPrincipal + dados.valorJuros;
 
             // Dados específicos por tipo de cálculo
             if (dados.tipoCalculo === 'preferencia') {
@@ -1486,6 +1488,7 @@
             const dadosSelic = await calcularSelic(dataBase, inicioGraca, fimGraca);// SELIC
             const indiceipca = await calcularIpca(dataBase, inicioGraca, fimGraca); // IPCA
             const jurosmora = calcularSomaJurosMora(dados.mesBase, dados.anoBase, dados.natureza, inicioGraca, fimGraca)/100;; // Juros de Mora
+            
 
             // Cálculos básicos
             const indiceprinc = indicesCNJ * dadosSelic.indiceselic * indiceipca;
@@ -1500,6 +1503,10 @@
 
             const percentualprinc = valorprincatt / valortotatt;
             const percentualjur = valorjurosatt / valortotatt;
+
+
+            const indiceTotal = valortotatt / (dados.valorPrincipal + dados.valorJuros);
+
 
             // Valor base conforme tipo de cálculo
             let valorBase = valortotatt;
@@ -1581,6 +1588,7 @@
                 indicesCNJ,
                 dadosSelic,
                 indiceipca,
+                indiceTotal,
                 jurosmora
             };
         }
@@ -1601,8 +1609,14 @@
             else return 951.63; // Teto
         }
 
+
         function exibirResultados(resultados, dados) {
             const container = document.getElementById('resultadosContent');
+            const hoje = new Date();
+            const dia = String(hoje.getDate()).padStart(2, '0');
+            const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+            const ano = hoje.getFullYear();
+            const dataAtual = `${dia}/${mes}/${ano}`;
             // Preparar linhas da SELIC discriminada
             let linhasSelicHTML = '';
             if (resultados.dadosSelic.temSelicAntes) {
@@ -1655,9 +1669,55 @@
                             <td>Natureza do Processo</td>
                             <td>${dados.natureza === 'alimentar' ? '⚖️ Alimentar' : '⚖️ Comum'}</td>
                         </tr>
+                        <tr>
+                            <td>Ano do orçamento do Precatório:</td>
+                            <td>${dados.anoOrcamento || 'Não informado'}</td>
+                        </tr>
+                        <tr>
+                            <td>Data-base do cálculo homologado na execução:</td>
+                            <td>${dados.mesBase|| 'Não informado'}/${dados.anoBase|| 'Não informado'}</td>
+                        </tr>
                     </table>
                 </div>
 
+                <div class="table-container">
+                    <h3>💰 Demonstrativo de Valores - Histórico vs. Atual</h3>
+                    <table>
+                        <tr>
+                            <th>Componente</th>
+                            <th>Valor Histórico (${dados.mesBase|| 'Não informado'}/${dados.anoBase|| 'Não informado'})</th>
+                            <th>Correção Aplicada</th>
+                            <th>Valor Atualizado (${dataAtual})</th>
+                        </tr>
+                        <tr>
+                            <td>Principal</td>
+                            <td>R$ ${dados.valorPrincipal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            
+                            <td> ${isNaN(resultados.indiceTotal) ? '1' : resultados.indiceTotal.toFixed(6)} </td>
+
+                            <td>R$ ${resultados.valorprincatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                        <tr>
+                            <td>Juros</td>
+                            <td>R$ ${dados.valorJuros.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            
+                            <td> ${isNaN(resultados.indiceTotal) ? '1' : resultados.indiceTotal.toFixed(6)} </td>
+
+                            <td> R$ ${resultados.valorjurosatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                        <tr class="highlight">
+                            <td><strong>Total Atualizado</strong></td>
+                            <td><strong>R$ ${dados.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+                            <td><strong> - </strong></td>
+                            <td><strong>R$ ${resultados.valortotatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+                        </tr>
+                    </table>
+                    <div class="warning-box" style="margin-top: 10px;">
+                        <p><strong>📊 Análise da Correção:</strong> O valor total teve um acréscimo de 
+                        <strong>R$ 30.493,81</strong> 
+                        (46,91%) em relação ao valor histórico homologado.</p>
+                    </div>
+                </div>
 
                 <div class="table-container">
                     <h3>📈 Resumo dos Cálculos</h3>
@@ -1683,6 +1743,11 @@
                             <td>R$ ${resultados.valortotatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                     </table>
+                </div>
+
+                <!-- indices -->
+                <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
+                    Atualização Monetária conforme Resolução CNJ nº 303/2019, com índices de correção monetária, conforme  caput do Art.21- A  - <strong> Período de Correção </strong>: Os valores foram atualizados desde a base <strong> ${dados.mesBase|| 'Não informado'}/${dados.anoBase|| 'Não informado'}</strong> até <strong>${dataAtual}</strong>.
                 </div>
                 
                 <div class="table-container">

@@ -254,6 +254,12 @@ tr:hover {
     align-items: end;
 }
 
+.success-box {
+    background: #d4edda;
+    border-left-color: #28a745;
+    color: #155724;
+}
+
 @media (max-width: 768px) {
     .tabs-nav {
         overflow-x: auto;
@@ -274,3 +280,4 @@ tr:hover {
         grid-template-columns: 1fr;
     }
 }
+
