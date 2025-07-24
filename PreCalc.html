@@ -1567,7 +1567,7 @@
                 const baseIR = (principal - (principal * percentualTotalAdv) - valorPrevidencia) / rrapagamento;
                 const valorIRUnitario = calcularIR(baseIR);
                 valorIR = valorIRUnitario * rrapagamento;
-                aliquotaIR = valorIRUnitario / baseIR;
+                aliquotaIR = obterAliquotaIR(baseIR);
             }
 
             return {
@@ -1601,6 +1601,14 @@
             else if (valorBruto <= 3751.05) return (valorBruto * 0.15) - 394.16;
             else if (valorBruto <= 4664.68) return (valorBruto * 0.225) - 675.49;
             else return (valorBruto * 0.275) - 908.73;
+        }
+
+        function obterAliquotaIR(valorBruto) {
+            if (valorBruto <= 2428.80) return 0;
+            else if (valorBruto <= 2826.65) return 0.075;
+            else if (valorBruto <= 3751.05) return 0.15;
+            else if (valorBruto <= 4664.68) return 0.225;
+            else return 0.275;
         }
 
         function calcularINSS(base) {
