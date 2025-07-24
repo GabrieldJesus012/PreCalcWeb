@@ -1562,12 +1562,21 @@
             // IR sobre o beneficiário
             let valorIR = 0;
             let aliquotaIR = 0;
+            let baseIRHonora =0;
+            let baseIRPrev=0;
+            let baseIRRRA =0;
+            let valorIRUnitario =0;
             if (dados.incidenciaIR && rrapagamento !== 0) {
                 const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
                 const baseIR = (principal - (principal * percentualTotalAdv) - valorPrevidencia) / rrapagamento;
-                const valorIRUnitario = calcularIR(baseIR);
+                valorIRUnitario = calcularIR(baseIR);
                 valorIR = valorIRUnitario * rrapagamento;
                 aliquotaIR = obterAliquotaIR(baseIR);
+
+                //para demonstrar
+                baseIRHonora = principal - (principal * percentualTotalAdv);
+                baseIRPrev = baseIRHonora - valorPrevidencia;
+                baseIRRRA = baseIRPrev / rrapagamento;
             }
 
             return {
@@ -1584,6 +1593,10 @@
                 aliquotaEfetiva,
                 valorIR,
                 aliquotaIR,
+                baseIRHonora,
+                baseIRPrev,
+                baseIRRRA,
+                valorIRUnitario,
                 // Índices para exibição
                 indicesCNJ,
                 dadosSelic,
@@ -1665,7 +1678,53 @@
                 <td>Total dos períodos aplicáveis</td>
             </tr>`;
             
-            
+            let secaoIR = '';
+            if (dados.incidenciaIR && resultados.rrapagamento !== 0) {
+                const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+                secaoIR = `
+                <div class="table-container">
+                    <h3>📄 Cálculo do Imposto de Renda</h3>
+                    <table class="ir-table">
+                        <tr>
+                            <th>Principal:</th>
+                            <td>R$ ${resultados.principal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                        <tr>
+                            <th>Principal - Honorários (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
+                            <td>R$ ${resultados.baseIRHonora.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                        <tr>
+                            <th>Previdência:</th>
+                            <td>R$ ${resultados.valorPrevidencia.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                        <tr>
+                            <th>Base IR sem Previdência:</th>
+                            <td>R$ ${resultados.baseIRPrev.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                        <tr>
+                            <th>RRA Pagamento:</th>
+                            <td>${resultados.rrapagamento}</td>
+                        </tr>
+                        <tr>
+                            <th>Base IR por RRA:</th>
+                            <td>R$ ${resultados.baseIRRRA.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                        <tr>
+                            <th>Alíquota IR:</th>
+                            <td>${(resultados.aliquotaIR * 100).toFixed(4)}%</td>
+                        </tr>
+                        <tr>
+                            <th>Valor IR Mensal:</th>
+                            <td>R$ ${resultados.valorIRUnitario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                        <tr class="total-row">
+                            <th>Valor IR Devido Total:</th>
+                            <td><strong>R$ ${resultados.valorIR.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+                        </tr>
+                    </table>
+                </div>`;
+            }
+
             const html = `
                 <!-- Cabeçalho com informações do processo -->
 
@@ -1909,6 +1968,8 @@
                         </tr>
                     </table>
                 </div>
+
+                ${secaoIR}
 
                 ${resultados.honorarios.length > 0 ? `
                 <div class="table-container">
