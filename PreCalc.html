@@ -1726,6 +1726,16 @@
                 </div>`;
             }
 
+            let secaoRRA = '';
+            if (dados.rra&& resultados.rrapagamento !== 0) {
+                secaoRRA = `
+                <tr>
+                    <td>Rendimentos Recebidos Acumuladamente Total (RRA) :</td>
+                    <td>${dados.rra} meses</td>
+                </tr>
+                `;
+            }
+
             const html = `
                 <!-- Cabeçalho com informações do processo -->
 
@@ -1752,6 +1762,7 @@
                             <td>Natureza do Processo</td>
                             <td>${dados.natureza === 'alimentar' ? '⚖️ Alimentar' : '⚖️ Comum'}</td>
                         </tr>
+                        ${secaoRRA}
                         <tr>
                             <td>Ano do orçamento do Precatório:</td>
                             <td>${dados.anoOrcamento || 'Não informado'}</td>
@@ -1944,6 +1955,8 @@
                             <th>Base de Cálculo</th>
                             <th>Percentual</th>
                             <th>Valor Bruto</th>
+                            <th>IR</th>
+                            <th>Valor Líquido</th>
                         </tr>
                         ${resultados.honorarios.map(h => `
                         <tr>
@@ -1952,6 +1965,8 @@
                             <td>R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             <td>${(h.percentual* 100).toFixed(2)}%</td>
                             <td>R$ ${h.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td>R$ ${h.ir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td>R$ ${h.valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         `).join('')}
                     </table>
@@ -1999,7 +2014,7 @@
                     <h3>👩‍💼 Pagamento Advogados</h3>
                     <table>
                         <tr>
-                            <th>Nome</th>
+                            <th>Nome Advogado</th>
                             <th>Tipo</th>
                             <th>Valor Devido</th>
                             <th>IR</th>
