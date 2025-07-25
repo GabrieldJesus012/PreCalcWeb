@@ -696,10 +696,44 @@ tr:hover td {
         color: var(--primary-navy) !important;
     }
     
-    .ir-table .total-row th,
+    .ir-table {
+        background: var(--white) !important;
+        border: 1px solid #E9ECEF !important;
+        margin: 15px 0 !important;
+    }
+    
+    .ir-table th {
+        background: #F8F9FA !important;
+        color: var(--primary-navy) !important;
+        font-weight: 600 !important;
+        padding: 8px 12px !important;
+        font-size: 12px !important;
+        border-right: 1px solid #DEE2E6 !important;
+    }
+    
+    .ir-table td {
+        padding: 8px 12px !important;
+        font-weight: 500 !important;
+        color: var(--dark-gray) !important;
+        background: var(--white) !important;
+        border-bottom: 1px solid #F1F3F4 !important;
+        font-family: 'Courier New', monospace !important;
+        font-size: 12px !important;
+    }
+    
+    .ir-table .total-row th {
+        background: var(--primary-navy) !important;
+        color: var(--white) !important;
+        font-weight: 700 !important;
+        padding: 10px 12px !important;
+    }
+    
     .ir-table .total-row td {
         background: var(--primary-navy) !important;
         color: var(--white) !important;
+        font-weight: 700 !important;
+        font-size: 14px !important;
+        padding: 10px 12px !important;
     }
     
     /* Ajustes de layout para impressão */
