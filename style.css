@@ -630,3 +630,158 @@ tr:hover td {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--accent-gold);
 }
+
+/* Regras para Impressão */
+@media print {
+    /* Ocultar navegação das tabs na impressão */
+    .tabs-nav {
+        display: none !important;
+    }
+    
+    /* Ocultar todas as tabs exceto a tab7 (Resultados) na impressão */
+    .tab-content {
+        display: none !important;
+    }
+    
+    /* Mostrar apenas a tab7 na impressão */
+    #tab7 {
+        display: block !important;
+        page-break-inside: avoid;
+    }
+    
+    /* Forçar impressão de cores de fundo */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    /* Manter cores nos elementos principais */
+    .header {
+        background: var(--gradient-primary) !important;
+        color: var(--white) !important;
+    }
+    
+    .form-group::before {
+        background: var(--gradient-gold) !important;
+    }
+    
+    th {
+        background: var(--gradient-primary) !important;
+        color: var(--white) !important;
+    }
+    
+    .highlight {
+        background: linear-gradient(135deg, #E8F5E8, #D4EDDA) !important;
+        color: var(--success) !important;
+    }
+    
+    .section-title {
+        background: var(--gradient-light) !important;
+        border-left: 6px solid var(--primary-gold) !important;
+    }
+    
+    .advogado-item {
+        background: var(--light-gold) !important;
+        border-left: 4px solid var(--success) !important;
+    }
+    
+    .success-box {
+        background: #D4EDDA !important;
+        color: #155724 !important;
+    }
+    
+    .selic-acumulada {
+        background: linear-gradient(135deg, #E8E6FA, #D4D2F7) !important;
+        color: var(--primary-navy) !important;
+    }
+    
+    .ir-table .total-row th,
+    .ir-table .total-row td {
+        background: var(--primary-navy) !important;
+        color: var(--white) !important;
+    }
+    
+    /* Ajustes de layout para impressão */
+    body {
+        background: white !important;
+        padding: 0 !important;
+    }
+    
+    .container {
+        box-shadow: none !important;
+        margin: 0 !important;
+        max-width: none !important;
+    }
+    
+    .btn-container {
+        display: none !important;
+    }
+    
+    /* Evitar quebras de página indesejadas */
+    .form-group,
+    .table-container,
+    .advogado-item {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+    
+    /* Reduzir drasticamente o tamanho do header para impressão */
+    .header {
+        padding: 8px 15px !important;
+        min-height: auto !important;
+        height: auto !important;
+        page-break-after: avoid !important;
+    }
+    
+    .header::before {
+        display: none !important;
+    }
+    
+    .header h1 {
+        font-size: 1.2rem !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1 !important;
+        text-shadow: none !important;
+        display: inline-block !important;
+    }
+    
+    .header p {
+        font-size: 0.8rem !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        opacity: 0.8;
+        line-height: 1 !important;
+        display: inline-block !important;
+        margin-left: 10px !important;
+    }
+    
+    .header::after {
+        display: none !important;
+    }
+    
+    /* Garantir que o conteúdo da tab7 fique na mesma página */
+    #tab7 {
+        page-break-before: avoid !important;
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+    
+    /* Ocultar container das tabs mas manter o conteúdo da tab7 */
+    .tabs-container {
+        padding: 0 !important;
+        background: transparent !important;
+        border: none !important;
+        margin: 0 !important;
+    }
+    
+    /* Manter bordas e sombras importantes */
+    .form-group {
+        border: 1px solid var(--primary-gold) !important;
+    }
+    
+    table {
+        border: 1px solid var(--primary-navy) !important;
+    }
+}
