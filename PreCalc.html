@@ -1924,7 +1924,7 @@
                         <tr class="highlight">
                             <td>Total Atualizado</td>
                             <td>R$ ${resultados.valortotatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td>${((resultados.percentualprinc + resultados.percentualjur) * 100).toFixed(2)}%</td
+                            <td>${((resultados.percentualprinc + resultados.percentualjur) * 100).toFixed(2)}%</td>
                         </tr>
                         <tr class="highlight">
                             <td>Valor Base para Cálculo</td>
@@ -1934,7 +1934,29 @@
                     </table>
                 </div>
 
-                
+                ${resultados.honorarios.length > 0 ? `
+                <div class="table-container">
+                    <h3>👩‍💼 Advogados</h3>
+                    <table>
+                        <tr>
+                            <th>Nome Advogado</th>
+                            <th>PF/PJ</th>
+                            <th>Base de Cálculo</th>
+                            <th>Percentual</th>
+                            <th>Valor Bruto</th>
+                        </tr>
+                        ${resultados.honorarios.map(h => `
+                        <tr>
+                            <td>${h.nome}</td>
+                            <td>${h.tipo}</td>
+                            <td>R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td>${(h.percentual* 100).toFixed(2)}%</td>
+                            <td>R$ ${h.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                        `).join('')}
+                    </table>
+                </div>
+                ` : ''}
 
                 <div class="table-container">
                     <h3>💰 Pagamento Beneficiário - ${dados.beneficiario}</h3>
