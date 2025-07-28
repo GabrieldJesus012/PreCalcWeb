@@ -1752,7 +1752,7 @@
                     const secaoIR = `
                         <table class="ir-table">
                             <tr>
-                                <th colspan="2" class="section-header">📄 Imposto de Renda</th>
+                                <th colspan="2" class="section-header">📄 Imposto de Renda - MP Nª 1.294, de 11 de Abril de 2025</th>
                             </tr>
                             <tr>
                                 <th>Principal:</th>
@@ -1964,7 +1964,7 @@
                         </tr>
                         <tr>
                             <td>3. Juros de Mora</td>
-                            <td>Principal CNJ × ${(resultados.jurosmora * 100).toFixed(4)}%</td>
+                            <td>Principal CNJ × ${(resultados.jurosmora * 100).toFixed(4)}%*</td>
                             <td>R$ ${(dados.valorPrincipal * resultados.indicesCNJ * resultados.jurosmora).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         <tr>
@@ -1983,6 +1983,10 @@
                             <td><strong>R$ ${resultados.valorjurosatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
                         </tr>
                     </table>
+                </div>
+
+                <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
+                    *Juros calculados de forma simples, conforme art. 1º da Lei nº 12.703/2012; art. 1º, “F”, da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ  e SV nº 17 do STF.
                 </div>
 
                 <div class="table-container">
@@ -2027,8 +2031,6 @@
                             <th>Base de Cálculo</th>
                             <th>Percentual</th>
                             <th>Valor Bruto</th>
-                            <th>IR</th>
-                            <th>Valor Líquido</th>
                         </tr>
                         ${resultados.honorarios.map(h => `
                         <tr>
@@ -2037,8 +2039,6 @@
                             <td>R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             <td>${(h.percentual* 100).toFixed(2)}%</td>
                             <td>R$ ${h.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td>R$ ${h.ir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td>R$ ${h.valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         `).join('')}
                     </table>
@@ -2076,29 +2076,78 @@
                 
 
                 ${resultados.honorarios.length > 0 ? `
-                <div class="table-container">
-                    <h3>👩‍💼 Pagamento Advogados</h3>
-                    <table>
-                        <tr>
-                            <th>Nome Advogado</th>
-                            <th>Tipo</th>
-                            <th>Valor Devido</th>
-                            <th>IR</th>
-                            <th>Valor Líquido</th>
-                        </tr>
-                        ${resultados.honorarios.map(h => `
-                        <tr>
-                            <td>${h.nome}</td>
-                            <td>${h.tipo}</td>
-                            <td>R$ ${h.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td>R$ ${h.ir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td>R$ ${h.valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        `).join('')}
-                    </table>
-                </div>
+                    ${(() => {
+                        const pf = resultados.honorarios.filter(h => h.tipo === 'PF');
+                        const pj = resultados.honorarios.filter(h => h.tipo === 'PJ');
+                        return `
+                            ${pf.length > 0 ? `
+                            <div class="table-container">
+                                <h3>👩‍💼 Pagamento Advogados Pessoa Física</h3>
+                                <table>
+                                    <tr>
+                                        <th>Nome Advogado</th>
+                                        <th>Tipo</th>
+                                        <th>Valor Devido</th>
+                                        <th>IR - MP Nº 1.294, de 11 de Abril de 2025</th>
+                                        <th>Valor Líquido</th>
+                                    </tr>
+                                    ${pf.map(h => `
+                                    <tr>
+                                        <td>${h.nome}</td>
+                                        <td>${h.tipo}</td>
+                                        <td>R$ ${h.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td>R$ ${h.ir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td>R$ ${h.valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    </tr>
+                                    `).join('')}
+                                </table>
+                            </div>` : ''}
+
+                            ${pj.length > 0 ? `
+                            <div class="table-container">
+                                <h3>👨‍💼 Pagamento Advogados Pessoa Jurídica</h3>
+                                <table>
+                                    <tr>
+                                        <th>Nome Advogado</th>
+                                        <th>Tipo</th>
+                                        <th>Valor Devido</th>
+                                        <th>IR - Decreto 9.580, art. 714</th>
+                                        <th>Valor Líquido</th>
+                                    </tr>
+                                    ${pj.map(h => `
+                                    <tr>
+                                        <td>${h.nome}</td>
+                                        <td>${h.tipo}</td>
+                                        <td>R$ ${h.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td>R$ ${h.ir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td>R$ ${h.valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    </tr>
+                                    `).join('')}
+                                </table>
+                            </div>` : ''}
+                        `;
+                    })()}
                 ` : ''}
+                
+                <!-- Botão de Imprimir -->
+                <div class="print-button-container" style="text-align: center; margin: 20px 0; display: block;">
+                    <button onclick="window.print()" style="
+                        background-color: #343A40;
+                        color: white;
+                        border: none;
+                        padding: 12px 24px;
+                        font-size: 16px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                        transition: background-color 0.3s;
+                    " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#343A40'">
+                        🖨️ Imprimir / Salvar PDF
+                    </button>
+                </div>
             `;
+
+            
 
             container.innerHTML = html;
             showTab('tab7');

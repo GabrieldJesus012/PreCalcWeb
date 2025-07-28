@@ -822,6 +822,10 @@ tr:hover td {
     .form-group {
         border: 1px solid var(--primary-gold) !important;
     }
+
+    .print-button-container {
+        display: none !important;
+    }
     
     table {
         border: 1px solid var(--primary-navy) !important;
