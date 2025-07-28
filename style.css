@@ -746,6 +746,7 @@ tr:hover td {
         font-size: 12px !important;
         padding: 10px 12px !important;
     }
+
     
     /* Ajustes de layout para impressão */
     body {
@@ -797,6 +798,10 @@ tr:hover td {
         opacity: 0.8;
         line-height: 1 !important;
         display: inline-block !important;
+    }
+
+    th.section-header {
+        background-color: #568f58 !important;
     }
 
     /* Garantir que o conteúdo da tab7 fique na mesma página */
