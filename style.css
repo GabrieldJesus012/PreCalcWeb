@@ -642,7 +642,10 @@ tr:hover td {
 /* Regras para Impressão */
 @media print {
     /* Ocultar navegação das tabs na impressão */
-    .tabs-nav {
+    .tabs-nav,
+    .btn-container,
+    .section-title,
+    .print-button-container{
         display: none !important;
     }
     
@@ -756,9 +759,6 @@ tr:hover td {
         max-width: none !important;
     }
     
-    .btn-container {
-        display: none !important;
-    }
     
     /* Evitar quebras de página indesejadas */
     .form-group,
@@ -821,10 +821,6 @@ tr:hover td {
     /* Manter bordas e sombras importantes */
     .form-group {
         border: 1px solid var(--primary-gold) !important;
-    }
-
-    .print-button-container {
-        display: none !important;
     }
     
     table {
