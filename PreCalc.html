@@ -1678,52 +1678,123 @@
                 <td>${resultados.dadosSelic.indiceselic.toFixed(6)}</td>
                 <td>Total dos períodos aplicáveis</td>
             </tr>`;
-            
-            let secaoIR = '';
-            if (dados.incidenciaIR && resultados.rrapagamento !== 0) {
-                const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
-                secaoIR = `
-                <div class="table-container">
-                    <h3>📄 Cálculo do Imposto de Renda</h3>
-                    <table class="ir-table">
-                        <tr>
-                            <th>Principal:</th>
-                            <td>R$ ${resultados.principal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <th>Base IR sem H.Contratuais: (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
-                            <td>R$ ${resultados.baseIRHonora.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <th>Previdência:</th>
-                            <td>R$ ${resultados.valorPrevidencia.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <th>Base IR sem Previdência:</th>
-                            <td>R$ ${resultados.baseIRPrev.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <th>RRA Pagamento:</th>
-                            <td>${Math.round(resultados.rrapagamento)}</td>
-                        </tr>
-                        <tr>
-                            <th>Base IR por RRA:</th>
-                            <td>R$ ${resultados.baseIRRRA.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <th>Alíquota IR:</th>
-                            <td>${(resultados.aliquotaIR * 100).toFixed(4)}%</td>
-                        </tr>
-                        <tr>
-                            <th>Valor IR Mensal:</th>
-                            <td>R$ ${resultados.valorIRUnitario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr class="total-row">
-                            <th>Valor IR Devido Total:</th>
-                            <td><strong>R$ ${resultados.valorIR.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
-                        </tr>
-                    </table>
-                </div>`;
+
+            let secaoDeducoes = '';
+            // Verifica se tem previdência ou IR para mostrar a seção
+            const temPrevidencia = dados.incidenciaPrevidencia;
+            const temIR = dados.incidenciaIR && resultados.rrapagamento !== 0;
+            if (temPrevidencia || temIR) {
+                secaoDeducoes = '<div class="table-container"><h3>🏦 Deduções Legais</h3>';
+                // Seção Previdência
+                if (temPrevidencia) {
+                    let detalhesPrevidencia = '';
+                    
+                    if (dados.tipoPrevidencia === 'fixa') {
+                        detalhesPrevidencia = `
+                            <table class="ir-table">
+                                <tr>
+                                    <th colspan="2" class="section-header" >📄 Previdência - Alíquota Fixa</th>
+                                </tr>
+                                <tr>
+                                    <th>Principal:</th>
+                                    <td>R$ ${resultados.principal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                                <tr>
+                                    <th>Alíquota Fixa:</th>
+                                    <td>${(dados.aliquotaFixa * 100).toFixed(2)}%</td>
+                                </tr>
+                                <tr class="total-row">
+                                    <th>Valor Previdência:</th>
+                                    <td><strong>R$ ${resultados.valorPrevidencia.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+                                </tr>
+                            </table>`;
+                    } else {
+                        // Previdência INSS
+                        const base = resultados.rrapagamento === 0 ? resultados.principal : resultados.principal / resultados.rrapagamento;
+                        detalhesPrevidencia = `
+                            <table class="ir-table">
+                                <tr>
+                                    <th colspan="2" class="section-header" >📄 Previdência - INSS</th>
+                                </tr>
+                                <tr>
+                                    <th>Principal:</th>
+                                    <td>R$ ${resultados.principal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                                ${resultados.rrapagamento !== 0 ? `
+                                <tr>
+                                    <th>RRA Pagamento:</th>
+                                    <td>${Math.round(resultados.rrapagamento)}</td>
+                                </tr>
+                                <tr>
+                                    <th>Base INSS por RRA:</th>
+                                    <td>R$ ${base.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>` : ''}
+                                <tr>
+                                    <th>Alíquota Efetiva INSS:</th>
+                                    <td>${(resultados.aliquotaEfetiva * 100).toFixed(2)}%</td>
+                                </tr>
+                                <tr>
+                                    <th>Valor INSS por RRA:</th>
+                                    <td>R$ ${(resultados.valorPrevidencia / (resultados.rrapagamento || 1)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${base > 8157.41 ? '(TETO)' : ''}</td>
+                                </tr>
+                                <tr class="total-row">
+                                    <th>Valor Previdência:</th>
+                                    <td><strong>R$ ${resultados.valorPrevidencia.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+                                </tr>
+                            </table>`;
+                    }
+                    secaoDeducoes += detalhesPrevidencia;
+                }
+                // Seção IR
+                if (temIR) {
+                    const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+                    
+                    const secaoIR = `
+                        <table class="ir-table">
+                            <tr>
+                                <th colspan="2" class="section-header">📄 Imposto de Renda</th>
+                            </tr>
+                            <tr>
+                                <th>Principal:</th>
+                                <td>R$ ${resultados.principal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            <tr>
+                                <th>Base IR sem H.Contratuais (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
+                                <td>R$ ${resultados.baseIRHonora.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            ${temPrevidencia ? `
+                            <tr>
+                                <th>Previdência:</th>
+                                <td>R$ ${resultados.valorPrevidencia.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            <tr>
+                                <th>Base IR sem Previdência:</th>
+                                <td>R$ ${resultados.baseIRPrev.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>` : ''}
+                            <tr>
+                                <th>RRA Pagamento:</th>
+                                <td>${Math.round(resultados.rrapagamento)}</td>
+                            </tr>
+                            <tr>
+                                <th>Base IR por RRA:</th>
+                                <td>R$ ${resultados.baseIRRRA.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            <tr>
+                                <th>Alíquota IR:</th>
+                                <td>${(resultados.aliquotaIR * 100).toFixed(4)}%</td>
+                            </tr>
+                            <tr>
+                                <th>Valor IR Mensal:</th>
+                                <td>R$ ${resultados.valorIRUnitario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            <tr class="total-row">
+                                <th>Valor IR Devido Total:</th>
+                                <td><strong>R$ ${resultados.valorIR.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+                            </tr>
+                        </table>`;
+                    secaoDeducoes += secaoIR;
+                }
+                secaoDeducoes += '</div>';
             }
 
             let secaoRRA = '';
@@ -1947,6 +2018,7 @@
 
                 ${resultados.honorarios.length > 0 ? `
                 <div class="table-container">
+                    <h3>📄➖ Deduções Acessórias</h3>
                     <h3>👩‍💼 Advogados</h3>
                     <table>
                         <tr>
@@ -1973,6 +2045,8 @@
                 </div>
                 ` : ''}
 
+                ${secaoDeducoes}
+
                 <div class="table-container">
                     <h3>💰 Pagamento Beneficiário - ${dados.beneficiario}</h3>
                     <table>
@@ -1985,16 +2059,8 @@
                             <td>R$ ${(resultados.valorBase - resultados.valorHonorarioTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         <tr>
-                            <td>Alíquota Efetiva Previdência</td>
-                            <td>${(resultados.aliquotaEfetiva * 100).toFixed(2)}%</td>
-                        </tr>
-                        <tr>
                             <td>Previdência</td>
                             <td>R$ ${(resultados.valorPrevidencia).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <td>Alíquota IR</td>
-                            <td>${(resultados.aliquotaIR * 100).toFixed(2)}%</td>
                         </tr>
                         <tr>
                             <td>Imposto de Renda</td>
@@ -2007,7 +2073,7 @@
                     </table>
                 </div>
 
-                ${secaoIR}
+                
 
                 ${resultados.honorarios.length > 0 ? `
                 <div class="table-container">
