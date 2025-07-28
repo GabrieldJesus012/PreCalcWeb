@@ -777,7 +777,8 @@ tr:hover td {
         page-break-after: avoid !important;
     }
     
-    .header::before {
+    .header::before,
+    .header::after{
         display: none !important;
     }
     
@@ -800,9 +801,6 @@ tr:hover td {
         margin-left: 10px !important;
     }
     
-    .header::after {
-        display: none !important;
-    }
     
     /* Garantir que o conteúdo da tab7 fique na mesma página */
     #tab7 {
