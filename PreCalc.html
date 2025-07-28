@@ -1427,25 +1427,30 @@
         }
 
         async function calcularValores(dados) {
-            // Simulação simplificada dos cálculos
-            // Índices simulados (valores aproximados)
+            //datas
             const dataBase = criarDataBase(dados.mesBase, dados.anoBase);
             const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
+
+            //indices
             const indicesCNJ = obterIndiceCNJ(dados.mesBase, dados.anoBase); // CNJ
             const dadosSelic = await calcularSelic(dataBase, inicioGraca, fimGraca);// SELIC
             const indiceipca = await calcularIpca(dataBase, inicioGraca, fimGraca); // IPCA
             const jurosmora = calcularSomaJurosMora(dados.mesBase, dados.anoBase, dados.natureza, inicioGraca, fimGraca)/100;; // Juros de Mora
+
             // Cálculos básicos
             const indiceprinc = indicesCNJ * dadosSelic.indiceselic * indiceipca;
             const indicejur = dadosSelic.indiceselic * indiceipca;
 
+            //jurosmora
             const valorjurosmora = dados.valorPrincipal * indicesCNJ * jurosmora;
             const juros = valorjurosmora + (dados.valorJuros * indicesCNJ);
 
+            //valores atualizaco
             const valorprincatt = dados.valorPrincipal * indiceprinc;
             const valorjurosatt = juros * indicejur;
             const valortotatt = valorprincatt + valorjurosatt;
 
+            //percentuais
             const percentualprinc = valorprincatt / valortotatt;
             const percentualjur = valorjurosatt / valortotatt;
             const indiceTotal = valortotatt / (dados.valorPrincipal + dados.valorJuros);
@@ -1458,6 +1463,7 @@
                 valorBase = valortotatt * (1 - dados.percentualAcordo);
             }
 
+            //composição
             const principal = valorBase * percentualprinc;
             const jurosBase = valorBase * percentualjur;
 
@@ -1521,17 +1527,23 @@
             }
 
             return {
+                //atualizacao
                 valorprincatt,
                 valorjurosatt,
                 valortotatt,
+                //base
                 valorBase,
                 principal,
                 jurosBase,
+                //rra
                 rrapagamento,
+                //honorarios
                 honorarios,
                 valorHonorarioTotal,
+                //previdencia
                 valorPrevidencia,
                 aliquotaEfetiva,
+                //IR
                 valorIR,
                 aliquotaIR,
                 baseIRHonora,
@@ -1543,9 +1555,10 @@
                 dadosSelic,
                 indiceipca,
                 indiceTotal,
+                jurosmora,
+                //percentuais
                 percentualprinc,
-                percentualjur,
-                jurosmora
+                percentualjur
             };
         }
 
@@ -1572,7 +1585,6 @@
             else if (base <= 8157.41) return 1518 * 0.075 + 1275.88 * 0.09 + 1396.95 * 0.12 + (base - 4190.83) * 0.14;
             else return 951.63; // Teto
         }
-
 
         function exibirResultados(resultados, dados) {
             const container = document.getElementById('resultadosContent');
@@ -2084,8 +2096,6 @@
                     </button>
                 </div>
             `;
-
-            
 
             container.innerHTML = html;
             showTab('tab7');
