@@ -1590,6 +1590,31 @@
             const percentualjur = valorjurosatt / valortotatt;
             const indiceTotal = valortotatt / (dados.valorPrincipal + dados.valorJuros);
 
+             // Detalhamento financeiro
+            const detalhamento = calcularBeneficiarioPrinc(dados, valortotatt, percentualprinc, percentualjur);
+
+            return {
+                //atualizacao
+                valorprincatt,
+                valorjurosatt,
+                valortotatt,
+
+                //calculo do beneficiario principal
+                ...detalhamento,
+
+                // Índices para exibição
+                indicesCNJ,
+                dadosSelic,
+                indiceipca,
+                indiceTotal,
+                jurosmora,
+                //percentuais
+                percentualprinc,
+                percentualjur
+            };
+        }
+
+        function calcularBeneficiarioPrinc(dados, valortotatt, percentualprinc, percentualjur) {
             // Valor base conforme tipo de cálculo
             let valorBase = valortotatt;
             if (dados.tipoCalculo === 'preferencia' && dados.natureza === 'alimentar') {
@@ -1598,12 +1623,12 @@
                 valorBase = valortotatt * (1 - dados.percentualAcordo);
             }
 
-            //composição
+            // Composição
             const principal = valorBase * percentualprinc;
             const jurosBase = valorBase * percentualjur;
 
             // RRA
-            const rrapagamento = dados.rra !== 0 ? (valorBase * dados.rra) / valortotatt : 0;
+            const rrapagamento = dados.rra !== 0 ? Math.round((valorBase * dados.rra) / valortotatt) : 0;
 
             // Honorários
             let valorHonorarioTotal = 0;
@@ -1617,7 +1642,7 @@
                 }
                 const valorLiquido = valorBruto - ir;
                 valorHonorarioTotal += valorBruto;
-                
+
                 return {
                     ...adv,
                     valorBruto,
@@ -1634,7 +1659,6 @@
                     valorPrevidencia = principal * dados.aliquotaFixa;
                     aliquotaEfetiva = dados.aliquotaFixa;
                 } else {
-                    // Cálculo INSS simplificado
                     const base = rrapagamento === 0 ? principal : principal / rrapagamento;
                     const resultadoINSS = calcularINSS(base);
                     valorPrevidencia = resultadoINSS * (rrapagamento || 1);
@@ -1645,57 +1669,41 @@
             // IR sobre o beneficiário
             let valorIR = 0;
             let aliquotaIR = 0;
-            let baseIRHonora =0;
-            let baseIRPrev=0;
-            let baseIRRRA =0;
-            let valorIRUnitario =0;
+            let baseIRHonora = 0;
+            let baseIRPrev = 0;
+            let baseIRRRA = 0;
+            let valorIRUnitario = 0;
+
             if (dados.incidenciaIR && rrapagamento !== 0) {
                 const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
                 const baseIR = (principal - (principal * percentualTotalAdv) - valorPrevidencia) / rrapagamento;
                 valorIRUnitario = calcularIR(baseIR);
                 valorIR = valorIRUnitario * rrapagamento;
                 aliquotaIR = obterAliquotaIR(baseIR);
-                //para demonstrar
+
                 baseIRHonora = principal - (principal * percentualTotalAdv);
                 baseIRPrev = baseIRHonora - valorPrevidencia;
                 baseIRRRA = baseIRPrev / rrapagamento;
             }
 
             return {
-                //atualizacao
-                valorprincatt,
-                valorjurosatt,
-                valortotatt,
-                //base
                 valorBase,
                 principal,
                 jurosBase,
-                //rra
                 rrapagamento,
-                //honorarios
                 honorarios,
                 valorHonorarioTotal,
-                //previdencia
                 valorPrevidencia,
                 aliquotaEfetiva,
-                //IR
                 valorIR,
                 aliquotaIR,
                 baseIRHonora,
                 baseIRPrev,
                 baseIRRRA,
-                valorIRUnitario,
-                // Índices para exibição
-                indicesCNJ,
-                dadosSelic,
-                indiceipca,
-                indiceTotal,
-                jurosmora,
-                //percentuais
-                percentualprinc,
-                percentualjur
+                valorIRUnitario
             };
         }
+
 
         function calcularIR(valorBruto) {
             if (valorBruto <= 2428.80) return 0;
