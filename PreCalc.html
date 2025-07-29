@@ -1560,7 +1560,7 @@
             });
             return resumo;
         }
-
+        
         async function calcularValores(dados) {
             //datas
             const dataBase = criarDataBase(dados.mesBase, dados.anoBase);
@@ -1591,7 +1591,7 @@
             const indiceTotal = valortotatt / (dados.valorPrincipal + dados.valorJuros);
 
              // Detalhamento financeiro
-            const detalhamento = calcularBeneficiarioPrinc(dados, valortotatt, percentualprinc, percentualjur);
+            const detalhamento = calcularGlobal(dados, valortotatt, percentualprinc, percentualjur);
 
             return {
                 //atualizacao
@@ -1614,7 +1614,7 @@
             };
         }
 
-        function calcularBeneficiarioPrinc(dados, valortotatt, percentualprinc, percentualjur) {
+        function calcularGlobal(dados, valortotatt, percentualprinc, percentualjur) {
             // Valor base conforme tipo de cálculo
             let valorBase = valortotatt;
             if (dados.tipoCalculo === 'preferencia' && dados.natureza === 'alimentar') {
