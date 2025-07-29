@@ -486,6 +486,29 @@
             atualizarOpcoesCessao();
         });
 
+        // Função para atualizar campos de preferência quando o tipo de cálculo muda
+        document.getElementById('tipoCalculo').addEventListener('change', function() {
+            const tipoCalculo = this.value;
+            const quantHerdeiros = parseInt(document.getElementById('quantHerdeiros').value) || 0;
+            if (quantHerdeiros > 0) {
+                // Recriar os herdeiros para mostrar/ocultar campos de preferência
+                document.getElementById('quantHerdeiros').dispatchEvent(new Event('change'));
+            }
+        });
+
+        // Função auxiliar para verificar se herdeiro tem preferência
+        function herdeirTemPreferencia(nomeHerdeiro) {
+            const quantHerdeiros = parseInt(document.getElementById('quantHerdeiros').value) || 0;
+            for (let i = 0; i < quantHerdeiros; i++) {
+                const nomeElement = document.getElementById(`herdNome${i}`);
+                const preferenciaElement = document.getElementById(`herdPreferencia${i}`);
+                if (nomeElement && nomeElement.value === nomeHerdeiro) {
+                    return preferenciaElement ? preferenciaElement.value === 'sim' : false;
+                }
+            }
+            return false;
+        }
+
         document.getElementById('quantCessoes').addEventListener('change', function() {
             const quant = parseInt(this.value);
             criarCessoes(quant);
