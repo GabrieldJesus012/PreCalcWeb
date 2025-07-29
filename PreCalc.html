@@ -1506,8 +1506,59 @@
                     }
                 }
             }
-            
+
             return dados;
+        }
+
+        function validarDados(dados) {
+            const erros = [];
+            
+            // Validar soma dos percentuais dos herdeiros
+            if (dados.herdeiros.length > 0) {
+                const somaHerdeiros = dados.herdeiros.reduce((sum, h) => sum + h.percentual, 0);
+                if (Math.abs(somaHerdeiros - 1.0) > 0.001) { // Tolerância para arredondamento
+                    erros.push(`A soma dos percentuais dos herdeiros deve ser 100% (atual: ${(somaHerdeiros * 100).toFixed(1)}%)`);
+                }
+            }
+            
+            // Validar cessões
+            dados.cessoes.forEach((cessao, i) => {
+                if (cessao.percentual > 1.0) {
+                    erros.push(`Cessão ${i + 1}: Percentual não pode ser maior que 100%`);
+                }
+                
+                // Validar se o cedente existe
+                let cedenteExiste = false;
+                if (cessao.tipo === 'cessaobenPrincipal') {
+                    cedenteExiste = cessao.cedente === dados.beneficiario;
+                } else if (cessao.tipo === 'cessaoAdv') {
+                    cedenteExiste = dados.advogados.some(adv => adv.nome === cessao.cedente);
+                } else if (cessao.tipo === 'cessaoHerdeiro') {
+                    cedenteExiste = dados.herdeiros.some(h => h.nome === cessao.cedente);
+                }
+                
+                if (!cedenteExiste) {
+                    erros.push(`Cessão ${i + 1}: Cedente "${cessao.cedente}" não encontrado`);
+                }
+            });
+            
+            return erros;
+        }
+
+        function obterResumoCessoes(dados) {
+            if (!dados.cessoes || dados.cessoes.length === 0) {
+                return "Nenhuma cessão cadastrada";
+            }
+            let resumo = "Cessões cadastradas:\n";
+            dados.cessoes.forEach((cessao, i) => {
+                const tipoDesc = {
+                    'cessaobenPrincipal': 'Beneficiário Principal',
+                    'cessaoAdv': 'Advogado',
+                    'cessaoHerdeiro': 'Herdeiro'
+                };
+                resumo += `${i + 1}. ${cessao.cedente} (${tipoDesc[cessao.tipo]}) cede ${(cessao.percentual * 100).toFixed(1)}% para ${cessao.cessionario}\n`;
+            });
+            return resumo;
         }
 
         async function calcularValores(dados) {
