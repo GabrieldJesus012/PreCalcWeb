@@ -1446,7 +1446,11 @@
                 tipoPrevidencia: document.getElementById('tipoPrevidencia').value,
                 aliquotaFixa: parseFloat(document.getElementById('aliquotaFixa').value) || 0,
                 quantAdvogados: parseInt(document.getElementById('quantAdvogados').value) || 0,
-                advogados: []
+                quantHerdeiros: parseInt(document.getElementById('quantHerdeiros').value) || 0,
+                quantCessoes: parseInt(document.getElementById('quantCessoes').value) || 0,
+                advogados: [],
+                herdeiros: [],
+                cessoes: []
             };
             dados.valorTotal = dados.valorPrincipal + dados.valorJuros;
             // Dados específicos por tipo de cálculo
@@ -1464,6 +1468,45 @@
                     percentual: parseFloat(document.getElementById(`advPercentual${i}`).value) || 0
                 });
             }
+            // Coletar dados dos herdeiros
+            for (let i = 0; i < dados.quantHerdeiros; i++) {
+                const nomeElement = document.getElementById(`herdNome${i}`);
+                const percentualElement = document.getElementById(`herdPercentual${i}`);
+                const preferenciaElement = document.getElementById(`herdPreferencia${i}`);
+                
+                if (nomeElement && percentualElement) {
+                    dados.herdeiros.push({
+                        nome: nomeElement.value || `Herdeiro ${i + 1}`,
+                        percentual: parseFloat(percentualElement.value) || 0,
+                        temPreferencia: preferenciaElement ? preferenciaElement.value === 'sim' : false
+                    });
+                }
+            }
+            // Coletar dados das cessões
+            for (let i = 0; i < dados.quantCessoes; i++) {
+                const tipoElement = document.getElementById(`cessaoTipo${i}`);
+                const cedenteElement = document.getElementById(`cedenteNome${i}`);
+                const cessionarioElement = document.getElementById(`cessionarioNome${i}`);
+                const percentualElement = document.getElementById(`cessaoPercentual${i}`);
+                
+                if (tipoElement && cedenteElement && cessionarioElement && percentualElement) {
+                    const tipo = tipoElement.value;
+                    const cedente = cedenteElement.value;
+                    const cessionario = cessionarioElement.value || `Cessionário ${i + 1}`;
+                    const percentual = parseFloat(percentualElement.value) || 0;
+                    
+                    // Só adicionar se todos os campos estão preenchidos
+                    if (tipo && cedente && percentual > 0) {
+                        dados.cessoes.push({
+                            tipo: tipo,
+                            cedente: cedente,
+                            cessionario: cessionario,
+                            percentual: percentual
+                        });
+                    }
+                }
+            }
+            
             return dados;
         }
 
