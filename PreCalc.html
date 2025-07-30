@@ -1909,6 +1909,34 @@
                 `;
             }
 
+            // Gerar seção de honorários (valores brutos originais)
+            let secaoHonorariosOriginal = '';
+            if (resultados.honorarios && resultados.honorarios.length > 0) {
+                secaoHonorariosOriginal = `
+                <div class="table-container">
+                    <h3>📄➖ Deduções Acessórias</h3>
+                    <h3>👩‍💼 Advogados</h3>
+                    <table>
+                        <tr>
+                            <th>Nome Advogado</th>
+                            <th>PF/PJ</th>
+                            <th>Base de Cálculo</th>
+                            <th>Percentual</th>
+                            <th>Valor Bruto</th>
+                        </tr>
+                        ${resultados.honorarios.map(h => `
+                        <tr>
+                            <td>${h.nome}</td>
+                            <td>${h.tipo}</td>
+                            <td>R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td>${(h.percentual* 100).toFixed(2)}%</td>
+                            <td>R$ ${h.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                        `).join('')}
+                    </table>
+                </div>`;
+            }
+
             const html = `
                 <!-- Cabeçalho com informações do processo -->
 
@@ -2122,30 +2150,7 @@
                     </table>
                 </div>
 
-                ${resultados.honorarios.length > 0 ? `
-                <div class="table-container">
-                    <h3>📄➖ Deduções Acessórias</h3>
-                    <h3>👩‍💼 Advogados</h3>
-                    <table>
-                        <tr>
-                            <th>Nome Advogado</th>
-                            <th>PF/PJ</th>
-                            <th>Base de Cálculo</th>
-                            <th>Percentual</th>
-                            <th>Valor Bruto</th>
-                        </tr>
-                        ${resultados.honorarios.map(h => `
-                        <tr>
-                            <td>${h.nome}</td>
-                            <td>${h.tipo}</td>
-                            <td>R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td>${(h.percentual* 100).toFixed(2)}%</td>
-                            <td>R$ ${h.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        `).join('')}
-                    </table>
-                </div>
-                ` : ''}
+                ${secaoHonorariosOriginal}
 
                 ${secaoDeducoes}
 
