@@ -1643,12 +1643,38 @@
             let valorHonorarioTotal = 0;
             const honorarios = dados.advogados.map(adv => {
                 const valorBruto = valorBase * adv.percentual;
+
+                // Verificar se o advogado fez cessão
+                const cessaoAdv = dados.cessoes?.find(cessao => 
+                    cessao.tipo === 'cessaoAdv' && cessao.cedente === adv.nome
+                );
+
+                let percentualAdvogado = 1.0; // 100% se não há cessão
+                let percentualCessionarioAdv = 0.0;
+
+                if (cessaoAdv) {
+                    percentualCessionarioAdv = cessaoAdv.percentual;
+                    percentualAdvogado = 1.0 - percentualCessionarioAdv;
+                }
+
                 let ir = 0;
                 if (adv.tipo === 'PF') {
                     ir = calcularIR(valorBruto);
                 } else {
                     ir = valorBruto * 0.015;
                 }
+
+                // IR proporcional do advogado e do cessionário
+                const irAdvogado = ir * percentualAdvogado;
+                const irCessionarioAdv = ir * percentualCessionarioAdv;
+
+                // Valores líquidos
+                const valorBrutoAdvogado = valorBruto * percentualAdvogado;
+                const valorLiquidoAdvogado = valorBrutoAdvogado - irAdvogado;
+                
+                const valorBrutoCessionario = valorBruto * percentualCessionarioAdv;
+                const valorLiquidoCessionario = valorBrutoCessionario - irCessionarioAdv;
+
                 const valorLiquido = valorBruto - ir;
                 valorHonorarioTotal += valorBruto;
 
@@ -1656,7 +1682,23 @@
                     ...adv,
                     valorBruto,
                     ir,
-                    valorLiquido
+                    valorLiquido,
+
+                    // Dados do advogado
+                    percentualAdvogado,
+                    valorBrutoAdvogado,
+                    irAdvogado,
+                    valorLiquidoAdvogado,
+                    
+                    // Dados do cessionário (se houver)
+                    percentualCessionarioAdv,
+                    valorBrutoCessionario,
+                    irCessionarioAdv,
+                    valorLiquidoCessionario,
+                    
+                    // Referência à cessão
+                    cessao: cessaoAdv || null,
+                    nomeCessionario: cessaoAdv ? cessaoAdv.cessionario : null
                 };
             });
 
