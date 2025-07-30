@@ -164,7 +164,7 @@
                         <h3>👩‍💼 Honorários Contratuais</h3>
                         <div class="input-group">
                             <label>Quantidade de Advogados:</label>
-                            <input type="number" id="quantAdvogados" value="0" min="0" onchange="gerarCamposAdvogados()">
+                            <input type="number" id="quantAdvogados" value="0" min="0">
                         </div>
                         <div id="advogadosContainer"></div>
                     </div>
@@ -192,7 +192,7 @@
                         <h3>🔄 Cessões</h3>
                         <div class="input-group">
                             <label>Quantidade de Cessões:</label>
-                            <input type="number" id="quantCessoes" value="0" min="0" onchange="gerarCamposCessao()">
+                            <input type="number" id="quantCessoes" value="0" min="0">
                         </div>
                         <div id="cessaoContainer"></div>
                     </div>
@@ -1423,6 +1423,14 @@
             // Coletar dados do formulário
             const dados = coletarDados();
             // Simular cálculos (versão simplificada dos cálculos do Python)
+
+            // Validar dados antes dos cálculos
+            const erros = validarDados(dados);
+            if (erros.length > 0) {
+                alert("Erros encontrados:\n" + erros.join("\n"));
+                return; // Para a execução se houver erros
+            }
+
             const resultados = await calcularValores(dados);
             // Exibir resultados
             exibirResultados(resultados, dados);
@@ -1496,7 +1504,7 @@
                     const percentual = parseFloat(percentualElement.value) || 0;
                     
                     // Só adicionar se todos os campos estão preenchidos
-                    if (tipo && cedente && percentual > 0) {
+                    if (tipo && cedente) {
                         dados.cessoes.push({
                             tipo: tipo,
                             cedente: cedente,
@@ -1512,7 +1520,6 @@
 
         function validarDados(dados) {
             const erros = [];
-            
             // Validar soma dos percentuais dos herdeiros
             if (dados.herdeiros.length > 0) {
                 const somaHerdeiros = dados.herdeiros.reduce((sum, h) => sum + h.percentual, 0);
@@ -1530,10 +1537,12 @@
                 // Validar se o cedente existe
                 let cedenteExiste = false;
                 if (cessao.tipo === 'cessaobenPrincipal') {
-                    cedenteExiste = cessao.cedente === dados.beneficiario;
+                    const isBeneficiario = cessao.cedente.trim() === dados.beneficiario.trim();
+                    const isBeneficiarioPadrao = cessao.cedente.trim() === 'Beneficiário Principal';
+                    cedenteExiste = isBeneficiario || isBeneficiarioPadrao;
                 } else if (cessao.tipo === 'cessaoAdv') {
                     cedenteExiste = dados.advogados.some(adv => adv.nome === cessao.cedente);
-                } else if (cessao.tipo === 'cessaoHerdeiro') {
+                }else if (cessao.tipo === 'cessaoHerdeiro' || cessao.tipo === 'cessaoherdeiro') {
                     cedenteExiste = dados.herdeiros.some(h => h.nome === cessao.cedente);
                 }
                 
