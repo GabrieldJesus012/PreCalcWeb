@@ -1338,11 +1338,22 @@
                         periodoAntesGraca = `${primeiraData} a ${ultimaData}`;
                     }
                 }
-                // Aplica SELIC após o fim da graça
-                const dadosAposGraca = dadosselic.filter(item => {
-                    const dataItem = strParaData(item.data);
-                    return dataItem > fimGraca;
-                });
+                // CORREÇÃO: Aplica SELIC após o fim da graça, MAS SÓ A PARTIR DA DATA BASE
+                let dadosAposGraca = [];
+                if (dataBase > fimGraca) {
+                    // Se dataBase é após a graça, aplica SELIC da dataBase até hoje
+                    dadosAposGraca = dadosselic.filter(item => {
+                        const dataItem = strParaData(item.data);
+                        return dataItem >= dataBase; // A partir da data base
+                    });
+                } else {
+                    // Se dataBase é antes/durante a graça, aplica SELIC após a graça até hoje
+                    dadosAposGraca = dadosselic.filter(item => {
+                        const dataItem = strParaData(item.data);
+                        return dataItem > fimGraca; // Após o fim da graça
+                    });
+                }
+
                 const selicAposGraca = dadosAposGraca.map(item => parseFloat(item.valor.replace(',', '.')));
                 // Definir período após a graça
                 let periodoAposGraca = '';
@@ -1395,23 +1406,36 @@
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
                 const dadosipca = await response.json();
+                
                 // Função para converter string de data da API em Date
                 function strParaData(dataStr) {
                     const [dia, mes, ano] = dataStr.split('/');
                     return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
                 }
-                // Aplica IPCA durante a graça
-                const ipcaGraca = dadosipca
-                    .filter(item => {
-                        const dataItem = strParaData(item.data);
-                        return inicioGraca <= dataItem && dataItem <= fimGraca;
-                    })
-                    .map(item => parseFloat(item.valor.replace(',', '.')));
+                
+                // CORREÇÃO: IPCA só deve ser aplicado DURANTE o período de graça
+                // E APENAS se a data base estiver ANTES ou DURANTE a graça
+                let ipcaGraca = [];
+                
+                if (dataBase <= fimGraca) {
+                    // Determina o início efetivo: o maior entre dataBase e inicioGraca
+                    const inicioEfetivo = dataBase > inicioGraca ? dataBase : inicioGraca;
+                    
+                    ipcaGraca = dadosipca
+                        .filter(item => {
+                            const dataItem = strParaData(item.data);
+                            return inicioEfetivo <= dataItem && dataItem <= fimGraca;
+                        })
+                        .map(item => parseFloat(item.valor.replace(',', '.')));
+                }
+                // Se dataBase > fimGraca, não aplica IPCA (ipcaGraca fica vazio)
+                
                 // Fator acumulado IPCA
                 let indiceipca = 1.0;
                 for (const valor of ipcaGraca) {
                     indiceipca *= 1 + (valor / 100);
                 }
+                
                 return indiceipca;
             } catch (error) {
                 console.error(`Erro ao obter dados do IPCA: ${error}`);
