@@ -1700,7 +1700,15 @@
                 const valorLiquidoCessionario = valorBrutoCessionario - irCessionarioAdv;
 
                 const valorLiquido = valorBruto - ir;
-                valorHonorarioTotal += valorBruto;
+
+                // Ajuste para o valorHonorarioTotal considerando cessão em preferência
+                let valorParaDescontar = valorBruto;
+                if (cessaoAdv && dados.tipoCalculo === 'preferencia' && valorBase < valortotatt) {
+                    // Se há cessão e é preferência parcial, desconta apenas a parte do advogado
+                    valorParaDescontar = valorBrutoAdvogado;
+                }
+                
+                valorHonorarioTotal += valorParaDescontar;
 
                 return {
                     ...adv,
