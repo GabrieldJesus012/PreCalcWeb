@@ -1769,6 +1769,98 @@
                 baseIRRRA = baseIRPrev / rrapagamento;
             }
 
+            // ========== CESSÕES DO BENEFICIÁRIO PRINCIPAL ==========
+            // Valor bruto do beneficiário (apenas descontando honorários)
+            const valorBeneficiarioBruto = valorBase - valorHonorarioTotal;
+
+            // Verificar cessões do beneficiário principal
+            const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
+                cessao.tipo === 'cessaobenPrincipal'
+            ) || [];
+
+            let valorCessoesBeneficiario = 0;
+            let cessoesBeneficiarioCalculadas = [];
+            let percentualBeneficiarioFinal = 1.0;
+            let valorBeneficiarioAposCessoes = valorBeneficiarioBruto;
+            let valorPrevidenciaBeneficiario = valorPrevidencia;
+            let valorIRBeneficiario = valorIR;
+            let valorBeneficiarioFinal = valorBeneficiarioBruto - valorPrevidencia - valorIR;
+            let cessoesBeneficiarioFinais = [];
+
+            const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
+            if (cessoesBeneficiario.length > 0) {
+                percentualBeneficiarioFinal = 1.0 - cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
+                
+                if (isPreferenciasParcial) {
+                    // Calcular a parte do beneficiário na dívida total
+                    const parteBeneficiarioNaDividaTotal = (valortotatt - (valortotatt * dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0))) * percentualBeneficiarioFinal;
+                    const maxQueBeneficiarioPodeReceber = Math.min(parteBeneficiarioNaDividaTotal, valorBeneficiarioBruto);
+                    cessoesBeneficiarioCalculadas = cessoesBeneficiario.map(cessao => {
+                        const parteCessionarioNaDividaTotal = (valortotatt - (valortotatt * dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0))) * cessao.percentual;
+                        return {
+                            ...cessao,
+                            valorBruto: 0,
+                            valorSaldoDevedor: parteCessionarioNaDividaTotal,
+                            observacao: 'Aguarda pagamento - sem direito à preferência'
+                        };
+                    });
+                    cessoesBeneficiarioFinais = cessoesBeneficiarioCalculadas.map(cessao => ({
+                        ...cessao,
+                        previdenciaCessao: 0,
+                        irCessao: 0,
+                        valorLiquido: 0
+                    }));
+
+                    valorCessoesBeneficiario = 0; 
+                    valorBeneficiarioAposCessoes = maxQueBeneficiarioPodeReceber;
+                    
+                    // Calcular proporção do que o beneficiário efetivamente recebe
+                    const proporcaoRecebida = maxQueBeneficiarioPodeReceber / parteBeneficiarioNaDividaTotal;
+                    
+                    // Previdência e IR aplicados proporcionalmente só sobre o que o beneficiário recebe
+                    valorPrevidenciaBeneficiario =  (valorPrevidencia * percentualBeneficiarioFinal) * proporcaoRecebida;
+                    valorIRBeneficiario = (valorIR * percentualBeneficiarioFinal) * proporcaoRecebida;
+                    valorBeneficiarioFinal = maxQueBeneficiarioPodeReceber - valorPrevidenciaBeneficiario - valorIRBeneficiario;
+                    
+                } else {
+                    // PREFERÊNCIA TOTAL OU OUTROS TIPOS: Aplica cessões normalmente
+                    
+                    // Calcular cessões do beneficiário
+                    cessoesBeneficiarioCalculadas = cessoesBeneficiario.map(cessao => {
+                        const valorBrutoCessao = valorBeneficiarioBruto * cessao.percentual;
+                        valorCessoesBeneficiario += valorBrutoCessao;
+                        
+                        return {
+                            ...cessao,
+                            valorBruto: valorBrutoCessao
+                        };
+                    });
+                    
+                    // Valor do beneficiário após cessões (mas ainda bruto)
+                    valorBeneficiarioAposCessoes = valorBeneficiarioBruto * percentualBeneficiarioFinal;
+                    
+                    // Aplicar previdência e IR proporcionalmente
+                    valorPrevidenciaBeneficiario = valorPrevidencia * percentualBeneficiarioFinal;
+                    valorIRBeneficiario = valorIR * percentualBeneficiarioFinal;
+
+                    // Valor líquido final do beneficiário principal
+                    valorBeneficiarioFinal = valorBeneficiarioAposCessoes - valorPrevidenciaBeneficiario - valorIRBeneficiario;
+                    // Atualizar o cálculo das cessões com os descontos proporcionais
+                    cessoesBeneficiarioFinais = cessoesBeneficiarioCalculadas.map(cessao => {
+                        const previdenciaCessao = valorPrevidencia * cessao.percentual;
+                        const irCessao = valorIR * cessao.percentual;
+                        const valorLiquidoCessao = cessao.valorBruto - previdenciaCessao - irCessao;
+                        
+                        return {
+                            ...cessao,
+                            previdenciaCessao,
+                            irCessao,
+                            valorLiquido: valorLiquidoCessao
+                        };
+                    });
+                }
+            }
+
             return {
                 valorBase,
                 principal,
@@ -1783,7 +1875,18 @@
                 baseIRHonora,
                 baseIRPrev,
                 baseIRRRA,
-                valorIRUnitario
+                valorIRUnitario,
+
+                valorBeneficiarioBruto,         // Valor antes de previdência/IR/cessões
+                valorCessoesBeneficiario,       // Total bruto cedido
+                percentualBeneficiarioFinal,    // % que fica com o beneficiário
+                valorBeneficiarioAposCessoes,   // Valor após cessões (mas ainda bruto)
+                valorPrevidenciaBeneficiario,   // Previdência só da parte do beneficiário
+                valorIRBeneficiario,            // IR só da parte do beneficiário
+                valorBeneficiarioFinal,         // Valor líquido final do beneficiário
+                cessoesBeneficiarioCalculadas,  // Array simples das cessões
+                cessoesBeneficiarioFinais,      // Array com detalhes completos (IR, previdência)
+                isPreferenciasParcial           // Flag para controle (opcional)
             };
         }
 
@@ -2012,7 +2115,81 @@
             }
 
             // Gerar seção de cessões
-            let secaoCessoes = '';
+            let secaoCessoesBeneficiario = '';
+            if (resultados.cessoesBeneficiarioCalculadas && resultados.cessoesBeneficiarioCalculadas.length > 0) {
+                
+                secaoCessoesBeneficiario = `
+                <div class="table-container">
+                    <h3>🔄 Cessões do Beneficiário Principal</h3>
+                    ${resultados.cessoesBeneficiarioCalculadas.map(cessao => {
+                        // Usar a dívida total atualizada
+                        const dividaTotalAtualizada = resultados.valortotatt; 
+                        const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+                        const dividaSemHonorarios = dividaTotalAtualizada * (1 - percentualTotalAdv);
+                        
+                        // Calcular partes corretas
+                        const parteBeneficiario = dividaSemHonorarios * resultados.percentualBeneficiarioFinal;
+                        const parteCessionario = dividaSemHonorarios * cessao.percentual;
+                        
+                        // Verificar se é preferência parcial ou não
+                        const beneficiarioRecebe = resultados.valorBeneficiarioAposCessoes;
+                        const cessionarioRecebe = resultados.isPreferenciasParcial ? 0 : cessao.valorBruto;
+                        const beneficiarioAguarda = Math.max(0, parteBeneficiario - beneficiarioRecebe);
+                        const cessionarioAguarda = resultados.isPreferenciasParcial ? parteCessionario : 0;
+                        
+                        return `
+                        <div style="margin-bottom: 20px;">
+                            <h4>Cessão do Beneficiário: ${dados.beneficiario}</h4>
+                            <p><strong>Tipo de Cálculo:</strong> ${dados.tipoCalculo} ${dados.tipoCalculo === 'preferencia' ? '(preferencial)' : '(ordem comum)'}</p>
+                            <p><strong>Dívida Total:</strong> R$ ${dividaTotalAtualizada.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                            <p><strong>Percentual Cedido:</strong> ${(cessao.percentual * 100).toFixed(2)}% para ${cessao.cessionario}</p>
+                            
+                            <table>
+                                <tr>
+                                    <th>Beneficiário</th>
+                                    <th>Percentual</th>
+                                    <th>Valor Total</th>
+                                    <th>Recebe Agora</th>
+                                    <th>Aguarda Saldo</th>
+                                </tr>
+                                <tr>
+                                    <td>${dados.beneficiario}</td>
+                                    <td>${(resultados.percentualBeneficiarioFinal * 100).toFixed(2)}%</td>
+                                    <td>R$ ${parteBeneficiario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>R$ ${beneficiarioRecebe.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>R$ ${beneficiarioAguarda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                                <tr>
+                                    <td>${cessao.cessionario}</td>
+                                    <td>${(cessao.percentual * 100).toFixed(2)}%</td>
+                                    <td>R$ ${parteCessionario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>R$ ${cessionarioRecebe.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>R$ ${cessionarioAguarda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    `}).join('')}
+                    
+                    ${resultados.isPreferenciasParcial ? `
+                    <div class="warning-box" style="margin-top: 10px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
+                        <strong>ℹ️ Preferência Parcial - Resumo:</strong><br>
+                        • <strong>Teto da preferência:</strong> R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br>
+                        • <strong>Pagamento imediato:</strong> R$ ${resultados.valorBeneficiarioAposCessoes.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (só para o beneficiário)<br>
+                        • <strong>Saldo devedor total:</strong> R$ ${(
+                            resultados.cessoesBeneficiarioCalculadas.reduce((total, cessao) => {
+                                const dividaSemHon = resultados.valortotatt * (1 - dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0));
+                                const parteBenef = dividaSemHon * resultados.percentualBeneficiarioFinal;
+                                const parteCess = dividaSemHon * cessao.percentual;
+                                const benefAguarda = Math.max(0, parteBenef - resultados.valorBeneficiarioAposCessoes);
+                                return total + benefAguarda + parteCess;
+                            }, 0)
+                        ).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                    ` : ''}
+                </div>`;
+            }
+
+            let secaoCessoesAdv = '';
             const advogadosComCessao = resultados.honorarios.filter(adv => 
                 adv.cessao !== null && 
                 adv.cessao !== undefined && 
@@ -2020,7 +2197,7 @@
                 adv.nomeCessionario !== undefined
             );
             if (advogadosComCessao.length > 0) {
-                secaoCessoes = `
+                secaoCessoesAdv = `
                 <div class="table-container">
                     <h3>🔄 Cessões de Honorários</h3>
                     ${advogadosComCessao.map(adv => `
@@ -2061,19 +2238,19 @@
                     </tr>
                     <tr>
                         <td>Valor Devido</td>
-                        <td>R$ ${(resultados.valorBase - resultados.valorHonorarioTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>R$ ${(resultados.valorBeneficiarioAposCessoes).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                     <tr>
                         <td>Previdência</td>
-                        <td>R$ ${(resultados.valorPrevidencia).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>R$ ${(resultados.valorPrevidenciaBeneficiario).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                     <tr>
                         <td>Imposto de Renda</td>
-                        <td>R$ ${(resultados.valorIR).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>R$ ${(resultados.valorIRBeneficiario).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                     <tr class="highlight">
                         <td>Valor Líquido</td>
-                        <td>R$ ${(resultados.valorBase - resultados.valorHonorarioTotal - resultados.valorPrevidencia - resultados.valorIR).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>R$ ${(resultados.valorBeneficiarioFinal).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                 </table>
             </div>
@@ -2411,7 +2588,9 @@
 
                 ${secaoHonorariosOriginal}
 
-                ${secaoCessoes}
+                ${secaoCessoesBeneficiario}
+                
+                ${secaoCessoesAdv}
 
                 ${secaoDeducoes}
 
