@@ -2270,33 +2270,36 @@
                 </div>`;
             }
 
-            let secaoPagamentoBeneficiario = `
-            <div class="table-container">
-                <h3>💰 Pagamento Beneficiário - ${dados.beneficiario}</h3>
-                <table>
-                    <tr>
-                        <th>Descrição</th>
-                        <th>Valor</th>
-                    </tr>
-                    <tr>
-                        <td>Valor Devido</td>
-                        <td>R$ ${(resultados.valorBeneficiarioAposCessoes).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    </tr>
-                    <tr>
-                        <td>Previdência</td>
-                        <td>R$ ${(resultados.valorPrevidenciaBeneficiario).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    </tr>
-                    <tr>
-                        <td>Imposto de Renda</td>
-                        <td>R$ ${(resultados.valorIRBeneficiario).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    </tr>
-                    <tr class="highlight">
-                        <td>Valor Líquido</td>
-                        <td>R$ ${(resultados.valorBeneficiarioFinal).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    </tr>
-                </table>
-            </div>
-            `;
+            let secaoPagamentoBeneficiario = '';
+            if (resultados.valorBeneficiarioFinal > 0) {
+                secaoPagamentoBeneficiario = `
+                <div class="table-container">
+                    <h3>💰 Pagamento Beneficiário - ${dados.beneficiario}</h3>
+                    <table>
+                        <tr>
+                            <th>Descrição</th>
+                            <th>Valor</th>
+                        </tr>
+                        <tr>
+                            <td>Valor Devido</td>
+                            <td>R$ ${(resultados.valorBeneficiarioAposCessoes).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                        <tr>
+                            <td>Previdência</td>
+                            <td>R$ ${(resultados.valorPrevidenciaBeneficiario).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                        <tr>
+                            <td>Imposto de Renda</td>
+                            <td>R$ ${(resultados.valorIRBeneficiario).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                        <tr class="highlight">
+                            <td>Valor Líquido</td>
+                            <td>R$ ${(resultados.valorBeneficiarioFinal).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                    </table>
+                </div>
+                `;
+            }
 
             let secaoPagamentoAdvogados = '';
             const advogadosParaPagar = resultados.honorarios.filter(adv => adv.percentualAdvogado > 0 && adv.valorBrutoAdvogado > 0);
