@@ -2011,6 +2011,191 @@
                 </div>`;
             }
 
+            // Gerar seção de cessões
+            let secaoCessoes = '';
+            const advogadosComCessao = resultados.honorarios.filter(adv => 
+                adv.cessao !== null && 
+                adv.cessao !== undefined && 
+                adv.nomeCessionario !== null && 
+                adv.nomeCessionario !== undefined
+            );
+            if (advogadosComCessao.length > 0) {
+                secaoCessoes = `
+                <div class="table-container">
+                    <h3>🔄 Cessões de Honorários</h3>
+                    ${advogadosComCessao.map(adv => `
+                        <div style="margin-bottom: 20px;">
+                            <h4>Cessão de Honorários: ${adv.nome}</h4>
+                            <p><strong>Valor Original do Honorário:</strong> R$ ${adv.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                            <p><strong>Percentual Cedido:</strong> ${(adv.percentualCessionarioAdv * 100).toFixed(2)}% para ${adv.nomeCessionario}</p>
+                            
+                            <table>
+                                <tr>
+                                    <th>Recebedor</th>
+                                    <th>Percentual</th>
+                                    <th>Valor Bruto</th>
+                                </tr>
+                                <tr>
+                                    <td>${adv.nome} (fica com)</td>
+                                    <td>${(adv.percentualAdvogado * 100).toFixed(2)}%</td>
+                                    <td>R$ ${adv.valorBrutoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                                <tr>
+                                    <td>${adv.nomeCessionario} (recebe por cessão)</td>
+                                    <td>${(adv.percentualCessionarioAdv * 100).toFixed(2)}%</td>
+                                    <td>R$ ${adv.valorBrutoCessionario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    `).join('')}
+                </div>`;
+            }
+
+            let secaoPagamentoBeneficiario = `
+            <div class="table-container">
+                <h3>💰 Pagamento Beneficiário - ${dados.beneficiario}</h3>
+                <table>
+                    <tr>
+                        <th>Descrição</th>
+                        <th>Valor</th>
+                    </tr>
+                    <tr>
+                        <td>Valor Devido</td>
+                        <td>R$ ${(resultados.valorBase - resultados.valorHonorarioTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                    <tr>
+                        <td>Previdência</td>
+                        <td>R$ ${(resultados.valorPrevidencia).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                    <tr>
+                        <td>Imposto de Renda</td>
+                        <td>R$ ${(resultados.valorIR).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                    <tr class="highlight">
+                        <td>Valor Líquido</td>
+                        <td>R$ ${(resultados.valorBase - resultados.valorHonorarioTotal - resultados.valorPrevidencia - resultados.valorIR).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                </table>
+            </div>
+            `;
+
+            let secaoPagamentoAdvogados = '';
+            const advogadosParaPagar = resultados.honorarios.filter(adv => adv.percentualAdvogado > 0 && adv.valorBrutoAdvogado > 0);
+
+            if (advogadosParaPagar.length > 0) {
+                const pfParaPagar = advogadosParaPagar.filter(h => h.tipo === 'PF');
+                const pjParaPagar = advogadosParaPagar.filter(h => h.tipo === 'PJ');
+                
+                secaoPagamentoAdvogados = `
+                    ${pfParaPagar.length > 0 ? `
+                    <div class="table-container">
+                        <h3>👩‍💼 Pagamento Advogados Pessoa Física</h3>
+                        <table>
+                            <tr>
+                                <th>Nome Advogado</th>
+                                <th>Tipo</th>
+                                <th>Valor Devido</th>
+                                <th>IR - MP Nº 1.294, de 11 de Abril de 2025</th>
+                                <th>Valor Líquido</th>
+                            </tr>
+                            ${pfParaPagar.map(h => `
+                            <tr>
+                                <td>${h.nome}</td>
+                                <td>${h.tipo}</td>
+                                <td>R$ ${h.valorBrutoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td>R$ ${h.irAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td>R$ ${h.valorLiquidoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            `).join('')}
+                        </table>
+                    </div>` : ''}
+
+                    ${pjParaPagar.length > 0 ? `
+                    <div class="table-container">
+                        <h3>👨‍💼 Pagamento Advogados Pessoa Jurídica</h3>
+                        <table>
+                            <tr>
+                                <th>Nome Advogado</th>
+                                <th>Tipo</th>
+                                <th>Valor Devido</th>
+                                <th>IR - Decreto 9.580, art. 714</th>
+                                <th>Valor Líquido</th>
+                            </tr>
+                            ${pjParaPagar.map(h => `
+                            <tr>
+                                <td>${h.nome}</td>
+                                <td>${h.tipo}</td>
+                                <td>R$ ${h.valorBrutoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td>R$ ${h.irAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td>R$ ${h.valorLiquidoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            `).join('')}
+                        </table>
+                    </div>` : ''}
+                `;
+            }
+
+            // Seção Pagamento Cessionários (só aparece se não for preferência)
+            let secaoPagamentoCessionariosAdv = '';
+            const cessionariosParaPagar = resultados.honorarios.filter(adv => 
+                adv.cessao !== null && 
+                adv.cessao !== undefined && 
+                adv.percentualCessionarioAdv > 0
+            );
+
+            if (cessionariosParaPagar.length > 0 && dados.tipoCalculo !== 'preferencia') {
+                const pfCessionarios = cessionariosParaPagar.filter(h => h.tipo === 'PF');
+                const pjCessionarios = cessionariosParaPagar.filter(h => h.tipo === 'PJ');
+                
+                secaoPagamentoCessionariosAdv = `
+                    ${pfCessionarios.length > 0 ? `
+                    <div class="table-container">
+                        <h3>🔄 Pagamento Cessionários dos Adv. (Cessão de PF)</h3>
+                        <table>
+                            <tr>
+                                <th>Nome Cessionário</th>
+                                <th>Cedente (PF)</th>
+                                <th>Valor Devido</th>
+                                <th>IR - MP Nº 1.294, de 11 de Abril de 2025</th>
+                                <th>Valor Líquido</th>
+                            </tr>
+                            ${pfCessionarios.map(adv => `
+                            <tr>
+                                <td>${adv.nomeCessionario}</td>
+                                <td>${adv.nome}</td>
+                                <td>R$ ${adv.valorBrutoCessionario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td>R$ ${adv.irCessionarioAdv.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td>R$ ${adv.valorLiquidoCessionario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            `).join('')}
+                        </table>
+                    </div>` : ''}
+
+                    ${pjCessionarios.length > 0 ? `
+                    <div class="table-container">
+                        <h3>🔄 Pagamento Cessionários dos Adv. (Cessão de PJ)</h3>
+                        <table>
+                            <tr>
+                                <th>Nome Cessionário</th>
+                                <th>Cedente (PJ)</th>
+                                <th>Valor Devido</th>
+                                <th>IR - Decreto 9.580, art. 714</th>
+                                <th>Valor Líquido</th>
+                            </tr>
+                            ${pjCessionarios.map(adv => `
+                            <tr>
+                                <td>${adv.nomeCessionario}</td>
+                                <td>${adv.nome}</td>
+                                <td>R$ ${adv.valorBrutoCessionario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td>R$ ${adv.irCessionarioAdv.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td>R$ ${adv.valorLiquidoCessionario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            `).join('')}
+                        </table>
+                    </div>` : ''}
+                `;
+            }
+
             const html = `
                 <!-- Cabeçalho com informações do processo -->
 
@@ -2226,89 +2411,15 @@
 
                 ${secaoHonorariosOriginal}
 
+                ${secaoCessoes}
+
                 ${secaoDeducoes}
 
-                <div class="table-container">
-                    <h3>💰 Pagamento Beneficiário - ${dados.beneficiario}</h3>
-                    <table>
-                        <tr>
-                            <th>Descrição</th>
-                            <th>Valor</th>
-                        </tr>
-                        <tr>
-                            <td>Valor Devido</td>
-                            <td>R$ ${(resultados.valorBase - resultados.valorHonorarioTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <td>Previdência</td>
-                            <td>R$ ${(resultados.valorPrevidencia).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <td>Imposto de Renda</td>
-                            <td>R$ ${(resultados.valorIR).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr class="highlight">
-                            <td>Valor Líquido</td>
-                            <td>R$ ${(resultados.valorBase - resultados.valorHonorarioTotal - resultados.valorPrevidencia - resultados.valorIR).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                    </table>
-                </div>
+                ${secaoPagamentoBeneficiario}
 
-                
+                ${secaoPagamentoAdvogados}
 
-                ${resultados.honorarios.length > 0 ? `
-                    ${(() => {
-                        const pf = resultados.honorarios.filter(h => h.tipo === 'PF');
-                        const pj = resultados.honorarios.filter(h => h.tipo === 'PJ');
-                        return `
-                            ${pf.length > 0 ? `
-                            <div class="table-container">
-                                <h3>👩‍💼 Pagamento Advogados Pessoa Física</h3>
-                                <table>
-                                    <tr>
-                                        <th>Nome Advogado</th>
-                                        <th>Tipo</th>
-                                        <th>Valor Devido</th>
-                                        <th>IR - MP Nº 1.294, de 11 de Abril de 2025</th>
-                                        <th>Valor Líquido</th>
-                                    </tr>
-                                    ${pf.map(h => `
-                                    <tr>
-                                        <td>${h.nome}</td>
-                                        <td>${h.tipo}</td>
-                                        <td>R$ ${h.valorBrutoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                        <td>R$ ${h.irAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                        <td>R$ ${h.valorLiquidoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    </tr>
-                                    `).join('')}
-                                </table>
-                            </div>` : ''}
-
-                            ${pj.length > 0 ? `
-                            <div class="table-container">
-                                <h3>👨‍💼 Pagamento Advogados Pessoa Jurídica</h3>
-                                <table>
-                                    <tr>
-                                        <th>Nome Advogado</th>
-                                        <th>Tipo</th>
-                                        <th>Valor Devido</th>
-                                        <th>IR - Decreto 9.580, art. 714</th>
-                                        <th>Valor Líquido</th>
-                                    </tr>
-                                    ${pj.map(h => `
-                                    <tr>
-                                        <td>${h.nome}</td>
-                                        <td>${h.tipo}</td>
-                                        <td>R$ ${h.valorBrutoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                        <td>R$ ${h.irAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                        <td>R$ ${h.valorLiquidoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    </tr>
-                                    `).join('')}
-                                </table>
-                            </div>` : ''}
-                        `;
-                    })()}
-                ` : ''}
+                ${secaoPagamentoCessionariosAdv}
                 
                 <!-- Botão de Imprimir -->
                 <div class="print-button-container" style="text-align: center; margin: 20px 0; display: block;">
