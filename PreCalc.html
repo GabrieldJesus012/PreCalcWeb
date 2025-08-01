@@ -1470,7 +1470,7 @@
                 anoBase: parseInt(document.getElementById('anoBase').value),
                 valorPrincipal: parseFloat(document.getElementById('valorPrincipal').value) || 0,
                 valorJuros: parseFloat(document.getElementById('valorJuros').value) || 0,
-                rra: parseInt(document.getElementById('rra').value) || 0,
+                rra: parseFloat(document.getElementById('rra').value) || 0,
                 natureza: document.getElementById('natureza').value,
                 tipoCalculo: document.getElementById('tipoCalculo').value,
                 incidenciaIR: document.getElementById('incidenciaIR').value === 'sim',
@@ -1782,7 +1782,21 @@
             let valorIRUnitario = 0;
 
             if (dados.incidenciaIR && rrapagamento !== 0) {
-                const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+                let percentualTotalAdv = 0;
+                if (dados.tipoCalculo === 'preferencia' && valorBase < valortotatt) {
+                    // PREFERÊNCIA PARCIAL: Só desconta honorários que são pagos (advogados)
+                    percentualTotalAdv = dados.advogados.reduce((sum, adv) => {
+                        const cessaoAdv = dados.cessoes?.filter(cessao => 
+                            cessao.tipo === 'cessaoAdv' && cessao.cedente === adv.nome
+                        ) || [];
+                        const percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
+                        const percentualAdvogado = adv.percentual - percentualCessionarioAdv;
+                        return sum + percentualAdvogado; // Só a parte do advogado
+                    }, 0);
+                } else {
+                    // PREFERÊNCIA TOTAL OU ORDEM COMUM: Desconta todos os honorários
+                    percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+                }
                 const baseIR = (principal - (principal * percentualTotalAdv) - valorPrevidencia) / rrapagamento;
                 valorIRUnitario = calcularIR(baseIR);
                 valorIR = valorIRUnitario * rrapagamento;
@@ -2088,7 +2102,19 @@
                 }
                 // Seção IR
                 if (temIR) {
-                    const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+                    let percentualTotalAdv = 0;
+                    if (dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt) {
+                        percentualTotalAdv = dados.advogados.reduce((sum, adv) => {
+                            const cessaoAdv = dados.cessoes?.filter(cessao => 
+                                cessao.tipo === 'cessaoAdv' && cessao.cedente === adv.nome
+                            ) || [];
+                            const percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
+                            const percentualAdvogado = adv.percentual - percentualCessionarioAdv;
+                            return sum + percentualAdvogado; // Só a parte do advogado
+                        }, 0);
+                    } else {
+                        percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+                    }
                     
                     const secaoIR = `
                         <table class="ir-table">
@@ -2122,7 +2148,7 @@
                             </tr>
                             <tr>
                                 <th>Alíquota IR:</th>
-                                <td>${(resultados.aliquotaIR * 100).toFixed(4)}%</td>
+                                <td>${(resultados.aliquotaIR * 100).toFixed(1)}%</td>
                             </tr>
                             <tr>
                                 <th>Valor IR Mensal:</th>
