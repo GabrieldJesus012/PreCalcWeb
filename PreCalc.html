@@ -1813,34 +1813,10 @@
 
                     valorCessoesBeneficiario = 0; 
                     valorBeneficiarioAposCessoes = maxQueBeneficiarioPodeReceber;
-
-                    // ✅ CALCULAR APENAS A PARTE DO PRINCIPAL que o beneficiário recebe
-                    const principalDoBeneficiario = maxQueBeneficiarioPodeReceber * percentualprinc; 
-                    const jurosDoBeneficiario = maxQueBeneficiarioPodeReceber * percentualjur; 
                     
-                    if (dados.incidenciaPrevidencia) {
-                        if (dados.tipoPrevidencia === 'fixa') {
-                            valorPrevidenciaBeneficiario = principalDoBeneficiario * dados.aliquotaFixa;
-                        } else {
-                            const basePrincipalBeneficiario = rrapagamento === 0 ? 
-                                principalDoBeneficiario : 
-                                principalDoBeneficiario / rrapagamento;
-                            const inssRealBeneficiario = calcularINSS(basePrincipalBeneficiario);
-                            valorPrevidenciaBeneficiario = inssRealBeneficiario * (rrapagamento || 1);
-                        }
-                    } else {
-                        valorPrevidenciaBeneficiario = 0;
-                    }
-
-                    // RECALCULAR IR APENAS sobre o PRINCIPAL do beneficiário (descontando previdência)
-                    if (dados.incidenciaIR && rrapagamento > 0) {
-                        const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
-                        const baseIRPrincipal = (principalDoBeneficiario - (principalDoBeneficiario * percentualTotalAdv)- valorPrevidenciaBeneficiario) / rrapagamento;
-                        const irRealUnitario = calcularIR(baseIRPrincipal);
-                        valorIRBeneficiario = irRealUnitario * rrapagamento;
-                    } else {
-                        valorIRBeneficiario = 0;
-                    }
+                    // Previdência e IR aplicados proporcionalmente só sobre o que o beneficiário recebe
+                    valorPrevidenciaBeneficiario = valorPrevidencia;
+                    valorIRBeneficiario = valorIR;
                     valorBeneficiarioFinal = maxQueBeneficiarioPodeReceber - valorPrevidenciaBeneficiario - valorIRBeneficiario;
                     
                 } else {
@@ -1984,10 +1960,8 @@
             const temPrevidencia = dados.incidenciaPrevidencia;
             const temIR = dados.incidenciaIR && resultados.rrapagamento !== 0;
             const temCessoes = resultados.cessoesBeneficiarioCalculadas && resultados.cessoesBeneficiarioCalculadas.length > 0;
-
             if (temPrevidencia || temIR) {
                 secaoDeducoes = '<div class="table-container"><h3>🏦 Deduções Legais</h3>';
-                
                 // Seção Previdência
                 if (temPrevidencia) {
                     let detalhesPrevidencia = '';
@@ -1996,7 +1970,7 @@
                         detalhesPrevidencia = `
                             <table class="ir-table">
                                 <tr>
-                                    <th colspan="2" class="section-header">📄 Previdência - Alíquota Fixa</th>
+                                    <th colspan="2" class="section-header" >📄 Previdência - Alíquota Fixa</th>
                                 </tr>
                                 <tr>
                                     <th>Principal:</th>
@@ -2007,14 +1981,11 @@
                                     <td>${(dados.aliquotaFixa * 100).toFixed(2)}%</td>
                                 </tr>
                                 <tr class="total-row">
-                                    <th>Valor Previdência ${resultados.isPreferenciasParcial ? '(recalculado)' : ''}:</th>
-                                    <td><strong>R$ ${(resultados.isPreferenciasParcial ? 
-                                        resultados.valorPrevidenciaBeneficiario : 
-                                        resultados.valorPrevidencia
-                                    ).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+                                    <th>Valor Previdência:</th>
+                                    <td><strong>R$ ${resultados.valorPrevidencia.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
                                 </tr>
-
-                                ${temCessoes && !resultados.isPreferenciasParcial ? `
+                                
+                                ${temCessoes ? `
                                 <tr style="border-top: 1px solid #dee2e6;">
                                     <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição por Cessões:</th>
                                 </tr>
@@ -2033,47 +2004,18 @@
                                     ` : ''
                                 ).join('') : ''}
                                 ` : ''}
-                                
-                                ${resultados.isPreferenciasParcial ? `
-                                <tr style="border-top: 1px solid #dee2e6;">
-                                    <th colspan="2" style="background-color: #fff3cd; font-weight: bold; color: #856404;">⚠️ Preferência Parcial:</th>
-                                </tr>
-                                <tr>
-                                    <th>Beneficiário paga:</th>
-                                    <td>R$ ${resultados.valorPrevidenciaBeneficiario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                <tr>
-                                    <th>Cessionários pagam:</th>
-                                    <td>R$ 0,00 (sem direito à preferência)</td>
-                                </tr>
-                                ` : ''}
                             </table>`;
                     } else {
                         // Previdência INSS
-                        const baseOriginal = resultados.rrapagamento === 0 ? resultados.principal : resultados.principal / resultados.rrapagamento;
-                        
-                        // ✅ Para preferência parcial, calcular base correta
-                        let baseExibir = baseOriginal;
-                        let valorPrevidenciaExibir = resultados.valorPrevidencia;
-                        
-                        if (resultados.isPreferenciasParcial) {
-                            // Recalcular base para exibição na preferência parcial
-                            const principalDoBeneficiario = resultados.valorBeneficiarioAposCessoes * (resultados.principal / resultados.valorBase);
-                            baseExibir = resultados.rrapagamento === 0 ? principalDoBeneficiario : principalDoBeneficiario / resultados.rrapagamento;
-                            valorPrevidenciaExibir = resultados.valorPrevidenciaBeneficiario;
-                        }
-                        
+                        const base = resultados.rrapagamento === 0 ? resultados.principal : resultados.principal / resultados.rrapagamento;
                         detalhesPrevidencia = `
                             <table class="ir-table">
                                 <tr>
-                                    <th colspan="2" class="section-header">📄 Previdência - INSS</th>
+                                    <th colspan="2" class="section-header" >📄 Previdência - INSS</th>
                                 </tr>
                                 <tr>
-                                    <th>Principal ${resultados.isPreferenciasParcial ? '(do beneficiário)' : ''}:</th>
-                                    <td>R$ ${(resultados.isPreferenciasParcial ? 
-                                        resultados.valorBeneficiarioAposCessoes * (resultados.principal / resultados.valorBase) :
-                                        resultados.principal
-                                    ).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <th>Principal:</th>
+                                    <td>R$ ${resultados.principal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
                                 ${resultados.rrapagamento !== 0 ? `
                                 <tr>
@@ -2082,7 +2024,7 @@
                                 </tr>
                                 <tr>
                                     <th>Base INSS por RRA:</th>
-                                    <td>R$ ${baseExibir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>R$ ${base.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>` : ''}
                                 <tr>
                                     <th>Alíquota Efetiva INSS:</th>
@@ -2090,14 +2032,14 @@
                                 </tr>
                                 <tr>
                                     <th>Valor INSS por RRA:</th>
-                                    <td>R$ ${(valorPrevidenciaExibir / (resultados.rrapagamento || 1)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${baseExibir > 8157.41 ? '(TETO)' : ''}</td>
+                                    <td>R$ ${(resultados.valorPrevidencia / (resultados.rrapagamento || 1)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${base > 8157.41 ? '(TETO)' : ''}</td>
                                 </tr>
                                 <tr class="total-row">
-                                    <th>Valor Previdência ${resultados.isPreferenciasParcial ? '(beneficiário)' : ''}:</th>
-                                    <td><strong>R$ ${valorPrevidenciaExibir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+                                    <th>Valor Previdência:</th>
+                                    <td><strong>R$ ${resultados.valorPrevidencia.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
                                 </tr>
 
-                                ${temCessoes && !resultados.isPreferenciasParcial ? `
+                                ${temCessoes ? `
                                 <tr style="border-top: 1px solid #dee2e6;">
                                     <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição por Cessões:</th>
                                 </tr>
@@ -2116,173 +2058,79 @@
                                     ` : ''
                                 ).join('') : ''}
                                 ` : ''}
-                                
-                                ${resultados.isPreferenciasParcial ? `
-                                <tr style="border-top: 1px solid #dee2e6;">
-                                    <th colspan="2" style="background-color: #fff3cd; font-weight: bold; color: #856404;">⚠️ Preferência Parcial:</th>
-                                </tr>
-                                <tr>
-                                    <th>Beneficiário paga:</th>
-                                    <td>R$ ${resultados.valorPrevidenciaBeneficiario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                <tr>
-                                    <th>Cessionários pagam:</th>
-                                    <td>R$ 0,00 (sem direito à preferência)</td>
-                                </tr>
-                                ` : ''}
                             </table>`;
                     }
                     secaoDeducoes += detalhesPrevidencia;
                 }
-                
-                // Seção IR (aplicar mesma lógica)
+                // Seção IR
                 if (temIR) {
-                const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
-                
-                // ✅ Para preferência parcial, recalcular todas as bases e valores
-                let principalExibir = resultados.principal;
-                let baseIRHonoraExibir = resultados.baseIRHonora;
-                let baseIRPrevExibir = resultados.baseIRPrev;
-                let baseIRRRAExibir = resultados.baseIRRRA;
-                let valorIRExibir = resultados.valorIR;
-                let valorIRUnitarioExibir = resultados.valorIRUnitario;
-                let aliquotaIRExibir = resultados.aliquotaIR;
-                let valorPrevidenciaExibir = resultados.valorPrevidencia;
-                
-                if (resultados.isPreferenciasParcial) {
-                    // Recalcular tudo para a preferência parcial
-                    const principalDoBeneficiario = resultados.valorBeneficiarioAposCessoes * (resultados.principal / resultados.valorBase);
+                    const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
                     
-                    principalExibir = principalDoBeneficiario;
-                    baseIRHonoraExibir = principalDoBeneficiario - (principalDoBeneficiario * percentualTotalAdv);
-                    valorPrevidenciaExibir = resultados.valorPrevidenciaBeneficiario;
-                    baseIRPrevExibir = baseIRHonoraExibir - valorPrevidenciaExibir;
-                    baseIRRRAExibir = baseIRPrevExibir / resultados.rrapagamento;
-                    aliquotaIRExibir = obterAliquotaIR(baseIRRRAExibir);
-                    valorIRUnitarioExibir = resultados.valorIRBeneficiario / resultados.rrapagamento;
-                    valorIRExibir = resultados.valorIRBeneficiario;
-                    
-                    // ✅ CORRIGIR: Calcular alíquota com base no valor que realmente vai pagar
-                    if (resultados.valorIRBeneficiario > 0 && baseIRRRAExibir > 0) {
-                        valorIRUnitarioExibir = resultados.valorIRBeneficiario / resultados.rrapagamento;
-                        aliquotaIRExibir = valorIRUnitarioExibir / baseIRRRAExibir;
-                    } else {
-                        valorIRUnitarioExibir = 0;
-                        aliquotaIRExibir = resultados.aliquotaIR;
-                    }
-                    
-                    valorIRExibir = resultados.valorIRBeneficiario;
-                }
-                
-                const secaoIR = `
-                    <table class="ir-table">
-                        <tr>
-                            <th colspan="2" class="section-header">📄 Imposto de Renda - MP Nª 1.294, de 11 de Abril de 2025</th>
-                        </tr>
-                        <tr>
-                            <th>Principal ${resultados.isPreferenciasParcial ? '(do beneficiário)' : ''}:</th>
-                            <td>R$ ${principalExibir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <th>Base IR sem H.Contratuais (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
-                            <td>R$ ${baseIRHonoraExibir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        ${temPrevidencia ? `
-                        <tr>
-                            <th>Previdência:</th>
-                            <td>R$ ${valorPrevidenciaExibir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <th>Base IR sem Previdência:</th>
-                            <td>R$ ${baseIRPrevExibir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>` : ''}
-                        <tr>
-                            <th>RRA Pagamento:</th>
-                            <td>${Math.round(resultados.rrapagamento)}</td>
-                        </tr>
-                        <tr>
-                            <th>Base IR por RRA:</th>
-                            <td>R$ ${baseIRRRAExibir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <th>Alíquota IR:</th>
-                            <td>${(aliquotaIRExibir * 100).toFixed(4)}%</td>
-                        </tr>
-                        <tr>
-                            <th>Valor IR Mensal:</th>
-                            <td>R$ ${valorIRUnitarioExibir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr class="total-row">
-                            <th>Valor IR Devido ${resultados.isPreferenciasParcial ? '(beneficiário)' : 'Total'}:</th>
-                            <td><strong>R$ ${valorIRExibir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
-                        </tr>
-
-                        ${temCessoes && !resultados.isPreferenciasParcial ? `
-                        <tr style="border-top: 1px solid #dee2e6;">
-                            <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição por Cessões:</th>
-                        </tr>
-                        ${resultados.valorIRBeneficiario > 0 ? `
-                        <tr>
-                            <th>${dados.beneficiario}:</th>
-                            <td>R$ ${resultados.valorIRBeneficiario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        ` : ''}
-                        ${resultados.cessoesBeneficiarioFinais ? resultados.cessoesBeneficiarioFinais.map((cessao, index) => 
-                            cessao.irCessao > 0 ? `
+                    const secaoIR = `
+                        <table class="ir-table">
                             <tr>
-                                <th>${cessao.cessionario}:</th>
-                                <td>R$ ${cessao.irCessao.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <th colspan="2" class="section-header">📄 Imposto de Renda - MP Nª 1.294, de 11 de Abril de 2025</th>
                             </tr>
-                            ` : ''
-                        ).join('') : ''}
-                        ` : ''}
-                        
-                        ${resultados.isPreferenciasParcial ? `
-                        <tr style="border-top: 1px solid #dee2e6;">
-                            <th colspan="2" style="background-color: #fff3cd; font-weight: bold; color: #856404;">⚠️ Preferência Parcial:</th>
-                        </tr>
-                        <tr>
-                            <th>Beneficiário paga:</th>
-                            <td>R$ ${resultados.valorIRBeneficiario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <th>Cessionários pagam:</th>
-                            <td>R$ 0,00 (sem direito à preferência)</td>
-                        </tr>
-                        ` : ''}
-                        
-                        ${resultados.isPreferenciasParcial ? `
-                        <tr style="border-top: 1px solid #dee2e6;">
-                            <th colspan="2" style="background-color: #e7f3ff; font-weight: bold; color: #004085;">🔍 Debug - Verificação IR Progressivo:</th>
-                        </tr>
-                        <tr>
-                            <th>Base IR por RRA:</th>
-                            <td>R$ ${baseIRRRAExibir.toFixed(2)}</td>
-                        </tr>
-                        <tr>
-                            <th>Alíquota da tabela:</th>
-                            <td>${(aliquotaIRExibir * 100).toFixed(1)}%</td>
-                        </tr>
-                        <tr>
-                            <th>Cálculo bruto:</th>
-                            <td>R$ ${baseIRRRAExibir.toFixed(2)} × ${(aliquotaIRExibir * 100).toFixed(1)}% = R$ ${(baseIRRRAExibir * aliquotaIRExibir).toFixed(2)}</td>
-                        </tr>
-                        <tr>
-                            <th>Dedução da tabela:</th>
-                            <td>R$ ${(baseIRRRAExibir * aliquotaIRExibir - valorIRUnitarioExibir).toFixed(2)}</td>
-                        </tr>
-                        <tr>
-                            <th>IR líquido por RRA:</th>
-                            <td>R$ ${valorIRUnitarioExibir.toFixed(2)}</td>
-                        </tr>
-                        <tr>
-                            <th>IR total (× ${resultados.rrapagamento} RRA):</th>
-                            <td>R$ ${valorIRExibir.toFixed(2)} ${Math.abs(valorIRExibir - (valorIRUnitarioExibir * resultados.rrapagamento)) < 0.01 ? '✅' : '❌'}</td>
-                        </tr>
-                        ` : ''}
-                    </table>`;
-                secaoDeducoes += secaoIR;
-            }
+                            <tr>
+                                <th>Principal:</th>
+                                <td>R$ ${resultados.principal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            <tr>
+                                <th>Base IR sem H.Contratuais (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
+                                <td>R$ ${resultados.baseIRHonora.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            ${temPrevidencia ? `
+                            <tr>
+                                <th>Previdência:</th>
+                                <td>R$ ${resultados.valorPrevidencia.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            <tr>
+                                <th>Base IR sem Previdência:</th>
+                                <td>R$ ${resultados.baseIRPrev.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>` : ''}
+                            <tr>
+                                <th>RRA Pagamento:</th>
+                                <td>${Math.round(resultados.rrapagamento)}</td>
+                            </tr>
+                            <tr>
+                                <th>Base IR por RRA:</th>
+                                <td>R$ ${resultados.baseIRRRA.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            <tr>
+                                <th>Alíquota IR:</th>
+                                <td>${(resultados.aliquotaIR * 100).toFixed(4)}%</td>
+                            </tr>
+                            <tr>
+                                <th>Valor IR Mensal:</th>
+                                <td>R$ ${resultados.valorIRUnitario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            <tr class="total-row">
+                                <th>Valor IR Devido Total:</th>
+                                <td><strong>R$ ${resultados.valorIR.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+                            </tr>
+
+                            ${temCessoes ? `
+                            <tr style="border-top: 1px solid #dee2e6;">
+                                <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição por Cessões:</th>
+                            </tr>
+                            ${resultados.valorIRBeneficiario > 0 ? `
+                            <tr>
+                                <th>${dados.beneficiario}:</th>
+                                <td>R$ ${resultados.valorIRBeneficiario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            ` : ''}
+                            ${resultados.cessoesBeneficiarioFinais ? resultados.cessoesBeneficiarioFinais.map((cessao, index) => 
+                                cessao.irCessao > 0 ? `
+                                <tr>
+                                    <th>${cessao.cessionario}:</th>
+                                    <td>R$ ${cessao.irCessao.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                                ` : ''
+                            ).join('') : ''}
+                            ` : ''}
+                        </table>`;
+                    secaoDeducoes += secaoIR;
+                }
                 secaoDeducoes += '</div>';
             }
 
