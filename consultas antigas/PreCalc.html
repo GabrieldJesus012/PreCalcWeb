@@ -1669,13 +1669,17 @@
                 const valorBruto = valorBase * adv.percentual;
 
                 // Verificar se o advogado fez cessão
-                const cessaoAdv = dados.cessoes?.filter(cessao => 
+                const cessaoAdv = dados.cessoes?.find(cessao => 
                     cessao.tipo === 'cessaoAdv' && cessao.cedente === adv.nome
                 );
-                
-                // Calcular percentual total cedido pelo advogado
-                let percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
-                let percentualAdvogado = 1.0 - percentualCessionarioAdv; 
+
+                let percentualAdvogado = 1.0; // 100% se não há cessão
+                let percentualCessionarioAdv = 0.0;
+
+                if (cessaoAdv) {
+                    percentualCessionarioAdv = cessaoAdv.percentual;
+                    percentualAdvogado = 1.0 - percentualCessionarioAdv;
+                }
 
                 let ir = 0;
                 if (adv.tipo === 'PF') {
@@ -1686,32 +1690,25 @@
 
                 // IR proporcional do advogado e do cessionário
                 const irAdvogado = ir * percentualAdvogado;
+                const irCessionarioAdv = ir * percentualCessionarioAdv;
+
+                // Valores líquidos
                 const valorBrutoAdvogado = valorBruto * percentualAdvogado;
                 const valorLiquidoAdvogado = valorBrutoAdvogado - irAdvogado;
-
-                const cessionarios = cessaoAdv.map(cessao => ({
-                    nome: cessao.cessionario,
-                    percentual: cessao.percentual,
-                    valorBruto: valorBruto * cessao.percentual,
-                    ir: ir * cessao.percentual, 
-                    valorLiquido: (valorBruto * cessao.percentual) - (ir * cessao.percentual)
-                }));
-
-                // Dados totais dos cessionários (para compatibilidade)
-                const irCessionarioAdv = ir * percentualCessionarioAdv;
+                
                 const valorBrutoCessionario = valorBruto * percentualCessionarioAdv;
                 const valorLiquidoCessionario = valorBrutoCessionario - irCessionarioAdv;
+
                 const valorLiquido = valorBruto - ir;
 
-                // Ajuste para valorHonorarioTotal
+                // Ajuste para o valorHonorarioTotal considerando cessão em preferência
                 let valorParaDescontar = valorBruto;
-                if (cessaoAdv.length > 0 && dados.tipoCalculo === 'preferencia' && valorBase < valortotatt) {
+                if (cessaoAdv && dados.tipoCalculo === 'preferencia' && valorBase < valortotatt) {
+                    // Se há cessão e é preferência parcial, desconta apenas a parte do advogado
                     valorParaDescontar = valorBrutoAdvogado;
                 }
+                
                 valorHonorarioTotal += valorParaDescontar;
-
-                // Compatibilidade com código antigo
-                const primeiraCessao = cessaoAdv.length > 0 ? cessaoAdv[0] : null;
 
                 return {
                     ...adv,
@@ -1725,18 +1722,15 @@
                     irAdvogado,
                     valorLiquidoAdvogado,
                     
-                    // Dados totais dos cessionários
+                    // Dados do cessionário (se houver)
                     percentualCessionarioAdv,
                     valorBrutoCessionario,
                     irCessionarioAdv,
                     valorLiquidoCessionario,
                     
-                    cessionarios, 
-                    cessoesAdv: cessaoAdv,
-                    
-                    // Compatibilidade
-                    cessao: primeiraCessao,
-                    nomeCessionario: primeiraCessao ? primeiraCessao.cessionario : null
+                    // Referência à cessão
+                    cessao: cessaoAdv || null,
+                    nomeCessionario: cessaoAdv ? cessaoAdv.cessionario : null
                 };
             });
 
@@ -2297,89 +2291,40 @@
 
             let secaoCessoesAdv = '';
             const advogadosComCessao = resultados.honorarios.filter(adv => 
-                adv.cessoesAdv && adv.cessoesAdv.length > 0
+                adv.cessao !== null && 
+                adv.cessao !== undefined && 
+                adv.nomeCessionario !== null && 
+                adv.nomeCessionario !== undefined
             );
             if (advogadosComCessao.length > 0) {
-                const isPreferencia = dados.tipoCalculo === 'preferencia';
-                const isPreferenciaParcial = isPreferencia && resultados.valorBase < resultados.valortotatt;
-                const isPreferenciaTotal = isPreferencia && resultados.valorBase >= resultados.valortotatt;
-                
                 secaoCessoesAdv = `
                 <div class="table-container">
                     <h3>🔄 Cessões de Honorários</h3>
                     ${advogadosComCessao.map(adv => `
                         <div style="margin-bottom: 20px;">
                             <h4>Cessão de Honorários: ${adv.nome}</h4>
-                            <p><strong>Valor Base do Honorário:</strong> R$ ${adv.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                            <p><strong>Cedido:</strong> ${(adv.percentualCessionarioAdv * 100).toFixed(2)}% para ${adv.cessoesAdv.length} cessionário${adv.cessoesAdv.length > 1 ? 's' : ''}</p>
-                            ${isPreferenciaParcial ? `<p style="color: #856404; font-weight: bold;">⚠️ Preferência Parcial: Cessionários aguardam ordem cronológica</p>` : ''}
-                            ${isPreferenciaTotal ? `<p style="color: #155724; font-weight: bold;">✅ Preferência Total: Todos recebem integralmente</p>` : ''}
+                            <p><strong>Valor Original do Honorário:</strong> R$ ${adv.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                            <p><strong>Percentual Cedido:</strong> ${(adv.percentualCessionarioAdv * 100).toFixed(2)}% para ${adv.nomeCessionario}</p>
                             
                             <table>
                                 <tr>
                                     <th>Recebedor</th>
                                     <th>Percentual</th>
                                     <th>Valor Bruto</th>
-                                    ${isPreferenciaParcial ? `
-                                    <th>Recebe Agora</th>
-                                    <th>Aguarda Ordem</th>
-                                    ` : `
-                                    `}
                                 </tr>
-                                <tr style="background-color: #f8f9fa;">
-                                    <td><strong>${adv.nome} (fica com)</strong></td>
+                                <tr>
+                                    <td>${adv.nome} (fica com)</td>
                                     <td>${(adv.percentualAdvogado * 100).toFixed(2)}%</td>
                                     <td>R$ ${adv.valorBrutoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    ${isPreferenciaParcial ? `
-                                    <td>R$ ${adv.valorLiquidoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td>R$ 0,00</td>
-                                    ` : `
-                                    `}
                                 </tr>
-                                ${adv.cessionarios ? adv.cessionarios.map(cessionario => `
                                 <tr>
-                                    <td>${cessionario.nome} (cessionário)</td>
-                                    <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
-                                    <td>R$ ${cessionario.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    ${isPreferenciaParcial ? `
-                                    <td>R$ 0,00</td>
-                                    <td>R$ ${cessionario.valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    ` : `
-                                    `}
-                                </tr>
-                                `).join('') : ''}
-                                <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
-                                    <td>TOTAL</td>
-                                    <td>100.00%</td>
-                                    <td>R$ ${adv.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    ${isPreferenciaParcial ? `
-                                    <td>R$ ${adv.valorLiquidoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td>R$ ${(adv.valorLiquido - adv.valorLiquidoAdvogado).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    ` : `
-                                    `}
+                                    <td>${adv.nomeCessionario} (recebe por cessão)</td>
+                                    <td>${(adv.percentualCessionarioAdv * 100).toFixed(2)}%</td>
+                                    <td>R$ ${adv.valorBrutoCessionario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
                             </table>
                         </div>
                     `).join('')}
-                    
-                    ${isPreferenciaParcial ? `
-                    <div class="warning-box" style="margin-top: 10px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
-                        <strong>⚠️ Preferência Parcial de Honorários:</strong><br>
-                        • <strong>Advogados</strong> têm direito à preferência e recebem sua parte agora<br>
-                        • <strong>Cessionários</strong> não têm direito à preferência (Art. 42. Resolução CNJ 303/19.) e aguardam pagamento na ordem cronológica<br>
-                        • Total pago agora (preferência): R$ ${advogadosComCessao.reduce((total, adv) => total + adv.valorLiquidoAdvogado, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br>
-                        • Total aguardando ordem: R$ ${advogadosComCessao.reduce((total, adv) => total + (adv.valorLiquido - adv.valorLiquidoAdvogado), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                    ` : ''}
-                    
-                    ${isPreferenciaTotal ? `
-                    <div class="success-box" style="margin-top: 10px; padding: 12px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;">
-                        <strong>✅ Preferência Total de Honorários:</strong><br>
-                        • O teto da preferência cobre todo o precatório<br>
-                        • <strong>Advogados e cessionários</strong> recebem integralmente<br>
-                        • Total pago na preferência: R$ ${advogadosComCessao.reduce((total, adv) => total + adv.valorLiquido, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                    ` : ''}
                 </div>`;
             }
 
@@ -2446,26 +2391,17 @@
 
             // Seção Pagamento Cessionários (só aparece se não for preferência)
             let secaoPagamentoCessionariosAdv = '';
-            const todosCessionarios = [];
-            resultados.honorarios.forEach(adv => {
-                if (adv.cessionarios && adv.cessionarios.length > 0) {
-                    adv.cessionarios.forEach(cessionario => {
-                        todosCessionarios.push({
-                            ...cessionario,
-                            advogadoOriginal: adv.nome,
-                            tipoAdvogado: adv.tipo
-                        });
-                    });
-                }
-            });
+            const cessionariosParaPagar = resultados.honorarios.filter(adv => 
+                adv.cessao !== null && 
+                adv.cessao !== undefined && 
+                adv.percentualCessionarioAdv > 0
+            );
 
-            const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt;
-
-            if (todosCessionarios.length > 0 && !isPreferenciaParcial) {
-                secaoPagamentoCessionariosAdv = todosCessionarios.map(cessionario => `
+            if (cessionariosParaPagar.length > 0 && dados.tipoCalculo !== 'preferencia') {
+                secaoPagamentoCessionariosAdv = cessionariosParaPagar.map(adv => `
                     <div class="table-container">
-                        <h3>🔄 Pagamento Cessionário - ${cessionario.nome}</h3>
-                        <p style="margin-bottom: 10px;"><strong>Cessão de:</strong> ${cessionario.advogadoOriginal} (${cessionario.tipoAdvogado})</p>
+                        <h3>🔄 Pagamento Cessionário - ${adv.nomeCessionario}</h3>
+                        <p style="margin-bottom: 10px;"><strong>Cessão de:</strong> ${adv.nome} (${adv.tipo})</p>
                         <table>
                             <tr>
                                 <th>Descrição</th>
@@ -2473,15 +2409,15 @@
                             </tr>
                             <tr>
                                 <td>Valor Devido</td>
-                                <td>R$ ${cessionario.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td>R$ ${adv.valorBrutoCessionario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             </tr>
                             <tr>
                                 <td>Imposto de Renda</td>
-                                <td>R$ ${cessionario.ir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td>R$ ${adv.irCessionarioAdv.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             </tr>
                             <tr class="highlight">
                                 <td>Valor Líquido</td>
-                                <td>R$ ${cessionario.valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td>R$ ${adv.valorLiquidoCessionario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             </tr>
                         </table>
                     </div>
