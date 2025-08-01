@@ -1666,7 +1666,10 @@
             // Honorários
             let valorHonorarioTotal = 0;
             const honorarios = dados.advogados.map(adv => {
-                const valorBruto = valorBase * adv.percentual;
+
+                const percentualTotalAdvogado = adv.percentual;
+                const valorBrutoTotal = valorBase * percentualTotalAdvogado;
+                
 
                 // Verificar se o advogado fez cessão
                 const cessaoAdv = dados.cessoes?.filter(cessao => 
@@ -1675,36 +1678,47 @@
                 
                 // Calcular percentual total cedido pelo advogado
                 let percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
-                let percentualAdvogado = 1.0 - percentualCessionarioAdv; 
+                const percentualAdvogado = percentualTotalAdvogado - percentualCessionarioAdv;
 
-                let ir = 0;
+                const valorBrutoAdvogado = valorBase * percentualAdvogado;
+                const valorBrutoCessionario = valorBase * percentualCessionarioAdv;
+
+                let irAdvogado = 0;
                 if (adv.tipo === 'PF') {
-                    ir = calcularIR(valorBruto);
+                    irAdvogado = calcularIR(valorBrutoAdvogado); // IR sobre 4.554
                 } else {
-                    ir = valorBruto * 0.015;
+                    irAdvogado = valorBrutoAdvogado * 0.015; // 1.5% para PJ
                 }
 
-                // IR proporcional do advogado e do cessionário
-                const irAdvogado = ir * percentualAdvogado;
-                const valorBrutoAdvogado = valorBruto * percentualAdvogado;
-                const valorLiquidoAdvogado = valorBrutoAdvogado - irAdvogado;
+                let irCessionarioAdv = 0;
+                if (adv.tipo === 'PF') {
+                    irCessionarioAdv = calcularIR(valorBrutoCessionario); // IR sobre 1.518
+                } else {
+                    irCessionarioAdv = valorBrutoCessionario * 0.015; // 1.5% para PJ
+                }
 
-                const cessionarios = cessaoAdv.map(cessao => ({
-                    nome: cessao.cessionario,
-                    percentual: cessao.percentual,
-                    valorBruto: valorBruto * cessao.percentual,
-                    ir: ir * cessao.percentual, 
-                    valorLiquido: (valorBruto * cessao.percentual) - (ir * cessao.percentual)
-                }));
+                const valorLiquidoAdvogado = valorBrutoAdvogado - irAdvogado;
+                const valorLiquidoCessionario = valorBrutoCessionario - irCessionarioAdv;
+
+                const cessionarios = cessaoAdv.map(cessao => {
+                    const valorBrutoCessao = valorBase * cessao.percentual;
+                    const irCessao = adv.tipo === 'PF' ? calcularIR(valorBrutoCessao) : valorBrutoCessao * 0.015;
+                    return {
+                        nome: cessao.cessionario,
+                        percentual: cessao.percentual,
+                        valorBruto: valorBrutoCessao,
+                        ir: irCessao,
+                        valorLiquido: valorBrutoCessao - irCessao
+                    };
+                });
 
                 // Dados totais dos cessionários (para compatibilidade)
-                const irCessionarioAdv = ir * percentualCessionarioAdv;
-                const valorBrutoCessionario = valorBruto * percentualCessionarioAdv;
-                const valorLiquidoCessionario = valorBrutoCessionario - irCessionarioAdv;
-                const valorLiquido = valorBruto - ir;
+                const valorBruto = valorBrutoTotal;
+                const ir = irAdvogado + irCessionarioAdv;
+                const valorLiquido = valorLiquidoAdvogado + valorLiquidoCessionario;
 
                 // Ajuste para valorHonorarioTotal
-                let valorParaDescontar = valorBruto;
+                let valorParaDescontar = valorBrutoAdvogado;
                 if (cessaoAdv.length > 0 && dados.tipoCalculo === 'preferencia' && valorBase < valortotatt) {
                     valorParaDescontar = valorBrutoAdvogado;
                 }
@@ -1724,16 +1738,16 @@
                     valorBrutoAdvogado,
                     irAdvogado,
                     valorLiquidoAdvogado,
-                    
+
                     // Dados totais dos cessionários
                     percentualCessionarioAdv,
                     valorBrutoCessionario,
                     irCessionarioAdv,
                     valorLiquidoCessionario,
-                    
-                    cessionarios, 
+
+                    cessionarios,
                     cessoesAdv: cessaoAdv,
-                    
+
                     // Compatibilidade
                     cessao: primeiraCessao,
                     nomeCessionario: primeiraCessao ? primeiraCessao.cessionario : null
@@ -2331,7 +2345,7 @@
                                     <td>${(adv.percentualAdvogado * 100).toFixed(2)}%</td>
                                     <td>R$ ${adv.valorBrutoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     ${isPreferenciaParcial ? `
-                                    <td>R$ ${adv.valorLiquidoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>R$ ${adv.valorBrutoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td>R$ 0,00</td>
                                     ` : `
                                     `}
@@ -2343,7 +2357,7 @@
                                     <td>R$ ${cessionario.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     ${isPreferenciaParcial ? `
                                     <td>R$ 0,00</td>
-                                    <td>R$ ${cessionario.valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>R$ ${cessionario.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     ` : `
                                     `}
                                 </tr>
@@ -2377,7 +2391,6 @@
                         <strong>✅ Preferência Total de Honorários:</strong><br>
                         • O teto da preferência cobre todo o precatório<br>
                         • <strong>Advogados e cessionários</strong> recebem integralmente<br>
-                        • Total pago na preferência: R$ ${advogadosComCessao.reduce((total, adv) => total + adv.valorLiquido, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                     ` : ''}
                 </div>`;
