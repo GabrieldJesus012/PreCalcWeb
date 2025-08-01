@@ -1685,16 +1685,16 @@
 
                 let irAdvogado = 0;
                 if (adv.tipo === 'PF') {
-                    irAdvogado = calcularIR(valorBrutoAdvogado); // IR sobre 4.554
+                    irAdvogado = calcularIR(valorBrutoAdvogado); 
                 } else {
-                    irAdvogado = valorBrutoAdvogado * 0.015; // 1.5% para PJ
+                    irAdvogado = valorBrutoAdvogado * 0.015; 
                 }
 
                 let irCessionarioAdv = 0;
                 if (adv.tipo === 'PF') {
-                    irCessionarioAdv = calcularIR(valorBrutoCessionario); // IR sobre 1.518
+                    irCessionarioAdv = calcularIR(valorBrutoCessionario); 
                 } else {
-                    irCessionarioAdv = valorBrutoCessionario * 0.015; // 1.5% para PJ
+                    irCessionarioAdv = valorBrutoCessionario * 0.015; 
                 }
 
                 const valorLiquidoAdvogado = valorBrutoAdvogado - irAdvogado;
@@ -1719,8 +1719,12 @@
 
                 // Ajuste para valorHonorarioTotal
                 let valorParaDescontar = valorBrutoAdvogado;
-                if (cessaoAdv.length > 0 && dados.tipoCalculo === 'preferencia' && valorBase < valortotatt) {
+                if (dados.tipoCalculo === 'preferencia' && valorBase < valortotatt) {
+                    // Preferência parcial: só advogado recebe, cessionário aguarda
                     valorParaDescontar = valorBrutoAdvogado;
+                } else {
+                    // Ordem comum ou preferência total: todos recebem
+                    valorParaDescontar = valorBrutoTotal;
                 }
                 valorHonorarioTotal += valorParaDescontar;
 
@@ -2334,43 +2338,23 @@
                                     <th>Recebedor</th>
                                     <th>Percentual</th>
                                     <th>Valor Bruto</th>
-                                    ${isPreferenciaParcial ? `
-                                    <th>Recebe Agora</th>
-                                    <th>Aguarda Ordem</th>
-                                    ` : `
-                                    `}
                                 </tr>
                                 <tr style="background-color: #f8f9fa;">
                                     <td><strong>${adv.nome} (fica com)</strong></td>
                                     <td>${(adv.percentualAdvogado * 100).toFixed(2)}%</td>
                                     <td>R$ ${adv.valorBrutoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    ${isPreferenciaParcial ? `
-                                    <td>R$ ${adv.valorBrutoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td>R$ 0,00</td>
-                                    ` : `
-                                    `}
                                 </tr>
                                 ${adv.cessionarios ? adv.cessionarios.map(cessionario => `
                                 <tr>
                                     <td>${cessionario.nome} (cessionário)</td>
                                     <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
                                     <td>R$ ${cessionario.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    ${isPreferenciaParcial ? `
-                                    <td>R$ 0,00</td>
-                                    <td>R$ ${cessionario.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    ` : `
-                                    `}
                                 </tr>
                                 `).join('') : ''}
                                 <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
                                     <td>TOTAL</td>
                                     <td>100.00%</td>
                                     <td>R$ ${adv.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    ${isPreferenciaParcial ? `
-                                    <td>R$ ${adv.valorLiquidoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td>R$ ${(adv.valorLiquido - adv.valorLiquidoAdvogado).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    ` : `
-                                    `}
                                 </tr>
                             </table>
                         </div>
@@ -2382,7 +2366,6 @@
                         • <strong>Advogados</strong> têm direito à preferência e recebem sua parte agora<br>
                         • <strong>Cessionários</strong> não têm direito à preferência (Art. 42. Resolução CNJ 303/19.) e aguardam pagamento na ordem cronológica<br>
                         • Total pago agora (preferência): R$ ${advogadosComCessao.reduce((total, adv) => total + adv.valorLiquidoAdvogado, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br>
-                        • Total aguardando ordem: R$ ${advogadosComCessao.reduce((total, adv) => total + (adv.valorLiquido - adv.valorLiquidoAdvogado), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                     ` : ''}
                     
