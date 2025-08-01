@@ -2322,6 +2322,11 @@
                                     <td>${(adv.percentualCessionarioAdv * 100).toFixed(2)}%</td>
                                     <td>R$ ${adv.valorBrutoCessionario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
+                                <tr class="highlight" >
+                                    <td>Total</td>
+                                    <td>100.00%</td>
+                                    <td>R$ ${(adv.valorBrutoAdvogado+adv.valorBrutoCessionario).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
                             </table>
                         </div>
                     `).join('')}
