@@ -1657,11 +1657,11 @@
             }
 
             // Composição
-            const principal = valorBase * percentualprinc;
+            let principal = valorBase * percentualprinc;
             const jurosBase = valorBase * percentualjur;
 
             // RRA
-            const rrapagamento = dados.rra !== 0 ? Math.round((valorBase * dados.rra) / valortotatt) : 0;
+            let rrapagamento = dados.rra !== 0 ? Math.round((valorBase * dados.rra) / valortotatt) : 0;
 
             // Honorários
             let valorHonorarioTotal = 0;
@@ -1758,63 +1758,57 @@
                 };
             });
 
-            // Previdência
-            let valorPrevidencia = 0;
-            let aliquotaEfetiva = 0;
-            if (dados.incidenciaPrevidencia) {
-                if (dados.tipoPrevidencia === 'fixa') {
-                    valorPrevidencia = principal * dados.aliquotaFixa;
-                    aliquotaEfetiva = dados.aliquotaFixa;
-                } else {
-                    const base = rrapagamento === 0 ? principal : principal / rrapagamento;
-                    const resultadoINSS = calcularINSS(base);
-                    valorPrevidencia = resultadoINSS * (rrapagamento || 1);
-                    aliquotaEfetiva = resultadoINSS / base;
-                }
-            }
-
-            // IR sobre o beneficiário
-            let valorIR = 0;
-            let aliquotaIR = 0;
-            let baseIRHonora = 0;
-            let baseIRPrev = 0;
-            let baseIRRRA = 0;
-            let valorIRUnitario = 0;
-
-            if (dados.incidenciaIR && rrapagamento !== 0) {
-                let percentualTotalAdv = 0;
-                if (dados.tipoCalculo === 'preferencia' && valorBase < valortotatt) {
-                    // PREFERÊNCIA PARCIAL: Só desconta honorários que são pagos (advogados)
-                    percentualTotalAdv = dados.advogados.reduce((sum, adv) => {
-                        const cessaoAdv = dados.cessoes?.filter(cessao => 
-                            cessao.tipo === 'cessaoAdv' && cessao.cedente === adv.nome
-                        ) || [];
-                        const percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
-                        const percentualAdvogado = adv.percentual - percentualCessionarioAdv;
-                        return sum + percentualAdvogado; // Só a parte do advogado
-                    }, 0);
-                } else {
-                    // PREFERÊNCIA TOTAL OU ORDEM COMUM: Desconta todos os honorários
-                    percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
-                }
-                const baseIR = (principal - (principal * percentualTotalAdv) - valorPrevidencia) / rrapagamento;
-                valorIRUnitario = calcularIR(baseIR);
-                valorIR = valorIRUnitario * rrapagamento;
-                aliquotaIR = obterAliquotaIR(baseIR);
-
-                baseIRHonora = principal - (principal * percentualTotalAdv);
-                baseIRPrev = baseIRHonora - valorPrevidencia;
-                baseIRRRA = baseIRPrev / rrapagamento;
-            }
-
             // ========== CESSÕES DO BENEFICIÁRIO PRINCIPAL ==========
             // Valor bruto do beneficiário (apenas descontando honorários)
             const valorBeneficiarioBruto = valorBase - valorHonorarioTotal;
-
-            // Verificar cessões do beneficiário principal
             const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
                 cessao.tipo === 'cessaobenPrincipal'
             ) || [];
+
+            const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
+            
+            // RECÁLCULO PARA PREFERÊNCIA PARCIAL
+            if (isPreferenciasParcial) {
+                let valorBeneficiarioQueRecebeEfetivamente = valorBeneficiarioBruto;
+                
+                if (cessoesBeneficiario.length > 0) {
+                    // Cessão é sobre o valor TOTAL da dívida, não sobre o valor limitado
+                    const percentualBeneficiarioFinal = 1.0 - cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
+                    
+                    // Calcular quanto o beneficiário tem direito na dívida total
+                    const valorTotalSemHonorarios = valortotatt - (valortotatt * dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0));
+                    const direitoBeneficiarioTotal = valorTotalSemHonorarios * percentualBeneficiarioFinal;
+                    
+                    // O que o beneficiário recebe é o mínimo entre seu direito e o teto
+                    valorBeneficiarioQueRecebeEfetivamente = Math.min(direitoBeneficiarioTotal, valorBeneficiarioBruto);
+                }
+                
+                const valorRealPago = valorHonorarioTotal + valorBeneficiarioQueRecebeEfetivamente;
+                
+                principal = valorRealPago * percentualprinc;
+                
+                // Para RRA: garantir que seja pelo menos 1 se havia RRA original
+                if (dados.rra !== 0) {
+                    const rraCalculado = Math.round((valorRealPago * dados.rra) / valortotatt);
+                    rrapagamento = Math.max(1, rraCalculado); 
+                } else {
+                    rrapagamento = 0;
+                }
+            }
+
+            const resultadoPrevidencia = calcularPrevidenciaIsolada(dados, principal, rrapagamento);
+            let valorPrevidencia = resultadoPrevidencia.valorPrevidencia;
+            let aliquotaEfetiva = resultadoPrevidencia.aliquotaEfetiva;
+
+            const resultadoIR = calcularIRIsolado(dados, valortotatt, valorBase, principal, valorPrevidencia, rrapagamento);
+            let {
+                valorIR,
+                aliquotaIR,
+                baseIRHonora,
+                baseIRPrev,
+                baseIRRRA,
+                valorIRUnitario
+            } = resultadoIR;
 
             let valorCessoesBeneficiario = 0;
             let cessoesBeneficiarioCalculadas = [];
@@ -1825,7 +1819,6 @@
             let valorBeneficiarioFinal = valorBeneficiarioBruto - valorPrevidencia - valorIR;
             let cessoesBeneficiarioFinais = [];
 
-            const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
             if (cessoesBeneficiario.length > 0) {
                 percentualBeneficiarioFinal = 1.0 - cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
                 
@@ -1833,6 +1826,7 @@
                     // Calcular a parte do beneficiário na dívida total
                     const parteBeneficiarioNaDividaTotal = (valortotatt - (valortotatt * dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0))) * percentualBeneficiarioFinal;
                     const maxQueBeneficiarioPodeReceber = Math.min(parteBeneficiarioNaDividaTotal, valorBeneficiarioBruto);
+                    
                     cessoesBeneficiarioCalculadas = cessoesBeneficiario.map(cessao => {
                         const parteCessionarioNaDividaTotal = (valortotatt - (valortotatt * dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0))) * cessao.percentual;
                         return {
@@ -1842,6 +1836,7 @@
                             observacao: 'Aguarda pagamento - sem direito à preferência'
                         };
                     });
+                    
                     cessoesBeneficiarioFinais = cessoesBeneficiarioCalculadas.map(cessao => ({
                         ...cessao,
                         previdenciaCessao: 0,
@@ -1852,15 +1847,13 @@
                     valorCessoesBeneficiario = 0; 
                     valorBeneficiarioAposCessoes = maxQueBeneficiarioPodeReceber;
                     
-                    // Previdência e IR aplicados proporcionalmente só sobre o que o beneficiário recebe
+                    // Previdência e IR aplicados sobre o valor recalculado
                     valorPrevidenciaBeneficiario = valorPrevidencia;
                     valorIRBeneficiario = valorIR;
                     valorBeneficiarioFinal = maxQueBeneficiarioPodeReceber - valorPrevidenciaBeneficiario - valorIRBeneficiario;
                     
                 } else {
                     // PREFERÊNCIA TOTAL OU OUTROS TIPOS: Aplica cessões normalmente
-                    
-                    // Calcular cessões do beneficiário
                     cessoesBeneficiarioCalculadas = cessoesBeneficiario.map(cessao => {
                         const valorBrutoCessao = valorBeneficiarioBruto * cessao.percentual;
                         valorCessoesBeneficiario += valorBrutoCessao;
@@ -1871,16 +1864,11 @@
                         };
                     });
                     
-                    // Valor do beneficiário após cessões (mas ainda bruto)
                     valorBeneficiarioAposCessoes = valorBeneficiarioBruto * percentualBeneficiarioFinal;
-                    
-                    // Aplicar previdência e IR proporcionalmente
                     valorPrevidenciaBeneficiario = valorPrevidencia * percentualBeneficiarioFinal;
                     valorIRBeneficiario = valorIR * percentualBeneficiarioFinal;
-
-                    // Valor líquido final do beneficiário principal
                     valorBeneficiarioFinal = valorBeneficiarioAposCessoes - valorPrevidenciaBeneficiario - valorIRBeneficiario;
-                    // Atualizar o cálculo das cessões com os descontos proporcionais
+                    
                     cessoesBeneficiarioFinais = cessoesBeneficiarioCalculadas.map(cessao => {
                         const previdenciaCessao = valorPrevidencia * cessao.percentual;
                         const irCessao = valorIR * cessao.percentual;
@@ -1925,6 +1913,50 @@
             };
         }
 
+        function calcularIRIsolado(dados, valortotatt, valorBase, principalBase, valorPrevidencia, rrapagamentoRecalculado) {
+            let valorIR = 0;
+            let aliquotaIR = 0;
+            let baseIRHonora = 0;
+            let baseIRPrev = 0;
+            let baseIRRRA = 0;
+            let valorIRUnitario = 0;
+
+            if (dados.incidenciaIR && rrapagamentoRecalculado !== 0) {
+                let percentualTotalAdv = 0;
+                if (dados.tipoCalculo === 'preferencia' && valorBase < valortotatt) {
+                    // PREFERÊNCIA PARCIAL: Só desconta honorários que são pagos (advogados)
+                    percentualTotalAdv = dados.advogados.reduce((sum, adv) => {
+                        const cessaoAdv = dados.cessoes?.filter(cessao => 
+                            cessao.tipo === 'cessaoAdv' && cessao.cedente === adv.nome
+                        ) || [];
+                        const percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
+                        const percentualAdvogado = adv.percentual - percentualCessionarioAdv;
+                        return sum + percentualAdvogado; // Só a parte do advogado
+                    }, 0);
+                } else {
+                    // PREFERÊNCIA TOTAL OU ORDEM COMUM: Desconta todos os honorários
+                    percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+                }
+                
+                const baseIR = (principalBase - (principalBase * percentualTotalAdv) - valorPrevidencia) / rrapagamentoRecalculado;
+                valorIRUnitario = calcularIR(baseIR);
+                valorIR = valorIRUnitario * rrapagamentoRecalculado;
+                aliquotaIR = obterAliquotaIR(baseIR);
+
+                baseIRHonora = principalBase - (principalBase * percentualTotalAdv);
+                baseIRPrev = baseIRHonora - valorPrevidencia;
+                baseIRRRA = baseIRPrev / rrapagamentoRecalculado;
+            }
+
+            return {
+                valorIR,
+                aliquotaIR,
+                baseIRHonora,
+                baseIRPrev,
+                baseIRRRA,
+                valorIRUnitario
+            };
+        }
 
         function calcularIR(valorBruto) {
             if (valorBruto <= 2428.80) return 0;
@@ -1940,6 +1972,25 @@
             else if (valorBruto <= 3751.05) return 0.15;
             else if (valorBruto <= 4664.68) return 0.225;
             else return 0.275;
+        }
+
+        function calcularPrevidenciaIsolada(dados, principalBase, rrapagamento) {
+            let valorPrevidencia = 0;
+            let aliquotaEfetiva = 0;
+            
+            if (dados.incidenciaPrevidencia) {
+                if (dados.tipoPrevidencia === 'fixa') {
+                    valorPrevidencia = principalBase * dados.aliquotaFixa;
+                    aliquotaEfetiva = dados.aliquotaFixa;
+                } else {
+                    const base = rrapagamento === 0 ? principalBase : principalBase / rrapagamento;
+                    const resultadoINSS = calcularINSS(base);
+                    valorPrevidencia = resultadoINSS * (rrapagamento || 1);
+                    aliquotaEfetiva = resultadoINSS / base;
+                }
+            }
+            
+            return { valorPrevidencia, aliquotaEfetiva };
         }
 
         function calcularINSS(base) {
