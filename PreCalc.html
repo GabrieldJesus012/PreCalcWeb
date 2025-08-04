@@ -2281,13 +2281,60 @@
                 `;
             }
 
-            // Gerar seção de honorários (valores brutos originais)
-            let secaoHonorariosOriginal = '';
-            if (resultados.honorarios && resultados.honorarios.length > 0) {
-                secaoHonorariosOriginal = `
+            // Gerar seção de honorários totais 
+            let secaoHonorariosTotais = '';
+            if (resultados.honorarios && resultados.honorarios.length > 0 && 
+                dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt) {
+                
+                secaoHonorariosTotais = `
                 <div class="table-container">
                     <h3>📄➖ Deduções Acessórias</h3>
                     <h3>👩‍💼 Advogados</h3>
+                    <p style="color: #856404; font-style: italic;">Valores calculados sobre o total do precatório (R$ ${resultados.valortotatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</p>
+                    <table>
+                        <tr>
+                            <th>Nome Advogado</th>
+                            <th>PF/PJ</th>
+                            <th>Base de Cálculo</th>
+                            <th>Percentual</th>
+                            <th>Valor Bruto Total</th>
+                        </tr>
+                        ${resultados.honorarios.map(h => {
+                            const valorBrutoTotal = resultados.valortotatt * h.percentual;
+                            return `
+                            <tr>
+                                <td>${h.nome}</td>
+                                <td>${h.tipo}</td>
+                                <td>R$ ${resultados.valortotatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td>${(h.percentual * 100).toFixed(2)}%</td>
+                                <td>R$ ${valorBrutoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            `;
+                        }).join('')}
+                    </table>
+                    <div style="margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-left: 4px solid #007bff; font-size: 0.9em;">
+                        <strong>💡 Explicação:</strong><br>
+                        • <strong>Honorários da Preferência:</strong> Calculados sobre R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (pagos agora)<br>
+                        • <strong>Honorários Totais:</strong> Calculados sobre R$ ${resultados.valortotatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (valor total do direito)
+                    </div>
+                </div>`;
+            }
+
+            // Gerar seção de honorários 
+            let secaoHonorariosOriginal = '';
+            if (resultados.honorarios && resultados.honorarios.length > 0) {
+                const tituloSecao = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt 
+                    ? '👩‍💼 Advogados - Honorários da Preferência' 
+                    : '👩‍💼 Advogados';
+                
+                const descricaoBase = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt
+                    ? `<p style="color: #155724; font-style: italic;">Valores calculados sobre a preferência (R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</p>`
+                    : '';
+                secaoHonorariosOriginal = `
+                <div class="table-container">
+                    <h3>📄➖ Deduções Acessórias</h3>
+                    <h3>${tituloSecao}</h3>
+                    ${descricaoBase}
                     <table>
                         <tr>
                             <th>Nome Advogado</th>
@@ -2478,7 +2525,7 @@
                         <strong>⚠️ Preferência Parcial de Honorários:</strong><br>
                         • <strong>Advogados</strong> têm direito à preferência e recebem sua parte agora<br>
                         • <strong>Cessionários</strong> não têm direito à preferência (Art. 42. Resolução CNJ 303/19.) e aguardam pagamento na ordem cronológica<br>
-                        • Total pago agora (preferência): R$ ${advogadosComCessao.reduce((total, adv) => total + adv.valorLiquidoAdvogado, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br>
+                        • <strong> Total pago agora (preferência) </strong>: R$ ${advogadosComCessao.reduce((total, adv) => total + adv.valorBrutoAdvogado, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br>
                     </div>
                     ` : ''}
                     
@@ -2528,29 +2575,34 @@
 
             if (advogadosParaPagar.length > 0) {
                 // Gerar uma seção individual para cada advogado (como o beneficiário)
-                secaoPagamentoAdvogados = advogadosParaPagar.map(adv => `
-                    <div class="table-container">
-                        <h3>👩‍💼 Pagamento Advogado - ${adv.nome} (${adv.tipo})</h3>
-                        <table>
-                            <tr>
-                                <th>Descrição</th>
-                                <th>Valor</th>
-                            </tr>
-                            <tr>
-                                <td>Valor Devido</td>
-                                <td>R$ ${adv.valorBrutoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>
-                            <tr>
-                                <td>Imposto de Renda</td>
-                                <td>R$ ${adv.irAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>
-                            <tr class="highlight">
-                                <td>Valor Líquido</td>
-                                <td>R$ ${adv.valorLiquidoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>
-                        </table>
-                    </div>
-                `).join('');
+                secaoPagamentoAdvogados = advogadosParaPagar.map(adv => {
+                    const descricaoIR = adv.tipo === 'PF'
+                        ? '🏦 MP Nª 1.294, de 11 de Abril de 2025'
+                        : '🏦 DECRETO 9.580, art 714';
+                    return `
+                        <div class="table-container">
+                            <h3>👩‍💼 Pagamento Advogado - ${adv.nome} (${adv.tipo})</h3>
+                            <table>
+                                <tr>
+                                    <th>Descrição</th>
+                                    <th>Valor</th>
+                                </tr>
+                                <tr>
+                                    <td>Valor Devido</td>
+                                    <td>R$ ${adv.valorBrutoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                                <tr>
+                                    <td>Imposto de Renda - ${descricaoIR}</td>
+                                    <td>R$ ${adv.irAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                                <tr class="highlight">
+                                    <td>Valor Líquido</td>
+                                    <td>R$ ${adv.valorLiquidoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    `;
+                }).join('');
             }
 
             // Seção Pagamento Cessionários (só aparece se não for preferência)
@@ -2847,6 +2899,8 @@
                         </tr>
                     </table>
                 </div>
+
+                ${secaoHonorariosTotais}
 
                 ${secaoHonorariosOriginal}
 
