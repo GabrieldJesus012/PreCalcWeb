@@ -338,6 +338,7 @@
         function atualizarOpcoesCessao() {
             const quantAdvogados = parseInt(document.getElementById('quantAdvogados').value) || 0;
             const quantHerdeiros = parseInt(document.getElementById('quantHerdeiros').value) || 0;
+            const quantSindicatos = parseInt(document.getElementById('quantSindicatos').value) || 0;
             const beneficiarioPrincipal = document.getElementById('beneficiario').value.trim();
             // Recriar as cessões existentes com as novas opções
             const quantCessoes = parseInt(document.getElementById('quantCessoes').value) || 0;
@@ -352,6 +353,7 @@
         function criarOpcoesTipoCessao() {
             const quantAdvogados = parseInt(document.getElementById('quantAdvogados').value) || 0;
             const quantHerdeiros = parseInt(document.getElementById('quantHerdeiros').value) || 0;
+            const quantSindicatos = parseInt(document.getElementById('quantSindicatos').value) || 0;
             let opcoes = [];
             // Sempre incluir cessão do beneficiário principal
             opcoes.push('<option value="cessaobenPrincipal">Do Beneficiário Principal</option>');
@@ -362,6 +364,9 @@
             // Só adicionar cessão de herdeiro se houver herdeiros cadastrados
             if (quantHerdeiros > 0) {
                 opcoes.push('<option value="cessaoherdeiro">Do Herdeiro</option>');
+            }
+            if (quantSindicatos > 0) {
+                opcoes.push('<option value="cessaoSindicato">Do Sindicato</option>');
             }
             return opcoes.join('');
         }
@@ -391,6 +396,15 @@
                     } else {
                         // Se não há herdeiros, usar o beneficiário principal
                         opcoes.push(`<option value="${beneficiarioPrincipal}">${beneficiarioPrincipal}</option>`);
+                    }
+                    break;
+                case 'cessaoSindicato':
+                    const quantSindicatos = parseInt(document.getElementById('quantSindicatos').value) || 0;
+                    if (quantSindicatos > 0) {
+                        for (let i = 0; i < quantSindicatos; i++) {
+                            const nomeSind = document.getElementById(`sindNome${i}`)?.value.trim() || `Sindicato ${i + 1}`;
+                            opcoes.push(`<option value="${nomeSind}">${nomeSind}</option>`);
+                        }
                     }
                     break;
             }
@@ -582,6 +596,7 @@
             document.getElementById('quantHerdeiros').value = 0;
             document.getElementById('herdeirosContainer').innerHTML = '';
             document.getElementById('quantCessoes').value = 0;
+            document.getElementById('quantSindicatos').value = 0;
             document.getElementById('cessaoContainer').innerHTML = '';
             document.getElementById('resultadosContent').innerHTML = '<p class="loading">Execute o cálculo para ver os resultados aqui...</p>';
             
@@ -1537,9 +1552,11 @@
                 aliquotaFixa: parseFloat(document.getElementById('aliquotaFixa').value) || 0,
                 quantAdvogados: parseInt(document.getElementById('quantAdvogados').value) || 0,
                 quantHerdeiros: parseInt(document.getElementById('quantHerdeiros').value) || 0,
+                quantSindicatos: parseInt(document.getElementById('quantSindicatos').value) || 0,
                 quantCessoes: parseInt(document.getElementById('quantCessoes').value) || 0,
                 advogados: [],
                 herdeiros: [],
+                sindicatos: [],
                 cessoes: []
             };
             dados.valorTotal = dados.valorPrincipal + dados.valorJuros;
@@ -1569,6 +1586,35 @@
                         nome: nomeElement.value || `Herdeiro ${i + 1}`,
                         percentual: parseFloat(percentualElement.value) || 0,
                         temPreferencia: preferenciaElement ? preferenciaElement.value === 'sim' : false
+                    });
+                }
+            }
+            // Coletar dados dos sindicatos
+            for (let i = 0; i < dados.quantSindicatos; i++) {
+                const nomeElement = document.getElementById(`sindNome${i}`);
+                const percentualElement = document.getElementById(`sindPercentual${i}`);
+                const tributacaoElement = document.getElementById(`sindTrib${i}`);
+                
+                if (nomeElement && percentualElement && tributacaoElement) {
+                    const tributacao = tributacaoElement.value;
+                    let aliquotaFixa = 0;
+                    
+                    // Definir alíquota baseada no tipo de tributação
+                    if (tributacao === 'nao') {
+                        aliquotaFixa = 1; // 100% - sem tributação
+                    } else if (tributacao === 'lei') {
+                        aliquotaFixa = 0.03; // 3% - Art. 27, da Lei nº 10.833/03
+                    } else if (tributacao === 'fixa') {
+                        const aliquotaElement = document.getElementById(`aliquotaSind${i}`);
+                        aliquotaFixa = (aliquotaElement && aliquotaElement.value) ? 
+                            parseFloat(aliquotaElement.value) || 0 : 0;
+                    }
+                    
+                    dados.sindicatos.push({
+                        nome: nomeElement.value || `Sindicato ${i + 1}`,
+                        percentual: parseFloat(percentualElement.value) || 0,
+                        tributacao: tributacao,
+                        aliquotaTributacao: aliquotaFixa
                     });
                 }
             }
@@ -1626,6 +1672,8 @@
                     cedenteExiste = dados.advogados.some(adv => adv.nome === cessao.cedente);
                 }else if (cessao.tipo === 'cessaoHerdeiro' || cessao.tipo === 'cessaoherdeiro') {
                     cedenteExiste = dados.herdeiros.some(h => h.nome === cessao.cedente);
+                }else if (cessao.tipo === 'cessaoSindicato') {
+                    cedenteExiste = dados.sindicatos.some(s => s.nome === cessao.cedente);
                 }
                 
                 if (!cedenteExiste) {
