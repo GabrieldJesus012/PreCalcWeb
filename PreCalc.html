@@ -1670,6 +1670,7 @@
             // ========== CESSÕES DO BENEFICIÁRIO PRINCIPAL ==========
             // Valor bruto do beneficiário (apenas descontando honorários)
             const valorBeneficiarioBruto = valorBase - valorHonorarioTotal;
+
             const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
                 cessao.tipo === 'cessaobenPrincipal'
             ) || [];
@@ -1719,6 +1720,55 @@
                 valorIRUnitario
             } = resultadoIR;
 
+            const resultadoCessoes = calcularCessoesBeneficiarioPrincipal(dados, valorBase, valortotatt, valorHonorarioTotal, valorPrevidencia, valorIR);
+            let {
+                valorCessoesBeneficiario,
+                cessoesBeneficiarioCalculadas,
+                percentualBeneficiarioFinal,
+                valorBeneficiarioAposCessoes,
+                valorPrevidenciaBeneficiario,
+                valorIRBeneficiario,
+                valorBeneficiarioFinal,
+                cessoesBeneficiarioFinais
+            } = resultadoCessoes;
+
+            return {
+                valorBase,
+                principal,
+                jurosBase,
+                rrapagamento,
+                honorarios,
+                valorHonorarioTotal,
+                valorPrevidencia,
+                aliquotaEfetiva,
+                valorIR,
+                aliquotaIR,
+                baseIRHonora,
+                baseIRPrev,
+                baseIRRRA,
+                valorIRUnitario,
+
+                valorBeneficiarioBruto: resultadoCessoes.valorBeneficiarioBruto,         // Valor antes de previdência/IR/cessões
+                valorCessoesBeneficiario,       // Total bruto cedido
+                percentualBeneficiarioFinal,    // % que fica com o beneficiário
+                valorBeneficiarioAposCessoes,   // Valor após cessões (mas ainda bruto)
+                valorPrevidenciaBeneficiario,   // Previdência só da parte do beneficiário
+                valorIRBeneficiario,            // IR só da parte do beneficiário
+                valorBeneficiarioFinal,         // Valor líquido final do beneficiário
+                cessoesBeneficiarioCalculadas,  // Array simples das cessões
+                cessoesBeneficiarioFinais,      // Array com detalhes completos (IR, previdência)
+                isPreferenciasParcial           // Flag para controle (opcional)
+            };
+        }
+
+        function calcularCessoesBeneficiarioPrincipal(dados, valorBase, valortotatt, valorHonorarioTotal, valorPrevidencia, valorIR) {
+            const valorBeneficiarioBruto = valorBase - valorHonorarioTotal;
+            const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
+                cessao.tipo === 'cessaobenPrincipal'
+            ) || [];
+
+            const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
+            
             let valorCessoesBeneficiario = 0;
             let cessoesBeneficiarioCalculadas = [];
             let percentualBeneficiarioFinal = 1.0;
@@ -1794,33 +1844,18 @@
             }
 
             return {
-                valorBase,
-                principal,
-                jurosBase,
-                rrapagamento,
-                honorarios,
-                valorHonorarioTotal,
-                valorPrevidencia,
-                aliquotaEfetiva,
-                valorIR,
-                aliquotaIR,
-                baseIRHonora,
-                baseIRPrev,
-                baseIRRRA,
-                valorIRUnitario,
-
-                valorBeneficiarioBruto,         // Valor antes de previdência/IR/cessões
-                valorCessoesBeneficiario,       // Total bruto cedido
-                percentualBeneficiarioFinal,    // % que fica com o beneficiário
-                valorBeneficiarioAposCessoes,   // Valor após cessões (mas ainda bruto)
-                valorPrevidenciaBeneficiario,   // Previdência só da parte do beneficiário
-                valorIRBeneficiario,            // IR só da parte do beneficiário
-                valorBeneficiarioFinal,         // Valor líquido final do beneficiário
-                cessoesBeneficiarioCalculadas,  // Array simples das cessões
-                cessoesBeneficiarioFinais,      // Array com detalhes completos (IR, previdência)
-                isPreferenciasParcial           // Flag para controle (opcional)
+                valorBeneficiarioBruto,
+                valorCessoesBeneficiario,
+                cessoesBeneficiarioCalculadas,
+                percentualBeneficiarioFinal,
+                valorBeneficiarioAposCessoes,
+                valorPrevidenciaBeneficiario,
+                valorIRBeneficiario,
+                valorBeneficiarioFinal,
+                cessoesBeneficiarioFinais
             };
         }
+
 
         function calcularHonorarios(dados, valorBase, valortotatt) {
             let valorHonorarioTotal = 0;
