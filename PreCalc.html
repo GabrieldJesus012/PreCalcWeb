@@ -2670,33 +2670,39 @@
                     });
                 }
             });
-
             const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt;
             if (todosCessionarios.length > 0 && !isPreferenciaParcial) {
-                secaoPagamentoCessionariosAdv = todosCessionarios.map(cessionario => `
-                    <div class="table-container">
-                        <h3>🔄 Pagamento Cessionário - ${cessionario.nome}</h3>
-                        <p style="margin-bottom: 10px;"><strong>Cessão de:</strong> ${cessionario.advogadoOriginal} (${cessionario.tipoAdvogado})</p>
-                        <table>
-                            <tr>
-                                <th>Descrição</th>
-                                <th>Valor</th>
-                            </tr>
-                            <tr>
-                                <td>Valor Devido</td>
-                                <td>R$ ${cessionario.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>
-                            <tr>
-                                <td>Imposto de Renda</td>
-                                <td>R$ ${cessionario.ir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>
-                            <tr class="highlight">
-                                <td>Valor Líquido</td>
-                                <td>R$ ${cessionario.valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>
-                        </table>
-                    </div>
-                `).join('');
+                secaoPagamentoCessionariosAdv = todosCessionarios.map(cessionario => {
+                    // Definir descrição do IR baseada no tipo do advogado original
+                    const descricaoIR = cessionario.tipoAdvogado === 'PF'
+                        ? '🏦 MP Nª 1.294, de 11 de Abril de 2025'
+                        : '🏦 DECRETO 9.580, art 714';
+                        
+                    return `
+                        <div class="table-container">
+                            <h3>🔄 Pagamento Cessionário - ${cessionario.nome}</h3>
+                            <p style="margin-bottom: 10px;"><strong>Cessão de:</strong> ${cessionario.advogadoOriginal} (${cessionario.tipoAdvogado})</p>
+                            <table>
+                                <tr>
+                                    <th>Descrição</th>
+                                    <th>Valor</th>
+                                </tr>
+                                <tr>
+                                    <td>Valor Devido</td>
+                                    <td>R$ ${cessionario.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                                <tr>
+                                    <td>Imposto de Renda - ${descricaoIR}</td>
+                                    <td>R$ ${cessionario.ir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                                <tr class="highlight">
+                                    <td>Valor Líquido</td>
+                                    <td>R$ ${cessionario.valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    `;
+                }).join('');
             }
 
             let secaoPagamentoCessionarios = '';
