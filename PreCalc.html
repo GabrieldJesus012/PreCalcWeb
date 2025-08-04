@@ -167,7 +167,14 @@
                             <input type="number" id="quantAdvogados" value="0" min="0">
                         </div>
                         <div id="advogadosContainer"></div>
+                        <h3>🤝 Sindicatos</h3>
+                        <div class="input-group">
+                            <label>Quantidade de Sindicatos:</label>
+                            <input type="number" id="quantSindicatos" value="0" min="0">
+                        </div>
+                        <div id="sindicatosContainer"></div>
                     </div>
+                    
                 </div>
             </div>
 
@@ -439,6 +446,60 @@
             }
             atualizarOpcoesCessao();
         });
+
+        document.getElementById('quantSindicatos').addEventListener('change', function() {
+            const quant = parseInt(this.value);
+            const container = document.getElementById('sindicatosContainer');
+            container.innerHTML = '';
+            
+            for (let i = 0; i < quant; i++) {
+                const sindDiv = document.createElement('div');
+                sindDiv.className = 'advogado-item';
+                sindDiv.innerHTML = `
+                    <div class="advogado-header">Sindicato ${i + 1}</div>
+                    <div class="advogado-row">
+                        <div class="input-group">
+                            <label>Nome ${i + 1}:</label>
+                            <input type="text" id="sindNome${i}" placeholder="Nome do sindicato" onchange="atualizarOpcoesCessao()">
+                        </div>
+                        <div class="input-group">
+                            <label>Percentual (ex: 0.1 para 10%):</label>
+                            <input type="number" id="sindPercentual${i}" step="0.01" min="0" max="1" placeholder="0.00">
+                        </div>
+                        <div class="input-group">
+                            <label>Tributação:</label>
+                            <select id="sindTrib${i}" onchange="toggleAliquotaSindicato(${i})">
+                                <option value="nao">Sem Tributação do IR</option>
+                                <option value="lei">Art. 27, da Lei nº 10.833/03</option>
+                                <option value="fixa">Alíquota Fixa</option>
+                            </select>
+                        </div>
+                        <div class="input-group" id="aliquotaSindContainer${i}" style="display: none;">
+                            <label>Alíquota Fixa (ex: 0.015 para 1,5%):</label>
+                            <input type="number" id="aliquotaSind${i}" step="0.001" min="0" max="1" placeholder="0.000">
+                        </div>
+                    </div>
+                `;
+                container.appendChild(sindDiv);
+            }
+            atualizarOpcoesCessao();
+        });
+
+        function toggleAliquotaSindicato(index) {
+            const selectTrib = document.getElementById(`sindTrib${index}`);
+            const aliquotaContainer = document.getElementById(`aliquotaSindContainer${index}`);
+            
+            if (selectTrib.value === 'fixa') {
+                aliquotaContainer.style.display = 'block';
+            } else {
+                aliquotaContainer.style.display = 'none';
+                // Limpa o valor quando oculta o campo
+                const aliquotaInput = document.getElementById(`aliquotaSind${index}`);
+                if (aliquotaInput) {
+                    aliquotaInput.value = '';
+                }
+            }
+        }
 
         document.getElementById('quantHerdeiros').addEventListener('change', function() {
             const quant = parseInt(this.value);
