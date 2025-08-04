@@ -2038,6 +2038,112 @@
             return { honorarios, valorHonorarioTotal };
         }
 
+        function calcularSindicatos(dados, valorBase, valortotatt) {
+            let valorSindicatoTotal = 0;
+            
+            // Verificar se é preferência parcial (não paga sindicatos)
+            const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
+            
+            const sindicatos = dados.sindicatos.map(sind => {
+                const percentualTotalSindicato = sind.percentual;
+                
+                // DIFERENÇA PRINCIPAL: Sindicato sempre calcula sobre valorTOTATT (valor total da dívida)
+                const valorBrutoTotal = valortotatt * percentualTotalSindicato;
+                
+                // Verificar se o sindicato fez cessão
+                const cessaoSind = dados.cessoes?.filter(cessao => 
+                    cessao.tipo === 'cessaoSindicato' && cessao.cedente === sind.nome
+                ) || [];
+                
+                // Calcular percentual total cedido pelo sindicato
+                let percentualCessionarioSind = cessaoSind.reduce((total, cessao) => total + cessao.percentual, 0);
+                const percentualSindicato = Math.max(0, percentualTotalSindicato - percentualCessionarioSind);
+
+                const valorBrutoSindicato = valortotatt * percentualSindicato;
+                const valorBrutoCessionario = valortotatt * percentualCessionarioSind;
+
+                // CÁLCULO DO IR baseado na aliquotaTributacao do sindicato
+                let irSindicato = 0;
+                let irCessionarioSind = 0;
+                
+                if (sind.tributacao === 'nao') {
+                    // Sem tributação (aliquotaTributacao = 1)
+                    irSindicato = 0;
+                    irCessionarioSind = 0;
+                } else if (sind.tributacao === 'lei') {
+                    // Art. 27, Lei 10.833/03 (aliquotaTributacao = 0.03)
+                    irSindicato = valorBrutoSindicato * 0.03;
+                    irCessionarioSind = valorBrutoCessionario * 0.03;
+                } else if (sind.tributacao === 'fixa') {
+                    // Alíquota fixa personalizada
+                    irSindicato = valorBrutoSindicato * sind.aliquotaTributacao;
+                    irCessionarioSind = valorBrutoCessionario * sind.aliquotaTributacao;
+                }
+
+                const valorLiquidoSindicato = valorBrutoSindicato - irSindicato;
+                const valorLiquidoCessionario = valorBrutoCessionario - irCessionarioSind;
+
+                // Detalhes dos cessionários
+                const cessionarios = cessaoSind.map(cessao => {
+                    const valorBrutoCessao = valortotatt * cessao.percentual;
+                    let irCessao = 0;
+                    
+                    if (sind.tributacao === 'nao') {
+                        irCessao = 0;
+                    } else if (sind.tributacao === 'lei') {
+                        irCessao = valorBrutoCessao * 0.03;
+                    } else if (sind.tributacao === 'fixa') {
+                        irCessao = valorBrutoCessao * sind.aliquotaTributacao;
+                    }
+                    
+                    return {
+                        nome: cessao.cessionario,
+                        percentual: cessao.percentual,
+                        valorBruto: valorBrutoCessao,
+                        ir: irCessao,
+                        valorLiquido: valorBrutoCessao - irCessao
+                    };
+                });
+
+                // Definir valores efetivos baseado na preferência parcial
+                if (!isPreferenciaParcial) {
+                    // Ordem comum ou preferência total: sindicatos recebem normalmente
+                    valorSindicatoTotal += valorBrutoTotal;
+                }
+                // Se for preferência parcial, os valores já são calculados mas não são pagos efetivamente
+
+                return {
+                    ...sind,
+                    valorBruto: valorBrutoTotal,
+                    ir: irSindicato + irCessionarioSind,
+                    valorLiquido: valorLiquidoSindicato + valorLiquidoCessionario,
+                    
+                    // Dados do sindicato
+                    percentualSindicato,
+                    valorBrutoSindicato,
+                    irSindicato,
+                    valorLiquidoSindicato,
+                    
+                    // Dados totais dos cessionários
+                    percentualCessionarioSind,
+                    valorBrutoCessionario,
+                    irCessionarioSind,
+                    valorLiquidoCessionario,
+                    cessionarios,
+                    cessoesSind: cessaoSind,
+                    
+                    // Flag de controle
+                    podeReceber: !isPreferenciaParcial
+                };
+            });
+
+            return { 
+                sindicatos, 
+                valorSindicatoTotal: isPreferenciaParcial ? 0 : valorSindicatoTotal, // Zero se preferência parcial
+                valorSindicatoTotalTeorico: dados.sindicatos.reduce((sum, s) => sum + (valortotatt * s.percentual), 0), // Sempre calculado para referência
+                isPreferenciaParcial
+            };
+        }
 
         function calcularIRIsolado(dados, valortotatt, valorBase, principalBase, valorPrevidencia, rrapagamentoRecalculado) {
             let valorIR = 0;
