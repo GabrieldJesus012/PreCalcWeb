@@ -280,7 +280,6 @@
 
         // Inicialização dos campos na carga da página
         window.addEventListener('load', function() {
-            // Trigger dos eventos para configurar estado inicial
             document.getElementById('tipoCalculo').dispatchEvent(new Event('change'));
             document.getElementById('natureza').dispatchEvent(new Event('change'));
             document.getElementById('incidenciaPrevidencia').dispatchEvent(new Event('change'));
@@ -319,7 +318,6 @@
                     </div>
                 `;
                 container.appendChild(cessaoDiv);
-                        // Se só tem uma opção (beneficiário principal), selecionar automaticamente
                 const opcoesTipo = criarOpcoesTipoCessao();
                 const numOpcoes = (opcoesTipo.match(/<option/g) || []).length;
                 if (numOpcoes === 1) {
@@ -339,7 +337,7 @@
             if (quantCessoes > 0) {
                 criarCessoes(quantCessoes);
             }
-            // Atualizar todos os cedentes existentes
+
             atualizarTodosCedentes();
         }
 
@@ -1446,17 +1444,16 @@
         async function calcular() {
             // Coletar dados do formulário
             const dados = coletarDados();
-            // Simular cálculos (versão simplificada dos cálculos do Python)
 
             // Validar dados antes dos cálculos
             const erros = validarDados(dados);
             if (erros.length > 0) {
                 alert("Erros encontrados:\n" + erros.join("\n"));
-                return; // Para a execução se houver erros
+                return; 
             }
 
             const resultados = await calcularValores(dados);
-            // Exibir resultados
+
             exibirResultados(resultados, dados);
         }
 
@@ -1576,22 +1573,6 @@
             });
             
             return erros;
-        }
-
-        function obterResumoCessoes(dados) {
-            if (!dados.cessoes || dados.cessoes.length === 0) {
-                return "Nenhuma cessão cadastrada";
-            }
-            let resumo = "Cessões cadastradas:\n";
-            dados.cessoes.forEach((cessao, i) => {
-                const tipoDesc = {
-                    'cessaobenPrincipal': 'Beneficiário Principal',
-                    'cessaoAdv': 'Advogado',
-                    'cessaoHerdeiro': 'Herdeiro'
-                };
-                resumo += `${i + 1}. ${cessao.cedente} (${tipoDesc[cessao.tipo]}) cede ${(cessao.percentual * 100).toFixed(1)}% para ${cessao.cessionario}\n`;
-            });
-            return resumo;
         }
         
         async function calcularValores(dados) {
