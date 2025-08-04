@@ -1664,99 +1664,8 @@
             let rrapagamento = dados.rra !== 0 ? Math.round((valorBase * dados.rra) / valortotatt) : 0;
 
             // Honorários
-            let valorHonorarioTotal = 0;
-            const honorarios = dados.advogados.map(adv => {
-
-                const percentualTotalAdvogado = adv.percentual;
-                const valorBrutoTotal = valorBase * percentualTotalAdvogado;
-                
-
-                // Verificar se o advogado fez cessão
-                const cessaoAdv = dados.cessoes?.filter(cessao => 
-                    cessao.tipo === 'cessaoAdv' && cessao.cedente === adv.nome
-                );
-                
-                // Calcular percentual total cedido pelo advogado
-                let percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
-                const percentualAdvogado = percentualTotalAdvogado - percentualCessionarioAdv;
-
-                const valorBrutoAdvogado = valorBase * percentualAdvogado;
-                const valorBrutoCessionario = valorBase * percentualCessionarioAdv;
-
-                let irAdvogado = 0;
-                if (adv.tipo === 'PF') {
-                    irAdvogado = calcularIR(valorBrutoAdvogado); 
-                } else {
-                    irAdvogado = valorBrutoAdvogado * 0.015; 
-                }
-
-                let irCessionarioAdv = 0;
-                if (adv.tipo === 'PF') {
-                    irCessionarioAdv = calcularIR(valorBrutoCessionario); 
-                } else {
-                    irCessionarioAdv = valorBrutoCessionario * 0.015; 
-                }
-
-                const valorLiquidoAdvogado = valorBrutoAdvogado - irAdvogado;
-                const valorLiquidoCessionario = valorBrutoCessionario - irCessionarioAdv;
-
-                const cessionarios = cessaoAdv.map(cessao => {
-                    const valorBrutoCessao = valorBase * cessao.percentual;
-                    const irCessao = adv.tipo === 'PF' ? calcularIR(valorBrutoCessao) : valorBrutoCessao * 0.015;
-                    return {
-                        nome: cessao.cessionario,
-                        percentual: cessao.percentual,
-                        valorBruto: valorBrutoCessao,
-                        ir: irCessao,
-                        valorLiquido: valorBrutoCessao - irCessao
-                    };
-                });
-
-                // Dados totais dos cessionários (para compatibilidade)
-                const valorBruto = valorBrutoTotal;
-                const ir = irAdvogado + irCessionarioAdv;
-                const valorLiquido = valorLiquidoAdvogado + valorLiquidoCessionario;
-
-                // Ajuste para valorHonorarioTotal
-                let valorParaDescontar = valorBrutoAdvogado;
-                if (dados.tipoCalculo === 'preferencia' && valorBase < valortotatt) {
-                    // Preferência parcial: só advogado recebe, cessionário aguarda
-                    valorParaDescontar = valorBrutoAdvogado;
-                } else {
-                    // Ordem comum ou preferência total: todos recebem
-                    valorParaDescontar = valorBrutoTotal;
-                }
-                valorHonorarioTotal += valorParaDescontar;
-
-                // Compatibilidade com código antigo
-                const primeiraCessao = cessaoAdv.length > 0 ? cessaoAdv[0] : null;
-
-                return {
-                    ...adv,
-                    valorBruto,
-                    ir,
-                    valorLiquido,
-
-                    // Dados do advogado
-                    percentualAdvogado,
-                    valorBrutoAdvogado,
-                    irAdvogado,
-                    valorLiquidoAdvogado,
-
-                    // Dados totais dos cessionários
-                    percentualCessionarioAdv,
-                    valorBrutoCessionario,
-                    irCessionarioAdv,
-                    valorLiquidoCessionario,
-
-                    cessionarios,
-                    cessoesAdv: cessaoAdv,
-
-                    // Compatibilidade
-                    cessao: primeiraCessao,
-                    nomeCessionario: primeiraCessao ? primeiraCessao.cessionario : null
-                };
-            });
+            const resultadoHonorarios = calcularHonorarios(dados, valorBase, valortotatt);
+            const { honorarios, valorHonorarioTotal } = resultadoHonorarios;
 
             // ========== CESSÕES DO BENEFICIÁRIO PRINCIPAL ==========
             // Valor bruto do beneficiário (apenas descontando honorários)
@@ -1912,6 +1821,99 @@
                 isPreferenciasParcial           // Flag para controle (opcional)
             };
         }
+
+        function calcularHonorarios(dados, valorBase, valortotatt) {
+            let valorHonorarioTotal = 0;
+            const honorarios = dados.advogados.map(adv => {
+                const percentualTotalAdvogado = adv.percentual;
+                const valorBrutoTotal = valorBase * percentualTotalAdvogado;
+                
+                // Verificar se o advogado fez cessão
+                const cessaoAdv = dados.cessoes?.filter(cessao => 
+                    cessao.tipo === 'cessaoAdv' && cessao.cedente === adv.nome
+                );
+                
+                // Calcular percentual total cedido pelo advogado
+                let percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
+                const percentualAdvogado = percentualTotalAdvogado - percentualCessionarioAdv;
+
+                const valorBrutoAdvogado = valorBase * percentualAdvogado;
+                const valorBrutoCessionario = valorBase * percentualCessionarioAdv;
+
+                let irAdvogado = 0;
+                if (adv.tipo === 'PF') {
+                    irAdvogado = calcularIR(valorBrutoAdvogado); 
+                } else {
+                    irAdvogado = valorBrutoAdvogado * 0.015; 
+                }
+
+                let irCessionarioAdv = 0;
+                if (adv.tipo === 'PF') {
+                    irCessionarioAdv = calcularIR(valorBrutoCessionario); 
+                } else {
+                    irCessionarioAdv = valorBrutoCessionario * 0.015; 
+                }
+
+                const valorLiquidoAdvogado = valorBrutoAdvogado - irAdvogado;
+                const valorLiquidoCessionario = valorBrutoCessionario - irCessionarioAdv;
+
+                const cessionarios = cessaoAdv.map(cessao => {
+                    const valorBrutoCessao = valorBase * cessao.percentual;
+                    const irCessao = adv.tipo === 'PF' ? calcularIR(valorBrutoCessao) : valorBrutoCessao * 0.015;
+                    return {
+                        nome: cessao.cessionario,
+                        percentual: cessao.percentual,
+                        valorBruto: valorBrutoCessao,
+                        ir: irCessao,
+                        valorLiquido: valorBrutoCessao - irCessao
+                    };
+                });
+
+                // Dados totais dos cessionários (para compatibilidade)
+                const valorBruto = valorBrutoTotal;
+                const ir = irAdvogado + irCessionarioAdv;
+                const valorLiquido = valorLiquidoAdvogado + valorLiquidoCessionario;
+
+                // Ajuste para valorHonorarioTotal
+                let valorParaDescontar = valorBrutoAdvogado;
+                if (dados.tipoCalculo === 'preferencia' && valorBase < valortotatt) {
+                    // Preferência parcial: só advogado recebe, cessionário aguarda
+                    valorParaDescontar = valorBrutoAdvogado;
+                } else {
+                    // Ordem comum ou preferência total: todos recebem
+                    valorParaDescontar = valorBrutoTotal;
+                }
+                valorHonorarioTotal += valorParaDescontar;
+
+                // Compatibilidade com código antigo
+                const primeiraCessao = cessaoAdv.length > 0 ? cessaoAdv[0] : null;
+
+                return {
+                    ...adv,
+                    valorBruto,
+                    ir,
+                    valorLiquido,
+                    // Dados do advogado
+                    percentualAdvogado,
+                    valorBrutoAdvogado,
+                    irAdvogado,
+                    valorLiquidoAdvogado,
+                    // Dados totais dos cessionários
+                    percentualCessionarioAdv,
+                    valorBrutoCessionario,
+                    irCessionarioAdv,
+                    valorLiquidoCessionario,
+                    cessionarios,
+                    cessoesAdv: cessaoAdv,
+                    // Compatibilidade
+                    cessao: primeiraCessao,
+                    nomeCessionario: primeiraCessao ? primeiraCessao.cessionario : null
+                };
+            });
+
+            return { honorarios, valorHonorarioTotal };
+        }
+
 
         function calcularIRIsolado(dados, valortotatt, valorBase, principalBase, valorPrevidencia, rrapagamentoRecalculado) {
             let valorIR = 0;
