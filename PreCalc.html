@@ -1835,9 +1835,9 @@
                 
                 // Calcular percentual total cedido pelo advogado
                 let percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
-                const percentualAdvogado = percentualTotalAdvogado - percentualCessionarioAdv;
+                const percentualAdvogado = Math.max(0, percentualTotalAdvogado - percentualCessionarioAdv);
 
-                const valorBrutoAdvogado = valorBase * percentualAdvogado;
+                const valorBrutoAdvogado = valorBase * Math.max(0, percentualAdvogado);
                 const valorBrutoCessionario = valorBase * percentualCessionarioAdv;
 
                 let irAdvogado = 0;
@@ -1932,7 +1932,7 @@
                             cessao.tipo === 'cessaoAdv' && cessao.cedente === adv.nome
                         ) || [];
                         const percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
-                        const percentualAdvogado = adv.percentual - percentualCessionarioAdv;
+                        const percentualAdvogado = Math.max(0, adv.percentual - percentualCessionarioAdv);
                         return sum + percentualAdvogado; // Só a parte do advogado
                     }, 0);
                 } else {
@@ -2162,7 +2162,7 @@
                                 cessao.tipo === 'cessaoAdv' && cessao.cedente === adv.nome
                             ) || [];
                             const percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
-                            const percentualAdvogado = adv.percentual - percentualCessionarioAdv;
+                            const percentualAdvogado = Math.max(0, adv.percentual - percentualCessionarioAdv);
                             return sum + percentualAdvogado; // Só a parte do advogado
                         }, 0);
                     } else {
