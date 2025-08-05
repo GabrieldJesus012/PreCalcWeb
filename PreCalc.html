@@ -1479,9 +1479,8 @@
             if (anoBase > 2021 || (anoBase === 2021 && numeroMesBase > 12)) {
                 return 1.0000;
             }
-            // Cria a chave para buscar no objeto
+            
             const chave = `${mesBase.toLowerCase()}-${anoBase}`;
-            // Retorna o índice encontrado ou 1.0000 se não encontrar
             return indicesCNJ[chave] || 1.0000;
         }
 
@@ -1696,173 +1695,280 @@
             }
         }
 
-        async function calcular() {
-            // Coletar dados do formulário
-            const dados = coletarDados();
+        const ColetaCache = {
+            elementos: null,
+            
+            init() {
+                // Cache TODOS os elementos de uma vez só
+                this.elementos = {
+                    // Dados básicos
+                    numprocesso: document.getElementById('numprocesso'),
+                    anoOrcamento: document.getElementById('anoOrcamento'),
+                    beneficiario: document.getElementById('beneficiario'),
+                    credor: document.getElementById('credor'),
+                    mesBase: document.getElementById('mesBase'),
+                    anoBase: document.getElementById('anoBase'),
+                    valorPrincipal: document.getElementById('valorPrincipal'),
+                    valorJuros: document.getElementById('valorJuros'),
+                    rra: document.getElementById('rra'),
+                    natureza: document.getElementById('natureza'),
+                    tipoCalculo: document.getElementById('tipoCalculo'),
+                    incidenciaIR: document.getElementById('incidenciaIR'),
+                    incidenciaPrevidencia: document.getElementById('incidenciaPrevidencia'),
+                    tipoPrevidencia: document.getElementById('tipoPrevidencia'),
+                    aliquotaFixa: document.getElementById('aliquotaFixa'),
+                    
+                    // Quantidades
+                    quantAdvogados: document.getElementById('quantAdvogados'),
+                    quantHerdeiros: document.getElementById('quantHerdeiros'),
+                    quantSindicatos: document.getElementById('quantSindicatos'),
+                    quantCessoes: document.getElementById('quantCessoes'),
+                    
+                    // Campos condicionais
+                    tetoPreferenciaPrincipal: document.getElementById('tetoPreferenciaPrincipal'),
+                    percentualAcordoValor: document.getElementById('percentualAcordoValor')
+                };
+            },
+            
+            // Função helper para obter valor com fallback
+            getValue(elementId, defaultValue = '', parser = null) {
+                const element = this.elementos[elementId];
+                if (!element) return defaultValue;
+                
+                const value = element.value;
+                if (!value && defaultValue !== '') return defaultValue;
+                
+                return parser ? parser(value) || defaultValue : value;
+            }
+        };
 
-            // Validar dados antes dos cálculos
+        // Função calcular OTIMIZADA
+        async function calcular() {
+            // Inicializar cache se necessário
+            if (!ColetaCache.elementos) {
+                ColetaCache.init();
+            }
+            
+            // Coletar e validar dados
+            const dados = coletarDados();
             const erros = validarDados(dados);
+            
             if (erros.length > 0) {
                 alert("Erros encontrados:\n" + erros.join("\n"));
-                return; 
+                return;
             }
-
+            
             const resultados = await calcularValores(dados);
-
-            exibirResultados(resultados, dados);
+            exibirResultados(resultados, dados)
         }
 
+        // Função coletarDados OTIMIZADA
         function coletarDados() {
+            const cache = ColetaCache;
+            
+            // Coleta básica otimizada (usando cache)
             const dados = {
-                numProcesso:  document.getElementById('numprocesso').value|| 'Processo',
-                anoOrcamento: parseInt(document.getElementById('anoOrcamento').value)|| 2026,
-                beneficiario: document.getElementById('beneficiario').value|| 'Beneficiario',
-                credor: document.getElementById('credor').value|| 'Devedor',
-                mesBase: document.getElementById('mesBase').value,
-                anoBase: parseInt(document.getElementById('anoBase').value),
-                valorPrincipal: parseFloat(document.getElementById('valorPrincipal').value) || 0,
-                valorJuros: parseFloat(document.getElementById('valorJuros').value) || 0,
-                rra: parseFloat(document.getElementById('rra').value) || 0,
-                natureza: document.getElementById('natureza').value,
-                tipoCalculo: document.getElementById('tipoCalculo').value,
-                incidenciaIR: document.getElementById('incidenciaIR').value === 'sim',
-                incidenciaPrevidencia: document.getElementById('incidenciaPrevidencia').value === 'sim',
-                tipoPrevidencia: document.getElementById('tipoPrevidencia').value,
-                aliquotaFixa: parseFloat(document.getElementById('aliquotaFixa').value) || 0,
-                quantAdvogados: parseInt(document.getElementById('quantAdvogados').value) || 0,
-                quantHerdeiros: parseInt(document.getElementById('quantHerdeiros').value) || 0,
-                quantSindicatos: parseInt(document.getElementById('quantSindicatos').value) || 0,
-                quantCessoes: parseInt(document.getElementById('quantCessoes').value) || 0,
+                numProcesso: cache.getValue('numprocesso', 'Processo'),
+                anoOrcamento: cache.getValue('anoOrcamento', 2026, parseInt),
+                beneficiario: cache.getValue('beneficiario', 'Beneficiario'),
+                credor: cache.getValue('credor', 'Devedor'),
+                mesBase: cache.getValue('mesBase'),
+                anoBase: cache.getValue('anoBase', 0, parseInt),
+                valorPrincipal: cache.getValue('valorPrincipal', 0, parseFloat),
+                valorJuros: cache.getValue('valorJuros', 0, parseFloat),
+                rra: cache.getValue('rra', 0, parseFloat),
+                natureza: cache.getValue('natureza'),
+                tipoCalculo: cache.getValue('tipoCalculo'),
+                incidenciaIR: cache.getValue('incidenciaIR') === 'sim',
+                incidenciaPrevidencia: cache.getValue('incidenciaPrevidencia') === 'sim',
+                tipoPrevidencia: cache.getValue('tipoPrevidencia'),
+                aliquotaFixa: cache.getValue('aliquotaFixa', 0, parseFloat),
+                
+                // Quantidades
+                quantAdvogados: cache.getValue('quantAdvogados', 0, parseInt),
+                quantHerdeiros: cache.getValue('quantHerdeiros', 0, parseInt),
+                quantSindicatos: cache.getValue('quantSindicatos', 0, parseInt),
+                quantCessoes: cache.getValue('quantCessoes', 0, parseInt),
+                
+                // Arrays que serão preenchidos
                 advogados: [],
                 herdeiros: [],
                 sindicatos: [],
                 cessoes: []
             };
+            
+            // Cálculo derivado
             dados.valorTotal = dados.valorPrincipal + dados.valorJuros;
-            // Dados específicos por tipo de cálculo
+            
+            // Campos condicionais otimizados
             if (dados.tipoCalculo === 'preferencia') {
-                dados.tetoPreferencia = parseFloat(document.getElementById('tetoPreferenciaPrincipal').value) || 0;
+                dados.tetoPreferencia = cache.getValue('tetoPreferenciaPrincipal', 0, parseFloat);
             }
             if (dados.tipoCalculo === 'acordo') {
-                dados.percentualAcordo = parseFloat(document.getElementById('percentualAcordoValor').value) || 0;
+                dados.percentualAcordo = cache.getValue('percentualAcordoValor', 0, parseFloat);
             }
-            // Coletar dados dos advogados
+            
+            // Coletar dados complexos usando funções otimizadas
+            coletarAdvogados(dados);
+            coletarHerdeiros(dados);
+            coletarSindicatos(dados);
+            coletarCessoes(dados);
+            
+            return dados;
+        }
+
+        // Função otimizada para coletar advogados
+        function coletarAdvogados(dados) {
             for (let i = 0; i < dados.quantAdvogados; i++) {
-                dados.advogados.push({
-                    nome: document.getElementById(`advNome${i}`).value,
-                    tipo: document.getElementById(`advTipo${i}`).value,
-                    percentual: parseFloat(document.getElementById(`advPercentual${i}`).value) || 0
-                });
+                const nome = document.getElementById(`advNome${i}`)?.value || '';
+                const tipo = document.getElementById(`advTipo${i}`)?.value || '';
+                const percentual = parseFloat(document.getElementById(`advPercentual${i}`)?.value) || 0;
+                
+                dados.advogados.push({ nome, tipo, percentual });
             }
-            // Coletar dados dos herdeiros
+        }
+
+        // Função otimizada para coletar herdeiros
+        function coletarHerdeiros(dados) {
             for (let i = 0; i < dados.quantHerdeiros; i++) {
                 const nomeElement = document.getElementById(`herdNome${i}`);
                 const percentualElement = document.getElementById(`herdPercentual${i}`);
                 const preferenciaElement = document.getElementById(`herdPreferencia${i}`);
                 
-                if (nomeElement && percentualElement) {
-                    dados.herdeiros.push({
-                        nome: nomeElement.value || `Herdeiro ${i + 1}`,
-                        percentual: parseFloat(percentualElement.value) || 0,
-                        temPreferencia: preferenciaElement ? preferenciaElement.value === 'sim' : false
-                    });
-                }
+                // Early continue se elementos essenciais não existem
+                if (!nomeElement || !percentualElement) continue;
+                
+                dados.herdeiros.push({
+                    nome: nomeElement.value || `Herdeiro ${i + 1}`,
+                    percentual: parseFloat(percentualElement.value) || 0,
+                    temPreferencia: preferenciaElement?.value === 'sim'
+                });
             }
-            // Coletar dados dos sindicatos
+        }
+
+        // Função otimizada para coletar sindicatos
+        function coletarSindicatos(dados) {
             for (let i = 0; i < dados.quantSindicatos; i++) {
                 const nomeElement = document.getElementById(`sindNome${i}`);
                 const percentualElement = document.getElementById(`sindPercentual${i}`);
                 const tributacaoElement = document.getElementById(`sindTrib${i}`);
                 
-                if (nomeElement && percentualElement && tributacaoElement) {
-                    const tributacao = tributacaoElement.value;
-                    let aliquotaFixa = 0;
-                    
-                    // Definir alíquota baseada no tipo de tributação
-                    if (tributacao === 'nao') {
-                        aliquotaFixa = 1; // 100% - sem tributação
-                    } else if (tributacao === 'lei') {
-                        aliquotaFixa = 0.03; // 3% - Art. 27, da Lei nº 10.833/03
-                    } else if (tributacao === 'fixa') {
-                        const aliquotaElement = document.getElementById(`aliquotaSind${i}`);
-                        aliquotaFixa = (aliquotaElement && aliquotaElement.value) ? 
-                            parseFloat(aliquotaElement.value) || 0 : 0;
-                    }
-                    
-                    dados.sindicatos.push({
-                        nome: nomeElement.value || `Sindicato ${i + 1}`,
-                        percentual: parseFloat(percentualElement.value) || 0,
-                        tributacao: tributacao,
-                        aliquotaTributacao: aliquotaFixa
-                    });
+                // Early continue se elementos essenciais não existem
+                if (!nomeElement || !percentualElement || !tributacaoElement) continue;
+                
+                const tributacao = tributacaoElement.value;
+                
+                // Lógica otimizada para alíquota
+                let aliquotaFixa = 0;
+                if (tributacao === 'nao') {
+                    aliquotaFixa = 1; // 100% - sem tributação
+                } else if (tributacao === 'lei') {
+                    aliquotaFixa = 0.03; // 3% - Art. 27, da Lei nº 10.833/03
+                } else if (tributacao === 'fixa') {
+                    const aliquotaElement = document.getElementById(`aliquotaSind${i}`);
+                    aliquotaFixa = parseFloat(aliquotaElement?.value) || 0;
                 }
+                
+                dados.sindicatos.push({
+                    nome: nomeElement.value || `Sindicato ${i + 1}`,
+                    percentual: parseFloat(percentualElement.value) || 0,
+                    tributacao,
+                    aliquotaTributacao: aliquotaFixa
+                });
             }
-            // Coletar dados das cessões
+        }
+
+        // Função otimizada para coletar cessões
+        function coletarCessoes(dados) {
             for (let i = 0; i < dados.quantCessoes; i++) {
                 const tipoElement = document.getElementById(`cessaoTipo${i}`);
                 const cedenteElement = document.getElementById(`cedenteNome${i}`);
                 const cessionarioElement = document.getElementById(`cessionarioNome${i}`);
                 const percentualElement = document.getElementById(`cessaoPercentual${i}`);
                 
-                if (tipoElement && cedenteElement && cessionarioElement && percentualElement) {
-                    const tipo = tipoElement.value;
-                    const cedente = cedenteElement.value;
-                    const cessionario = cessionarioElement.value || `Cessionário ${i + 1}`;
-                    const percentual = parseFloat(percentualElement.value) || 0;
-                    
-                    // Só adicionar se todos os campos estão preenchidos
-                    if (tipo && cedente) {
-                        dados.cessoes.push({
-                            tipo: tipo,
-                            cedente: cedente,
-                            cessionario: cessionario,
-                            percentual: percentual
-                        });
-                    }
+                // Early continue se elementos essenciais não existem
+                if (!tipoElement || !cedenteElement || !cessionarioElement || !percentualElement) continue;
+                
+                const tipo = tipoElement.value;
+                const cedente = cedenteElement.value;
+                
+                // Só processar se dados básicos estão preenchidos
+                if (tipo && cedente) {
+                    dados.cessoes.push({
+                        tipo,
+                        cedente,
+                        cessionario: cessionarioElement.value || `Cessionário ${i + 1}`,
+                        percentual: parseFloat(percentualElement.value) || 0
+                    });
                 }
             }
-
-            return dados;
         }
 
+        // Função validarDados OTIMIZADA
         function validarDados(dados) {
             const erros = [];
-            // Validar soma dos percentuais dos herdeiros
+            
+            // Validar herdeiros (otimizado)
             if (dados.herdeiros.length > 0) {
                 const somaHerdeiros = dados.herdeiros.reduce((sum, h) => sum + h.percentual, 0);
-                if (Math.abs(somaHerdeiros - 1.0) > 0.001) { // Tolerância para arredondamento
+                if (Math.abs(somaHerdeiros - 1.0) > 0.001) {
                     erros.push(`A soma dos percentuais dos herdeiros deve ser 100% (atual: ${(somaHerdeiros * 100).toFixed(1)}%)`);
                 }
             }
             
-            // Validar cessões
+            // Validar cessões (otimizado)
+            validarCessoes(dados, erros);
+            
+            return erros;
+        }
+
+        // Função separada para validar cessões (mais limpa)
+        function validarCessoes(dados, erros) {
+            // Criar maps para busca otimizada (O(1) ao invés de O(n))
+            const advogadosMap = new Map(dados.advogados.map(adv => [adv.nome, true]));
+            const herdeirosMap = new Map(dados.herdeiros.map(h => [h.nome, true]));
+            const sindicatosMap = new Map(dados.sindicatos.map(s => [s.nome, true]));
+            
+            // Normalizar nome do beneficiário uma vez só
+            const beneficiarioNorm = dados.beneficiario.trim();
+            
             dados.cessoes.forEach((cessao, i) => {
+                // Validar percentual
                 if (cessao.percentual > 1.0) {
                     erros.push(`Cessão ${i + 1}: Percentual não pode ser maior que 100%`);
                 }
                 
-                // Validar se o cedente existe
+                // Validar existência do cedente (otimizado com maps)
                 let cedenteExiste = false;
-                if (cessao.tipo === 'cessaobenPrincipal') {
-                    const isBeneficiario = cessao.cedente.trim() === dados.beneficiario.trim();
-                    const isBeneficiarioPadrao = cessao.cedente.trim() === 'Beneficiário Principal';
-                    cedenteExiste = isBeneficiario || isBeneficiarioPadrao;
-                } else if (cessao.tipo === 'cessaoAdv') {
-                    cedenteExiste = dados.advogados.some(adv => adv.nome === cessao.cedente);
-                }else if (cessao.tipo === 'cessaoHerdeiro' || cessao.tipo === 'cessaoherdeiro') {
-                    cedenteExiste = dados.herdeiros.some(h => h.nome === cessao.cedente);
-                }else if (cessao.tipo === 'cessaoSindicato') {
-                    cedenteExiste = dados.sindicatos.some(s => s.nome === cessao.cedente);
+                const cedenteNorm = cessao.cedente.trim();
+                
+                switch (cessao.tipo) {
+                    case 'cessaobenPrincipal':
+                        cedenteExiste = cedenteNorm === beneficiarioNorm || cedenteNorm === 'Beneficiário Principal';
+                        break;
+                    case 'cessaoAdv':
+                        cedenteExiste = advogadosMap.has(cessao.cedente);
+                        break;
+                    case 'cessaoHerdeiro':
+                    case 'cessaoherdeiro':
+                        cedenteExiste = herdeirosMap.has(cessao.cedente);
+                        break;
+                    case 'cessaoSindicato':
+                        cedenteExiste = sindicatosMap.has(cessao.cedente);
+                        break;
                 }
                 
                 if (!cedenteExiste) {
                     erros.push(`Cessão ${i + 1}: Cedente "${cessao.cedente}" não encontrado`);
                 }
             });
-            
-            return erros;
         }
-        
+
+        // Inicializar cache quando DOM estiver pronto
+        document.addEventListener('DOMContentLoaded', function() {
+            ColetaCache.init();
+        });
+
         async function calcularValores(dados) {
             //datas
             const dataBase = criarDataBase(dados.mesBase, dados.anoBase);
@@ -1892,7 +1998,7 @@
             const percentualjur = valorjurosatt / valortotatt;
             const indiceTotal = valortotatt / (dados.valorPrincipal + dados.valorJuros);
 
-             // Detalhamento financeiro
+            // Detalhamento financeiro
             const detalhamento = calcularGlobal(dados, valortotatt, percentualprinc, percentualjur);
 
             return {
