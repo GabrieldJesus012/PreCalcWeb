@@ -2139,9 +2139,7 @@
 
             return { 
                 sindicatos, 
-                valorSindicatoTotal: isPreferenciaParcial ? 0 : valorSindicatoTotal, // Zero se preferência parcial
-                valorSindicatoTotalTeorico: dados.sindicatos.reduce((sum, s) => sum + (valortotatt * s.percentual), 0), // Sempre calculado para referência
-                isPreferenciaParcial
+                valorSindicatoTotal
             };
         }
 
