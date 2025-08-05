@@ -2358,8 +2358,8 @@
                 let percentualCessionarioSind = cessaoSind.reduce((total, cessao) => total + cessao.percentual, 0);
                 const percentualSindicato = Math.max(0, percentualTotalSindicato - percentualCessionarioSind);
 
-                const valorBrutoSindicato = valortotatt * percentualSindicato;
-                const valorBrutoCessionario = valortotatt * percentualCessionarioSind;
+                const valorBrutoSindicato = valorBrutoTotal * percentualSindicato; // ← CORREÇÃO: sobre o valor do sindicato
+                const valorBrutoCessionario = valorBrutoTotal * percentualCessionarioSind; // ← CORREÇÃO: sobre o valor do sindicato
 
                 // CÁLCULO DO IR baseado na aliquotaTributacao do sindicato
                 let irSindicato = 0;
@@ -2384,7 +2384,7 @@
 
                 // Detalhes dos cessionários
                 const cessionarios = cessaoSind.map(cessao => {
-                    const valorBrutoCessao = valortotatt * cessao.percentual;
+                    const valorBrutoCessao = valorBrutoTotal * cessao.percentual; // ← CORREÇÃO: sobre o valor do sindicato, não valortotatt
                     let irCessao = 0;
                     
                     if (sind.tributacao === 'nao') {
@@ -2689,6 +2689,7 @@
                 // Seção IR
                 if (temIR) {
                     let percentualTotalAdv = 0;
+                    let percentualTotalSind = 0;
                     if (dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt) {
                         percentualTotalAdv = dados.advogados.reduce((sum, adv) => {
                             const cessaoAdv = dados.cessoes?.filter(cessao => 
@@ -2698,8 +2699,10 @@
                             const percentualAdvogado = Math.max(0, adv.percentual - percentualCessionarioAdv);
                             return sum + percentualAdvogado; // Só a parte do advogado
                         }, 0);
+                        percentualTotalSind = 0;
                     } else {
                         percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+                        percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
                     }
                     
                     const secaoIR = `
@@ -2715,6 +2718,11 @@
                                 <th>Base IR sem H.Contratuais (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
                                 <td>R$ ${resultados.baseIRHonora.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             </tr>
+                            ${percentualTotalSind > 0 ? `
+                            <tr>
+                                <th>Base IR sem Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
+                                <td>R$ ${resultados.baseIRSindi.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>` : ''}
                             ${temPrevidencia ? `
                             <tr>
                                 <th>Previdência:</th>
@@ -2810,6 +2818,11 @@
                             </tr>
                             `;
                         }).join('')}
+                        <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
+                            <td colspan="3"><strong>TOTAL HONORÁRIOS</strong></td>
+                            <td><strong>${(resultados.honorarios.reduce((total, h) => total + h.percentual, 0) * 100).toFixed(2)}%</strong></td>
+                            <td><strong>R$ ${resultados.honorarios.reduce((total, h) => total + (resultados.valortotatt * h.percentual), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+                        </tr>
                     </table>
                     <div style="margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-left: 4px solid #007bff; font-size: 0.9em;">
                         <strong>💡 Explicação:</strong><br>
@@ -2851,8 +2864,91 @@
                             <td>R$ ${h.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         `).join('')}
+                        <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
+                            <td colspan="3"><strong>TOTAL HONORÁRIOS</strong></td>
+                            <td><strong>${(resultados.honorarios.reduce((total, h) => total + h.percentual, 0) * 100).toFixed(2)}%</strong></td>
+                            <td><strong>R$ ${resultados.honorarios.reduce((total, h) => total + h.valorBruto, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+                        </tr>
                     </table>
                 </div>`;
+            }
+
+            let secaoSindicatos = '';
+            if (resultados.sindicatos && resultados.sindicatos.length > 0) {
+                secaoSindicatos = `
+                <div class="table-container">
+                    <h3>🏛️ Sindicatos</h3>
+                    <table>
+                        <tr>
+                            <th>Nome Sindicato</th>
+                            <th>Base de Cálculo</th>
+                            <th>Percentual</th>
+                            <th>Valor Bruto</th>
+                        </tr>
+                        ${resultados.sindicatos.map(s => {
+                            return `
+                            <tr>
+                                <td>${s.nome}</td>
+                                <td>R$ ${resultados.valortotatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td>${(s.percentual * 100).toFixed(2)}%</td>
+                                <td>R$ ${s.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            `;
+                        }).join('')}
+                        <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
+                            <td colspan="3"><strong>TOTAL SINDICATOS</strong></td>
+                            <td><strong>R$ ${resultados.sindicatos.reduce((total, s) => total + s.valorBruto, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+                        </tr>
+                    </table>
+                </div>`;
+            }
+
+            let secaoCessoesSindicatos = '';
+            const ehPreferenciaParcial = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt;
+                if (!ehPreferenciaParcial && resultados.sindicatos) {
+                const sindicatosComCessao = resultados.sindicatos.filter(sind => 
+                    sind.cessoesSind && sind.cessoesSind.length > 0
+                );
+
+                if (sindicatosComCessao.length > 0) {
+                    secaoCessoesSindicatos = `
+                    <div class="table-container">
+                        <h3>🔄 Cessões de Sindicatos</h3>
+                        
+                        ${sindicatosComCessao.map(sind => `
+                            <div style="margin-bottom: 20px;">
+                                <h4>🔄 Cessão de Sindicato: ${sind.nome}</h4>
+                                <p><strong>Valor do Direito do Sindicato:</strong> R$ ${sind.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                <p><strong>Cedido:</strong> ${(sind.percentualCessionarioSind * 100).toFixed(2)}% para ${sind.cessoesSind.length} cessionário${sind.cessoesSind.length > 1 ? 's' : ''}</p>
+                                
+                                <table>
+                                    <tr>
+                                        <th>Recebedor</th>
+                                        <th>Percentual</th>
+                                        <th>Valor Bruto</th>
+                                    </tr>
+                                    <tr style="background-color: #f8f9fa;">
+                                        <td><strong>${sind.nome} (fica com)</strong></td>
+                                        <td>${(sind.percentualSindicato * 100).toFixed(2)}%</td>
+                                        <td>R$ ${sind.valorBrutoSindicato.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    </tr>
+                                    ${sind.cessionarios ? sind.cessionarios.map(cessionario => `
+                                    <tr>
+                                        <td>${cessionario.nome} (cessionário)</td>
+                                        <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
+                                        <td>R$ ${cessionario.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    </tr>
+                                    `).join('') : ''}
+                                    <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
+                                        <td>TOTAL</td>
+                                        <td>100.00%</td>
+                                        <td>R$ ${sind.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        `).join('')}
+                    </div>`;
+                }
             }
 
             // Gerar seção de cessões
@@ -3260,6 +3356,103 @@
                 }
             }
 
+            let secaoPagamentoSindicatos = '';
+            const sindicatosParaPagar = resultados.sindicatos ? resultados.sindicatos.filter(sind => 
+                sind.podeReceber && sind.percentualSindicato > 0 && sind.valorBrutoSindicato > 0
+            ) : [];
+
+            if (sindicatosParaPagar.length > 0) {
+                secaoPagamentoSindicatos = sindicatosParaPagar.map(sind => {
+                    let descricaoTributacao = '';
+                    if (sind.tributacao === 'nao') {
+                        descricaoTributacao = '🏦 Sem Tributação do IR';
+                    } else if (sind.tributacao === 'lei') {
+                        descricaoTributacao = '🏦 Art. 27, da Lei nº 10.833/03';
+                    } else if (sind.tributacao === 'fixa') {
+                        descricaoTributacao = `🏦 Alíquota Fixa (${(sind.aliquotaTributacao * 100).toFixed(2)}%)`;
+                    }
+                    
+                    return `
+                        <div class="table-container">
+                            <h3>🏛️ Pagamento Sindicato - ${sind.nome}</h3>
+                            <table>
+                                <tr>
+                                    <th>Descrição</th>
+                                    <th>Valor</th>
+                                </tr>
+                                <tr>
+                                    <td>Valor Devido</td>
+                                    <td>R$ ${sind.valorBrutoSindicato.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                                <tr>
+                                    <td>Imposto de Renda - ${descricaoTributacao}</td>
+                                    <td>R$ ${sind.irSindicato.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                                <tr class="highlight">
+                                    <td>Valor Líquido</td>
+                                    <td>R$ ${sind.valorLiquidoSindicato.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            let secaoPagamentoCessionariosSindicatos = '';
+            const todosCessionariosSindicatos = [];
+            if (resultados.sindicatos) {
+                resultados.sindicatos.forEach(sind => {
+                    if (sind.cessionarios && sind.cessionarios.length > 0 && sind.podeReceber) {
+                        sind.cessionarios.forEach(cessionario => {
+                            todosCessionariosSindicatos.push({
+                                ...cessionario,
+                                sindicatoOriginal: sind.nome,
+                                tributacaoSindicato: sind.tributacao,
+                                aliquotaTributacao: sind.aliquotaTributacao
+                            });
+                        });
+                    }
+                });
+            }
+
+            if (todosCessionariosSindicatos.length > 0) {
+                secaoPagamentoCessionariosSindicatos = todosCessionariosSindicatos.map(cessionario => {
+                    let descricaoTributacao = '';
+                    if (cessionario.tributacaoSindicato === 'nao') {
+                        descricaoTributacao = '🏦 Sem Tributação do IR';
+                    } else if (cessionario.tributacaoSindicato === 'lei') {
+                        descricaoTributacao = '🏦 Art. 27, da Lei nº 10.833/03';
+                    } else if (cessionario.tributacaoSindicato === 'fixa') {
+                        descricaoTributacao = `🏦 Alíquota Fixa (${(cessionario.aliquotaTributacao * 100).toFixed(2)}%)`;
+                    }
+                    
+                    return `
+                        <div class="table-container">
+                            <h3>🔄 Pagamento Cessionário Sindicato - ${cessionario.nome}</h3>
+                            <p style="margin-bottom: 10px;"><strong>Cessão de:</strong> ${cessionario.sindicatoOriginal}</p>
+                            <table>
+                                <tr>
+                                    <th>Descrição</th>
+                                    <th>Valor</th>
+                                </tr>
+                                <tr>
+                                    <td>Valor Devido</td>
+                                    <td>R$ ${cessionario.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                                <tr>
+                                    <td>Imposto de Renda - ${descricaoTributacao}</td>
+                                    <td>R$ ${cessionario.ir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                                <tr class="highlight">
+                                    <td>Valor Líquido</td>
+                                    <td>R$ ${cessionario.valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    `;
+                }).join('');
+            }
+
             const html = `
                 <!-- Cabeçalho com informações do processo -->
 
@@ -3473,6 +3666,10 @@
                     </table>
                 </div>
 
+                ${secaoSindicatos}
+
+                ${secaoCessoesSindicatos}
+
                 ${secaoHonorariosTotais}
 
                 ${secaoCessoesAdvTotais}
@@ -3488,6 +3685,10 @@
                 ${secaoPagamentoBeneficiario}
 
                 ${secaoPagamentoCessionarios}
+
+                ${secaoPagamentoSindicatos}
+    
+                ${secaoPagamentoCessionariosSindicatos}
 
                 ${secaoPagamentoAdvogados}
 
