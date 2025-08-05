@@ -2042,15 +2042,20 @@
             const resultadoHonorarios = calcularHonorarios(dados, valorBase, valortotatt);
             const { honorarios, valorHonorarioTotal } = resultadoHonorarios;
 
+            //Sindicato
+            const resultadoSindicatos = calcularSindicatos(dados, valorBase, valortotatt);
+            const { sindicatos, valorSindicatoTotal } = resultadoSindicatos;
+
             // ========== CESSÕES DO BENEFICIÁRIO PRINCIPAL ==========
-            const valorBeneficiarioBruto = valorBase - valorHonorarioTotal;
+            const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
+            const valorSindicatoParaDescontar = isPreferenciasParcial ? 0 : valorSindicatoTotal;
+
+            const valorBeneficiarioBruto = valorBase - valorHonorarioTotal - valorSindicatoParaDescontar;
 
             const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
                 cessao.tipo === 'cessaobenPrincipal'
             ) || [];
 
-            const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
-            
             // RECÁLCULO PARA PREFERÊNCIA PARCIAL
             if (isPreferenciasParcial) {
                 let valorBeneficiarioQueRecebeEfetivamente = valorBeneficiarioBruto;
@@ -2060,7 +2065,9 @@
                     const percentualBeneficiarioFinal = 1.0 - cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
                     
                     // Calcular quanto o beneficiário tem direito na dívida total
-                    const valorTotalSemHonorarios = valortotatt - (valortotatt * dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0));
+                    const percentualAdvogados = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+                    const percentualSindicatos = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
+                    const valorTotalSemHonorarios = valortotatt - (valortotatt * (percentualAdvogados + percentualSindicatos));
                     const direitoBeneficiarioTotal = valorTotalSemHonorarios * percentualBeneficiarioFinal;
                     
                     // O que o beneficiário recebe é o mínimo entre seu direito e o teto
@@ -2089,6 +2096,7 @@
                 valorIR,
                 aliquotaIR,
                 baseIRHonora,
+                baseIRSindi,
                 baseIRPrev,
                 baseIRRRA,
                 valorIRUnitario
@@ -2111,13 +2119,19 @@
                 principal,
                 jurosBase,
                 rrapagamento,
+
                 honorarios,
                 valorHonorarioTotal,
+
+                sindicatos,
+                valorSindicatoTotal,
+
                 valorPrevidencia,
                 aliquotaEfetiva,
                 valorIR,
                 aliquotaIR,
                 baseIRHonora,
+                baseIRSindi,
                 baseIRPrev,
                 baseIRRRA,
                 valorIRUnitario,
@@ -2432,12 +2446,14 @@
             let valorIR = 0;
             let aliquotaIR = 0;
             let baseIRHonora = 0;
+            let baseIRSindi = 0;
             let baseIRPrev = 0;
             let baseIRRRA = 0;
             let valorIRUnitario = 0;
 
             if (dados.incidenciaIR && rrapagamentoRecalculado !== 0) {
                 let percentualTotalAdv = 0;
+                let percentualTotalSind = 0;
                 if (dados.tipoCalculo === 'preferencia' && valorBase < valortotatt) {
                     // PREFERÊNCIA PARCIAL: Só desconta honorários que são pagos (advogados)
                     percentualTotalAdv = dados.advogados.reduce((sum, adv) => {
@@ -2448,17 +2464,20 @@
                         const percentualAdvogado = Math.max(0, adv.percentual - percentualCessionarioAdv);
                         return sum + percentualAdvogado; // Só a parte do advogado
                     }, 0);
+                    percentualTotalSind = 0;
                 } else {
                     // PREFERÊNCIA TOTAL OU ORDEM COMUM: Desconta todos os honorários
                     percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+                    percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
                 }
                 
-                const baseIR = (principalBase - (principalBase * percentualTotalAdv) - valorPrevidencia) / rrapagamentoRecalculado;
+                const baseIR = (principalBase - (principalBase * percentualTotalAdv) - (principalBase * percentualTotalSind) - valorPrevidencia) / rrapagamentoRecalculado;
                 valorIRUnitario = calcularIR(baseIR);
                 valorIR = valorIRUnitario * rrapagamentoRecalculado;
                 aliquotaIR = obterAliquotaIR(baseIR);
 
                 baseIRHonora = principalBase - (principalBase * percentualTotalAdv);
+                baseIRSindi = baseIRHonora - (principalBase * percentualTotalSind);
                 baseIRPrev = baseIRHonora - valorPrevidencia;
                 baseIRRRA = baseIRPrev / rrapagamentoRecalculado;
             }
@@ -2467,6 +2486,7 @@
                 valorIR,
                 aliquotaIR,
                 baseIRHonora,
+                baseIRSindi,
                 baseIRPrev,
                 baseIRRRA,
                 valorIRUnitario
