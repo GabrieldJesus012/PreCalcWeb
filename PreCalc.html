@@ -295,141 +295,212 @@
             document.getElementById('tipoPrevidencia').dispatchEvent(new Event('change'));
         });
 
+        const CessaoCache = {
+            container: null,
+            beneficiario: null,
+            quantAdvogados: null,
+            quantHerdeiros: null,
+            quantSindicatos: null,
+            quantCessoes: null,
+            
+            init() {
+                this.container = document.getElementById('cessaoContainer');
+                this.beneficiario = document.getElementById('beneficiario');
+                this.quantAdvogados = document.getElementById('quantAdvogados');
+                this.quantHerdeiros = document.getElementById('quantHerdeiros');  
+                this.quantSindicatos = document.getElementById('quantSindicatos');
+                this.quantCessoes = document.getElementById('quantCessoes');
+            },
+            
+            getQuantidades() {
+                return {
+                    advogados: parseInt(this.quantAdvogados?.value) || 0,
+                    herdeiros: parseInt(this.quantHerdeiros?.value) || 0,
+                    sindicatos: parseInt(this.quantSindicatos?.value) || 0,
+                    cessoes: parseInt(this.quantCessoes?.value) || 0,
+                };
+            }
+        };
+
         function criarCessoes(quant) {
-            const container = document.getElementById('cessaoContainer');
-            container.innerHTML = '';
+            if (!CessaoCache.container) CessaoCache.init();
+            
+            CessaoCache.container.innerHTML = '';
+            
+            const { advogados, herdeiros, sindicatos } = CessaoCache.getQuantidades();
+            const opcoesTipo = criarOpcoesTipoCessao(advogados, herdeiros, sindicatos);
+            const temUnicaOpcao = opcoesTipo.split('<option').length === 3; // 1 vazia + 1 real + split extra
+            
+            const fragment = document.createDocumentFragment();
+            
             for (let i = 0; i < quant; i++) {
-                const cessaoDiv = document.createElement('div');
-                cessaoDiv.className = 'advogado-item';
-                cessaoDiv.innerHTML = `
-                    <div class="advogado-header">Cessionário ${i + 1}</div>
-                    <div class="advogado-row">
-                        <div class="input-group">
-                            <label>Tipo de Cessão:</label>
-                            <select id="cessaoTipo${i}" onchange="atualizarCedentes(${i})">
-                                ${criarOpcoesTipoCessao()}
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>Cedente ${i + 1}:</label>
-                            <select id="cedenteNome${i}">
-                                <option value="">Selecione primeiro o tipo de cessão</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>Cessionário ${i + 1}:</label>
-                            <input type="text" id="cessionarioNome${i}" placeholder="Nome do Cessionário">
-                        </div>
-                        <div class="input-group">
-                            <label>Percentual Cedido (ex: 0.1 para 10%):</label>
-                            <input type="number" id="cessaoPercentual${i}" step="0.01" min="0" max="1" placeholder="0.00">
-                        </div>
-                    </div>
-                `;
-                container.appendChild(cessaoDiv);
-                const opcoesTipo = criarOpcoesTipoCessao();
-                const numOpcoes = (opcoesTipo.match(/<option/g) || []).length;
-                if (numOpcoes === 1) {
-                    document.getElementById(`cessaoTipo${i}`).value = 'cessaobenPrincipal';
-                    atualizarCedentes(i);
+                const cessaoDiv = criarElementoCessao(i, opcoesTipo);
+                fragment.appendChild(cessaoDiv);
+                
+                if (temUnicaOpcao) {
+                    setTimeout(() => {
+                        const select = document.getElementById(`cessaoTipo${i}`);
+                        if (select) {
+                            select.value = 'cessaobenPrincipal';
+                            atualizarCedentes(i);
+                        }
+                    }, 0);
                 }
             }
+            
+            CessaoCache.container.appendChild(fragment);
+            
+            setTimeout(() => {
+                for (let i = 0; i < quant; i++) {
+                    const cessaoTipo = document.getElementById(`cessaoTipo${i}`);
+                    const cedenteSelect = document.getElementById(`cedenteNome${i}`);
+                    
+                    if (cessaoTipo?.value && cedenteSelect?.value === '') {
+                        atualizarCedentes(i);
+                    }
+                }
+            }, 10);
         }
 
-        // Função para atualizar as opções de cessão baseado nos cadastros existentes
+        function criarElementoCessao(index, opcoesTipo) {
+            const cessaoDiv = document.createElement('div');
+            cessaoDiv.className = 'advogado-item';
+            
+            cessaoDiv.innerHTML = `
+                <div class="advogado-header">Cessionário ${index + 1}</div>
+                <div class="advogado-row">
+                    <div class="input-group">
+                        <label>Tipo de Cessão:</label>
+                        <select id="cessaoTipo${index}" onchange="atualizarCedentes(${index})">
+                            ${opcoesTipo}
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Cedente ${index + 1}:</label>
+                        <select id="cedenteNome${index}">
+                            <option value="">Selecione primeiro o tipo de cessão</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Cessionário ${index + 1}:</label>
+                        <input type="text" id="cessionarioNome${index}" placeholder="Nome do Cessionário">
+                    </div>
+                    <div class="input-group">
+                        <label>Percentual Cedido (ex: 0.1 para 10%):</label>
+                        <input type="number" id="cessaoPercentual${index}" step="0.01" min="0" max="1" placeholder="0.00">
+                    </div>
+                </div>
+            `;
+            
+            return cessaoDiv;
+        }
+
         function atualizarOpcoesCessao() {
-            const quantAdvogados = parseInt(document.getElementById('quantAdvogados').value) || 0;
-            const quantHerdeiros = parseInt(document.getElementById('quantHerdeiros').value) || 0;
-            const quantSindicatos = parseInt(document.getElementById('quantSindicatos').value) || 0;
-            const beneficiarioPrincipal = document.getElementById('beneficiario').value.trim();
-            // Recriar as cessões existentes com as novas opções
-            const quantCessoes = parseInt(document.getElementById('quantCessoes').value) || 0;
-            if (quantCessoes > 0) {
-                criarCessoes(quantCessoes);
+            if (!CessaoCache.container) CessaoCache.init();
+            
+            const { cessoes } = CessaoCache.getQuantidades();
+            
+            if (cessoes > 0) {
+                criarCessoes(cessoes);
             }
-
-            atualizarTodosCedentes();
+            
+            requestAnimationFrame(() => {
+                atualizarTodosCedentes();
+            });
         }
 
-        // Função para criar as opções de tipo de cessão
-        function criarOpcoesTipoCessao() {
-            const quantAdvogados = parseInt(document.getElementById('quantAdvogados').value) || 0;
-            const quantHerdeiros = parseInt(document.getElementById('quantHerdeiros').value) || 0;
-            const quantSindicatos = parseInt(document.getElementById('quantSindicatos').value) || 0;
-            let opcoes = [];
-            // Sempre incluir cessão do beneficiário principal
-            opcoes.push('<option value="cessaobenPrincipal">Do Beneficiário Principal</option>');
-            // Só adicionar cessão de advogado se houver advogados cadastrados
+        function criarOpcoesTipoCessao(quantAdvogados, quantHerdeiros, quantSindicatos) {
+            if (quantAdvogados === undefined) {
+                const quantidades = CessaoCache.getQuantidades();
+                quantAdvogados = quantidades.advogados;
+                quantHerdeiros = quantidades.herdeiros;
+                quantSindicatos = quantidades.sindicatos;
+            }
+            
+            const opcoes = ['<option value="cessaobenPrincipal">Do Beneficiário Principal</option>'];
+            
             if (quantAdvogados > 0) {
                 opcoes.push('<option value="cessaoAdv">Do Advogado</option>');
             }
-            // Só adicionar cessão de herdeiro se houver herdeiros cadastrados
             if (quantHerdeiros > 0) {
                 opcoes.push('<option value="cessaoherdeiro">Do Herdeiro</option>');
             }
             if (quantSindicatos > 0) {
                 opcoes.push('<option value="cessaoSindicato">Do Sindicato</option>');
             }
+            
             return opcoes.join('');
         }
 
-        // Função para criar as opções de cedente baseado no tipo selecionado
         function criarOpcoesCedente(tipoCessao, index) {
-            const beneficiarioPrincipal = document.getElementById('beneficiario').value.trim() || 'Beneficiário Principal';
-            let opcoes = ['<option value="">Selecione o cedente</option>'];
+            const campobeneficiario = document.getElementById('beneficiario')?.value.trim();
+            const beneficiarioPrincipal = campobeneficiario || 'Beneficiário Principal';
+            const { advogados, herdeiros, sindicatos } = CessaoCache.getQuantidades();
+            const opcoes = ['<option value="">Selecione o cedente</option>'];
+            
             switch(tipoCessao) {
                 case 'cessaobenPrincipal':
                     opcoes.push(`<option value="${beneficiarioPrincipal}">${beneficiarioPrincipal}</option>`);
                     break;
+                    
                 case 'cessaoAdv':
-                    const quantAdvogados = parseInt(document.getElementById('quantAdvogados').value) || 0;
-                    for (let i = 0; i < quantAdvogados; i++) {
+                    for (let i = 0; i < advogados; i++) {
                         const nomeAdv = document.getElementById(`advNome${i}`)?.value.trim() || `Advogado ${i + 1}`;
                         opcoes.push(`<option value="${nomeAdv}">${nomeAdv}</option>`);
                     }
                     break;
+                    
                 case 'cessaoherdeiro':
-                    const quantHerdeiros = parseInt(document.getElementById('quantHerdeiros').value) || 0;
-                    if (quantHerdeiros > 0) {
-                        for (let i = 0; i < quantHerdeiros; i++) {
+                    if (herdeiros > 0) {
+                        for (let i = 0; i < herdeiros; i++) {
                             const nomeHerd = document.getElementById(`herdNome${i}`)?.value.trim() || `Herdeiro ${i + 1}`;
                             opcoes.push(`<option value="${nomeHerd}">${nomeHerd}</option>`);
                         }
                     } else {
-                        // Se não há herdeiros, usar o beneficiário principal
                         opcoes.push(`<option value="${beneficiarioPrincipal}">${beneficiarioPrincipal}</option>`);
                     }
                     break;
+                    
                 case 'cessaoSindicato':
-                    const quantSindicatos = parseInt(document.getElementById('quantSindicatos').value) || 0;
-                    if (quantSindicatos > 0) {
-                        for (let i = 0; i < quantSindicatos; i++) {
-                            const nomeSind = document.getElementById(`sindNome${i}`)?.value.trim() || `Sindicato ${i + 1}`;
-                            opcoes.push(`<option value="${nomeSind}">${nomeSind}</option>`);
-                        }
+                    for (let i = 0; i < sindicatos; i++) {
+                        const nomeSind = document.getElementById(`sindNome${i}`)?.value.trim() || `Sindicato ${i + 1}`;
+                        opcoes.push(`<option value="${nomeSind}">${nomeSind}</option>`);
                     }
                     break;
             }
+            
             return opcoes.join('');
         }
 
-        // Função para atualizar as opções de cedente quando o tipo de cessão muda
         function atualizarCedentes(index) {
-            const tipoCessao = document.getElementById(`cessaoTipo${index}`).value;
+            const tipoCessao = document.getElementById(`cessaoTipo${index}`)?.value;
             const cedenteSelect = document.getElementById(`cedenteNome${index}`);
-            cedenteSelect.innerHTML = criarOpcoesCedente(tipoCessao, index);
+            
+            if (tipoCessao && cedenteSelect) {
+                const novasOpcoes = criarOpcoesCedente(tipoCessao, index);
+                cedenteSelect.innerHTML = novasOpcoes;
+                
+                const opcoes = cedenteSelect.querySelectorAll('option');
+                if (opcoes.length === 2) { // 1 vazia + 1 válida
+                    cedenteSelect.selectedIndex = 1; 
+                }
+            }
         }
 
-        // Função para atualizar todos os cedentes existentes
         function atualizarTodosCedentes() {
-            const quantCessoes = parseInt(document.getElementById('quantCessoes').value) || 0;
-            for (let i = 0; i < quantCessoes; i++) {
+            const { cessoes } = CessaoCache.getQuantidades();
+            
+            for (let i = 0; i < cessoes; i++) {
                 const cessaoTipoElement = document.getElementById(`cessaoTipo${i}`);
-                if (cessaoTipoElement && cessaoTipoElement.value) {
+                if (cessaoTipoElement?.value) {
                     atualizarCedentes(i);
                 }
             }
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            CessaoCache.init();
+        });
         
         document.getElementById('quantAdvogados').addEventListener('change', function() {
             const quant = parseInt(this.value);
