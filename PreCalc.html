@@ -2102,7 +2102,7 @@
                 valorIRUnitario
             } = resultadoIR;
 
-            const resultadoCessoes = calcularCessoesBeneficiarioPrincipal(dados, valorBase, valortotatt, valorHonorarioTotal, valorPrevidencia, valorIR);
+            const resultadoCessoes = calcularCessoesBeneficiarioPrincipal(dados, valorBase, valortotatt, valorHonorarioTotal,valorSindicatoParaDescontar, valorPrevidencia, valorIR);
             let {
                 valorCessoesBeneficiario,
                 cessoesBeneficiarioCalculadas,
@@ -2149,8 +2149,8 @@
             };
         }
 
-        function calcularCessoesBeneficiarioPrincipal(dados, valorBase, valortotatt, valorHonorarioTotal, valorPrevidencia, valorIR) {
-            const valorBeneficiarioBruto = valorBase - valorHonorarioTotal; //VER QUESTAO DO SINDICATO!
+        function calcularCessoesBeneficiarioPrincipal(dados, valorBase, valortotatt, valorHonorarioTotal,valorSindicatoParaDescontar, valorPrevidencia, valorIR) {
+            const valorBeneficiarioBruto = valorBase - valorHonorarioTotal - valorSindicatoParaDescontar; //VER QUESTAO DO SINDICATO!
             const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
                 cessao.tipo === 'cessaobenPrincipal'
             ) || [];
@@ -2958,7 +2958,8 @@
                 // Calcular valores base uma vez só
                 const dividaTotalAtualizada = resultados.valortotatt; 
                 const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
-                const dividaSemHonorarios = dividaTotalAtualizada * (1 - percentualTotalAdv);
+                const percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
+                const dividaSemHonorarios = dividaTotalAtualizada * (1 - percentualTotalAdv - percentualTotalSind);
                 
                 // Calcular parte do beneficiário
                 const parteBeneficiario = dividaSemHonorarios * resultados.percentualBeneficiarioFinal;
@@ -3047,6 +3048,11 @@
                                     }, 0)
                                 ).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             </tr>
+                            <div style="padding: 8px; margin: 10px 0; font-size: 0.85em; color: #666; font-style: italic;">
+                                <strong>📝 Observação:</strong> Os valores apresentados já estão líquidos das deduções acessórias. 
+                                Ainda devem ser calculados os descontos legais sobre os valores a receber.
+                            </p>
+                        </div>
                         </table>
                     </div>
                     
