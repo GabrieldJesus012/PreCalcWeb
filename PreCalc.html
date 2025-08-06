@@ -2149,14 +2149,16 @@
             };
         }
 
-        function calcularCessoesBeneficiarioPrincipal(dados, valorBase, valortotatt, valorHonorarioTotal,valorSindicatoParaDescontar, valorPrevidencia, valorIR) {
-            const valorBeneficiarioBruto = valorBase - valorHonorarioTotal - valorSindicatoParaDescontar; 
+        function calcularCessoesBeneficiarioPrincipal(dados, valorBase, valortotatt, valorHonorarioTotal, valorSindicatoParaDescontar, valorPrevidencia, valorIR) {
+            // OTIMIZAÇÃO: Cálculos base uma vez só
+            const valorBeneficiarioBruto = valorBase - valorHonorarioTotal - valorSindicatoParaDescontar;
             const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
                 cessao.tipo === 'cessaobenPrincipal'
             ) || [];
 
             const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
             
+            // Valores padrão (casos sem cessões)
             let valorCessoesBeneficiario = 0;
             let cessoesBeneficiarioCalculadas = [];
             let percentualBeneficiarioFinal = 1.0;
@@ -2166,69 +2168,118 @@
             let valorBeneficiarioFinal = valorBeneficiarioBruto - valorPrevidencia - valorIR;
             let cessoesBeneficiarioFinais = [];
 
-            if (cessoesBeneficiario.length > 0) {
-                percentualBeneficiarioFinal = 1.0 - cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
+            // Early return se não há cessões
+            if (cessoesBeneficiario.length === 0) {
+                return {
+                    valorBeneficiarioBruto,
+                    valorCessoesBeneficiario,
+                    cessoesBeneficiarioCalculadas,
+                    percentualBeneficiarioFinal,
+                    valorBeneficiarioAposCessoes,
+                    valorPrevidenciaBeneficiario,
+                    valorIRBeneficiario,
+                    valorBeneficiarioFinal,
+                    cessoesBeneficiarioFinais
+                };
+            }
+
+            // OTIMIZAÇÃO: Cálculos que serão reutilizados (cache)
+            const totalPercentualCessoes = cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
+            percentualBeneficiarioFinal = 1.0 - totalPercentualCessoes;
+            
+            // Cache cálculo pesado dos advogados (usado múltiplas vezes)
+            const percentualAdvogados = dados.advogados.length > 0 ? 
+                dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0) : 0;
+            const valortotattSemAdvogados = valortotatt - (valortotatt * percentualAdvogados);
+
+            if (isPreferenciasParcial) {
+                // PREFERÊNCIA PARCIAL - Cálculos otimizados
+                const parteBeneficiarioNaDividaTotal = valortotattSemAdvogados * percentualBeneficiarioFinal;
+                const maxQueBeneficiarioPodeReceber = Math.min(parteBeneficiarioNaDividaTotal, valorBeneficiarioBruto);
                 
-                if (isPreferenciasParcial) {
-                    // Calcular a parte do beneficiário na dívida total
-                    const parteBeneficiarioNaDividaTotal = (valortotatt - (valortotatt * dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0))) * percentualBeneficiarioFinal;
-                    const maxQueBeneficiarioPodeReceber = Math.min(parteBeneficiarioNaDividaTotal, valorBeneficiarioBruto);
+                // OTIMIZAÇÃO: Um loop só para calcular cessões e finais
+                cessoesBeneficiarioCalculadas = [];
+                cessoesBeneficiarioFinais = [];
+                
+                for (const cessao of cessoesBeneficiario) {
+                    const parteCessionarioNaDividaTotal = valortotattSemAdvogados * cessao.percentual;
                     
-                    cessoesBeneficiarioCalculadas = cessoesBeneficiario.map(cessao => {
-                        const parteCessionarioNaDividaTotal = (valortotatt - (valortotatt * dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0))) * cessao.percentual;
-                        return {
-                            ...cessao,
-                            valorBruto: 0,
-                            valorSaldoDevedor: parteCessionarioNaDividaTotal,
-                            observacao: 'Aguarda pagamento - sem direito à preferência'
-                        };
-                    });
+                    const cessaoCalculada = {
+                        tipo: cessao.tipo,
+                        cedente: cessao.cedente,
+                        cessionario: cessao.cessionario,
+                        percentual: cessao.percentual,
+                        valorBruto: 0,
+                        valorSaldoDevedor: parteCessionarioNaDividaTotal,
+                        observacao: 'Aguarda pagamento - sem direito à preferência'
+                    };
                     
-                    cessoesBeneficiarioFinais = cessoesBeneficiarioCalculadas.map(cessao => ({
-                        ...cessao,
+                    const cessaoFinal = {
+                        ...cessaoCalculada,
                         previdenciaCessao: 0,
                         irCessao: 0,
                         valorLiquido: 0
-                    }));
-
-                    valorCessoesBeneficiario = 0; 
-                    valorBeneficiarioAposCessoes = maxQueBeneficiarioPodeReceber;
+                    };
                     
-                    // Previdência e IR aplicados sobre o valor recalculado
-                    valorPrevidenciaBeneficiario = valorPrevidencia;
-                    valorIRBeneficiario = valorIR;
-                    valorBeneficiarioFinal = maxQueBeneficiarioPodeReceber - valorPrevidenciaBeneficiario - valorIRBeneficiario;
-                    
-                } else {
-                    // PREFERÊNCIA TOTAL OU OUTROS TIPOS: Aplica cessões normalmente
-                    cessoesBeneficiarioCalculadas = cessoesBeneficiario.map(cessao => {
-                        const valorBrutoCessao = valorBeneficiarioBruto * cessao.percentual;
-                        valorCessoesBeneficiario += valorBrutoCessao;
-                        
-                        return {
-                            ...cessao,
-                            valorBruto: valorBrutoCessao
-                        };
-                    });
-                    
-                    valorBeneficiarioAposCessoes = valorBeneficiarioBruto * percentualBeneficiarioFinal;
-                    valorPrevidenciaBeneficiario = valorPrevidencia * percentualBeneficiarioFinal;
-                    valorIRBeneficiario = valorIR * percentualBeneficiarioFinal;
-                    valorBeneficiarioFinal = valorBeneficiarioAposCessoes - valorPrevidenciaBeneficiario - valorIRBeneficiario;
-                    
-                    cessoesBeneficiarioFinais = cessoesBeneficiarioCalculadas.map(cessao => {
-                        const previdenciaCessao = valorPrevidencia * cessao.percentual;
-                        const irCessao = valorIR * cessao.percentual;
-                        const valorLiquidoCessao = cessao.valorBruto - previdenciaCessao - irCessao;
-                        
-                        return {
-                            ...cessao,
-                            previdenciaCessao,
-                            irCessao,
-                            valorLiquido: valorLiquidoCessao
-                        };
-                    });
+                    cessoesBeneficiarioCalculadas.push(cessaoCalculada);
+                    cessoesBeneficiarioFinais.push(cessaoFinal);
                 }
+
+                valorCessoesBeneficiario = 0; 
+                valorBeneficiarioAposCessoes = maxQueBeneficiarioPodeReceber;
+                
+                // Previdência e IR aplicados sobre o valor recalculado
+                valorPrevidenciaBeneficiario = valorPrevidencia;
+                valorIRBeneficiario = valorIR;
+                valorBeneficiarioFinal = maxQueBeneficiarioPodeReceber - valorPrevidenciaBeneficiario - valorIRBeneficiario;
+                
+            } else {
+                // PREFERÊNCIA TOTAL OU OUTROS TIPOS - Cálculos otimizados
+                
+                // OTIMIZAÇÃO: Cache valores reutilizados
+                const valorPrevidenciaPorPercentual = valorPrevidencia; // para multiplicar por percentual
+                const valorIRPorPercentual = valorIR; // para multiplicar por percentual
+                
+                // Reset valor total de cessões
+                valorCessoesBeneficiario = 0;
+                
+                // OTIMIZAÇÃO: Um loop só para ambos arrays
+                cessoesBeneficiarioCalculadas = [];
+                cessoesBeneficiarioFinais = [];
+                
+                for (const cessao of cessoesBeneficiario) {
+                    const valorBrutoCessao = valorBeneficiarioBruto * cessao.percentual;
+                    valorCessoesBeneficiario += valorBrutoCessao;
+                    
+                    const cessaoCalculada = {
+                        tipo: cessao.tipo,
+                        cedente: cessao.cedente,
+                        cessionario: cessao.cessionario,
+                        percentual: cessao.percentual,
+                        valorBruto: valorBrutoCessao
+                    };
+                    
+                    // Cálculos para cessão final
+                    const previdenciaCessao = valorPrevidenciaPorPercentual * cessao.percentual;
+                    const irCessao = valorIRPorPercentual * cessao.percentual;
+                    const valorLiquidoCessao = valorBrutoCessao - previdenciaCessao - irCessao;
+                    
+                    const cessaoFinal = {
+                        ...cessaoCalculada,
+                        previdenciaCessao,
+                        irCessao,
+                        valorLiquido: valorLiquidoCessao
+                    };
+                    
+                    cessoesBeneficiarioCalculadas.push(cessaoCalculada);
+                    cessoesBeneficiarioFinais.push(cessaoFinal);
+                }
+                
+                // Cálculos finais otimizados (usando cache)
+                valorBeneficiarioAposCessoes = valorBeneficiarioBruto * percentualBeneficiarioFinal;
+                valorPrevidenciaBeneficiario = valorPrevidencia * percentualBeneficiarioFinal;
+                valorIRBeneficiario = valorIR * percentualBeneficiarioFinal;
+                valorBeneficiarioFinal = valorBeneficiarioAposCessoes - valorPrevidenciaBeneficiario - valorIRBeneficiario;
             }
 
             return {
