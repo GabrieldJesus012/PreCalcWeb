@@ -2150,7 +2150,7 @@
         }
 
         function calcularCessoesBeneficiarioPrincipal(dados, valorBase, valortotatt, valorHonorarioTotal,valorSindicatoParaDescontar, valorPrevidencia, valorIR) {
-            const valorBeneficiarioBruto = valorBase - valorHonorarioTotal - valorSindicatoParaDescontar; //VER QUESTAO DO SINDICATO!
+            const valorBeneficiarioBruto = valorBase - valorHonorarioTotal - valorSindicatoParaDescontar; 
             const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
                 cessao.tipo === 'cessaobenPrincipal'
             ) || [];
