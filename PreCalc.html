@@ -2031,61 +2031,94 @@
                 valorBase = valortotatt * (1 - dados.percentualAcordo);
             }
 
-            // Composição
+            // Composição inicial
             let principal = valorBase * percentualprinc;
             const jurosBase = valorBase * percentualjur;
 
             // RRA
             let rrapagamento = dados.rra !== 0 ? Math.round((valorBase * dados.rra) / valortotatt) : 0;
 
-            // Honorários
-            const resultadoHonorarios = calcularHonorarios(dados, valorBase, valortotatt);
-            const { honorarios, valorHonorarioTotal } = resultadoHonorarios;
-
-            //Sindicato
-            const resultadoSindicatos = calcularSindicatos(dados, valorBase, valortotatt);
-            const { sindicatos, valorSindicatoTotal } = resultadoSindicatos;
-
             // ========== CESSÕES DO BENEFICIÁRIO PRINCIPAL ==========
             const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
-            const valorSindicatoParaDescontar = isPreferenciasParcial ? 0 : valorSindicatoTotal;
-
-            const valorBeneficiarioBruto = valorBase - valorHonorarioTotal - valorSindicatoParaDescontar;
-
+            
             const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
                 cessao.tipo === 'cessaobenPrincipal'
             ) || [];
 
+            // ========== CORREÇÃO: Calcular base correta para honorários ==========
+            let valorBaseParaHonorarios = valorBase;
+            let valorBeneficiarioQueRecebeEfetivamente = valorBase;
+
+            // SEMPRE verificar se há cessões do beneficiário
+            if (cessoesBeneficiario.length > 0) {
+                // Cessão é sobre o valor TOTAL da dívida, não sobre o valor limitado
+                const percentualBeneficiarioFinal = 1.0 - cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
+                
+                // ETAPA 1: Calcular quanto o beneficiário tem direito na dívida total (SEM descontar honorários ainda)
+                const direitoBeneficiarioTotal = valortotatt * percentualBeneficiarioFinal;
+                
+                // O que o beneficiário recebe efetivamente (limitado pelo teto se for preferência)
+                valorBeneficiarioQueRecebeEfetivamente = isPreferenciasParcial ? 
+                    Math.min(direitoBeneficiarioTotal, valorBase) : direitoBeneficiarioTotal;
+                
+                // Base para honorários é SEMPRE o valor que o beneficiário efetivamente receberá
+                if (isPreferenciasParcial) {
+            // PREFERÊNCIA: Honorários sobre valor que efetivamente receberá
+                    valorBaseParaHonorarios = valorBeneficiarioQueRecebeEfetivamente;
+                } else {
+                    // ORDEM COMUM: Honorários sobre valor base total
+                    valorBaseParaHonorarios = valorBase;
+                }
+            }
+
+            console.log('=== DEBUG HONORARIOS ===');
+            console.log('Tipo de cálculo:', dados.tipoCalculo);
+    console.log('isPreferenciasParcial:', isPreferenciasParcial);
+            console.log('valorBase (teto):', valorBase);
+            console.log('valorBeneficiarioQueRecebeEfetivamente:', valorBeneficiarioQueRecebeEfetivamente);
+            console.log('valorBaseParaHonorarios:', valorBaseParaHonorarios);
+
+            // Honorários calculados sobre a base correta
+            const resultadoHonorarios = calcularHonorarios(dados, valorBaseParaHonorarios, valortotatt);
+            const { honorarios, valorHonorarioTotal } = resultadoHonorarios;
+
+            // Sindicatos calculados sobre a base correta
+            const resultadoSindicatos = calcularSindicatos(dados, valorBaseParaHonorarios, valortotatt);
+            const { sindicatos, valorSindicatoTotal } = resultadoSindicatos;
+
+            const valorSindicatoParaDescontar = isPreferenciasParcial ? 0 : valorSindicatoTotal;
+            const valorBeneficiarioBruto = valorBase - valorHonorarioTotal - valorSindicatoParaDescontar;
+
             // RECÁLCULO PARA PREFERÊNCIA PARCIAL
             if (isPreferenciasParcial) {
-                let valorBeneficiarioQueRecebeEfetivamente = valorBeneficiarioBruto;
-                
-                if (cessoesBeneficiario.length > 0) {
-                    // Cessão é sobre o valor TOTAL da dívida, não sobre o valor limitado
-                    const percentualBeneficiarioFinal = 1.0 - cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
-                    
-                    // Calcular quanto o beneficiário tem direito na dívida total
-                    const percentualAdvogados = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
-                    const percentualSindicatos = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
-                    const valorTotalSemHonorarios = valortotatt - (valortotatt * (percentualAdvogados + percentualSindicatos));
-                    const direitoBeneficiarioTotal = valorTotalSemHonorarios * percentualBeneficiarioFinal;
-                    
-                    // O que o beneficiário recebe é o mínimo entre seu direito e o teto
-                    valorBeneficiarioQueRecebeEfetivamente = Math.min(direitoBeneficiarioTotal, valorBeneficiarioBruto);
-                }
-                
-                const valorRealPago = valorHonorarioTotal + valorBeneficiarioQueRecebeEfetivamente;
-                
-                principal = valorRealPago * percentualprinc;
+                const valorPrincipalBeneficiario = valorBeneficiarioQueRecebeEfetivamente * percentualprinc;
+                principal = valorPrincipalBeneficiario;
                 
                 // Para RRA: garantir que seja pelo menos 1 se havia RRA original
                 if (dados.rra !== 0) {
-                    const rraCalculado = Math.round((valorRealPago * dados.rra) / valortotatt);
+                    const rraCalculado = Math.round((valorBeneficiarioQueRecebeEfetivamente * dados.rra) / valortotatt);
+                    rrapagamento = Math.max(1, rraCalculado); 
+                } else {
+                    rrapagamento = 0;
+                }
+            }else if (cessoesBeneficiario.length > 0 && dados.tipoCalculo !== 'ordem') {
+                // ORDEM COMUM COM CESSÕES: Principal baseado no valor que o beneficiário receberá
+                const valorPrincipalBeneficiario = valorBeneficiarioQueRecebeEfetivamente * percentualprinc;
+                principal = valorPrincipalBeneficiario;
+                
+                // Para RRA
+                if (dados.rra !== 0) {
+                    const rraCalculado = Math.round((valorBeneficiarioQueRecebeEfetivamente * dados.rra) / valortotatt);
                     rrapagamento = Math.max(1, rraCalculado); 
                 } else {
                     rrapagamento = 0;
                 }
             }
+
+            console.log('=== DEBUG PRINCIPAL ===');
+    console.log('valorBeneficiarioQueRecebeEfetivamente:', valorBeneficiarioQueRecebeEfetivamente);
+    console.log('percentualprinc:', percentualprinc);
+    console.log('principal final:', principal);
 
             const resultadoPrevidencia = calcularPrevidenciaIsolada(dados, principal, rrapagamento);
             let valorPrevidencia = resultadoPrevidencia.valorPrevidencia;
@@ -2102,7 +2135,7 @@
                 valorIRUnitario
             } = resultadoIR;
 
-            const resultadoCessoes = calcularCessoesBeneficiarioPrincipal(dados, valorBase, valortotatt, valorHonorarioTotal,valorSindicatoParaDescontar, valorPrevidencia, valorIR);
+            const resultadoCessoes = calcularCessoesBeneficiarioPrincipal(dados, valorBase, valortotatt, valorHonorarioTotal, valorSindicatoParaDescontar, valorPrevidencia, valorIR);
             let {
                 valorCessoesBeneficiario,
                 cessoesBeneficiarioCalculadas,
@@ -2136,16 +2169,16 @@
                 baseIRRRA,
                 valorIRUnitario,
 
-                valorBeneficiarioBruto: resultadoCessoes.valorBeneficiarioBruto,         // Valor antes de previdência/IR/cessões
-                valorCessoesBeneficiario,       // Total bruto cedido
-                percentualBeneficiarioFinal,    // % que fica com o beneficiário
-                valorBeneficiarioAposCessoes,   // Valor após cessões (mas ainda bruto)
-                valorPrevidenciaBeneficiario,   // Previdência só da parte do beneficiário
-                valorIRBeneficiario,            // IR só da parte do beneficiário
-                valorBeneficiarioFinal,         // Valor líquido final do beneficiário
-                cessoesBeneficiarioCalculadas,  // Array simples das cessões
-                cessoesBeneficiarioFinais,      // Array com detalhes completos (IR, previdência)
-                isPreferenciasParcial           // Flag para controle (opcional)
+                valorBeneficiarioBruto: resultadoCessoes.valorBeneficiarioBruto,
+                valorCessoesBeneficiario,
+                percentualBeneficiarioFinal,
+                valorBeneficiarioAposCessoes,
+                valorPrevidenciaBeneficiario,
+                valorIRBeneficiario,
+                valorBeneficiarioFinal,
+                cessoesBeneficiarioCalculadas,
+                cessoesBeneficiarioFinais,
+                isPreferenciasParcial
             };
         }
 
@@ -2890,9 +2923,55 @@
                     ? '👩‍💼 Advogados - Honorários da Preferência' 
                     : '👩‍💼 Advogados';
                 
-                const descricaoBase = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt
-                    ? `<p style="color: #155724; font-style: italic;">Valores calculados sobre a preferência (R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</p>`
-                    : '';
+                // ========== CALCULAR BASE REAL USADA PARA HONORÁRIOS ==========
+                let baseCalculoRealHonorarios = resultados.valorBase;
+                
+                // Verificar se há cessões do beneficiário principal
+                const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
+                    cessao.tipo === 'cessaobenPrincipal'
+                ) || [];
+                
+                if (cessoesBeneficiario.length > 0) {
+                    // Cessão é sobre o valor TOTAL da dívida
+                    const percentualBeneficiarioFinal = 1.0 - cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
+                    
+                    // Calcular quanto o beneficiário tem direito na dívida total (SEM descontar honorários)
+                    const direitoBeneficiarioTotal = resultados.valortotatt * percentualBeneficiarioFinal;
+                    
+                    // Para preferência parcial, limitado pelo teto
+                    const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt;
+
+                    if (isPreferenciasParcial) {
+                        // PREFERÊNCIA: Base sobre valor efetivo
+                        baseCalculoRealHonorarios = Math.min(direitoBeneficiarioTotal, resultados.valorBase);
+                    } else {
+                        baseCalculoRealHonorarios = resultados.valorBase;
+                    }
+                }
+                
+                // Descrição explicativa
+                let descricaoBase = '';
+                if (dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt) {
+                    if (baseCalculoRealHonorarios !== resultados.valorBase) {
+                        // Caso com cessões
+                        descricaoBase = `<p style="color: #155724; font-style: italic;">
+                            Valores calculados sobre base efetiva: R$ ${baseCalculoRealHonorarios.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} 
+                            <span style="color: #856404;">(ajustada por cessões - teto original: R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
+                        </p>`;
+                    } else {
+                        // Caso sem cessões
+                        descricaoBase = `<p style="color: #155724; font-style: italic;">
+                            Valores calculados sobre a preferência: R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>`;
+                    }
+                } else if (baseCalculoRealHonorarios !== resultados.valorBase) {
+                    // Caso não preferência mas com cessões
+                    descricaoBase = `<p style="color: #155724; font-style: italic;">
+                        Valores calculados sobre base efetiva: R$ ${baseCalculoRealHonorarios.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} 
+                        <span style="color: #856404;">(ajustada por cessões)</span>
+                    </p>`;
+                }
+                
                 secaoHonorariosOriginal = `
                 <div class="table-container">
                     <h3>📄➖ Deduções Acessórias</h3>
@@ -2910,8 +2989,8 @@
                         <tr>
                             <td>${h.nome}</td>
                             <td>${h.tipo}</td>
-                            <td>R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td>${(h.percentual* 100).toFixed(2)}%</td>
+                            <td>R$ ${baseCalculoRealHonorarios.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td>${(h.percentual * 100).toFixed(2)}%</td>
                             <td>R$ ${h.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         `).join('')}
@@ -3131,7 +3210,7 @@
             );
 
             if (advogadosComCessao.length > 0 && 
-                dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt) {
+                !(dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt)) {
                 
                 secaoCessoesAdvTotais = `
                 <div class="table-container">
