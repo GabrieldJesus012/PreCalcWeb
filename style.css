@@ -20,6 +20,25 @@
     --info: #17A2B8;
     --warning: #FFC107;
     
+    /* Cores específicas para deduções */
+    --deducao-acessoria-bg: #FFF5F5;
+    --deducao-acessoria-border: #FC8181;
+    --deducao-acessoria-text: #C53030;
+    --deducao-acessoria-light: #FED7D7;
+    
+    --deducao-legal-bg: #FAFAFA;
+    --deducao-legal-border: #D1D5DB;
+    --deducao-legal-text: #6B7280;
+    --deducao-legal-light: #F3F4F6;
+    
+    --valor-positivo-bg: #F0FDF4;
+    --valor-positivo-border: #4ADE80;
+    --valor-positivo-text: #16A34A;
+    
+    --valor-negativo-bg: #FEF2F2;
+    --valor-negativo-border: #F87171;
+    --valor-negativo-text: #DC2626;
+    
     /* Sombras e gradientes */
     --shadow-card: 0 8px 32px rgba(26, 35, 50, 0.12);
     --shadow-elevated: 0 16px 48px rgba(26, 35, 50, 0.18);
@@ -134,7 +153,6 @@ body {
     border-bottom-color: var(--primary-gold);
 }
 
-
 /* Conteúdo das Tabs */
 .tab-content {
     display: none;
@@ -192,6 +210,82 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+/* NOVAS CLASSES PARA DEDUÇÕES - VERSÃO FORMAL */
+
+/* Seção de Deduções Acessórias */
+.deducoes-acessorias {
+    border-left: 3px solid #DC2626;
+}
+
+.deducoes-acessorias .table-container {
+    background: transparent;
+}
+
+.deducoes-acessorias h3 {
+    color: #DC2626;
+    background: transparent;
+    font-weight: 600;
+}
+
+/* Seção de Deduções Legais */
+.deducoes-legais {
+    border-left: 3px solid #1F2937;
+}
+
+.deducoes-legais .table-container {
+    background: transparent;
+}
+
+.deducoes-legais h3 {
+    color: #1F2937;
+    background: transparent;
+    font-weight: 600;
+}
+
+/* Seção de Valor Final */
+.valor-final h3 {
+    color: #059669;
+    font-weight: 700;
+}
+
+/* Card de Alerta Didático */
+.alerta-didatico {
+    background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+    border: 2px solid #F59E0B;
+    border-radius: 16px;
+    padding: 24px;
+    margin: 20px 0;
+    position: relative;
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.2);
+}
+
+.alerta-didatico::before {
+    content: '💡';
+    position: absolute;
+    top: -12px;
+    left: 24px;
+    background: #FEF3C7;
+    padding: 0 10px;
+    font-size: 1.5em;
+}
+
+.alerta-didatico h4 {
+    color: #92400E;
+    font-size: 1.1em;
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.alerta-didatico p {
+    color: #B45309;
+    font-size: 0.95em;
+    line-height: 1.5;
+    margin-bottom: 8px;
 }
 
 /* Elementos de Input */
@@ -618,6 +712,29 @@ tr:hover td {
 
 /* Regras para Impressão */
 @media print {
+    /* Manter cores das deduções na impressão */
+    .deducoes-acessorias {
+        border-left: 3px solid #DC2626 !important;
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    .deducoes-acessorias h3 {
+        color: #DC2626 !important;
+        font-weight: 600 !important;
+    }
+    
+    .deducoes-legais {
+        border-left: 3px solid #1F2937 !important;
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    .deducoes-legais h3 {
+        color: #1F2937 !important;
+        font-weight: 600 !important;
+    }
+    
     /* Ocultar navegação das tabs na impressão */
     .tabs-nav,
     .btn-container,
@@ -741,7 +858,10 @@ tr:hover td {
     /* Evitar quebras de página indesejadas */
     .form-group,
     .table-container,
-    .advogado-item {
+    .advogado-item,
+    .deducoes-acessorias,
+    .deducoes-legais,
+    .valor-final {
         page-break-inside: avoid;
         break-inside: avoid;
     }

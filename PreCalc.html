@@ -2916,6 +2916,7 @@
             }
             
             return `
+            <div class="deducoes-acessorias">
                 <div class="table-container">
                     <h3>📄➖ Deduções Acessórias</h3>
                     <div class="explicacao-juridica">
@@ -2926,6 +2927,7 @@
                     ${secaoSindicatos}
                     ${secaoHonorarios}
                 </div>
+            </div>
             `;
         }
 
@@ -3256,11 +3258,13 @@
             }
             
             return `
-                <div class="table-container">
-                    <h3>🏦 Deduções Legais</h3>
-                    ${secaoPrevidencia}
-                    ${secaoIR}
-                </div>
+                <div class="deducoes-legais">
+        <div class="table-container">
+            <h3>🏦 Deduções Legais</h3>
+            ${secaoPrevidencia}
+            ${secaoIR}
+        </div>
+    </div>
             `;
         }
 
