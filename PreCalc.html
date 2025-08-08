@@ -2601,23 +2601,113 @@
 
         function exibirResultados(resultados, dados) {
             const container = document.getElementById('resultadosContent');
+            const dataAtual = obterDataAtual();
+            const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
+            
+            const html = `
+                ${gerarCabecalhoProcesso(dados, resultados, dataAtual)}
+                ${gerarDemonstrativoValores(dados, resultados, dataAtual)}
+                ${gerarIndicesUtilizados(dados, resultados, inicioGraca, fimGraca)}
+                ${gerarCalculosPrincipal(dados, resultados, inicioGraca, fimGraca)}
+                ${gerarCalculosJuros(dados, resultados, inicioGraca, fimGraca)}
+                ${gerarResumoCalculos(resultados)}
+                ${gerarSecaoSindicatos(resultados)}
+                ${gerarSecaoCessoesSindicatos(resultados, dados)}
+                ${gerarSecaoHonorarios(resultados, dados)}
+                ${gerarSecaoCessoesBeneficiario(resultados, dados)}
+                ${gerarSecaoCessoesAdvogados(resultados, dados)}
+                ${gerarSecaoDeducoes(resultados, dados)}
+                ${gerarSecoesPagamentos(resultados, dados)}
+                ${gerarBotaoImprimir()}
+            `;
+            
+            container.innerHTML = html;
+            showTab('tab7');
+        }
+
+        function obterDataAtual() {
             const hoje = new Date();
             const dia = String(hoje.getDate()).padStart(2, '0');
             const mes = String(hoje.getMonth() + 1).padStart(2, '0');
             const ano = hoje.getFullYear();
-            const dataAtual = `${dia}/${mes}/${ano}`;
-            const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
-            const formatarData = (data) => {
-                const meses = [
-                    'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
-                    'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
-                ];
-                return `${meses[data.getMonth()]}/${data.getFullYear()}`;
-            };
+            return `${dia}/${mes}/${ano}`;
+        }
+
+        function formatarData(data) {
+            const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+                        'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            return `${meses[data.getMonth()]}/${data.getFullYear()}`;
+        }
+
+        function formatarMoeda(valor) {
+            return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function gerarCabecalhoProcesso(dados, resultados, dataAtual) {
+            const secaoRRA = dados.rra && resultados.rrapagamento !== 0 
+                ? `<tr><td>Rendimentos Recebidos Acumuladamente Total (RRA):</td><td>${dados.rra} meses</td></tr>`
+                : '';
+            
+            return `
+                <div class="table-container">
+                    <h3>📋 Identificação do Processo</h3>
+                    <table>
+                        <tr><th>Descrição</th><th>Informação</th></tr>
+                        <tr><td>Número do Processo</td><td>${dados.numProcesso || 'Não informado'}</td></tr>
+                        <tr><td>Beneficiário Principal</td><td>${dados.beneficiario || 'Não informado'}</td></tr>
+                        <tr><td>Devedor</td><td>${dados.credor || 'Não informado'}</td></tr>
+                        <tr><td>Natureza do Processo</td><td>${dados.natureza === 'alimentar' ? '⚖️ Alimentar' : '⚖️ Comum'}</td></tr>
+                        ${secaoRRA}
+                        <tr><td>Ano do orçamento do Precatório:</td><td>${dados.anoOrcamento || 'Não informado'}</td></tr>
+                        <tr><td>Data-base do cálculo homologado na execução:</td><td>${dados.mesBase || 'Não informado'}/${dados.anoBase || 'Não informado'}</td></tr>
+                    </table>
+                </div>
+            `;
+        }
+
+        function gerarDemonstrativoValores(dados, resultados, dataAtual) {
+            const indiceTotal = isNaN(resultados.indiceTotal) ? '1' : resultados.indiceTotal.toFixed(6);
+            
+            return `
+                <div class="table-container">
+                    <h3>💰 Demonstrativo de Valores - Histórico vs. Atual</h3>
+                    <table>
+                        <tr>
+                            <th>Componente</th>
+                            <th>Valor Histórico (${dados.mesBase || 'Não informado'}/${dados.anoBase || 'Não informado'})</th>
+                            <th>Correção Aplicada*</th>
+                            <th>Valor Atualizado (${dataAtual})</th>
+                        </tr>
+                        <tr>
+                            <td>Principal</td>
+                            <td>R$ ${formatarMoeda(dados.valorPrincipal)}</td>
+                            <td>${indiceTotal}</td>
+                            <td>R$ ${formatarMoeda(resultados.valorprincatt)}</td>
+                        </tr>
+                        <tr>
+                            <td>Juros</td>
+                            <td>R$ ${formatarMoeda(dados.valorJuros)}</td>
+                            <td>${indiceTotal}</td>
+                            <td>R$ ${formatarMoeda(resultados.valorjurosatt)}</td>
+                        </tr>
+                        <tr class="highlight">
+                            <td><strong>Total Atualizado</strong></td>
+                            <td><strong>R$ ${formatarMoeda(dados.valorTotal)}</strong></td>
+                            <td><strong>-</strong></td>
+                            <td><strong>R$ ${formatarMoeda(resultados.valortotatt)}</strong></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
+                    *Atualização Monetária conforme Resolução CNJ nº 303/2019, com índices de correção monetária, conforme caput do Art.21- A - <strong>Período de Correção</strong>: Os valores foram atualizados desde a base <strong>${dados.mesBase || 'Não informado'}/${dados.anoBase || 'Não informado'}</strong> até <strong>${dataAtual}</strong>.
+                </div>
+            `;
+        }
+
+        function gerarIndicesUtilizados(dados, resultados, inicioGraca, fimGraca) {
             const inicioGracaFormatado = formatarData(inicioGraca);
             const fimGracaFormatado = formatarData(fimGraca);
-
-            // Preparar linhas da SELIC discriminada
+            
             let linhasSelicHTML = '';
             if (resultados.dadosSelic.temSelicAntes) {
                 linhasSelicHTML += `
@@ -2641,456 +2731,318 @@
                 <td>${resultados.dadosSelic.indiceselic.toFixed(6)}</td>
                 <td>Total dos períodos aplicáveis</td>
             </tr>`;
+            
+            return `
+                <div class="table-container">
+                    <h3>📊 Índices Utilizados</h3>
+                    <table>
+                        <tr><th>Índice</th><th>Valor</th><th>Período/Observação</th></tr>
+                        <tr><td>Índice CNJ</td><td>${resultados.indicesCNJ.toFixed(6)}</td><td>${dados.mesBase}/${dados.anoBase}</td></tr>
+                        ${linhasSelicHTML}
+                        <tr><td>IPCA-e Acumulado</td><td>${resultados.indiceipca.toFixed(6)}</td><td>Período de Graça: ${inicioGracaFormatado} - ${fimGracaFormatado}</td></tr>
+                        <tr><td>Juros de Mora</td><td>${resultados.jurosmora.toFixed(6)}</td><td>Natureza: ${dados.natureza}</td></tr>
+                    </table>
+                </div>
+            `;
+        }
 
-            let secaoDeducoes = '';
-            // Verifica se tem previdência ou IR para mostrar a seção
-            const temPrevidencia = dados.incidenciaPrevidencia;
-            const temIR = dados.incidenciaIR && resultados.rrapagamento !== 0;
-            const temCessoes = resultados.cessoesBeneficiarioCalculadas && resultados.cessoesBeneficiarioCalculadas.length > 0;
-            if (temPrevidencia || temIR) {
-                secaoDeducoes = '<div class="table-container"><h3>🏦 Deduções Legais</h3>';
-                // Seção Previdência
-                if (temPrevidencia) {
-                    let detalhesPrevidencia = '';
-                    
-                    if (dados.tipoPrevidencia === 'fixa') {
-                        detalhesPrevidencia = `
-                            <table class="ir-table">
-                                <tr>
-                                    <th colspan="2" class="section-header" >📄 Previdência - Alíquota Fixa</th>
-                                </tr>
-                                <tr>
-                                    <th>Principal:</th>
-                                    <td>R$ ${resultados.principal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                <tr>
-                                    <th>Alíquota Fixa:</th>
-                                    <td>${(dados.aliquotaFixa * 100).toFixed(2)}%</td>
-                                </tr>
-                                <tr class="total-row">
-                                    <th>Valor Previdência:</th>
-                                    <td><strong>R$ ${resultados.valorPrevidencia.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
-                                </tr>
-                                
-                                ${temCessoes ? `
-                                <tr style="border-top: 1px solid #dee2e6;">
-                                    <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição por Cessões:</th>
-                                </tr>
-                                ${resultados.valorPrevidenciaBeneficiario > 0 ? `
-                                <tr>
-                                    <th>${dados.beneficiario}:</th>
-                                    <td>R$ ${resultados.valorPrevidenciaBeneficiario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                ` : ''}
-                                ${resultados.cessoesBeneficiarioFinais ? resultados.cessoesBeneficiarioFinais.map((cessao, index) => 
-                                    cessao.previdenciaCessao > 0 ? `
-                                    <tr>
-                                        <th>${cessao.cessionario}:</th>
-                                        <td>R$ ${cessao.previdenciaCessao.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    </tr>
-                                    ` : ''
-                                ).join('') : ''}
-                                ` : ''}
-                            </table>`;
-                    } else {
-                        // Previdência INSS
-                        const base = resultados.rrapagamento === 0 ? resultados.principal : resultados.principal / resultados.rrapagamento;
-                        detalhesPrevidencia = `
-                            <table class="ir-table">
-                                <tr>
-                                    <th colspan="2" class="section-header" >📄 Previdência - INSS</th>
-                                </tr>
-                                <tr>
-                                    <th>Principal:</th>
-                                    <td>R$ ${resultados.principal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                ${resultados.rrapagamento !== 0 ? `
-                                <tr>
-                                    <th>RRA Pagamento:</th>
-                                    <td>${Math.round(resultados.rrapagamento)}</td>
-                                </tr>
-                                <tr>
-                                    <th>Base INSS por RRA:</th>
-                                    <td>R$ ${base.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>` : ''}
-                                <tr>
-                                    <th>Alíquota Efetiva INSS:</th>
-                                    <td>${(resultados.aliquotaEfetiva * 100).toFixed(2)}%</td>
-                                </tr>
-                                <tr>
-                                    <th>Valor INSS por RRA:</th>
-                                    <td>R$ ${(resultados.valorPrevidencia / (resultados.rrapagamento || 1)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${base > 8157.41 ? '(TETO)' : ''}</td>
-                                </tr>
-                                <tr class="total-row">
-                                    <th>Valor Previdência:</th>
-                                    <td><strong>R$ ${resultados.valorPrevidencia.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
-                                </tr>
+        function gerarCalculosPrincipal(dados, resultados, inicioGraca, fimGraca) {
+            const inicioGracaFormatado = formatarData(inicioGraca);
+            const fimGracaFormatado = formatarData(fimGraca);
+            
+            return `
+                <div class="table-container">
+                    <h3>💰 Atualização do Principal - Passo a Passo</h3>
+                    <table>
+                        <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
+                        <tr>
+                            <td>1. Valor Original</td>
+                            <td>Principal Homologado</td>
+                            <td>R$ ${formatarMoeda(dados.valorPrincipal)}</td>
+                        </tr>
+                        <tr>
+                            <td>2. Correção CNJ</td>
+                            <td>R$ ${formatarMoeda(dados.valorPrincipal)} × ${resultados.indicesCNJ.toFixed(6)}</td>
+                            <td>R$ ${formatarMoeda(dados.valorPrincipal * resultados.indicesCNJ)}</td>
+                        </tr>
+                        <tr>
+                            <td>3. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
+                            <td>R$ ${formatarMoeda(dados.valorPrincipal * resultados.indicesCNJ)} × ${resultados.indiceipca.toFixed(6)}</td>
+                            <td>R$ ${formatarMoeda(dados.valorPrincipal * resultados.indicesCNJ * resultados.indiceipca)}</td>
+                        </tr>
+                        <tr>
+                            <td>4. Aplicação SELIC (excluido a graça)</td>
+                            <td>R$ ${formatarMoeda(dados.valorPrincipal * resultados.indicesCNJ * resultados.indiceipca)} × ${resultados.dadosSelic.indiceselic.toFixed(6)}</td>
+                            <td><strong>R$ ${formatarMoeda(resultados.valorprincatt)}</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            `;
+        }
 
-                                ${temCessoes ? `
-                                <tr style="border-top: 1px solid #dee2e6;">
-                                    <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição por Cessões:</th>
-                                </tr>
-                                ${resultados.valorPrevidenciaBeneficiario > 0 ? `
-                                <tr>
-                                    <th>${dados.beneficiario}:</th>
-                                    <td>R$ ${resultados.valorPrevidenciaBeneficiario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                ` : ''}
-                                ${resultados.cessoesBeneficiarioFinais ? resultados.cessoesBeneficiarioFinais.map((cessao, index) => 
-                                    cessao.previdenciaCessao > 0 ? `
-                                    <tr>
-                                        <th>${cessao.cessionario}:</th>
-                                        <td>R$ ${cessao.previdenciaCessao.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    </tr>
-                                    ` : ''
-                                ).join('') : ''}
-                                ` : ''}
-                            </table>`;
-                    }
-                    secaoDeducoes += detalhesPrevidencia;
-                }
-                // Seção IR
-                if (temIR) {
-                    let percentualTotalAdv = 0;
-                    let percentualTotalSind = 0;
-                    if (dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt) {
-                        percentualTotalAdv = dados.advogados.reduce((sum, adv) => {
-                            const cessaoAdv = dados.cessoes?.filter(cessao => 
-                                cessao.tipo === 'cessaoAdv' && cessao.cedente === adv.nome
-                            ) || [];
-                            const percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
-                            const percentualAdvogado = Math.max(0, adv.percentual - percentualCessionarioAdv);
-                            return sum + percentualAdvogado; // Só a parte do advogado
-                        }, 0);
-                        percentualTotalSind = 0;
-                    } else {
-                        percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
-                        percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
-                    }
-                    
-                    const secaoIR = `
-                        <table class="ir-table">
-                            <tr>
-                                <th colspan="2" class="section-header">📄 Imposto de Renda - MP Nª 1.294, de 11 de Abril de 2025</th>
-                            </tr>
-                            <tr>
-                                <th>Principal:</th>
-                                <td>R$ ${resultados.principal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>
-                            <tr>
-                                <th>Base IR sem H.Contratuais (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
-                                <td>R$ ${resultados.baseIRHonora.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>
-                            ${percentualTotalSind > 0 ? `
-                            <tr>
-                                <th>Base IR sem Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
-                                <td>R$ ${resultados.baseIRSindi.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>` : ''}
-                            ${temPrevidencia ? `
-                            <tr>
-                                <th>Previdência:</th>
-                                <td>R$ ${resultados.valorPrevidencia.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>
-                            <tr>
-                                <th>Base IR sem Previdência:</th>
-                                <td>R$ ${resultados.baseIRPrev.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>` : ''}
-                            <tr>
-                                <th>RRA Pagamento:</th>
-                                <td>${Math.round(resultados.rrapagamento)}</td>
-                            </tr>
-                            <tr>
-                                <th>Base IR por RRA:</th>
-                                <td>R$ ${resultados.baseIRRRA.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>
-                            <tr>
-                                <th>Alíquota IR:</th>
-                                <td>${(resultados.aliquotaIR * 100).toFixed(1)}%</td>
-                            </tr>
-                            <tr>
-                                <th>Valor IR Mensal:</th>
-                                <td>R$ ${resultados.valorIRUnitario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>
-                            <tr class="total-row">
-                                <th>Valor IR Devido Total:</th>
-                                <td><strong>R$ ${resultados.valorIR.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
-                            </tr>
+        function gerarCalculosJuros(dados, resultados, inicioGraca, fimGraca) {
+            const inicioGracaFormatado = formatarData(inicioGraca);
+            const fimGracaFormatado = formatarData(fimGraca);
+            
+            const jurosOriginaisCNJ = dados.valorJuros * resultados.indicesCNJ;
+            const jurosMora = dados.valorPrincipal * resultados.indicesCNJ * resultados.jurosmora;
+            const totalJuros = jurosOriginaisCNJ + jurosMora;
+            const totalJurosIPCA = totalJuros * resultados.indiceipca;
+            
+            return `
+                <div class="table-container">
+                    <h3>⚖️ Atualização dos Juros - Passo a Passo</h3>
+                    <table>
+                        <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
+                        <tr><td>1. Juros Originais</td><td>Juros Homologado</td><td>R$ ${formatarMoeda(dados.valorJuros)}</td></tr>
+                        <tr><td>2. Correção CNJ</td><td>R$ ${formatarMoeda(dados.valorJuros)} × ${resultados.indicesCNJ.toFixed(6)}</td><td>R$ ${formatarMoeda(jurosOriginaisCNJ)}</td></tr>
+                        <tr><td>3. Juros de Mora</td><td>Principal CNJ × ${(resultados.jurosmora * 100).toFixed(4)}%*</td><td>R$ ${formatarMoeda(jurosMora)}</td></tr>
+                        <tr><td>4. Total Juros (CNJ + Mora)</td><td>R$ ${formatarMoeda(jurosOriginaisCNJ)} + R$ ${formatarMoeda(jurosMora)}</td><td>R$ ${formatarMoeda(totalJuros)}</td></tr>
+                        <tr><td>5. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td><td>R$ ${formatarMoeda(totalJuros)} × ${resultados.indiceipca.toFixed(6)}</td><td>R$ ${formatarMoeda(totalJurosIPCA)}</td></tr>
+                        <tr><td>6. Aplicação SELIC (excluido a graça)</td><td>R$ ${formatarMoeda(totalJurosIPCA)} × ${resultados.dadosSelic.indiceselic.toFixed(6)}</td><td><strong>R$ ${formatarMoeda(resultados.valorjurosatt)}</strong></td></tr>
+                    </table>
+                </div>
+                <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
+                    *Juros calculados de forma simples, conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ e SV nº 17 do STF.
+                </div>
+            `;
+        }
 
-                            ${temCessoes ? `
-                            <tr style="border-top: 1px solid #dee2e6;">
-                                <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição por Cessões:</th>
-                            </tr>
-                            ${resultados.valorIRBeneficiario > 0 ? `
-                            <tr>
-                                <th>${dados.beneficiario}:</th>
-                                <td>R$ ${resultados.valorIRBeneficiario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>
-                            ` : ''}
-                            ${resultados.cessoesBeneficiarioFinais ? resultados.cessoesBeneficiarioFinais.map((cessao, index) => 
-                                cessao.irCessao > 0 ? `
-                                <tr>
-                                    <th>${cessao.cessionario}:</th>
-                                    <td>R$ ${cessao.irCessao.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                ` : ''
-                            ).join('') : ''}
-                            ` : ''}
-                        </table>`;
-                    secaoDeducoes += secaoIR;
-                }
-                secaoDeducoes += '</div>';
-            }
+        function gerarResumoCalculos(resultados) {
+            return `
+                <div class="table-container">
+                    <h3>📈 Resumo dos Cálculos</h3>
+                    <table>
+                        <tr><th>Descrição</th><th>Valor</th><th>%</th></tr>
+                        <tr><td>Valor Principal Atualizado</td><td>R$ ${formatarMoeda(resultados.valorprincatt)}</td><td>${(resultados.percentualprinc * 100).toFixed(4)}%</td></tr>
+                        <tr><td>Valor Juros Atualizado</td><td>R$ ${formatarMoeda(resultados.valorjurosatt)}</td><td>${(resultados.percentualjur * 100).toFixed(4)}%</td></tr>
+                        <tr class="highlight"><td>Total Atualizado</td><td>R$ ${formatarMoeda(resultados.valortotatt)}</td><td>${((resultados.percentualprinc + resultados.percentualjur) * 100).toFixed(2)}%</td></tr>
+                        <tr class="highlight"><td>Valor Base para Cálculo</td><td>R$ ${formatarMoeda(resultados.valorBase)}</td><td>${((resultados.valorBase / resultados.valortotatt) * 100).toFixed(2)}%</td></tr>
+                    </table>
+                </div>
+            `;
+        }
 
-            let secaoRRA = '';
-            if (dados.rra&& resultados.rrapagamento !== 0) {
-                secaoRRA = `
+        function gerarSecaoSindicatos(resultados) {
+            if (!resultados.sindicatos || resultados.sindicatos.length === 0) return '';
+            
+            const linhasSindicatos = resultados.sindicatos.map(s => `
                 <tr>
-                    <td>Rendimentos Recebidos Acumuladamente Total (RRA) :</td>
-                    <td>${dados.rra} meses</td>
+                    <td>${s.nome}</td>
+                    <td>R$ ${formatarMoeda(resultados.valortotatt)}</td>
+                    <td>${(s.percentual * 100).toFixed(2)}%</td>
+                    <td>R$ ${formatarMoeda(s.valorBruto)}</td>
                 </tr>
-                `;
-            }
-
-            // Gerar seção de honorários totais 
-            let secaoHonorariosTotais = '';
-            if (resultados.honorarios && resultados.honorarios.length > 0 && 
-                dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt) {
-                
-                secaoHonorariosTotais = `
-                <div class="table-container">
-                    <h3>📄➖ Deduções Acessórias</h3>
-                    <h3>👩‍💼 Advogados</h3>
-                    <p style="color: #856404; font-style: italic;">Valores calculados sobre o total do precatório (R$ ${resultados.valortotatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</p>
-                    <table>
-                        <tr>
-                            <th>Nome Advogado</th>
-                            <th>PF/PJ</th>
-                            <th>Base de Cálculo</th>
-                            <th>Percentual</th>
-                            <th>Valor Bruto Total</th>
-                        </tr>
-                        ${resultados.honorarios.map(h => {
-                            const valorBrutoTotal = resultados.valortotatt * h.percentual;
-                            return `
-                            <tr>
-                                <td>${h.nome}</td>
-                                <td>${h.tipo}</td>
-                                <td>R$ ${resultados.valortotatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                <td>${(h.percentual * 100).toFixed(2)}%</td>
-                                <td>R$ ${valorBrutoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>
-                            `;
-                        }).join('')}
-                        <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
-                            <td colspan="3"><strong>TOTAL HONORÁRIOS</strong></td>
-                            <td><strong>${(resultados.honorarios.reduce((total, h) => total + h.percentual, 0) * 100).toFixed(2)}%</strong></td>
-                            <td><strong>R$ ${resultados.honorarios.reduce((total, h) => total + (resultados.valortotatt * h.percentual), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
-                        </tr>
-                    </table>
-                    <div style="margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-left: 4px solid #007bff; font-size: 0.9em;">
-                        <strong>💡 Explicação:</strong><br>
-                        • <strong>Honorários da Preferência:</strong> Calculados sobre R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (pagos agora)<br>
-                        • <strong>Honorários Totais:</strong> Calculados sobre R$ ${resultados.valortotatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (valor total do direito)
-                    </div>
-                </div>`;
-            }
-
-            // Gerar seção de honorários 
-            let secaoHonorariosOriginal = '';
-            if (resultados.honorarios && resultados.honorarios.length > 0) {
-                const tituloSecao = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt 
-                    ? '👩‍💼 Advogados - Honorários da Preferência' 
-                    : '👩‍💼 Advogados';
-                
-                // ========== CALCULAR BASE REAL USADA PARA HONORÁRIOS ==========
-                let baseCalculoRealHonorarios = resultados.valorBase;
-                
-                // Verificar se há cessões do beneficiário principal
-                const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
-                    cessao.tipo === 'cessaobenPrincipal'
-                ) || [];
-                
-                if (cessoesBeneficiario.length > 0) {
-                    // Cessão é sobre o valor TOTAL da dívida
-                    const percentualBeneficiarioFinal = 1.0 - cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
-                    
-                    // Calcular quanto o beneficiário tem direito na dívida total (SEM descontar honorários)
-                    const direitoBeneficiarioTotal = resultados.valortotatt * percentualBeneficiarioFinal;
-                    
-                    // Para preferência parcial, limitado pelo teto
-                    const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt;
-
-                    if (isPreferenciasParcial) {
-                        // PREFERÊNCIA: Base sobre valor efetivo
-                        baseCalculoRealHonorarios = Math.min(direitoBeneficiarioTotal, resultados.valorBase);
-                    } else {
-                        baseCalculoRealHonorarios = resultados.valorBase;
-                    }
-                }
-                
-                // Descrição explicativa
-                let descricaoBase = '';
-                if (dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt) {
-                    if (baseCalculoRealHonorarios !== resultados.valorBase) {
-                        // Caso com cessões
-                        descricaoBase = `<p style="color: #155724; font-style: italic;">
-                            Valores calculados sobre base efetiva: R$ ${baseCalculoRealHonorarios.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} 
-                            <span style="color: #856404;">(ajustada por cessões - teto original: R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
-                        </p>`;
-                    } else {
-                        // Caso sem cessões
-                        descricaoBase = `<p style="color: #155724; font-style: italic;">
-                            Valores calculados sobre a preferência: R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </p>`;
-                    }
-                } else if (baseCalculoRealHonorarios !== resultados.valorBase) {
-                    // Caso não preferência mas com cessões
-                    descricaoBase = `<p style="color: #155724; font-style: italic;">
-                        Valores calculados sobre base efetiva: R$ ${baseCalculoRealHonorarios.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} 
-                        <span style="color: #856404;">(ajustada por cessões)</span>
-                    </p>`;
-                }
-                
-                secaoHonorariosOriginal = `
-                <div class="table-container">
-                    <h3>📄➖ Deduções Acessórias</h3>
-                    <h3>${tituloSecao}</h3>
-                    ${descricaoBase}
-                    <table>
-                        <tr>
-                            <th>Nome Advogado</th>
-                            <th>PF/PJ</th>
-                            <th>Base de Cálculo</th>
-                            <th>Percentual</th>
-                            <th>Valor Bruto</th>
-                        </tr>
-                        ${resultados.honorarios.map(h => `
-                        <tr>
-                            <td>${h.nome}</td>
-                            <td>${h.tipo}</td>
-                            <td>R$ ${baseCalculoRealHonorarios.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td>${(h.percentual * 100).toFixed(2)}%</td>
-                            <td>R$ ${h.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        `).join('')}
-                        <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
-                            <td colspan="3"><strong>TOTAL HONORÁRIOS</strong></td>
-                            <td><strong>${(resultados.honorarios.reduce((total, h) => total + h.percentual, 0) * 100).toFixed(2)}%</strong></td>
-                            <td><strong>R$ ${resultados.honorarios.reduce((total, h) => total + h.valorBruto, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
-                        </tr>
-                    </table>
-                </div>`;
-            }
-
-            let secaoSindicatos = '';
-            if (resultados.sindicatos && resultados.sindicatos.length > 0) {
-                secaoSindicatos = `
+            `).join('');
+            
+            const totalSindicatos = resultados.sindicatos.reduce((total, s) => total + s.valorBruto, 0);
+            
+            return `
                 <div class="table-container">
                     <h3>🏛️ Sindicatos</h3>
                     <table>
-                        <tr>
-                            <th>Nome Sindicato</th>
-                            <th>Base de Cálculo</th>
-                            <th>Percentual</th>
-                            <th>Valor Bruto</th>
-                        </tr>
-                        ${resultados.sindicatos.map(s => {
-                            return `
-                            <tr>
-                                <td>${s.nome}</td>
-                                <td>R$ ${resultados.valortotatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                <td>${(s.percentual * 100).toFixed(2)}%</td>
-                                <td>R$ ${s.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>
-                            `;
-                        }).join('')}
+                        <tr><th>Nome Sindicato</th><th>Base de Cálculo</th><th>Percentual</th><th>Valor Bruto</th></tr>
+                        ${linhasSindicatos}
                         <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
                             <td colspan="3"><strong>TOTAL SINDICATOS</strong></td>
-                            <td><strong>R$ ${resultados.sindicatos.reduce((total, s) => total + s.valorBruto, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totalSindicatos)}</strong></td>
                         </tr>
                     </table>
-                </div>`;
-            }
+                </div>
+            `;
+        }
 
-            let secaoCessoesSindicatos = '';
+        function gerarSecaoCessoesSindicatos(resultados, dados) {
             const ehPreferenciaParcial = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt;
-                if (!ehPreferenciaParcial && resultados.sindicatos) {
-                const sindicatosComCessao = resultados.sindicatos.filter(sind => 
-                    sind.cessoesSind && sind.cessoesSind.length > 0
-                );
-
-                if (sindicatosComCessao.length > 0) {
-                    secaoCessoesSindicatos = `
-                    <div class="table-container">
-                        <h3>🔄 Cessões de Sindicatos</h3>
+            if (ehPreferenciaParcial || !resultados.sindicatos) return '';
+            
+            const sindicatosComCessao = resultados.sindicatos.filter(sind => 
+                sind.cessoesSind && sind.cessoesSind.length > 0
+            );
+            
+            if (sindicatosComCessao.length === 0) return '';
+            
+            const secoesSindicatos = sindicatosComCessao.map(sind => {
+                const cessionarios = sind.cessionarios ? sind.cessionarios.map(cessionario => `
+                    <tr>
+                        <td>${cessionario.nome} (cessionário)</td>
+                        <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
+                        <td>R$ ${formatarMoeda(cessionario.valorBruto)}</td>
+                    </tr>
+                `).join('') : '';
+                
+                return `
+                    <div style="margin-bottom: 20px;">
+                        <h4>🔄 Cessão de Sindicato: ${sind.nome}</h4>
+                        <p><strong>Valor do Direito do Sindicato:</strong> R$ ${formatarMoeda(sind.valorBruto)}</p>
+                        <p><strong>Cedido:</strong> ${(sind.percentualCessionarioSind * 100).toFixed(2)}% para ${sind.cessoesSind.length} cessionário${sind.cessoesSind.length > 1 ? 's' : ''}</p>
                         
-                        ${sindicatosComCessao.map(sind => `
-                            <div style="margin-bottom: 20px;">
-                                <h4>🔄 Cessão de Sindicato: ${sind.nome}</h4>
-                                <p><strong>Valor do Direito do Sindicato:</strong> R$ ${sind.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                <p><strong>Cedido:</strong> ${(sind.percentualCessionarioSind * 100).toFixed(2)}% para ${sind.cessoesSind.length} cessionário${sind.cessoesSind.length > 1 ? 's' : ''}</p>
-                                
-                                <table>
-                                    <tr>
-                                        <th>Recebedor</th>
-                                        <th>Percentual</th>
-                                        <th>Valor Bruto</th>
-                                    </tr>
-                                    <tr style="background-color: #f8f9fa;">
-                                        <td><strong>${sind.nome} (fica com)</strong></td>
-                                        <td>${(sind.percentualSindicato * 100).toFixed(2)}%</td>
-                                        <td>R$ ${sind.valorBrutoSindicato.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    </tr>
-                                    ${sind.cessionarios ? sind.cessionarios.map(cessionario => `
-                                    <tr>
-                                        <td>${cessionario.nome} (cessionário)</td>
-                                        <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
-                                        <td>R$ ${cessionario.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    </tr>
-                                    `).join('') : ''}
-                                    <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
-                                        <td>TOTAL</td>
-                                        <td>100.00%</td>
-                                        <td>R$ ${sind.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    </tr>
-                                </table>
-                            </div>
-                        `).join('')}
-                    </div>`;
+                        <table>
+                            <tr><th>Recebedor</th><th>Percentual</th><th>Valor Bruto</th></tr>
+                            <tr style="background-color: #f8f9fa;">
+                                <td><strong>${sind.nome} (fica com)</strong></td>
+                                <td>${(sind.percentualSindicato * 100).toFixed(2)}%</td>
+                                <td>R$ ${formatarMoeda(sind.valorBrutoSindicato)}</td>
+                            </tr>
+                            ${cessionarios}
+                            <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
+                                <td>TOTAL</td>
+                                <td>100.00%</td>
+                                <td>R$ ${formatarMoeda(sind.valorBruto)}</td>
+                            </tr>
+                        </table>
+                    </div>
+                `;
+            }).join('');
+            
+            return `
+                <div class="table-container">
+                    <h3>🔄 Cessões de Sindicatos</h3>
+                    ${secoesSindicatos}
+                </div>
+            `;
+        }
+
+        function gerarSecaoHonorarios(resultados, dados) {
+            if (!resultados.honorarios || resultados.honorarios.length === 0) return '';
+            
+            // Seção de honorários totais (para preferência parcial)
+            let secaoHonorariosTotais = '';
+            
+            // Seção de honorários originais
+            const tituloSecao = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt 
+                ? '👩‍💼 Advogados - Honorários da Preferência' 
+                : '👩‍💼 Advogados';
+            
+            // Calcular base real
+            let baseCalculoRealHonorarios = resultados.valorBase;
+            const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
+                cessao.tipo === 'cessaobenPrincipal'
+            ) || [];
+            
+            if (cessoesBeneficiario.length > 0) {
+                const percentualBeneficiarioFinal = 1.0 - cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
+                const direitoBeneficiarioTotal = resultados.valortotatt * percentualBeneficiarioFinal;
+                const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt;
+                
+                if (isPreferenciasParcial) {
+                    baseCalculoRealHonorarios = Math.min(direitoBeneficiarioTotal, resultados.valorBase);
                 }
             }
+            
+            let descricaoBase = '';
+            if (dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt) {
+                if (baseCalculoRealHonorarios !== resultados.valorBase) {
+                    descricaoBase = `<p style="color: #155724; font-style: italic;">
+                        Valores calculados sobre base efetiva: R$ ${formatarMoeda(baseCalculoRealHonorarios)} 
+                        <span style="color: #856404;">(ajustada por cessões - teto original: R$ ${formatarMoeda(resultados.valorBase)})</span>
+                    </p>`;
+                } else {
+                    descricaoBase = `<p style="color: #155724; font-style: italic;">
+                        Valores calculados sobre a preferência: R$ ${formatarMoeda(resultados.valorBase)}
+                    </p>`;
+                }
+            } else if (baseCalculoRealHonorarios !== resultados.valorBase) {
+                descricaoBase = `<p style="color: #155724; font-style: italic;">
+                    Valores calculados sobre base efetiva: R$ ${formatarMoeda(baseCalculoRealHonorarios)} 
+                    <span style="color: #856404;">(ajustada por cessões)</span>
+                </p>`;
+            }
+            
+            const secaoHonorariosOriginal = `
+            <div class="table-container">
+                <h3>📄➖ Deduções Acessórias</h3>
+                <h3>${tituloSecao}</h3>
+                ${descricaoBase}
+                <table>
+                    <tr><th>Nome Advogado</th><th>PF/PJ</th><th>Base de Cálculo</th><th>Percentual</th><th>Valor Bruto</th></tr>
+                    ${resultados.honorarios.map(h => `
+                    <tr>
+                        <td>${h.nome}</td>
+                        <td>${h.tipo}</td>
+                        <td>R$ ${formatarMoeda(baseCalculoRealHonorarios)}</td>
+                        <td>${(h.percentual * 100).toFixed(2)}%</td>
+                        <td>R$ ${formatarMoeda(h.valorBruto)}</td>
+                    </tr>
+                    `).join('')}
+                    <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
+                        <td colspan="3"><strong>TOTAL HONORÁRIOS</strong></td>
+                        <td><strong>${(resultados.honorarios.reduce((total, h) => total + h.percentual, 0) * 100).toFixed(2)}%</strong></td>
+                        <td><strong>R$ ${formatarMoeda(resultados.honorarios.reduce((total, h) => total + h.valorBruto, 0))}</strong></td>
+                    </tr>
+                </table>
+            </div>`;
+            
+            return secaoHonorariosTotais + secaoHonorariosOriginal;
+        }
 
-            // Gerar seção de cessões
-            let secaoCessoesBeneficiario = '';
-            if (resultados.cessoesBeneficiarioCalculadas && resultados.cessoesBeneficiarioCalculadas.length > 0) {
+        function gerarSecaoCessoesBeneficiario(resultados, dados) {
+            if (!resultados.cessoesBeneficiarioCalculadas || resultados.cessoesBeneficiarioCalculadas.length === 0) return '';
+            
+            const dividaTotalAtualizada = resultados.valortotatt;
+            const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+            const percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
+            const dividaSemHonorarios = dividaTotalAtualizada * (1 - percentualTotalAdv - percentualTotalSind);
+            
+            const parteBeneficiario = dividaSemHonorarios * resultados.percentualBeneficiarioFinal;
+            const beneficiarioRecebe = resultados.valorBeneficiarioAposCessoes;
+            const beneficiarioAguarda = Math.max(0, parteBeneficiario - beneficiarioRecebe);
+            
+            const listaCessionarios = resultados.cessoesBeneficiarioCalculadas.map(cessao => 
+                `${cessao.cessionario} (${(cessao.percentual * 100).toFixed(1)}%)`
+            ).join(', ');
+            
+            const totalCedido = resultados.cessoesBeneficiarioCalculadas.reduce((total, cessao) => 
+                total + cessao.percentual, 0
+            );
+            
+            const linhasCessionarios = resultados.cessoesBeneficiarioCalculadas.map(cessao => {
+                const parteCessionario = dividaSemHonorarios * cessao.percentual;
+                const cessionarioRecebe = resultados.isPreferenciasParcial ? 0 : cessao.valorBruto;
+                const cessionarioAguarda = resultados.isPreferenciasParcial ? parteCessionario : 0;
                 
-                // Calcular valores base uma vez só
-                const dividaTotalAtualizada = resultados.valortotatt; 
-                const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
-                const percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
-                const dividaSemHonorarios = dividaTotalAtualizada * (1 - percentualTotalAdv - percentualTotalSind);
-                
-                // Calcular parte do beneficiário
-                const parteBeneficiario = dividaSemHonorarios * resultados.percentualBeneficiarioFinal;
-                const beneficiarioRecebe = resultados.valorBeneficiarioAposCessoes;
-                const beneficiarioAguarda = Math.max(0, parteBeneficiario - beneficiarioRecebe);
-                
-                // Lista de cessionários para exibir
-                const listaCessionarios = resultados.cessoesBeneficiarioCalculadas.map(cessao => 
-                    `${cessao.cessionario} (${(cessao.percentual * 100).toFixed(1)}%)`
-                ).join(', ');
-                
-                const totalCedido = resultados.cessoesBeneficiarioCalculadas.reduce((total, cessao) => 
-                    total + cessao.percentual, 0
-                );
-                
-                secaoCessoesBeneficiario = `
+                return `
+                <tr>
+                    <td>${cessao.cessionario}</td>
+                    <td>${(cessao.percentual * 100).toFixed(2)}%</td>
+                    <td>R$ ${formatarMoeda(parteCessionario)}</td>
+                    <td>R$ ${formatarMoeda(cessionarioRecebe)}</td>
+                    <td>R$ ${formatarMoeda(cessionarioAguarda)}</td>
+                </tr>
+                `;
+            }).join('');
+            
+            const totalRecebe = beneficiarioRecebe + resultados.cessoesBeneficiarioCalculadas.reduce((total, cessao) => {
+                const cessionarioRecebe = resultados.isPreferenciasParcial ? 0 : cessao.valorBruto;
+                return total + cessionarioRecebe;
+            }, 0);
+            
+            const totalAguarda = beneficiarioAguarda + resultados.cessoesBeneficiarioCalculadas.reduce((total, cessao) => {
+                const parteCessionario = dividaSemHonorarios * cessao.percentual;
+                const cessionarioAguarda = resultados.isPreferenciasParcial ? parteCessionario : 0;
+                return total + cessionarioAguarda;
+            }, 0);
+            
+            const alertBox = resultados.isPreferenciasParcial ? `
+                <div class="warning-box" style="margin-top: 10px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
+                    <strong>ℹ️ Preferência Parcial:</strong><br>
+                    • <strong>Teto da preferência:</strong> R$ ${formatarMoeda(resultados.valorBase)}<br>
+                    • <strong>Pagamento imediato:</strong> R$ ${formatarMoeda(beneficiarioRecebe)} (só para o beneficiário)<br>
+                    • <strong>Saldo devedor total:</strong> R$ ${formatarMoeda(totalAguarda)}
+                </div>
+            ` : `
+                <div class="success-box" style="margin-top: 10px; padding: 12px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;">
+                    <strong>✅ Pagamento Integral:</strong> Todos os beneficiários recebem integralmente.
+                </div>
+            `;
+            
+            return `
                 <div class="table-container">
                     <h3>🔄 Cessões do Beneficiário Principal</h3>
                     <div style="margin-bottom: 20px;">
                         <h4>Cessão do Beneficiário: ${dados.beneficiario}</h4>
                         <p><strong>Tipo de Cálculo:</strong> ${dados.tipoCalculo} ${dados.tipoCalculo === 'preferencia' ? '(preferencial)' : '(ordem comum)'}</p>
-                        <p><strong>Dívida Total:</strong> R$ ${dividaTotalAtualizada.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        <p><strong>Dívida Total:</strong> R$ ${formatarMoeda(dividaTotalAtualizada)}</p>
                         <p><strong>Total Cedido:</strong> ${(totalCedido * 100).toFixed(1)}% para: ${listaCessionarios}</p>
                         
                         <table>
@@ -3101,15 +3053,13 @@
                                 <th>Recebe Agora</th>
                                 <th>Aguarda Ordem</th>
                             </tr>
-                            
-                            <!-- Linha do Beneficiário -->
                             ${resultados.percentualBeneficiarioFinal > 0 ? `
                             <tr>
                                 <td>${dados.beneficiario}</td>
                                 <td>${(resultados.percentualBeneficiarioFinal * 100).toFixed(2)}%</td>
-                                <td>R$ ${parteBeneficiario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                <td>R$ ${beneficiarioRecebe.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                <td>R$ ${beneficiarioAguarda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td>R$ ${formatarMoeda(parteBeneficiario)}</td>
+                                <td>R$ ${formatarMoeda(beneficiarioRecebe)}</td>
+                                <td>R$ ${formatarMoeda(beneficiarioAguarda)}</td>
                             </tr>
                             ` : `
                             <tr style="background-color: #f8f9fa;">
@@ -3120,273 +3070,544 @@
                                 <td>R$ 0,00</td>
                             </tr>
                             `}
-                            
-                            <!-- Linhas dos Cessionários -->
-                            ${resultados.cessoesBeneficiarioCalculadas.map(cessao => {
-                                const parteCessionario = dividaSemHonorarios * cessao.percentual;
-                                const cessionarioRecebe = resultados.isPreferenciasParcial ? 0 : cessao.valorBruto;
-                                const cessionarioAguarda = resultados.isPreferenciasParcial ? parteCessionario : 0;
-                                
-                                return `
-                                <tr>
-                                    <td>${cessao.cessionario}</td>
-                                    <td>${(cessao.percentual * 100).toFixed(2)}%</td>
-                                    <td>R$ ${parteCessionario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td>R$ ${cessionarioRecebe.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td>R$ ${cessionarioAguarda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                `;
-                            }).join('')}
-                            
-                            <!-- Linha de Total -->
+                            ${linhasCessionarios}
                             <tr class="highlight" style="background-color: #f8f9fa; font-weight: bold; border-top: 2px solid #dee2e6;">
                                 <td>TOTAL</td>
                                 <td>100.00%</td>
-                                <td>R$ ${dividaSemHonorarios.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                <td>R$ ${(
-                                    beneficiarioRecebe + resultados.cessoesBeneficiarioCalculadas.reduce((total, cessao) => {
-                                        const cessionarioRecebe = resultados.isPreferenciasParcial ? 0 : cessao.valorBruto;
-                                        return total + cessionarioRecebe;
-                                    }, 0)
-                                ).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                <td>R$ ${(
-                                    beneficiarioAguarda + resultados.cessoesBeneficiarioCalculadas.reduce((total, cessao) => {
-                                        const parteCessionario = dividaSemHonorarios * cessao.percentual;
-                                        const cessionarioAguarda = resultados.isPreferenciasParcial ? parteCessionario : 0;
-                                        return total + cessionarioAguarda;
-                                    }, 0)
-                                ).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td>R$ ${formatarMoeda(dividaSemHonorarios)}</td>
+                                <td>R$ ${formatarMoeda(totalRecebe)}</td>
+                                <td>R$ ${formatarMoeda(totalAguarda)}</td>
                             </tr>
-                            <div style="padding: 8px; margin: 10px 0; font-size: 0.85em; color: #666; font-style: italic;">
-                                <strong>📝 Observação:</strong> Os valores apresentados já estão líquidos das deduções acessórias. 
-                                Ainda devem ser calculados os descontos legais sobre os valores a receber.
-                            </p>
-                        </div>
                         </table>
+                        <div style="padding: 8px; margin: 10px 0; font-size: 0.85em; color: #666; font-style: italic;">
+                            <strong>📝 Observação:</strong> Os valores apresentados já estão líquidos das deduções acessórias. 
+                            Ainda devem ser calculados os descontos legais sobre os valores a receber.
+                        </div>
                     </div>
-                    
-                    ${resultados.isPreferenciasParcial ? `
-                    <div class="warning-box" style="margin-top: 10px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
-                        <strong>ℹ️ Preferência Parcial:</strong><br>
-                        • <strong>Teto da preferência:</strong> R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br>
-                        • <strong>Pagamento imediato:</strong> R$ ${beneficiarioRecebe.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (só para o beneficiário)<br>
-                        • <strong>Saldo devedor total:</strong> R$ ${(beneficiarioAguarda + resultados.cessoesBeneficiarioCalculadas.reduce((total, cessao) => {
-                            const parteCessionario = dividaSemHonorarios * cessao.percentual;
-                            return total + parteCessionario;
-                        }, 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                    ` : `
-                    <div class="success-box" style="margin-top: 10px; padding: 12px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;">
-                        <strong>✅ Pagamento Integral:</strong> Todos os beneficiários recebem integralmente.
-                    </div>
-                    `}
-                </div>`;
-            }
+                    ${alertBox}
+                </div>
+            `;
+        }
 
-            let secaoCessoesAdvTotais = '';
+        function gerarSecaoCessoesAdvogados(resultados, dados) {
             const advogadosComCessao = resultados.honorarios.filter(adv => 
                 adv.cessoesAdv && adv.cessoesAdv.length > 0
             );
-
-            if (advogadosComCessao.length > 0 && 
-                !(dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt)) {
-                
-                secaoCessoesAdvTotais = `
-                <div class="table-container">
-                    <h3>🔄 Cessões de Honorários</h3>
-                    <p style="color: #856404; font-style: italic;">Cessões calculadas sobre o valor total (base: R$ ${resultados.valortotatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</p>
+            
+            if (advogadosComCessao.length === 0) return '';
+            
+            // Seção de cessões totais (para preferência parcial)
+            let secaoCessoesAdvTotais = '';
+            if (!(dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt)) {
+                const secoesCessoes = advogadosComCessao.map(adv => {
+                    const valorBrutoTotalAdv = resultados.valortotatt * adv.percentual;
+                    const valorBrutoTotalAdvogado = resultados.valortotatt * adv.percentualAdvogado;
+                    const cessionariosTotais = adv.cessionarios ? adv.cessionarios.map(cessionario => ({
+                        ...cessionario,
+                        valorBrutoTotal: resultados.valortotatt * cessionario.percentual
+                    })) : [];
                     
-                    ${advogadosComCessao.map(adv => {
-                        // Calcular valores totais baseados no valortotatt
-                        const valorBrutoTotalAdv = resultados.valortotatt * adv.percentual;
-                        const valorBrutoTotalAdvogado = resultados.valortotatt * adv.percentualAdvogado;
-                        const cessionariosTotais = adv.cessionarios ? adv.cessionarios.map(cessionario => ({
-                            ...cessionario,
-                            valorBrutoTotal: resultados.valortotatt * cessionario.percentual
-                        })) : [];
-                        
-                        return `
+                    return `
                         <div style="margin-bottom: 20px;">
-                            <h4> 🔄 Cessão de Honorários: ${adv.nome}</h4>
-                            <p><strong>Valor do Honorário:</strong> R$ ${valorBrutoTotalAdv.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                            <h4>🔄 Cessão de Honorários: ${adv.nome}</h4>
+                            <p><strong>Valor do Honorário:</strong> R$ ${formatarMoeda(valorBrutoTotalAdv)}</p>
                             <p><strong>Cedido:</strong> ${(adv.percentualCessionarioAdv * 100).toFixed(2)}% para ${adv.cessoesAdv.length} cessionário${adv.cessoesAdv.length > 1 ? 's' : ''}</p>
                             <p style="color: #856404; font-weight: bold;">⚠️ Valores totais do direito (não pagos integralmente na preferência)</p>
                             
                             <table>
-                                <tr>
-                                    <th>Recebedor</th>
-                                    <th>Percentual</th>
-                                    <th>Valor Bruto Total</th>
-                                </tr>
+                                <tr><th>Recebedor</th><th>Percentual</th><th>Valor Bruto Total</th></tr>
                                 <tr style="background-color: #f8f9fa;">
                                     <td><strong>${adv.nome} (fica com)</strong></td>
                                     <td>${(adv.percentualAdvogado * 100).toFixed(2)}%</td>
-                                    <td>R$ ${valorBrutoTotalAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>R$ ${formatarMoeda(valorBrutoTotalAdvogado)}</td>
                                 </tr>
                                 ${cessionariosTotais.map(cessionario => `
                                 <tr>
                                     <td>${cessionario.nome} (cessionário)</td>
                                     <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
-                                    <td>R$ ${cessionario.valorBrutoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>R$ ${formatarMoeda(cessionario.valorBrutoTotal)}</td>
                                 </tr>
                                 `).join('')}
                                 <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
                                     <td>TOTAL</td>
-                                    <td> - %</td>
-                                    <td>R$ ${valorBrutoTotalAdv.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                            </table>
-                        </div>
-                        `;
-                    }).join('')}
-                    
-                    <div style="margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-left: 4px solid #007bff; font-size: 0.9em;">
-                        <strong>💡 Explicação das Cessões:</strong><br>
-                        • <strong>Cessões da Preferência:</strong> Calculadas sobre R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (apenas advogados recebem agora)<br>
-                        • <strong>Cessões Totais:</strong> Calculadas sobre R$ ${resultados.valortotatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                </div>`;
-            }
-
-            let secaoCessoesAdv = '';
-            if (advogadosComCessao.length > 0) {
-                const isPreferencia = dados.tipoCalculo === 'preferencia';
-                const isPreferenciaParcial = isPreferencia && resultados.valorBase < resultados.valortotatt;
-                const isPreferenciaTotal = isPreferencia && resultados.valorBase >= resultados.valortotatt;
-                
-                const tituloCessoes = isPreferenciaParcial 
-                    ? '🔄 Cessões de Honorários - Valores da Preferência' 
-                    : '🔄 Cessões de Honorários';
-                
-                const descricaoBaseCessoes = isPreferenciaParcial
-                    ? `<p style="color: #155724; font-style: italic;">Cessões calculadas sobre a preferência (base: R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</p>`
-                    : '';
-
-                secaoCessoesAdv = `
-                <div class="table-container">
-                    <h3>${tituloCessoes}</h3>
-                    ${descricaoBaseCessoes}
-                    ${advogadosComCessao.map(adv => `
-                        <div style="margin-bottom: 20px;">
-                            <h4>Cessão de Honorários: ${adv.nome}</h4>
-                            <p><strong>Valor Base do Honorário:</strong> R$ ${adv.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                            <p><strong>Cedido:</strong> ${(adv.percentualCessionarioAdv * 100).toFixed(2)}% para ${adv.cessoesAdv.length} cessionário${adv.cessoesAdv.length > 1 ? 's' : ''}</p>
-                            ${isPreferenciaParcial ? `<p style="color: #856404; font-weight: bold;">⚠️ Preferência Parcial: Cessionários aguardam ordem cronológica</p>` : ''}
-                            ${isPreferenciaTotal ? `<p style="color: #155724; font-weight: bold;">✅ Preferência Total: Todos recebem integralmente</p>` : ''}
-                            
-                            <table>
-                                <tr>
-                                    <th>Recebedor</th>
-                                    <th>Percentual</th>
-                                    <th>Valor Bruto</th>
-                                </tr>
-                                <tr style="background-color: #f8f9fa;">
-                                    <td><strong>${adv.nome} (fica com)</strong></td>
-                                    <td>${(adv.percentualAdvogado * 100).toFixed(2)}%</td>
-                                    <td>R$ ${adv.valorBrutoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                ${adv.cessionarios ? adv.cessionarios.map(cessionario => `
-                                <tr>
-                                    <td>${cessionario.nome} (cessionário)</td>
-                                    <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
-                                    <td>R$ ${cessionario.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                `).join('') : ''}
-                                <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
-                                    <td>TOTAL</td>
-                                    <td> - %</td>
-                                    <td>R$ ${adv.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                            </table>
-                        </div>
-                    `).join('')}
-                    
-                    ${isPreferenciaParcial ? `
-                    <div class="warning-box" style="margin-top: 10px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
-                        <strong>⚠️ Preferência Parcial de Honorários:</strong><br>
-                        • <strong>Advogados</strong> têm direito à preferência e recebem sua parte agora<br>
-                        • <strong>Cessionários</strong> não têm direito à preferência (Art. 42. Resolução CNJ 303/19.) e aguardam pagamento na ordem cronológica<br>
-                        • <strong> Total pago agora (preferência) </strong>: R$ ${advogadosComCessao.reduce((total, adv) => total + adv.valorBrutoAdvogado, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br>
-                    </div>
-                    ` : ''}
-                    
-                    ${isPreferenciaTotal ? `
-                    <div class="success-box" style="margin-top: 10px; padding: 12px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;">
-                        <strong>✅ Preferência Total de Honorários:</strong><br>
-                        • O teto da preferência cobre todo o precatório<br>
-                        • <strong>Advogados e cessionários</strong> recebem integralmente<br>
-                    </div>
-                    ` : ''}
-                </div>`;
-            }
-
-            let secaoPagamentoBeneficiario = '';
-            if (resultados.valorBeneficiarioFinal > 0) {
-                secaoPagamentoBeneficiario = `
-                <div class="table-container">
-                    <h3>💰 Pagamento Beneficiário - ${dados.beneficiario}</h3>
-                    <table>
-                        <tr>
-                            <th>Descrição</th>
-                            <th>Valor</th>
-                        </tr>
-                        <tr>
-                            <td>Valor Devido</td>
-                            <td>R$ ${(resultados.valorBeneficiarioAposCessoes).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <td>Previdência</td>
-                            <td>R$ ${(resultados.valorPrevidenciaBeneficiario).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <td>Imposto de Renda</td>
-                            <td>R$ ${(resultados.valorIRBeneficiario).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr class="highlight">
-                            <td>Valor Líquido</td>
-                            <td>R$ ${(resultados.valorBeneficiarioFinal).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                    </table>
-                </div>
-                `;
-            }
-
-            let secaoPagamentoAdvogados = '';
-            const advogadosParaPagar = resultados.honorarios.filter(adv => adv.percentualAdvogado > 0 && adv.valorBrutoAdvogado > 0);
-            if (advogadosParaPagar.length > 0) {
-                // Gerar uma seção individual para cada advogado (como o beneficiário)
-                secaoPagamentoAdvogados = advogadosParaPagar.map(adv => {
-                    const descricaoIR = adv.tipo === 'PF'
-                        ? '🏦 MP Nª 1.294, de 11 de Abril de 2025'
-                        : '🏦 DECRETO 9.580, art 714';
-                    return `
-                        <div class="table-container">
-                            <h3>👩‍💼 Pagamento Advogado - ${adv.nome} (${adv.tipo})</h3>
-                            <table>
-                                <tr>
-                                    <th>Descrição</th>
-                                    <th>Valor</th>
-                                </tr>
-                                <tr>
-                                    <td>Valor Devido</td>
-                                    <td>R$ ${adv.valorBrutoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                <tr>
-                                    <td>Imposto de Renda - ${descricaoIR}</td>
-                                    <td>R$ ${adv.irAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                <tr class="highlight">
-                                    <td>Valor Líquido</td>
-                                    <td>R$ ${adv.valorLiquidoAdvogado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>-%</td>
+                                    <td>R$ ${formatarMoeda(valorBrutoTotalAdv)}</td>
                                 </tr>
                             </table>
                         </div>
                     `;
                 }).join('');
+                
+                secaoCessoesAdvTotais = `
+                    <div class="table-container">
+                        <h3>🔄 Cessões de Honorários</h3>
+                        <p style="color: #856404; font-style: italic;">Cessões calculadas sobre o valor total (base: R$ ${formatarMoeda(resultados.valortotatt)})</p>
+                        ${secoesCessoes}
+                        <div style="margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-left: 4px solid #007bff; font-size: 0.9em;">
+                            <strong>💡 Explicação das Cessões:</strong><br>
+                            • <strong>Cessões da Preferência:</strong> Calculadas sobre R$ ${formatarMoeda(resultados.valorBase)} (apenas advogados recebem agora)<br>
+                            • <strong>Cessões Totais:</strong> Calculadas sobre R$ ${formatarMoeda(resultados.valortotatt)}
+                        </div>
+                    </div>
+                `;
             }
+            
+            // Seção de cessões principais
+            const isPreferencia = dados.tipoCalculo === 'preferencia';
+            const isPreferenciaParcial = isPreferencia && resultados.valorBase < resultados.valortotatt;
+            const isPreferenciaTotal = isPreferencia && resultados.valorBase >= resultados.valortotatt;
+            
+            const tituloCessoes = isPreferenciaParcial 
+                ? '🔄 Cessões de Honorários - Valores da Preferência' 
+                : '🔄 Cessões de Honorários';
+            
+            const descricaoBaseCessoes = isPreferenciaParcial
+                ? `<p style="color: #155724; font-style: italic;">Cessões calculadas sobre a preferência (base: R$ ${formatarMoeda(resultados.valorBase)})</p>`
+                : '';
+            
+            const secoesCessoesAdvogados = advogadosComCessao.map(adv => {
+                const cessionarios = adv.cessionarios ? adv.cessionarios.map(cessionario => `
+                    <tr>
+                        <td>${cessionario.nome} (cessionário)</td>
+                        <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
+                        <td>R$ ${formatarMoeda(cessionario.valorBruto)}</td>
+                    </tr>
+                `).join('') : '';
+                
+                return `
+                    <div style="margin-bottom: 20px;">
+                        <h4>Cessão de Honorários: ${adv.nome}</h4>
+                        <p><strong>Valor Base do Honorário:</strong> R$ ${formatarMoeda(adv.valorBruto)}</p>
+                        <p><strong>Cedido:</strong> ${(adv.percentualCessionarioAdv * 100).toFixed(2)}% para ${adv.cessoesAdv.length} cessionário${adv.cessoesAdv.length > 1 ? 's' : ''}</p>
+                        ${isPreferenciaParcial ? `<p style="color: #856404; font-weight: bold;">⚠️ Preferência Parcial: Cessionários aguardam ordem cronológica</p>` : ''}
+                        ${isPreferenciaTotal ? `<p style="color: #155724; font-weight: bold;">✅ Preferência Total: Todos recebem integralmente</p>` : ''}
+                        
+                        <table>
+                            <tr><th>Recebedor</th><th>Percentual</th><th>Valor Bruto</th></tr>
+                            <tr style="background-color: #f8f9fa;">
+                                <td><strong>${adv.nome} (fica com)</strong></td>
+                                <td>${(adv.percentualAdvogado * 100).toFixed(2)}%</td>
+                                <td>R$ ${formatarMoeda(adv.valorBrutoAdvogado)}</td>
+                            </tr>
+                            ${cessionarios}
+                            <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
+                                <td>TOTAL</td>
+                                <td>-%</td>
+                                <td>R$ ${formatarMoeda(adv.valorBruto)}</td>
+                            </tr>
+                        </table>
+                    </div>
+                `;
+            }).join('');
+            
+            const alertaPreferencia = isPreferenciaParcial ? `
+                <div class="warning-box" style="margin-top: 10px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
+                    <strong>⚠️ Preferência Parcial de Honorários:</strong><br>
+                    • <strong>Advogados</strong> têm direito à preferência e recebem sua parte agora<br>
+                    • <strong>Cessionários</strong> não têm direito à preferência (Art. 42. Resolução CNJ 303/19.) e aguardam pagamento na ordem cronológica<br>
+                    • <strong>Total pago agora (preferência)</strong>: R$ ${formatarMoeda(advogadosComCessao.reduce((total, adv) => total + adv.valorBrutoAdvogado, 0))}<br>
+                </div>
+            ` : '';
+            
+            const alertaSucesso = isPreferenciaTotal ? `
+                <div class="success-box" style="margin-top: 10px; padding: 12px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;">
+                    <strong>✅ Preferência Total de Honorários:</strong><br>
+                    • O teto da preferência cobre todo o precatório<br>
+                    • <strong>Advogados e cessionários</strong> recebem integralmente<br>
+                </div>
+            ` : '';
+            
+            const secaoCessoesAdv = `
+                <div class="table-container">
+                    <h3>${tituloCessoes}</h3>
+                    ${descricaoBaseCessoes}
+                    ${secoesCessoesAdvogados}
+                    ${alertaPreferencia}
+                    ${alertaSucesso}
+                </div>
+            `;
+            
+            return secaoCessoesAdvTotais + secaoCessoesAdv;
+        }
 
-            // Seção Pagamento Cessionários (só aparece se não for preferência)
-            let secaoPagamentoCessionariosAdv = '';
+        function gerarSecaoDeducoes(resultados, dados) {
+            const temPrevidencia = dados.incidenciaPrevidencia;
+            const temIR = dados.incidenciaIR && resultados.rrapagamento !== 0;
+            const temCessoes = resultados.cessoesBeneficiarioCalculadas && resultados.cessoesBeneficiarioCalculadas.length > 0;
+            
+            if (!temPrevidencia && !temIR) return '';
+            
+            let secaoPrevidencia = '';
+            if (temPrevidencia) {
+                if (dados.tipoPrevidencia === 'fixa') {
+                    secaoPrevidencia = gerarDetalhePrevidenciaFixa(resultados, dados, temCessoes);
+                } else {
+                    secaoPrevidencia = gerarDetalhePrevidenciaINSS(resultados, dados, temCessoes);
+                }
+            }
+            
+            let secaoIR = '';
+            if (temIR) {
+                secaoIR = gerarDetalheIR(resultados, dados, temPrevidencia, temCessoes);
+            }
+            
+            return `
+                <div class="table-container">
+                    <h3>🏦 Deduções Legais</h3>
+                    ${secaoPrevidencia}
+                    ${secaoIR}
+                </div>
+            `;
+        }
+
+        function gerarDetalhePrevidenciaFixa(resultados, dados, temCessoes) {
+            const distribuicaoCessoes = temCessoes ? `
+                <tr style="border-top: 1px solid #dee2e6;">
+                    <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição por Cessões:</th>
+                </tr>
+                ${resultados.valorPrevidenciaBeneficiario > 0 ? `
+                <tr>
+                    <th>${dados.beneficiario}:</th>
+                    <td>R$ ${formatarMoeda(resultados.valorPrevidenciaBeneficiario)}</td>
+                </tr>
+                ` : ''}
+                ${resultados.cessoesBeneficiarioFinais ? resultados.cessoesBeneficiarioFinais.map((cessao) => 
+                    cessao.previdenciaCessao > 0 ? `
+                    <tr>
+                        <th>${cessao.cessionario}:</th>
+                        <td>R$ ${formatarMoeda(cessao.previdenciaCessao)}</td>
+                    </tr>
+                    ` : ''
+                ).join('') : ''}
+            ` : '';
+            
+            return `
+                <table class="ir-table">
+                    <tr>
+                        <th colspan="2" class="section-header">📄 Previdência - Alíquota Fixa</th>
+                    </tr>
+                    <tr>
+                        <th>Principal:</th>
+                        <td>R$ ${formatarMoeda(resultados.principal)}</td>
+                    </tr>
+                    <tr>
+                        <th>Alíquota Fixa:</th>
+                        <td>${(dados.aliquotaFixa * 100).toFixed(2)}%</td>
+                    </tr>
+                    <tr class="total-row">
+                        <th>Valor Previdência:</th>
+                        <td><strong>R$ ${formatarMoeda(resultados.valorPrevidencia)}</strong></td>
+                    </tr>
+                    ${distribuicaoCessoes}
+                </table>
+            `;
+        }
+
+        function gerarDetalhePrevidenciaINSS(resultados, dados, temCessoes) {
+            const base = resultados.rrapagamento === 0 ? resultados.principal : resultados.principal / resultados.rrapagamento;
+            
+            const distribuicaoCessoes = temCessoes ? `
+                <tr style="border-top: 1px solid #dee2e6;">
+                    <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição por Cessões:</th>
+                </tr>
+                ${resultados.valorPrevidenciaBeneficiario > 0 ? `
+                <tr>
+                    <th>${dados.beneficiario}:</th>
+                    <td>R$ ${formatarMoeda(resultados.valorPrevidenciaBeneficiario)}</td>
+                </tr>
+                ` : ''}
+                ${resultados.cessoesBeneficiarioFinais ? resultados.cessoesBeneficiarioFinais.map((cessao) => 
+                    cessao.previdenciaCessao > 0 ? `
+                    <tr>
+                        <th>${cessao.cessionario}:</th>
+                        <td>R$ ${formatarMoeda(cessao.previdenciaCessao)}</td>
+                    </tr>
+                    ` : ''
+                ).join('') : ''}
+            ` : '';
+            
+            return `
+                <table class="ir-table">
+                    <tr>
+                        <th colspan="2" class="section-header">📄 Previdência - INSS</th>
+                    </tr>
+                    <tr>
+                        <th>Principal:</th>
+                        <td>R$ ${formatarMoeda(resultados.principal)}</td>
+                    </tr>
+                    ${resultados.rrapagamento !== 0 ? `
+                    <tr>
+                        <th>RRA Pagamento:</th>
+                        <td>${Math.round(resultados.rrapagamento)}</td>
+                    </tr>
+                    <tr>
+                        <th>Base INSS por RRA:</th>
+                        <td>R$ ${formatarMoeda(base)}</td>
+                    </tr>` : ''}
+                    <tr>
+                        <th>Alíquota Efetiva INSS:</th>
+                        <td>${(resultados.aliquotaEfetiva * 100).toFixed(2)}%</td>
+                    </tr>
+                    <tr>
+                        <th>Valor INSS por RRA:</th>
+                        <td>R$ ${formatarMoeda(resultados.valorPrevidencia / (resultados.rrapagamento || 1))} ${base > 8157.41 ? '(TETO)' : ''}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <th>Valor Previdência:</th>
+                        <td><strong>R$ ${formatarMoeda(resultados.valorPrevidencia)}</strong></td>
+                    </tr>
+                    ${distribuicaoCessoes}
+                </table>
+            `;
+        }
+
+        function gerarDetalheIR(resultados, dados, temPrevidencia, temCessoes) {
+            let percentualTotalAdv = 0;
+            let percentualTotalSind = 0;
+            
+            if (dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt) {
+                percentualTotalAdv = dados.advogados.reduce((sum, adv) => {
+                    const cessaoAdv = dados.cessoes?.filter(cessao => 
+                        cessao.tipo === 'cessaoAdv' && cessao.cedente === adv.nome
+                    ) || [];
+                    const percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
+                    const percentualAdvogado = Math.max(0, adv.percentual - percentualCessionarioAdv);
+                    return sum + percentualAdvogado;
+                }, 0);
+                percentualTotalSind = 0;
+            } else {
+                percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+                percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
+            }
+            
+            const distribuicaoCessoes = temCessoes ? `
+                <tr style="border-top: 1px solid #dee2e6;">
+                    <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição por Cessões:</th>
+                </tr>
+                ${resultados.valorIRBeneficiario > 0 ? `
+                <tr>
+                    <th>${dados.beneficiario}:</th>
+                    <td>R$ ${formatarMoeda(resultados.valorIRBeneficiario)}</td>
+                </tr>
+                ` : ''}
+                ${resultados.cessoesBeneficiarioFinais ? resultados.cessoesBeneficiarioFinais.map((cessao) => 
+                    cessao.irCessao > 0 ? `
+                    <tr>
+                        <th>${cessao.cessionario}:</th>
+                        <td>R$ ${formatarMoeda(cessao.irCessao)}</td>
+                    </tr>
+                    ` : ''
+                ).join('') : ''}
+            ` : '';
+            
+            return `
+                <table class="ir-table">
+                    <tr>
+                        <th colspan="2" class="section-header">📄 Imposto de Renda - MP Nª 1.294, de 11 de Abril de 2025</th>
+                    </tr>
+                    <tr>
+                        <th>Principal:</th>
+                        <td>R$ ${formatarMoeda(resultados.principal)}</td>
+                    </tr>
+                    <tr>
+                        <th>Base IR sem H.Contratuais (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
+                        <td>R$ ${formatarMoeda(resultados.baseIRHonora)}</td>
+                    </tr>
+                    ${percentualTotalSind > 0 ? `
+                    <tr>
+                        <th>Base IR sem Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
+                        <td>R$ ${formatarMoeda(resultados.baseIRSindi)}</td>
+                    </tr>` : ''}
+                    ${temPrevidencia ? `
+                    <tr>
+                        <th>Previdência:</th>
+                        <td>R$ ${formatarMoeda(resultados.valorPrevidencia)}</td>
+                    </tr>
+                    <tr>
+                        <th>Base IR sem Previdência:</th>
+                        <td>R$ ${formatarMoeda(resultados.baseIRPrev)}</td>
+                    </tr>` : ''}
+                    <tr>
+                        <th>RRA Pagamento:</th>
+                        <td>${Math.round(resultados.rrapagamento)}</td>
+                    </tr>
+                    <tr>
+                        <th>Base IR por RRA:</th>
+                        <td>R$ ${formatarMoeda(resultados.baseIRRRA)}</td>
+                    </tr>
+                    <tr>
+                        <th>Alíquota IR:</th>
+                        <td>${(resultados.aliquotaIR * 100).toFixed(1)}%</td>
+                    </tr>
+                    <tr>
+                        <th>Valor IR Mensal:</th>
+                        <td>R$ ${formatarMoeda(resultados.valorIRUnitario)}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <th>Valor IR Devido Total:</th>
+                        <td><strong>R$ ${formatarMoeda(resultados.valorIR)}</strong></td>
+                    </tr>
+                    ${distribuicaoCessoes}
+                </table>
+            `;
+        }
+
+        function gerarSecoesPagamentos(resultados, dados) {
+            return `
+                ${gerarPagamentoBeneficiario(resultados, dados)}
+                ${gerarPagamentoCessionarios(resultados, dados)}
+                ${gerarPagamentoSindicatos(resultados, dados)}
+                ${gerarPagamentoCessionariosSindicatos(resultados, dados)}
+                ${gerarPagamentoAdvogados(resultados, dados)}
+                ${gerarPagamentoCessionariosAdvogados(resultados, dados)}
+            `;
+        }
+
+        function gerarPagamentoBeneficiario(resultados, dados) {
+            if (resultados.valorBeneficiarioFinal <= 0) return '';
+            
+            return `
+                <div class="table-container">
+                    <h3>💰 Pagamento Beneficiário - ${dados.beneficiario}</h3>
+                    <table>
+                        <tr><th>Descrição</th><th>Valor</th></tr>
+                        <tr><td>Valor Devido</td><td>R$ ${formatarMoeda(resultados.valorBeneficiarioAposCessoes)}</td></tr>
+                        <tr><td>Previdência</td><td>R$ ${formatarMoeda(resultados.valorPrevidenciaBeneficiario)}</td></tr>
+                        <tr><td>Imposto de Renda</td><td>R$ ${formatarMoeda(resultados.valorIRBeneficiario)}</td></tr>
+                        <tr class="highlight"><td>Valor Líquido</td><td>R$ ${formatarMoeda(resultados.valorBeneficiarioFinal)}</td></tr>
+                    </table>
+                </div>
+            `;
+        }
+
+        function gerarPagamentoCessionarios(resultados, dados) {
+            if (!resultados.cessoesBeneficiarioFinais) return '';
+            
+            const cessionariosComPagamento = resultados.cessoesBeneficiarioFinais.filter(cessao => 
+                cessao.valorLiquido && cessao.valorLiquido > 0
+            );
+            
+            if (cessionariosComPagamento.length === 0) return '';
+            
+            return cessionariosComPagamento.map(cessao => `
+                <div class="table-container">
+                    <h3>💰 Pagamento Cessionário - ${cessao.cessionario}</h3>
+                    <p style="margin-bottom: 10px;"><strong>Cessão de:</strong> ${dados.beneficiario}</p>
+                    <table>
+                        <tr><th>Descrição</th><th>Valor</th></tr>
+                        <tr><td>Valor Devido</td><td>R$ ${formatarMoeda(cessao.valorBruto)}</td></tr>
+                        <tr><td>Previdência</td><td>R$ ${formatarMoeda(cessao.previdenciaCessao)}</td></tr>
+                        <tr><td>Imposto de Renda</td><td>R$ ${formatarMoeda(cessao.irCessao)}</td></tr>
+                        <tr class="highlight"><td>Valor Líquido</td><td>R$ ${formatarMoeda(cessao.valorLiquido)}</td></tr>
+                    </table>
+                </div>
+            `).join('');
+        }
+
+        function gerarPagamentoSindicatos(resultados, dados) {
+            if (!resultados.sindicatos) return '';
+            
+            const sindicatosParaPagar = resultados.sindicatos.filter(sind => 
+                sind.podeReceber && sind.percentualSindicato > 0 && sind.valorBrutoSindicato > 0
+            );
+            
+            if (sindicatosParaPagar.length === 0) return '';
+            
+            return sindicatosParaPagar.map(sind => {
+                let descricaoTributacao = '';
+                if (sind.tributacao === 'nao') {
+                    descricaoTributacao = '🏦 Sem Tributação do IR';
+                } else if (sind.tributacao === 'lei') {
+                    descricaoTributacao = '🏦 Art. 27, da Lei nº 10.833/03';
+                } else if (sind.tributacao === 'fixa') {
+                    descricaoTributacao = `🏦 Alíquota Fixa (${(sind.aliquotaTributacao * 100).toFixed(2)}%)`;
+                }
+                
+                return `
+                    <div class="table-container">
+                        <h3>🏛️ Pagamento Sindicato - ${sind.nome}</h3>
+                        <table>
+                            <tr><th>Descrição</th><th>Valor</th></tr>
+                            <tr><td>Valor Devido</td><td>R$ ${formatarMoeda(sind.valorBrutoSindicato)}</td></tr>
+                            <tr><td>Imposto de Renda - ${descricaoTributacao}</td><td>R$ ${formatarMoeda(sind.irSindicato)}</td></tr>
+                            <tr class="highlight"><td>Valor Líquido</td><td>R$ ${formatarMoeda(sind.valorLiquidoSindicato)}</td></tr>
+                        </table>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function gerarPagamentoCessionariosSindicatos(resultados, dados) {
+            if (!resultados.sindicatos) return '';
+            
+            const todosCessionariosSindicatos = [];
+            resultados.sindicatos.forEach(sind => {
+                if (sind.cessionarios && sind.cessionarios.length > 0 && sind.podeReceber) {
+                    sind.cessionarios.forEach(cessionario => {
+                        todosCessionariosSindicatos.push({
+                            ...cessionario,
+                            sindicatoOriginal: sind.nome,
+                            tributacaoSindicato: sind.tributacao,
+                            aliquotaTributacao: sind.aliquotaTributacao
+                        });
+                    });
+                }
+            });
+            
+            if (todosCessionariosSindicatos.length === 0) return '';
+            
+            return todosCessionariosSindicatos.map(cessionario => {
+                let descricaoTributacao = '';
+                if (cessionario.tributacaoSindicato === 'nao') {
+                    descricaoTributacao = '🏦 Sem Tributação do IR';
+                } else if (cessionario.tributacaoSindicato === 'lei') {
+                    descricaoTributacao = '🏦 Art. 27, da Lei nº 10.833/03';
+                } else if (cessionario.tributacaoSindicato === 'fixa') {
+                    descricaoTributacao = `🏦 Alíquota Fixa (${(cessionario.aliquotaTributacao * 100).toFixed(2)}%)`;
+                }
+                
+                return `
+                    <div class="table-container">
+                        <h3>🔄 Pagamento Cessionário Sindicato - ${cessionario.nome}</h3>
+                        <p style="margin-bottom: 10px;"><strong>Cessão de:</strong> ${cessionario.sindicatoOriginal}</p>
+                        <table>
+                            <tr><th>Descrição</th><th>Valor</th></tr>
+                            <tr><td>Valor Devido</td><td>R$ ${formatarMoeda(cessionario.valorBruto)}</td></tr>
+                            <tr><td>Imposto de Renda - ${descricaoTributacao}</td><td>R$ ${formatarMoeda(cessionario.ir)}</td></tr>
+                            <tr class="highlight"><td>Valor Líquido</td><td>R$ ${formatarMoeda(cessionario.valorLiquido)}</td></tr>
+                        </table>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function gerarPagamentoAdvogados(resultados, dados) {
+            const advogadosParaPagar = resultados.honorarios.filter(adv => 
+                adv.percentualAdvogado > 0 && adv.valorBrutoAdvogado > 0
+            );
+            
+            if (advogadosParaPagar.length === 0) return '';
+            
+            return advogadosParaPagar.map(adv => {
+                const descricaoIR = adv.tipo === 'PF'
+                    ? '🏦 MP Nª 1.294, de 11 de Abril de 2025'
+                    : '🏦 DECRETO 9.580, art 714';
+                
+                return `
+                    <div class="table-container">
+                        <h3>👩‍💼 Pagamento Advogado - ${adv.nome} (${adv.tipo})</h3>
+                        <table>
+                            <tr><th>Descrição</th><th>Valor</th></tr>
+                            <tr><td>Valor Devido</td><td>R$ ${formatarMoeda(adv.valorBrutoAdvogado)}</td></tr>
+                            <tr><td>Imposto de Renda - ${descricaoIR}</td><td>R$ ${formatarMoeda(adv.irAdvogado)}</td></tr>
+                            <tr class="highlight"><td>Valor Líquido</td><td>R$ ${formatarMoeda(adv.valorLiquidoAdvogado)}</td></tr>
+                        </table>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function gerarPagamentoCessionariosAdvogados(resultados, dados) {
             const todosCessionarios = [];
             resultados.honorarios.forEach(adv => {
                 if (adv.cessionarios && adv.cessionarios.length > 0) {
@@ -3399,418 +3620,32 @@
                     });
                 }
             });
+            
             const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt;
-            if (todosCessionarios.length > 0 && !isPreferenciaParcial) {
-                secaoPagamentoCessionariosAdv = todosCessionarios.map(cessionario => {
-                    // Definir descrição do IR baseada no tipo do advogado original
-                    const descricaoIR = cessionario.tipoAdvogado === 'PF'
-                        ? '🏦 MP Nª 1.294, de 11 de Abril de 2025'
-                        : '🏦 DECRETO 9.580, art 714';
-                        
-                    return `
-                        <div class="table-container">
-                            <h3>🔄 Pagamento Cessionário - ${cessionario.nome}</h3>
-                            <p style="margin-bottom: 10px;"><strong>Cessão de:</strong> ${cessionario.advogadoOriginal} (${cessionario.tipoAdvogado})</p>
-                            <table>
-                                <tr>
-                                    <th>Descrição</th>
-                                    <th>Valor</th>
-                                </tr>
-                                <tr>
-                                    <td>Valor Devido</td>
-                                    <td>R$ ${cessionario.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                <tr>
-                                    <td>Imposto de Renda - ${descricaoIR}</td>
-                                    <td>R$ ${cessionario.ir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                <tr class="highlight">
-                                    <td>Valor Líquido</td>
-                                    <td>R$ ${cessionario.valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                            </table>
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            let secaoPagamentoCessionarios = '';
-            if (resultados.cessoesBeneficiarioFinais && resultados.cessoesBeneficiarioFinais.length > 0) {
-                const cessionariosComPagamento = resultados.cessoesBeneficiarioFinais.filter(cessao => 
-                    cessao.valorLiquido && cessao.valorLiquido > 0
-                );
-                if (cessionariosComPagamento.length > 0) {
-                    secaoPagamentoCessionarios = cessionariosComPagamento.map(cessao => `
-                        <div class="table-container">
-                            <h3>💰 Pagamento Cessionário - ${cessao.cessionario}</h3>
-                            <p style="margin-bottom: 10px;"><strong>Cessão de:</strong> ${dados.beneficiario}</p>
-                            <table>
-                                <tr>
-                                    <th>Descrição</th>
-                                    <th>Valor</th>
-                                </tr>
-                                <tr>
-                                    <td>Valor Devido</td>
-                                    <td>R$ ${cessao.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                <tr>
-                                    <td>Previdência</td>
-                                    <td>R$ ${cessao.previdenciaCessao.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                <tr>
-                                    <td>Imposto de Renda</td>
-                                    <td>R$ ${cessao.irCessao.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                <tr class="highlight">
-                                    <td>Valor Líquido</td>
-                                    <td>R$ ${cessao.valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                            </table>
-                        </div>
-                    `).join('');
-                }
-            }
-
-            let secaoPagamentoSindicatos = '';
-            const sindicatosParaPagar = resultados.sindicatos ? resultados.sindicatos.filter(sind => 
-                sind.podeReceber && sind.percentualSindicato > 0 && sind.valorBrutoSindicato > 0
-            ) : [];
-
-            if (sindicatosParaPagar.length > 0) {
-                secaoPagamentoSindicatos = sindicatosParaPagar.map(sind => {
-                    let descricaoTributacao = '';
-                    if (sind.tributacao === 'nao') {
-                        descricaoTributacao = '🏦 Sem Tributação do IR';
-                    } else if (sind.tributacao === 'lei') {
-                        descricaoTributacao = '🏦 Art. 27, da Lei nº 10.833/03';
-                    } else if (sind.tributacao === 'fixa') {
-                        descricaoTributacao = `🏦 Alíquota Fixa (${(sind.aliquotaTributacao * 100).toFixed(2)}%)`;
-                    }
-                    
-                    return `
-                        <div class="table-container">
-                            <h3>🏛️ Pagamento Sindicato - ${sind.nome}</h3>
-                            <table>
-                                <tr>
-                                    <th>Descrição</th>
-                                    <th>Valor</th>
-                                </tr>
-                                <tr>
-                                    <td>Valor Devido</td>
-                                    <td>R$ ${sind.valorBrutoSindicato.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                <tr>
-                                    <td>Imposto de Renda - ${descricaoTributacao}</td>
-                                    <td>R$ ${sind.irSindicato.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                <tr class="highlight">
-                                    <td>Valor Líquido</td>
-                                    <td>R$ ${sind.valorLiquidoSindicato.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                            </table>
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            let secaoPagamentoCessionariosSindicatos = '';
-            const todosCessionariosSindicatos = [];
-            if (resultados.sindicatos) {
-                resultados.sindicatos.forEach(sind => {
-                    if (sind.cessionarios && sind.cessionarios.length > 0 && sind.podeReceber) {
-                        sind.cessionarios.forEach(cessionario => {
-                            todosCessionariosSindicatos.push({
-                                ...cessionario,
-                                sindicatoOriginal: sind.nome,
-                                tributacaoSindicato: sind.tributacao,
-                                aliquotaTributacao: sind.aliquotaTributacao
-                            });
-                        });
-                    }
-                });
-            }
-
-            if (todosCessionariosSindicatos.length > 0) {
-                secaoPagamentoCessionariosSindicatos = todosCessionariosSindicatos.map(cessionario => {
-                    let descricaoTributacao = '';
-                    if (cessionario.tributacaoSindicato === 'nao') {
-                        descricaoTributacao = '🏦 Sem Tributação do IR';
-                    } else if (cessionario.tributacaoSindicato === 'lei') {
-                        descricaoTributacao = '🏦 Art. 27, da Lei nº 10.833/03';
-                    } else if (cessionario.tributacaoSindicato === 'fixa') {
-                        descricaoTributacao = `🏦 Alíquota Fixa (${(cessionario.aliquotaTributacao * 100).toFixed(2)}%)`;
-                    }
-                    
-                    return `
-                        <div class="table-container">
-                            <h3>🔄 Pagamento Cessionário Sindicato - ${cessionario.nome}</h3>
-                            <p style="margin-bottom: 10px;"><strong>Cessão de:</strong> ${cessionario.sindicatoOriginal}</p>
-                            <table>
-                                <tr>
-                                    <th>Descrição</th>
-                                    <th>Valor</th>
-                                </tr>
-                                <tr>
-                                    <td>Valor Devido</td>
-                                    <td>R$ ${cessionario.valorBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                <tr>
-                                    <td>Imposto de Renda - ${descricaoTributacao}</td>
-                                    <td>R$ ${cessionario.ir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                                <tr class="highlight">
-                                    <td>Valor Líquido</td>
-                                    <td>R$ ${cessionario.valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                            </table>
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            const html = `
-                <!-- Cabeçalho com informações do processo -->
-
-                <div class="table-container">
-                    <h3>📋 Identificação do Processo</h3>
-                    <table>
-                        <tr>
-                            <th>Descrição</th>
-                            <th>Informação</th>
-                        </tr>
-                        <tr>
-                            <td>Número do Processo</td>
-                            <td>${dados.numProcesso || 'Não informado'}</td>
-                        </tr>
-                        <tr>
-                            <td>Beneficiário Principal</td>
-                            <td>${dados.beneficiario || 'Não informado'}</td>
-                        </tr>
-                        <tr>
-                            <td>Devedor</td>
-                            <td>${dados.credor || 'Não informado'}</td>
-                        </tr>
-                        <tr>
-                            <td>Natureza do Processo</td>
-                            <td>${dados.natureza === 'alimentar' ? '⚖️ Alimentar' : '⚖️ Comum'}</td>
-                        </tr>
-                        ${secaoRRA}
-                        <tr>
-                            <td>Ano do orçamento do Precatório:</td>
-                            <td>${dados.anoOrcamento || 'Não informado'}</td>
-                        </tr>
-                        <tr>
-                            <td>Data-base do cálculo homologado na execução:</td>
-                            <td>${dados.mesBase|| 'Não informado'}/${dados.anoBase|| 'Não informado'}</td>
-                        </tr>
-                    </table>
-                </div>
+            if (todosCessionarios.length === 0 || isPreferenciaParcial) return '';
+            
+            return todosCessionarios.map(cessionario => {
+                const descricaoIR = cessionario.tipoAdvogado === 'PF'
+                    ? '🏦 MP Nª 1.294, de 11 de Abril de 2025'
+                    : '🏦 DECRETO 9.580, art 714';
                 
-                <div class="table-container">
-                    <h3>💰 Demonstrativo de Valores - Histórico vs. Atual</h3>
-                    <table>
-                        <tr>
-                            <th>Componente</th>
-                            <th>Valor Histórico (${dados.mesBase|| 'Não informado'}/${dados.anoBase|| 'Não informado'})</th>
-                            <th>Correção Aplicada*</th>
-                            <th>Valor Atualizado (${dataAtual})</th>
-                        </tr>
-                        <tr>
-                            <td>Principal</td>
-                            <td>R$ ${dados.valorPrincipal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            
-                            <td> ${isNaN(resultados.indiceTotal) ? '1' : resultados.indiceTotal.toFixed(6)} </td>
+                return `
+                    <div class="table-container">
+                        <h3>🔄 Pagamento Cessionário - ${cessionario.nome}</h3>
+                        <p style="margin-bottom: 10px;"><strong>Cessão de:</strong> ${cessionario.advogadoOriginal} (${cessionario.tipoAdvogado})</p>
+                        <table>
+                            <tr><th>Descrição</th><th>Valor</th></tr>
+                            <tr><td>Valor Devido</td><td>R$ ${formatarMoeda(cessionario.valorBruto)}</td></tr>
+                            <tr><td>Imposto de Renda - ${descricaoIR}</td><td>R$ ${formatarMoeda(cessionario.ir)}</td></tr>
+                            <tr class="highlight"><td>Valor Líquido</td><td>R$ ${formatarMoeda(cessionario.valorLiquido)}</td></tr>
+                        </table>
+                    </div>
+                `;
+            }).join('');
+        }
 
-                            <td>R$ ${resultados.valorprincatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <td>Juros</td>
-                            <td>R$ ${dados.valorJuros.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            
-                            <td> ${isNaN(resultados.indiceTotal) ? '1' : resultados.indiceTotal.toFixed(6)} </td>
-
-                            <td> R$ ${resultados.valorjurosatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr class="highlight">
-                            <td><strong>Total Atualizado</strong></td>
-                            <td><strong>R$ ${dados.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
-                            <td><strong> - </strong></td>
-                            <td><strong>R$ ${resultados.valortotatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
-                        </tr>
-                    </table>
-                </div>
-
-                <!-- indices -->
-                <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
-                    *Atualização Monetária conforme Resolução CNJ nº 303/2019, com índices de correção monetária, conforme  caput do Art.21- A  - <strong> Período de Correção </strong>: Os valores foram atualizados desde a base <strong> ${dados.mesBase|| 'Não informado'}/${dados.anoBase|| 'Não informado'}</strong> até <strong>${dataAtual}</strong>.
-                </div>
-                
-                <div class="table-container">
-                    <h3>📊 Índices Utilizados</h3>
-                    <table>
-                        <tr>
-                            <th>Índice</th>
-                            <th>Valor</th>
-                            <th>Período/Observação</th>
-                        </tr>
-                        <tr>
-                            <td>Índice CNJ</td>
-                            <td>${resultados.indicesCNJ.toFixed(6)}</td>
-                            <td>${dados.mesBase}/${dados.anoBase}</td>
-                        </tr>
-                        ${linhasSelicHTML}
-                        <tr>
-                            <td>IPCA-e Acumulado</td>
-                            <td>${resultados.indiceipca.toFixed(6)}</td>
-                            <td>Período de Graça: ${inicioGracaFormatado} - ${fimGracaFormatado}</td>
-                        </tr>
-                        <tr>
-                            <td>Juros de Mora</td>
-                            <td>${resultados.jurosmora.toFixed(6)}</td>
-                            <td>Natureza: ${dados.natureza}</td>
-                        </tr>
-                    </table>
-                </div>
-
-                <!-- Seção 2: Cálculo Passo a Passo do Principal -->
-                <div class="table-container">
-                    <h3>💰 Atualização do Principal - Passo a Passo</h3>
-                    <table>
-                        <tr>
-                            <th>Etapa</th>
-                            <th>Cálculo</th>
-                            <th>Valor</th>
-                        </tr>
-                        <tr>
-                            <td>1. Valor Original</td>
-                            <td>Principal Homologado</td>
-                            <td>R$ ${dados.valorPrincipal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <td>2. Correção CNJ</td>
-                            <td>R$ ${dados.valorPrincipal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} × ${resultados.indicesCNJ.toFixed(6)}</td>
-                            <td>R$ ${(dados.valorPrincipal * resultados.indicesCNJ).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <td>3. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
-                            <td>R$ ${(dados.valorPrincipal * resultados.indicesCNJ).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} × ${resultados.indiceipca.toFixed(6)}</td>
-                            <td>R$ ${(dados.valorPrincipal * resultados.indicesCNJ * resultados.indiceipca).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <td>4. Aplicação SELIC (excluido a graça)</td>
-                            <td>R$ ${(dados.valorPrincipal * resultados.indicesCNJ * resultados.indiceipca).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} × ${resultados.dadosSelic.indiceselic.toFixed(6)}</td>
-                            <td><strong>R$ ${resultados.valorprincatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
-                        </tr>
-                    </table>
-                </div>
-
-                <!-- Seção 3: Cálculo Passo a Passo dos Juros -->
-                <div class="table-container">
-                    <h3>⚖️ Atualização dos Juros - Passo a Passo</h3>
-                    <table>
-                        <tr>
-                            <th>Etapa</th>
-                            <th>Cálculo</th>
-                            <th>Valor</th>
-                        </tr>
-                        <tr>
-                            <td>1. Juros Originais</td>
-                            <td>Juros Homologado</td>
-                            <td>R$ ${dados.valorJuros.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <td>2. Correção CNJ</td>
-                            <td>R$ ${dados.valorJuros.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} × ${resultados.indicesCNJ.toFixed(6)}</td>
-                            <td>R$ ${(dados.valorJuros * resultados.indicesCNJ).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <td>3. Juros de Mora</td>
-                            <td>Principal CNJ × ${(resultados.jurosmora * 100).toFixed(4)}%*</td>
-                            <td>R$ ${(dados.valorPrincipal * resultados.indicesCNJ * resultados.jurosmora).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <td>4. Total Juros (CNJ + Mora)</td>
-                            <td>R$ ${(dados.valorJuros * resultados.indicesCNJ).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} + R$ ${(dados.valorPrincipal * resultados.indicesCNJ * resultados.jurosmora).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td>R$ ${((dados.valorJuros * resultados.indicesCNJ) + (dados.valorPrincipal * resultados.indicesCNJ * resultados.jurosmora)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <td>5. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
-                            <td>R$ ${(((dados.valorJuros * resultados.indicesCNJ) + (dados.valorPrincipal * resultados.indicesCNJ * resultados.jurosmora)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))} × ${resultados.indiceipca.toFixed(6)}</td>
-                            <td>R$ ${(((dados.valorJuros * resultados.indicesCNJ) + (dados.valorPrincipal * resultados.indicesCNJ * resultados.jurosmora)) * resultados.indiceipca).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <td>6. Aplicação SELIC (excluido a graça) </td>
-                            <td>R$ ${(((dados.valorJuros * resultados.indicesCNJ) + (dados.valorPrincipal * resultados.indicesCNJ * resultados.jurosmora)) * resultados.indiceipca).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} × ${resultados.dadosSelic.indiceselic.toFixed(6)}</td>
-                            <td><strong>R$ ${resultados.valorjurosatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
-                        </tr>
-                    </table>
-                </div>
-
-                <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
-                    *Juros calculados de forma simples, conforme art. 1º da Lei nº 12.703/2012; art. 1º, “F”, da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ  e SV nº 17 do STF.
-                </div>
-
-                <div class="table-container">
-                    <h3>📈 Resumo dos Cálculos</h3>
-                    <table>
-                        <tr>
-                            <th>Descrição</th>
-                            <th>Valor</th>
-                            <th>%</th>
-                        </tr>
-                        <tr>
-                            <td>Valor Principal Atualizado</td>
-                            <td>R$ ${resultados.valorprincatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td>${(resultados.percentualprinc * 100).toFixed(4)} %</td>
-                        </tr>
-                        <tr>
-                            <td>Valor Juros Atualizado</td>
-                            <td>R$ ${resultados.valorjurosatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td>${(resultados.percentualjur *100).toFixed(4)}%</td>
-                        </tr>
-                        <tr class="highlight">
-                            <td>Total Atualizado</td>
-                            <td>R$ ${resultados.valortotatt.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td>${((resultados.percentualprinc + resultados.percentualjur) * 100).toFixed(2)}%</td>
-                        </tr>
-                        <tr class="highlight">
-                            <td>Valor Base para Cálculo</td>
-                            <td>R$ ${resultados.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td>${((resultados.valorBase / resultados.valortotatt) * 100).toFixed(2)}%</td>
-                        </tr>
-                    </table>
-                </div>
-
-                ${secaoSindicatos}
-
-                ${secaoCessoesSindicatos}
-
-                ${secaoHonorariosTotais}
-
-                ${secaoCessoesAdvTotais}
-
-                ${secaoHonorariosOriginal}
-
-                ${secaoCessoesBeneficiario}
-                
-                ${secaoCessoesAdv}
-
-                ${secaoDeducoes}
-
-                ${secaoPagamentoBeneficiario}
-
-                ${secaoPagamentoCessionarios}
-
-                ${secaoPagamentoSindicatos}
-    
-                ${secaoPagamentoCessionariosSindicatos}
-
-                ${secaoPagamentoAdvogados}
-
-                ${secaoPagamentoCessionariosAdv}
-                
-                
-                <!-- Botão de Imprimir -->
+        function gerarBotaoImprimir() {
+            return `
                 <div class="print-button-container" style="text-align: center; margin: 20px 0; display: block;">
                     <button onclick="window.print()" style="
                         background-color: #343A40;
@@ -3827,9 +3662,6 @@
                     </button>
                 </div>
             `;
-
-            container.innerHTML = html;
-            showTab('tab7');
         }
     </script>
 </body>
