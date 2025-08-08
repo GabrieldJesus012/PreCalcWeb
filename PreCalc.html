@@ -2607,9 +2607,9 @@
             const html = `
                 ${gerarCabecalhoProcesso(dados, resultados, dataAtual)}
                 ${gerarDemonstrativoValores(dados, resultados, dataAtual)}
-                ${gerarIndicesUtilizados(dados, resultados, inicioGraca, fimGraca)}
-                ${gerarCalculosPrincipal(dados, resultados, inicioGraca, fimGraca)}
-                ${gerarCalculosJuros(dados, resultados, inicioGraca, fimGraca)}
+                
+                ${gerarCalculos(dados, resultados, inicioGraca, fimGraca)}
+
                 ${gerarResumoCalculos(resultados)}
                 ${gerarSecaoSindicatos(resultados)}
                 ${gerarSecaoCessoesSindicatos(resultados, dados)}
@@ -2620,11 +2620,10 @@
                 ${gerarSecoesPagamentos(resultados, dados)}
                 ${gerarBotaoImprimir()}
             `;
-            
             container.innerHTML = html;
             showTab('tab7');
         }
-
+        //${gerarIndicesUtilizados(dados, resultados, inicioGraca, fimGraca)} - tirei para melhorar apresentação
         function obterDataAtual() {
             const hoje = new Date();
             const dia = String(hoje.getDate()).padStart(2, '0');
@@ -2704,7 +2703,7 @@
             `;
         }
 
-        function gerarIndicesUtilizados(dados, resultados, inicioGraca, fimGraca) {
+        /*function gerarIndicesUtilizados(dados, resultados, inicioGraca, fimGraca) {
             const inicioGracaFormatado = formatarData(inicioGraca);
             const fimGracaFormatado = formatarData(fimGraca);
             
@@ -2744,15 +2743,21 @@
                     </table>
                 </div>
             `;
-        }
+        }*/
 
-        function gerarCalculosPrincipal(dados, resultados, inicioGraca, fimGraca) {
+        function gerarCalculos(dados, resultados, inicioGraca, fimGraca) {
             const inicioGracaFormatado = formatarData(inicioGraca);
             const fimGracaFormatado = formatarData(fimGraca);
             
+            const jurosOriginaisCNJ = dados.valorJuros * resultados.indicesCNJ;
+            const jurosMora = dados.valorPrincipal * resultados.indicesCNJ * resultados.jurosmora;
+            const totalJuros = jurosOriginaisCNJ + jurosMora;
+            const totalJurosIPCA = totalJuros * resultados.indiceipca;
+
             return `
                 <div class="table-container">
-                    <h3>💰 Atualização do Principal - Passo a Passo</h3>
+                    <h3>🔢 MEMORIAL DE CÁLCULOS</h3>
+                    <h4>💰 Atualização do Principal - Passo a Passo</h4>
                     <table>
                         <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
                         <tr>
@@ -2775,35 +2780,21 @@
                             <td>R$ ${formatarMoeda(dados.valorPrincipal * resultados.indicesCNJ * resultados.indiceipca)} × ${resultados.dadosSelic.indiceselic.toFixed(6)}</td>
                             <td><strong>R$ ${formatarMoeda(resultados.valorprincatt)}</strong></td>
                         </tr>
-                    </table>
-                </div>
-            `;
-        }
-
-        function gerarCalculosJuros(dados, resultados, inicioGraca, fimGraca) {
-            const inicioGracaFormatado = formatarData(inicioGraca);
-            const fimGracaFormatado = formatarData(fimGraca);
-            
-            const jurosOriginaisCNJ = dados.valorJuros * resultados.indicesCNJ;
-            const jurosMora = dados.valorPrincipal * resultados.indicesCNJ * resultados.jurosmora;
-            const totalJuros = jurosOriginaisCNJ + jurosMora;
-            const totalJurosIPCA = totalJuros * resultados.indiceipca;
-            
-            return `
-                <div class="table-container">
-                    <h3>⚖️ Atualização dos Juros - Passo a Passo</h3>
-                    <table>
-                        <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
-                        <tr><td>1. Juros Originais</td><td>Juros Homologado</td><td>R$ ${formatarMoeda(dados.valorJuros)}</td></tr>
-                        <tr><td>2. Correção CNJ</td><td>R$ ${formatarMoeda(dados.valorJuros)} × ${resultados.indicesCNJ.toFixed(6)}</td><td>R$ ${formatarMoeda(jurosOriginaisCNJ)}</td></tr>
-                        <tr><td>3. Juros de Mora</td><td>Principal CNJ × ${(resultados.jurosmora * 100).toFixed(4)}%*</td><td>R$ ${formatarMoeda(jurosMora)}</td></tr>
-                        <tr><td>4. Total Juros (CNJ + Mora)</td><td>R$ ${formatarMoeda(jurosOriginaisCNJ)} + R$ ${formatarMoeda(jurosMora)}</td><td>R$ ${formatarMoeda(totalJuros)}</td></tr>
-                        <tr><td>5. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td><td>R$ ${formatarMoeda(totalJuros)} × ${resultados.indiceipca.toFixed(6)}</td><td>R$ ${formatarMoeda(totalJurosIPCA)}</td></tr>
-                        <tr><td>6. Aplicação SELIC (excluido a graça)</td><td>R$ ${formatarMoeda(totalJurosIPCA)} × ${resultados.dadosSelic.indiceselic.toFixed(6)}</td><td><strong>R$ ${formatarMoeda(resultados.valorjurosatt)}</strong></td></tr>
-                    </table>
-                </div>
-                <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
-                    *Juros calculados de forma simples, conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ e SV nº 17 do STF.
+                        </table>
+                        <h4>⚖️ Atualização dos Juros - Passo a Passo</h4>
+                        <table>
+                            <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
+                            <tr><td>1. Juros Originais</td><td>Juros Homologado</td><td>R$ ${formatarMoeda(dados.valorJuros)}</td></tr>
+                            <tr><td>2. Correção CNJ</td><td>R$ ${formatarMoeda(dados.valorJuros)} × ${resultados.indicesCNJ.toFixed(6)}</td><td>R$ ${formatarMoeda(jurosOriginaisCNJ)}</td></tr>
+                            <tr><td>3. Juros de Mora</td><td>Principal CNJ × ${(resultados.jurosmora * 100).toFixed(4)}%*</td><td>R$ ${formatarMoeda(jurosMora)}</td></tr>
+                            <tr><td>4. Total Juros (CNJ + Mora)</td><td>R$ ${formatarMoeda(jurosOriginaisCNJ)} + R$ ${formatarMoeda(jurosMora)}</td><td>R$ ${formatarMoeda(totalJuros)}</td></tr>
+                            <tr><td>5. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td><td>R$ ${formatarMoeda(totalJuros)} × ${resultados.indiceipca.toFixed(6)}</td><td>R$ ${formatarMoeda(totalJurosIPCA)}</td></tr>
+                            <tr><td>6. Aplicação SELIC (excluido a graça)</td><td>R$ ${formatarMoeda(totalJurosIPCA)} × ${resultados.dadosSelic.indiceselic.toFixed(6)}</td><td><strong>R$ ${formatarMoeda(resultados.valorjurosatt)}</strong></td></tr>
+                        </table>
+                    </div>
+                    <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
+                        *Juros calculados de forma simples, conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ e SV nº 17 do STF.
+                    </div>
                 </div>
             `;
         }
