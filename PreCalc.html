@@ -3044,54 +3044,56 @@
             `;
             
             return `
-                <div class="table-container">
-                    <h3>🔄 Cessões do Beneficiário Principal</h3>
-                    <div style="margin-bottom: 20px;">
-                        <h4>Cessão do Beneficiário: ${dados.beneficiario}</h4>
-                        <p><strong>Tipo de Cálculo:</strong> ${dados.tipoCalculo} ${dados.tipoCalculo === 'preferencia' ? '(preferencial)' : '(ordem comum)'}</p>
-                        <p><strong>Dívida Total:</strong> R$ ${formatarMoeda(dividaTotalAtualizada)}</p>
-                        <p><strong>Total Cedido:</strong> ${(totalCedido * 100).toFixed(1)}% para: ${listaCessionarios}</p>
-                        
-                        <table>
-                            <tr>
-                                <th>Beneficiário</th>
-                                <th>Percentual</th>
-                                <th>Valor Total</th>
-                                <th>Recebe Agora</th>
-                                <th>Aguarda Ordem</th>
-                            </tr>
-                            ${resultados.percentualBeneficiarioFinal > 0 ? `
-                            <tr>
-                                <td>${dados.beneficiario}</td>
-                                <td>${(resultados.percentualBeneficiarioFinal * 100).toFixed(2)}%</td>
-                                <td>R$ ${formatarMoeda(parteBeneficiario)}</td>
-                                <td>R$ ${formatarMoeda(beneficiarioRecebe)}</td>
-                                <td>R$ ${formatarMoeda(beneficiarioAguarda)}</td>
-                            </tr>
-                            ` : `
-                            <tr style="background-color: #f8f9fa;">
-                                <td><em>${dados.beneficiario} (cedeu tudo)</em></td>
-                                <td>0.00%</td>
-                                <td>R$ 0,00</td>
-                                <td>R$ 0,00</td>
-                                <td>R$ 0,00</td>
-                            </tr>
-                            `}
-                            ${linhasCessionarios}
-                            <tr class="highlight" style="background-color: #f8f9fa; font-weight: bold; border-top: 2px solid #dee2e6;">
-                                <td>TOTAL</td>
-                                <td>100.00%</td>
-                                <td>R$ ${formatarMoeda(dividaSemHonorarios)}</td>
-                                <td>R$ ${formatarMoeda(totalRecebe)}</td>
-                                <td>R$ ${formatarMoeda(totalAguarda)}</td>
-                            </tr>
-                        </table>
-                        <div style="padding: 8px; margin: 10px 0; font-size: 0.85em; color: #666; font-style: italic;">
-                            <strong>📝 Observação:</strong> Os valores apresentados já estão líquidos das deduções acessórias. 
-                            Ainda devem ser calculados os descontos legais sobre os valores a receber.
+                <div class="cessoes-beneficiario">
+                    <div class="table-container">
+                        <h3>🔄 Cessões do Beneficiário Principal</h3>
+                        <div style="margin-bottom: 20px;">
+                            <h4>Cessão do Beneficiário: ${dados.beneficiario}</h4>
+                            <p><strong>Tipo de Cálculo:</strong> ${dados.tipoCalculo} ${dados.tipoCalculo === 'preferencia' ? '(preferencial)' : '(ordem comum)'}</p>
+                            <p><strong>Dívida Total:</strong> R$ ${formatarMoeda(dividaTotalAtualizada)}</p>
+                            <p><strong>Total Cedido:</strong> ${(totalCedido * 100).toFixed(1)}% para: ${listaCessionarios}</p>
+                            
+                            <table>
+                                <tr>
+                                    <th>Beneficiário</th>
+                                    <th>Percentual</th>
+                                    <th>Valor Total</th>
+                                    <th>Recebe Agora</th>
+                                    <th>Aguarda Ordem</th>
+                                </tr>
+                                ${resultados.percentualBeneficiarioFinal > 0 ? `
+                                <tr>
+                                    <td>${dados.beneficiario}</td>
+                                    <td>${(resultados.percentualBeneficiarioFinal * 100).toFixed(2)}%</td>
+                                    <td>R$ ${formatarMoeda(parteBeneficiario)}</td>
+                                    <td>R$ ${formatarMoeda(beneficiarioRecebe)}</td>
+                                    <td>R$ ${formatarMoeda(beneficiarioAguarda)}</td>
+                                </tr>
+                                ` : `
+                                <tr style="background-color: #f8f9fa;">
+                                    <td><em>${dados.beneficiario} (cedeu tudo)</em></td>
+                                    <td>0.00%</td>
+                                    <td>R$ 0,00</td>
+                                    <td>R$ 0,00</td>
+                                    <td>R$ 0,00</td>
+                                </tr>
+                                `}
+                                ${linhasCessionarios}
+                                <tr class="highlight" style="background-color: #f8f9fa; font-weight: bold; border-top: 2px solid #dee2e6;">
+                                    <td>TOTAL</td>
+                                    <td>100.00%</td>
+                                    <td>R$ ${formatarMoeda(dividaSemHonorarios)}</td>
+                                    <td>R$ ${formatarMoeda(totalRecebe)}</td>
+                                    <td>R$ ${formatarMoeda(totalAguarda)}</td>
+                                </tr>
+                            </table>
+                            <div style="padding: 8px; margin: 10px 0; font-size: 0.85em; color: #666; font-style: italic;">
+                                <strong>📝 Observação:</strong> Os valores apresentados já estão líquidos das deduções acessórias. 
+                                Ainda devem ser calculados os descontos legais sobre os valores a receber.
+                            </div>
                         </div>
+                        ${alertBox}
                     </div>
-                    ${alertBox}
                 </div>
             `;
         }

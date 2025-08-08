@@ -212,7 +212,7 @@ body {
     gap: 10px;
 }
 
-/* NOVAS CLASSES PARA DEDUÇÕES - VERSÃO FORMAL */
+/* SEÇÕES COM CORES ESPECÍFICAS */
 
 /* Seção de Deduções Acessórias */
 .deducoes-acessorias {
@@ -244,13 +244,22 @@ body {
     font-weight: 600;
 }
 
-/* Seção de Valor Final */
-.valor-final h3 {
-    color: #059669;
-    font-weight: 700;
+/* Seção de Cessões do Beneficiário */
+.cessoes-beneficiario {
+    border-left: 3px solid #3B82F6;
 }
 
-/* Seção de Pagamentos - Estilo Simples */
+.cessoes-beneficiario .table-container {
+    background: transparent;
+}
+
+.cessoes-beneficiario h3 {
+    color: #1E40AF;
+    background: transparent;
+    font-weight: 600;
+}
+
+/* Seção de Pagamentos */
 .pagamentos-finais {
     border-left: 3px solid #10B981;
 }
@@ -260,9 +269,15 @@ body {
 }
 
 .pagamentos-finais h3 {
-    color: #065F46;  
+    color: #065F46;
     background: transparent;
     font-weight: 600;
+}
+
+/* Seção de Valor Final */
+.valor-final h3 {
+    color: #059669;
+    font-weight: 700;
 }
 
 /* Card de Alerta Didático */
@@ -750,6 +765,18 @@ tr:hover td {
         font-weight: 600 !important;
     }
     
+    /* Manter estilo das cessões na impressão */
+    .cessoes-beneficiario {
+        border-left: 3px solid #3B82F6 !important;
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    .cessoes-beneficiario h3 {
+        color: #1E40AF !important;
+        font-weight: 600 !important;
+    }
+    
     /* Manter estilo dos pagamentos na impressão */
     .pagamentos-finais {
         border-left: 3px solid #10B981 !important;
@@ -758,7 +785,7 @@ tr:hover td {
     }
     
     .pagamentos-finais h3 {
-        color: #065F46 !important;  
+        color: #065F46 !important;
         font-weight: 600 !important;
     }
     
@@ -792,10 +819,6 @@ tr:hover td {
     .header {
         background: var(--gradient-primary) !important;
         color: var(--white) !important;
-    }
-    
-    .form-group::before {
-        background: var(--gradient-gold) !important;
     }
     
     th {
@@ -888,6 +911,8 @@ tr:hover td {
     .advogado-item,
     .deducoes-acessorias,
     .deducoes-legais,
+    .cessoes-beneficiario,
+    .pagamentos-finais,
     .valor-final {
         page-break-inside: avoid;
         break-inside: avoid;
