@@ -199,6 +199,30 @@ body {
     margin-bottom: 20px;
 }
 
+.explicacao-juridica {
+    background: linear-gradient(135deg, #FAFAFA, #F5F5F5);
+    border: 1px solid #E0E0E0;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 12px 0;
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+
+.explicacao-juridica .titulo {
+    color: var(--primary-navy);
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.explicacao-juridica .titulo::before {
+    content: '⚖️';
+    font-size: 1.2em;
+}
+
 label {
     display: block;
     margin-bottom: 8px;
