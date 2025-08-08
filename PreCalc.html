@@ -3462,12 +3462,14 @@
 
         function gerarSecoesPagamentos(resultados, dados) {
             return `
-                ${gerarPagamentoBeneficiario(resultados, dados)}
-                ${gerarPagamentoCessionarios(resultados, dados)}
-                ${gerarPagamentoSindicatos(resultados, dados)}
-                ${gerarPagamentoCessionariosSindicatos(resultados, dados)}
-                ${gerarPagamentoAdvogados(resultados, dados)}
-                ${gerarPagamentoCessionariosAdvogados(resultados, dados)}
+                <div class="pagamentos-finais">
+                    ${gerarPagamentoBeneficiario(resultados, dados)}
+                    ${gerarPagamentoCessionarios(resultados, dados)}
+                    ${gerarPagamentoSindicatos(resultados, dados)}
+                    ${gerarPagamentoCessionariosSindicatos(resultados, dados)}
+                    ${gerarPagamentoAdvogados(resultados, dados)}
+                    ${gerarPagamentoCessionariosAdvogados(resultados, dados)}
+                </div>
             `;
         }
 

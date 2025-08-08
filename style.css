@@ -250,6 +250,21 @@ body {
     font-weight: 700;
 }
 
+/* Seção de Pagamentos - Estilo Simples */
+.pagamentos-finais {
+    border-left: 3px solid #10B981;
+}
+
+.pagamentos-finais .table-container {
+    background: transparent;
+}
+
+.pagamentos-finais h3 {
+    color: #065F46;  
+    background: transparent;
+    font-weight: 600;
+}
+
 /* Card de Alerta Didático */
 .alerta-didatico {
     background: linear-gradient(135deg, #FEF3C7, #FDE68A);
@@ -732,6 +747,18 @@ tr:hover td {
     
     .deducoes-legais h3 {
         color: #1F2937 !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Manter estilo dos pagamentos na impressão */
+    .pagamentos-finais {
+        border-left: 3px solid #10B981 !important;
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    .pagamentos-finais h3 {
+        color: #065F46 !important;  
         font-weight: 600 !important;
     }
     
