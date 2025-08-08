@@ -2611,11 +2611,10 @@
                 ${gerarCalculos(dados, resultados, inicioGraca, fimGraca)}
 
                 ${gerarResumoCalculos(resultados)}
-                ${gerarSecaoSindicatos(resultados)}
+                ${gerarSecaoDeducoesAcessorias(resultados, dados)}
                 ${gerarSecaoCessoesSindicatos(resultados, dados)}
-                ${gerarSecaoHonorarios(resultados, dados)}
-                ${gerarSecaoCessoesBeneficiario(resultados, dados)}
                 ${gerarSecaoCessoesAdvogados(resultados, dados)}
+                ${gerarSecaoCessoesBeneficiario(resultados, dados)}
                 ${gerarSecaoDeducoes(resultados, dados)}
                 ${gerarSecoesPagamentos(resultados, dados)}
                 ${gerarBotaoImprimir()}
@@ -2646,7 +2645,9 @@
             const secaoRRA = dados.rra && resultados.rrapagamento !== 0 
                 ? `<tr><td>Rendimentos Recebidos Acumuladamente Total (RRA):</td><td>${dados.rra} meses</td></tr>`
                 : '';
-            
+
+            const tipoCalculo = dados.tipoCalculo === 'preferencia' ? 'Preferencial' : 'Ordem Cronológica';
+
             return `
                 <div class="table-container">
                     <h3>📋 Identificação do Processo</h3>
@@ -2656,9 +2657,11 @@
                         <tr><td>Beneficiário Principal</td><td>${dados.beneficiario || 'Não informado'}</td></tr>
                         <tr><td>Devedor</td><td>${dados.credor || 'Não informado'}</td></tr>
                         <tr><td>Natureza do Processo</td><td>${dados.natureza === 'alimentar' ? '⚖️ Alimentar' : '⚖️ Comum'}</td></tr>
+                        <tr><td>Tipo de Cálculo</td><td>${tipoCalculo}</td></tr>
                         ${secaoRRA}
-                        <tr><td>Ano do orçamento do Precatório:</td><td>${dados.anoOrcamento || 'Não informado'}</td></tr>
-                        <tr><td>Data-base do cálculo homologado na execução:</td><td>${dados.mesBase || 'Não informado'}/${dados.anoBase || 'Não informado'}</td></tr>
+                        <tr><td>Ano do orçamento do Precatório</td><td>${dados.anoOrcamento || 'Não informado'}</td></tr>
+                        <tr><td>Data-base do cálculo homologado na execução</td><td>${dados.mesBase || 'Não informado'}/${dados.anoBase || 'Não informado'}</td></tr>
+                        <tr><td>Data do Cálculo</td><td>${dataAtual}</td></tr>
                     </table>
                 </div>
             `;
@@ -2669,7 +2672,7 @@
             
             return `
                 <div class="table-container">
-                    <h3>💰 Demonstrativo de Valores - Histórico vs. Atual</h3>
+                    <h3>💰 Demonstrativo de Atualização Monetária</h3>
                     <table>
                         <tr>
                             <th>Componente</th>
@@ -2696,9 +2699,9 @@
                             <td><strong>R$ ${formatarMoeda(resultados.valortotatt)}</strong></td>
                         </tr>
                     </table>
-                </div>
-                <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
-                    *Atualização Monetária conforme Resolução CNJ nº 303/2019, com índices de correção monetária, conforme caput do Art.21- A - <strong>Período de Correção</strong>: Os valores foram atualizados desde a base <strong>${dados.mesBase || 'Não informado'}/${dados.anoBase || 'Não informado'}</strong> até <strong>${dataAtual}</strong>.
+                    <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
+                        *Atualização Monetária conforme Resolução CNJ nº 303/2019, com índices de correção monetária, conforme caput do Art.21- A - <strong>Período de Correção</strong>: Os valores foram atualizados desde a base <strong>${dados.mesBase || 'Não informado'}/${dados.anoBase || 'Não informado'}</strong> até <strong>${dataAtual}</strong>.
+                    </div>
                 </div>
             `;
         }
@@ -2791,10 +2794,11 @@
                             <tr><td>5. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td><td>R$ ${formatarMoeda(totalJuros)} × ${resultados.indiceipca.toFixed(6)}</td><td>R$ ${formatarMoeda(totalJurosIPCA)}</td></tr>
                             <tr><td>6. Aplicação SELIC (excluido a graça)</td><td>R$ ${formatarMoeda(totalJurosIPCA)} × ${resultados.dadosSelic.indiceselic.toFixed(6)}</td><td><strong>R$ ${formatarMoeda(resultados.valorjurosatt)}</strong></td></tr>
                         </table>
+                        <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
+                            *Juros calculados de forma simples, conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ e SV nº 17 do STF.
+                        </div>
                     </div>
-                    <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
-                        *Juros calculados de forma simples, conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ e SV nº 17 do STF.
-                    </div>
+                    
                 </div>
             `;
         }
@@ -2808,28 +2812,33 @@
                         <tr><td>Valor Principal Atualizado</td><td>R$ ${formatarMoeda(resultados.valorprincatt)}</td><td>${(resultados.percentualprinc * 100).toFixed(4)}%</td></tr>
                         <tr><td>Valor Juros Atualizado</td><td>R$ ${formatarMoeda(resultados.valorjurosatt)}</td><td>${(resultados.percentualjur * 100).toFixed(4)}%</td></tr>
                         <tr class="highlight"><td>Total Atualizado</td><td>R$ ${formatarMoeda(resultados.valortotatt)}</td><td>${((resultados.percentualprinc + resultados.percentualjur) * 100).toFixed(2)}%</td></tr>
-                        <tr class="highlight"><td>Valor Base para Cálculo</td><td>R$ ${formatarMoeda(resultados.valorBase)}</td><td>${((resultados.valorBase / resultados.valortotatt) * 100).toFixed(2)}%</td></tr>
+                        <tr class="highlight"><td>Base para Pagamento</td><td>R$ ${formatarMoeda(resultados.valorBase)}</td><td>${((resultados.valorBase / resultados.valortotatt) * 100).toFixed(2)}%</td></tr>
                     </table>
                 </div>
             `;
         }
 
-        function gerarSecaoSindicatos(resultados) {
-            if (!resultados.sindicatos || resultados.sindicatos.length === 0) return '';
+        function gerarSecaoDeducoesAcessorias(resultados, dados) {
+            const temSindicatos = resultados.sindicatos && resultados.sindicatos.length > 0;
+            const temHonorarios = resultados.honorarios && resultados.honorarios.length > 0;
             
-            const linhasSindicatos = resultados.sindicatos.map(s => `
-                <tr>
-                    <td>${s.nome}</td>
-                    <td>R$ ${formatarMoeda(resultados.valortotatt)}</td>
-                    <td>${(s.percentual * 100).toFixed(2)}%</td>
-                    <td>R$ ${formatarMoeda(s.valorBruto)}</td>
-                </tr>
-            `).join('');
+            // Se não tem nem sindicatos nem honorários, não mostra nada
+            if (!temSindicatos && !temHonorarios) return '';
             
-            const totalSindicatos = resultados.sindicatos.reduce((total, s) => total + s.valorBruto, 0);
-            
-            return `
-                <div class="table-container">
+            let secaoSindicatos = '';
+            if (temSindicatos) {
+                const linhasSindicatos = resultados.sindicatos.map(s => `
+                    <tr>
+                        <td>${s.nome}</td>
+                        <td>R$ ${formatarMoeda(resultados.valortotatt)}</td>
+                        <td>${(s.percentual * 100).toFixed(2)}%</td>
+                        <td>R$ ${formatarMoeda(s.valorBruto)}</td>
+                    </tr>
+                `).join('');
+                
+                const totalSindicatos = resultados.sindicatos.reduce((total, s) => total + s.valorBruto, 0);
+                
+                secaoSindicatos = `
                     <h3>🏛️ Sindicatos</h3>
                     <table>
                         <tr><th>Nome Sindicato</th><th>Base de Cálculo</th><th>Percentual</th><th>Valor Bruto</th></tr>
@@ -2839,6 +2848,78 @@
                             <td><strong>R$ ${formatarMoeda(totalSindicatos)}</strong></td>
                         </tr>
                     </table>
+                `;
+            }
+            
+            let secaoHonorarios = '';
+            if (temHonorarios) {
+                const tituloSecao = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt 
+                    ? '👩‍💼 Advogados (H.Contratuais) - Honorários da Preferência' 
+                    : '👩‍💼 Advogados (H.Contratuais)';
+                
+                // Calcular base real
+                let baseCalculoRealHonorarios = resultados.valorBase;
+                const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
+                    cessao.tipo === 'cessaobenPrincipal'
+                ) || [];
+                
+                if (cessoesBeneficiario.length > 0) {
+                    const percentualBeneficiarioFinal = 1.0 - cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
+                    const direitoBeneficiarioTotal = resultados.valortotatt * percentualBeneficiarioFinal;
+                    const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt;
+                    
+                    if (isPreferenciasParcial) {
+                        baseCalculoRealHonorarios = Math.min(direitoBeneficiarioTotal, resultados.valorBase);
+                    }
+                }
+                
+                let descricaoBase = '';
+                if (dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt) {
+                    if (baseCalculoRealHonorarios !== resultados.valorBase) {
+                        descricaoBase = `<p style="color: #155724; font-style: italic;">
+                            Valores calculados sobre base efetiva: R$ ${formatarMoeda(baseCalculoRealHonorarios)} 
+                            <span style="color: #856404;">(ajustada por cessões - teto original: R$ ${formatarMoeda(resultados.valorBase)})</span>
+                        </p>`;
+                    } else {
+                        descricaoBase = `<p style="color: #155724; font-style: italic;">
+                            Valores calculados sobre a preferência: R$ ${formatarMoeda(resultados.valorBase)}
+                        </p>`;
+                    }
+                } else if (baseCalculoRealHonorarios !== resultados.valorBase) {
+                    descricaoBase = `<p style="color: #155724; font-style: italic;">
+                        Valores calculados sobre base efetiva: R$ ${formatarMoeda(baseCalculoRealHonorarios)} 
+                        <span style="color: #856404;">(ajustada por cessões)</span>
+                    </p>`;
+                }
+                
+                secaoHonorarios = `
+                    <h3>${tituloSecao}</h3>
+                    ${descricaoBase}
+                    <table>
+                        <tr><th>Nome Advogado</th><th>PF/PJ</th><th>Base de Cálculo</th><th>Percentual</th><th>Valor Bruto</th></tr>
+                        ${resultados.honorarios.map(h => `
+                        <tr>
+                            <td>${h.nome}</td>
+                            <td>${h.tipo}</td>
+                            <td>R$ ${formatarMoeda(baseCalculoRealHonorarios)}</td>
+                            <td>${(h.percentual * 100).toFixed(2)}%</td>
+                            <td>R$ ${formatarMoeda(h.valorBruto)}</td>
+                        </tr>
+                        `).join('')}
+                        <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
+                            <td colspan="3"><strong>TOTAL HONORÁRIOS</strong></td>
+                            <td><strong>${(resultados.honorarios.reduce((total, h) => total + h.percentual, 0) * 100).toFixed(2)}%</strong></td>
+                            <td><strong>R$ ${formatarMoeda(resultados.honorarios.reduce((total, h) => total + h.valorBruto, 0))}</strong></td>
+                        </tr>
+                    </table>
+                `;
+            }
+            
+            return `
+                <div class="table-container">
+                    <h3>📄➖ Deduções Acessórias</h3>
+                    ${secaoSindicatos}
+                    ${secaoHonorarios}
                 </div>
             `;
         }
@@ -2894,78 +2975,6 @@
             `;
         }
 
-        function gerarSecaoHonorarios(resultados, dados) {
-            if (!resultados.honorarios || resultados.honorarios.length === 0) return '';
-            
-            // Seção de honorários totais (para preferência parcial)
-            let secaoHonorariosTotais = '';
-            
-            // Seção de honorários originais
-            const tituloSecao = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt 
-                ? '👩‍💼 Advogados - Honorários da Preferência' 
-                : '👩‍💼 Advogados';
-            
-            // Calcular base real
-            let baseCalculoRealHonorarios = resultados.valorBase;
-            const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
-                cessao.tipo === 'cessaobenPrincipal'
-            ) || [];
-            
-            if (cessoesBeneficiario.length > 0) {
-                const percentualBeneficiarioFinal = 1.0 - cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
-                const direitoBeneficiarioTotal = resultados.valortotatt * percentualBeneficiarioFinal;
-                const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt;
-                
-                if (isPreferenciasParcial) {
-                    baseCalculoRealHonorarios = Math.min(direitoBeneficiarioTotal, resultados.valorBase);
-                }
-            }
-            
-            let descricaoBase = '';
-            if (dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt) {
-                if (baseCalculoRealHonorarios !== resultados.valorBase) {
-                    descricaoBase = `<p style="color: #155724; font-style: italic;">
-                        Valores calculados sobre base efetiva: R$ ${formatarMoeda(baseCalculoRealHonorarios)} 
-                        <span style="color: #856404;">(ajustada por cessões - teto original: R$ ${formatarMoeda(resultados.valorBase)})</span>
-                    </p>`;
-                } else {
-                    descricaoBase = `<p style="color: #155724; font-style: italic;">
-                        Valores calculados sobre a preferência: R$ ${formatarMoeda(resultados.valorBase)}
-                    </p>`;
-                }
-            } else if (baseCalculoRealHonorarios !== resultados.valorBase) {
-                descricaoBase = `<p style="color: #155724; font-style: italic;">
-                    Valores calculados sobre base efetiva: R$ ${formatarMoeda(baseCalculoRealHonorarios)} 
-                    <span style="color: #856404;">(ajustada por cessões)</span>
-                </p>`;
-            }
-            
-            const secaoHonorariosOriginal = `
-            <div class="table-container">
-                <h3>📄➖ Deduções Acessórias</h3>
-                <h3>${tituloSecao}</h3>
-                ${descricaoBase}
-                <table>
-                    <tr><th>Nome Advogado</th><th>PF/PJ</th><th>Base de Cálculo</th><th>Percentual</th><th>Valor Bruto</th></tr>
-                    ${resultados.honorarios.map(h => `
-                    <tr>
-                        <td>${h.nome}</td>
-                        <td>${h.tipo}</td>
-                        <td>R$ ${formatarMoeda(baseCalculoRealHonorarios)}</td>
-                        <td>${(h.percentual * 100).toFixed(2)}%</td>
-                        <td>R$ ${formatarMoeda(h.valorBruto)}</td>
-                    </tr>
-                    `).join('')}
-                    <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
-                        <td colspan="3"><strong>TOTAL HONORÁRIOS</strong></td>
-                        <td><strong>${(resultados.honorarios.reduce((total, h) => total + h.percentual, 0) * 100).toFixed(2)}%</strong></td>
-                        <td><strong>R$ ${formatarMoeda(resultados.honorarios.reduce((total, h) => total + h.valorBruto, 0))}</strong></td>
-                    </tr>
-                </table>
-            </div>`;
-            
-            return secaoHonorariosTotais + secaoHonorariosOriginal;
-        }
 
         function gerarSecaoCessoesBeneficiario(resultados, dados) {
             if (!resultados.cessoesBeneficiarioCalculadas || resultados.cessoesBeneficiarioCalculadas.length === 0) return '';
@@ -3087,138 +3096,137 @@
             
             if (advogadosComCessao.length === 0) return '';
             
-            // Seção de cessões totais (para preferência parcial)
-            let secaoCessoesAdvTotais = '';
-            if (!(dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt)) {
+            // SE FOR PREFERÊNCIA: mostra seção com explicação
+            if (dados.tipoCalculo === 'preferencia') {
+                const isPreferenciaParcial = resultados.valorBase < resultados.valortotatt;
+                
                 const secoesCessoes = advogadosComCessao.map(adv => {
-                    const valorBrutoTotalAdv = resultados.valortotatt * adv.percentual;
-                    const valorBrutoTotalAdvogado = resultados.valortotatt * adv.percentualAdvogado;
-                    const cessionariosTotais = adv.cessionarios ? adv.cessionarios.map(cessionario => ({
-                        ...cessionario,
-                        valorBrutoTotal: resultados.valortotatt * cessionario.percentual
-                    })) : [];
+                    // Para preferência parcial: usa valores da preferência
+                    // Para preferência total: usa valores totais
+                    const valorHonorario = isPreferenciaParcial ? adv.valorBruto : (resultados.valortotatt * adv.percentual);
+                    const valorAdvogado = isPreferenciaParcial ? adv.valorBrutoAdvogado : (resultados.valortotatt * adv.percentualAdvogado);
+                    
+                    let cessionarios = '';
+                    if (isPreferenciaParcial) {
+                        // Preferência parcial: mostra valores mas indica que aguardam
+                        cessionarios = adv.cessionarios ? adv.cessionarios.map(cessionario => `
+                            <tr>
+                                <td>${cessionario.nome} (cessionário) - <em>aguarda</em></td>
+                                <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
+                                <td>R$ ${formatarMoeda(cessionario.valorBruto)}</td>
+                            </tr>
+                        `).join('') : '';
+                    } else {
+                        // Preferência total: cessionários recebem valores totais
+                        cessionarios = adv.cessionarios ? adv.cessionarios.map(cessionario => `
+                            <tr>
+                                <td>${cessionario.nome} (cessionário)</td>
+                                <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
+                                <td>R$ ${formatarMoeda(resultados.valortotatt * cessionario.percentual)}</td>
+                            </tr>
+                        `).join('') : '';
+                    }
+                    
+                    const alertaStatus = isPreferenciaParcial 
+                        ? `<p style="color: #856404; font-weight: bold;">⚠️ Preferência Parcial: Só advogados recebem agora, cessionários aguardam ordem cronológica</p>`
+                        : `<p style="color: #155724; font-weight: bold;">✅ Preferência Total: Todos recebem integralmente</p>`;
+                    
+                    const valorTotalTabela = isPreferenciaParcial ? valorHonorario : valorHonorario;
                     
                     return `
                         <div style="margin-bottom: 20px;">
                             <h4>🔄 Cessão de Honorários: ${adv.nome}</h4>
-                            <p><strong>Valor do Honorário:</strong> R$ ${formatarMoeda(valorBrutoTotalAdv)}</p>
+                            <p><strong>Valor do Honorário ${isPreferenciaParcial ? '(Preferência)' : '(Total)'}:</strong> R$ ${formatarMoeda(valorHonorario)}</p>
                             <p><strong>Cedido:</strong> ${(adv.percentualCessionarioAdv * 100).toFixed(2)}% para ${adv.cessoesAdv.length} cessionário${adv.cessoesAdv.length > 1 ? 's' : ''}</p>
-                            <p style="color: #856404; font-weight: bold;">⚠️ Valores totais do direito (não pagos integralmente na preferência)</p>
+                            ${alertaStatus}
                             
                             <table>
-                                <tr><th>Recebedor</th><th>Percentual</th><th>Valor Bruto Total</th></tr>
+                                <tr><th>Recebedor</th><th>Percentual</th><th>Valor ${isPreferenciaParcial ? 'do Direito' : 'Bruto Total'}</th></tr>
                                 <tr style="background-color: #f8f9fa;">
                                     <td><strong>${adv.nome} (fica com)</strong></td>
                                     <td>${(adv.percentualAdvogado * 100).toFixed(2)}%</td>
-                                    <td>R$ ${formatarMoeda(valorBrutoTotalAdvogado)}</td>
+                                    <td>R$ ${formatarMoeda(valorAdvogado)}</td>
                                 </tr>
-                                ${cessionariosTotais.map(cessionario => `
-                                <tr>
-                                    <td>${cessionario.nome} (cessionário)</td>
-                                    <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
-                                    <td>R$ ${formatarMoeda(cessionario.valorBrutoTotal)}</td>
-                                </tr>
-                                `).join('')}
+                                ${cessionarios}
                                 <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
                                     <td>TOTAL</td>
                                     <td>-%</td>
-                                    <td>R$ ${formatarMoeda(valorBrutoTotalAdv)}</td>
+                                    <td>R$ ${formatarMoeda(valorTotalTabela)}</td>
                                 </tr>
                             </table>
                         </div>
                     `;
                 }).join('');
                 
-                secaoCessoesAdvTotais = `
+                const tituloPreferencia = isPreferenciaParcial 
+                    ? '🔄 Cessões de Honorários - Preferência Parcial'
+                    : '🔄 Cessões de Honorários - Preferência Total';
+                
+                const baseCalculo = isPreferenciaParcial ? resultados.valorBase : resultados.valortotatt;
+                
+                const explicacaoPreferencia = isPreferenciaParcial 
+                    ? `• <strong>Advogados</strong> têm direito à preferência e recebem sua parte agora<br>
+                    • <strong>Cessionários</strong> não têm direito à preferência (Art. 42. Resolução CNJ 303/19.) e aguardam ordem cronológica<br>
+                    • <strong>Valores calculados sobre:</strong> R$ ${formatarMoeda(resultados.valorBase)} (teto da preferência)`
+                    : `• <strong>Preferência total:</strong> Todos os honorários são pagos integralmente<br>
+                    • <strong>Advogados e cessionários</strong> recebem seus valores<br>
+                    • <strong>Valores calculados sobre:</strong> R$ ${formatarMoeda(resultados.valortotatt)}`;
+                
+                return `
                     <div class="table-container">
-                        <h3>🔄 Cessões de Honorários</h3>
-                        <p style="color: #856404; font-style: italic;">Cessões calculadas sobre o valor total (base: R$ ${formatarMoeda(resultados.valortotatt)})</p>
+                        <h3>${tituloPreferencia}</h3>
+                        <p style="color: #155724; font-style: italic;">Cessões calculadas sobre ${isPreferenciaParcial ? 'a preferência' : 'o valor total'} (base: R$ ${formatarMoeda(baseCalculo)})</p>
                         ${secoesCessoes}
-                        <div style="margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-left: 4px solid #007bff; font-size: 0.9em;">
-                            <strong>💡 Explicação das Cessões:</strong><br>
-                            • <strong>Cessões da Preferência:</strong> Calculadas sobre R$ ${formatarMoeda(resultados.valorBase)} (apenas advogados recebem agora)<br>
-                            • <strong>Cessões Totais:</strong> Calculadas sobre R$ ${formatarMoeda(resultados.valortotatt)}
+                        <div style="margin-top: 10px; padding: 12px; background-color: #f8f9fa; border-left: 4px solid #007bff; font-size: 0.9em;">
+                            <strong>💡 Explicação da Preferência:</strong><br>
+                            ${explicacaoPreferencia}
                         </div>
                     </div>
                 `;
             }
             
-            // Seção de cessões principais
-            const isPreferencia = dados.tipoCalculo === 'preferencia';
-            const isPreferenciaParcial = isPreferencia && resultados.valorBase < resultados.valortotatt;
-            const isPreferenciaTotal = isPreferencia && resultados.valorBase >= resultados.valortotatt;
-            
-            const tituloCessoes = isPreferenciaParcial 
-                ? '🔄 Cessões de Honorários - Valores da Preferência' 
-                : '🔄 Cessões de Honorários';
-            
-            const descricaoBaseCessoes = isPreferenciaParcial
-                ? `<p style="color: #155724; font-style: italic;">Cessões calculadas sobre a preferência (base: R$ ${formatarMoeda(resultados.valorBase)})</p>`
-                : '';
-            
-            const secoesCessoesAdvogados = advogadosComCessao.map(adv => {
-                const cessionarios = adv.cessionarios ? adv.cessionarios.map(cessionario => `
-                    <tr>
-                        <td>${cessionario.nome} (cessionário)</td>
-                        <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
-                        <td>R$ ${formatarMoeda(cessionario.valorBruto)}</td>
-                    </tr>
-                `).join('') : '';
+            // SE FOR ORDEM COMUM: mostra seção simples sem explicação
+            else {
+                const secoesCessoesAdvogados = advogadosComCessao.map(adv => {
+                    const cessionarios = adv.cessionarios ? adv.cessionarios.map(cessionario => `
+                        <tr>
+                            <td>${cessionario.nome} (cessionário)</td>
+                            <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
+                            <td>R$ ${formatarMoeda(cessionario.valorBruto)}</td>
+                        </tr>
+                    `).join('') : '';
+                    
+                    return `
+                        <div style="margin-bottom: 20px;">
+                            <h4>Cessão de Honorários: ${adv.nome}</h4>
+                            <p><strong>Valor Base do Honorário:</strong> R$ ${formatarMoeda(adv.valorBruto)}</p>
+                            <p><strong>Cedido:</strong> ${(adv.percentualCessionarioAdv * 100).toFixed(2)}% para ${adv.cessoesAdv.length} cessionário${adv.cessoesAdv.length > 1 ? 's' : ''}</p>
+                            
+                            <table>
+                                <tr><th>Recebedor</th><th>Percentual</th><th>Valor Bruto</th></tr>
+                                <tr style="background-color: #f8f9fa;">
+                                    <td><strong>${adv.nome} (fica com)</strong></td>
+                                    <td>${(adv.percentualAdvogado * 100).toFixed(2)}%</td>
+                                    <td>R$ ${formatarMoeda(adv.valorBrutoAdvogado)}</td>
+                                </tr>
+                                ${cessionarios}
+                                <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
+                                    <td>TOTAL</td>
+                                    <td>-%</td>
+                                    <td>R$ ${formatarMoeda(adv.valorBruto)}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    `;
+                }).join('');
                 
                 return `
-                    <div style="margin-bottom: 20px;">
-                        <h4>Cessão de Honorários: ${adv.nome}</h4>
-                        <p><strong>Valor Base do Honorário:</strong> R$ ${formatarMoeda(adv.valorBruto)}</p>
-                        <p><strong>Cedido:</strong> ${(adv.percentualCessionarioAdv * 100).toFixed(2)}% para ${adv.cessoesAdv.length} cessionário${adv.cessoesAdv.length > 1 ? 's' : ''}</p>
-                        ${isPreferenciaParcial ? `<p style="color: #856404; font-weight: bold;">⚠️ Preferência Parcial: Cessionários aguardam ordem cronológica</p>` : ''}
-                        ${isPreferenciaTotal ? `<p style="color: #155724; font-weight: bold;">✅ Preferência Total: Todos recebem integralmente</p>` : ''}
-                        
-                        <table>
-                            <tr><th>Recebedor</th><th>Percentual</th><th>Valor Bruto</th></tr>
-                            <tr style="background-color: #f8f9fa;">
-                                <td><strong>${adv.nome} (fica com)</strong></td>
-                                <td>${(adv.percentualAdvogado * 100).toFixed(2)}%</td>
-                                <td>R$ ${formatarMoeda(adv.valorBrutoAdvogado)}</td>
-                            </tr>
-                            ${cessionarios}
-                            <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
-                                <td>TOTAL</td>
-                                <td>-%</td>
-                                <td>R$ ${formatarMoeda(adv.valorBruto)}</td>
-                            </tr>
-                        </table>
+                    <div class="table-container">
+                        <h3>🔄 Cessões de Honorários</h3>
+                        ${secoesCessoesAdvogados}
                     </div>
                 `;
-            }).join('');
-            
-            const alertaPreferencia = isPreferenciaParcial ? `
-                <div class="warning-box" style="margin-top: 10px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
-                    <strong>⚠️ Preferência Parcial de Honorários:</strong><br>
-                    • <strong>Advogados</strong> têm direito à preferência e recebem sua parte agora<br>
-                    • <strong>Cessionários</strong> não têm direito à preferência (Art. 42. Resolução CNJ 303/19.) e aguardam pagamento na ordem cronológica<br>
-                    • <strong>Total pago agora (preferência)</strong>: R$ ${formatarMoeda(advogadosComCessao.reduce((total, adv) => total + adv.valorBrutoAdvogado, 0))}<br>
-                </div>
-            ` : '';
-            
-            const alertaSucesso = isPreferenciaTotal ? `
-                <div class="success-box" style="margin-top: 10px; padding: 12px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;">
-                    <strong>✅ Preferência Total de Honorários:</strong><br>
-                    • O teto da preferência cobre todo o precatório<br>
-                    • <strong>Advogados e cessionários</strong> recebem integralmente<br>
-                </div>
-            ` : '';
-            
-            const secaoCessoesAdv = `
-                <div class="table-container">
-                    <h3>${tituloCessoes}</h3>
-                    ${descricaoBaseCessoes}
-                    ${secoesCessoesAdvogados}
-                    ${alertaPreferencia}
-                    ${alertaSucesso}
-                </div>
-            `;
-            
-            return secaoCessoesAdvTotais + secaoCessoesAdv;
+            }
         }
 
         function gerarSecaoDeducoes(resultados, dados) {
