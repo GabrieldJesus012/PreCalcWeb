@@ -211,7 +211,41 @@ body {
     align-items: center;
     gap: 10px;
 }
+/* Copie e cole no seu style.css */
+.label-with-button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
 
+.label-with-button label {
+    margin-bottom: 0;
+}
+
+.btn-sindifaz {
+    padding: 4px 8px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: var(--font-primary);
+    font-weight: 500;
+}
+
+.btn-sindifaz:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.btn-sindifaz:active {
+    transform: translateY(-1px);
+    background: #545b62;
+}
 /* SEÇÕES COM CORES ESPECÍFICAS */
 
 /* Seção de Deduções Acessórias */
