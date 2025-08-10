@@ -776,6 +776,55 @@ tr:hover td {
 
 /* Regras para Impressão */
 @media print {
+
+    * {
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    body {
+        background: white !important;
+        padding: 0 !important;
+        font-size: 12px !important;
+    }
+    
+    .container {
+        box-shadow: none !important;
+        margin: 0 !important;
+        max-width: none !important;
+    }
+
+    .tabs-nav,
+    .btn-container,
+    .section-title,
+    .print-button-container{
+        display: none !important;
+    }
+    
+    .tab-content {
+        display: none !important;
+    }
+    
+    #tab7 {
+        display: block !important;
+        page-break-inside: avoid;
+    }
+
+    /* Garantir que o conteúdo da tab7 fique na mesma página */
+    #tab7 {
+        page-break-before: avoid !important;
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+    
+    .tabs-container {
+        padding: 0 !important;
+        background: transparent !important;
+        border: none !important;
+        margin: 0 !important;
+    }
+    
     /* Manter cores das deduções na impressão */
     .deducoes-acessorias {
         border-left: 3px solid #DC2626 !important;
@@ -823,33 +872,6 @@ tr:hover td {
         font-weight: 600 !important;
     }
     
-    /* Ocultar navegação das tabs na impressão */
-    .tabs-nav,
-    .btn-container,
-    .section-title,
-    .print-button-container{
-        display: none !important;
-    }
-    
-    /* Ocultar todas as tabs exceto a tab7 (Resultados) na impressão */
-    .tab-content {
-        display: none !important;
-    }
-    
-    /* Mostrar apenas a tab7 na impressão */
-    #tab7 {
-        display: block !important;
-        page-break-inside: avoid;
-    }
-    
-    /* Forçar impressão de cores de fundo */
-    * {
-        -webkit-print-color-adjust: exact !important;
-        color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-    
-    /* Manter cores nos elementos principais */
     .header {
         background: var(--gradient-primary) !important;
         color: var(--white) !important;
@@ -925,21 +947,6 @@ tr:hover td {
         padding: 10px 12px !important;
     }
 
-    
-    /* Ajustes de layout para impressão */
-    body {
-        background: white !important;
-        padding: 0 !important;
-        font-size: 12px !important;
-    }
-    
-    .container {
-        box-shadow: none !important;
-        margin: 0 !important;
-        max-width: none !important;
-    }
-    
-    /* Evitar quebras de página indesejadas */
     .form-group,
     .table-container,
     .advogado-item,
@@ -987,20 +994,7 @@ tr:hover td {
         background-color: #568f58 !important;
     }
 
-    /* Garantir que o conteúdo da tab7 fique na mesma página */
-    #tab7 {
-        page-break-before: avoid !important;
-        margin-top: 0 !important;
-        padding-top: 0 !important;
-    }
-    
-    /* Ocultar container das tabs mas manter o conteúdo da tab7 */
-    .tabs-container {
-        padding: 0 !important;
-        background: transparent !important;
-        border: none !important;
-        margin: 0 !important;
-    }
+
     
     /* Manter bordas e sombras importantes */
     .form-group {
