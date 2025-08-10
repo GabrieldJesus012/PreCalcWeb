@@ -811,7 +811,6 @@ tr:hover td {
         page-break-inside: avoid;
     }
 
-    /* Garantir que o conteúdo da tab7 fique na mesma página */
     #tab7 {
         page-break-before: avoid !important;
         margin-top: 0 !important;
@@ -825,6 +824,47 @@ tr:hover td {
         margin: 0 !important;
     }
     
+    
+    .header {
+        padding: 8px 15px !important;
+        min-height: auto !important;
+        height: auto !important;
+        page-break-after: avoid !important;
+    }
+    
+    .header::before,
+    .header::after{
+        display: none !important;
+    }
+    
+    .header h1 {
+        font-size: 1rem !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1 !important;
+        text-shadow: none !important;
+        display: inline-block !important;
+    }
+    
+    .header p {
+        font-size: 0.7rem !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        opacity: 0.8;
+        line-height: 1 !important;
+        display: inline-block !important;
+    }
+
+    .header {
+        background: var(--gradient-primary) !important;
+        color: var(--white) !important;
+    }
+
+    .form-group {
+        border: 1px solid var(--primary-gold) !important;
+    }
+    
+
     /* Manter cores das deduções na impressão */
     .deducoes-acessorias {
         border-left: 3px solid #DC2626 !important;
@@ -870,11 +910,6 @@ tr:hover td {
     .pagamentos-finais h3 {
         color: #065F46 !important;
         font-weight: 600 !important;
-    }
-    
-    .header {
-        background: var(--gradient-primary) !important;
-        color: var(--white) !important;
     }
     
     th {
@@ -958,49 +993,11 @@ tr:hover td {
         page-break-inside: avoid;
         break-inside: avoid;
     }
-    
-    /* Reduzir drasticamente o tamanho do header para impressão */
-    .header {
-        padding: 8px 15px !important;
-        min-height: auto !important;
-        height: auto !important;
-        page-break-after: avoid !important;
-    }
-    
-    .header::before,
-    .header::after{
-        display: none !important;
-    }
-    
-    .header h1 {
-        font-size: 1rem !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        line-height: 1 !important;
-        text-shadow: none !important;
-        display: inline-block !important;
-    }
-    
-    .header p {
-        font-size: 0.7rem !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        opacity: 0.8;
-        line-height: 1 !important;
-        display: inline-block !important;
-    }
 
     th.section-header {
         background-color: #568f58 !important;
     }
 
-
-    
-    /* Manter bordas e sombras importantes */
-    .form-group {
-        border: 1px solid var(--primary-gold) !important;
-    }
-    
     table {
         border: 1px solid var(--primary-navy) !important;
     }
