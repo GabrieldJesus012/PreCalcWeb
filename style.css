@@ -863,9 +863,20 @@ tr:hover td {
     .form-group {
         border: 1px solid var(--primary-gold) !important;
     }
-    
 
-    /* Manter cores das deduções na impressão */
+    table {
+        border: 1px solid var(--primary-navy) !important;
+    }
+
+    th.section-header {
+        background-color: #568f58 !important;
+    }
+
+    th {
+        background: var(--gradient-primary) !important;
+        color: var(--white) !important;
+    }
+    
     .deducoes-acessorias {
         border-left: 3px solid #DC2626 !important;
         -webkit-print-color-adjust: exact !important;
@@ -912,10 +923,7 @@ tr:hover td {
         font-weight: 600 !important;
     }
     
-    th {
-        background: var(--gradient-primary) !important;
-        color: var(--white) !important;
-    }
+
     
     .highlight {
         background: linear-gradient(135deg, #E8F5E8, #D4EDDA) !important;
@@ -992,13 +1000,5 @@ tr:hover td {
     .valor-final {
         page-break-inside: avoid;
         break-inside: avoid;
-    }
-
-    th.section-header {
-        background-color: #568f58 !important;
-    }
-
-    table {
-        border: 1px solid var(--primary-navy) !important;
     }
 }
