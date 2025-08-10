@@ -776,11 +776,15 @@ tr:hover td {
 
 /* Regras para Impressão */
 @media print {
-
     * {
         -webkit-print-color-adjust: exact !important;
         color-adjust: exact !important;
         print-color-adjust: exact !important;
+    }
+    
+    .header {
+        background: var(--gradient-primary) !important;
+        color: var(--white) !important;
     }
 
     body {
@@ -795,36 +799,6 @@ tr:hover td {
         max-width: none !important;
     }
 
-    .tabs-nav,
-    .btn-container,
-    .section-title,
-    .print-button-container{
-        display: none !important;
-    }
-    
-    .tab-content {
-        display: none !important;
-    }
-    
-    #tab7 {
-        display: block !important;
-        page-break-inside: avoid;
-    }
-
-    #tab7 {
-        page-break-before: avoid !important;
-        margin-top: 0 !important;
-        padding-top: 0 !important;
-    }
-    
-    .tabs-container {
-        padding: 0 !important;
-        background: transparent !important;
-        border: none !important;
-        margin: 0 !important;
-    }
-    
-    
     .header {
         padding: 8px 15px !important;
         min-height: auto !important;
@@ -855,26 +829,12 @@ tr:hover td {
         display: inline-block !important;
     }
 
-    .header {
-        background: var(--gradient-primary) !important;
-        color: var(--white) !important;
-    }
-
-    .form-group {
-        border: 1px solid var(--primary-gold) !important;
-    }
-
-    table {
-        border: 1px solid var(--primary-navy) !important;
-    }
-
     th.section-header {
         background-color: #568f58 !important;
     }
 
-    th {
-        background: var(--gradient-primary) !important;
-        color: var(--white) !important;
+    table {
+        border: 1px solid var(--primary-navy) !important;
     }
     
     .deducoes-acessorias {
@@ -899,6 +859,7 @@ tr:hover td {
         font-weight: 600 !important;
     }
     
+    
     .cessoes-beneficiario {
         border-left: 3px solid #3B82F6 !important;
         -webkit-print-color-adjust: exact !important;
@@ -910,6 +871,7 @@ tr:hover td {
         font-weight: 600 !important;
     }
     
+    
     .pagamentos-finais {
         border-left: 3px solid #10B981 !important;
         -webkit-print-color-adjust: exact !important;
@@ -919,6 +881,27 @@ tr:hover td {
     .pagamentos-finais h3 {
         color: #065F46 !important;
         font-weight: 600 !important;
+    }
+    
+    .tabs-nav,
+    .btn-container,
+    .section-title,
+    .print-button-container{
+        display: none !important;
+    }
+    
+    .tab-content {
+        display: none !important;
+    }
+    
+    #tab7 {
+        display: block !important;
+        page-break-inside: avoid;
+    }
+    
+    th {
+        background: var(--gradient-primary) !important;
+        color: var(--white) !important;
     }
     
     .highlight {
@@ -997,4 +980,25 @@ tr:hover td {
         page-break-inside: avoid;
         break-inside: avoid;
     }
+    
+    /* Garantir que o conteúdo da tab7 fique na mesma página */
+    #tab7 {
+        page-break-before: avoid !important;
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+    
+    /* Ocultar container das tabs mas manter o conteúdo da tab7 */
+    .tabs-container {
+        padding: 0 !important;
+        background: transparent !important;
+        border: none !important;
+        margin: 0 !important;
+    }
+    
+    /* Manter bordas e sombras importantes */
+    .form-group {
+        border: 1px solid var(--primary-gold) !important;
+    }
+    
 }
