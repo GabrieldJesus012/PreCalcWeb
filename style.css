@@ -899,7 +899,6 @@ tr:hover td {
         font-weight: 600 !important;
     }
     
-    /* Manter estilo das cessões na impressão */
     .cessoes-beneficiario {
         border-left: 3px solid #3B82F6 !important;
         -webkit-print-color-adjust: exact !important;
@@ -911,7 +910,6 @@ tr:hover td {
         font-weight: 600 !important;
     }
     
-    /* Manter estilo dos pagamentos na impressão */
     .pagamentos-finais {
         border-left: 3px solid #10B981 !important;
         -webkit-print-color-adjust: exact !important;
@@ -922,8 +920,6 @@ tr:hover td {
         color: #065F46 !important;
         font-weight: 600 !important;
     }
-    
-
     
     .highlight {
         background: linear-gradient(135deg, #E8F5E8, #D4EDDA) !important;
