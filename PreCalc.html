@@ -1681,7 +1681,6 @@
                         periodoAntesGraca = `${primeiraData} a ${ultimaData}`;
                     }
                 }
-                // CORREÇÃO: Aplica SELIC após o fim da graça, MAS SÓ A PARTIR DA DATA BASE
                 let dadosAposGraca = [];
                 if (dataBase > fimGraca) {
                     // Se dataBase é após a graça, aplica SELIC da dataBase até hoje
@@ -1756,8 +1755,6 @@
                     return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
                 }
                 
-                // CORREÇÃO: IPCA só deve ser aplicado DURANTE o período de graça
-                // E APENAS se a data base estiver ANTES ou DURANTE a graça
                 let ipcaGraca = [];
                 
                 if (dataBase <= fimGraca) {
@@ -1773,7 +1770,6 @@
                 }
                 // Se dataBase > fimGraca, não aplica IPCA (ipcaGraca fica vazio)
                 
-                // Fator acumulado IPCA
                 let indiceipca = 1.0;
                 for (const valor of ipcaGraca) {
                     indiceipca *= 1 + (valor / 100);
@@ -1782,7 +1778,7 @@
                 return indiceipca;
             } catch (error) {
                 console.error(`Erro ao obter dados do IPCA: ${error}`);
-                return 1.0; // Valor padrão em caso de erro
+                return 1.0; 
             }
         }
 
@@ -1790,7 +1786,6 @@
             elementos: null,
             
             init() {
-                // Cache TODOS os elementos de uma vez só
                 this.elementos = {
                     // Dados básicos
                     numprocesso: document.getElementById('numprocesso'),
@@ -1821,7 +1816,6 @@
                 };
             },
             
-            // Função helper para obter valor com fallback
             getValue(elementId, defaultValue = '', parser = null) {
                 const element = this.elementos[elementId];
                 if (!element) return defaultValue;
@@ -1833,14 +1827,11 @@
             }
         };
 
-        // Função calcular OTIMIZADA
         async function calcular() {
-            // Inicializar cache se necessário
             if (!ColetaCache.elementos) {
                 ColetaCache.init();
             }
             
-            // Coletar e validar dados
             const dados = coletarDados();
             const erros = validarDados(dados);
             
@@ -1853,11 +1844,9 @@
             exibirResultados(resultados, dados)
         }
 
-        // Função coletarDados OTIMIZADA
         function coletarDados() {
             const cache = ColetaCache;
             
-            // Coleta básica otimizada (usando cache)
             const dados = {
                 numProcesso: cache.getValue('numprocesso', 'Processo'),
                 anoOrcamento: cache.getValue('anoOrcamento', 2026, parseInt),
@@ -1881,17 +1870,14 @@
                 quantSindicatos: cache.getValue('quantSindicatos', 0, parseInt),
                 quantCessoes: cache.getValue('quantCessoes', 0, parseInt),
                 
-                // Arrays que serão preenchidos
                 advogados: [],
                 herdeiros: [],
                 sindicatos: [],
                 cessoes: []
             };
             
-            // Cálculo derivado
             dados.valorTotal = dados.valorPrincipal + dados.valorJuros;
             
-            // Campos condicionais otimizados
             if (dados.tipoCalculo === 'preferencia') {
                 dados.tetoPreferencia = cache.getValue('tetoPreferenciaPrincipal', 0, parseFloat);
             }
@@ -1899,7 +1885,6 @@
                 dados.percentualAcordo = cache.getValue('percentualAcordoValor', 0, parseFloat);
             }
             
-            // Coletar dados complexos usando funções otimizadas
             coletarAdvogados(dados);
             coletarHerdeiros(dados);
             coletarSindicatos(dados);
@@ -1908,7 +1893,6 @@
             return dados;
         }
 
-        // Função otimizada para coletar advogados
         function coletarAdvogados(dados) {
             for (let i = 0; i < dados.quantAdvogados; i++) {
                 const nome = document.getElementById(`advNome${i}`)?.value || '';
@@ -1919,14 +1903,12 @@
             }
         }
 
-        // Função otimizada para coletar herdeiros
         function coletarHerdeiros(dados) {
             for (let i = 0; i < dados.quantHerdeiros; i++) {
                 const nomeElement = document.getElementById(`herdNome${i}`);
                 const percentualElement = document.getElementById(`herdPercentual${i}`);
                 const preferenciaElement = document.getElementById(`herdPreferencia${i}`);
                 
-                // Early continue se elementos essenciais não existem
                 if (!nomeElement || !percentualElement) continue;
                 
                 dados.herdeiros.push({
@@ -1937,19 +1919,16 @@
             }
         }
 
-        // Função otimizada para coletar sindicatos
         function coletarSindicatos(dados) {
             for (let i = 0; i < dados.quantSindicatos; i++) {
                 const nomeElement = document.getElementById(`sindNome${i}`);
                 const percentualElement = document.getElementById(`sindPercentual${i}`);
                 const tributacaoElement = document.getElementById(`sindTrib${i}`);
                 
-                // Early continue se elementos essenciais não existem
                 if (!nomeElement || !percentualElement || !tributacaoElement) continue;
                 
                 const tributacao = tributacaoElement.value;
                 
-                // Lógica otimizada para alíquota
                 let aliquotaFixa = 0;
                 if (tributacao === 'nao') {
                     aliquotaFixa = 1; // 100% - sem tributação
@@ -1969,7 +1948,6 @@
             }
         }
 
-        // Função otimizada para coletar cessões
         function coletarCessoes(dados) {
             for (let i = 0; i < dados.quantCessoes; i++) {
                 const tipoElement = document.getElementById(`cessaoTipo${i}`);
@@ -1977,13 +1955,11 @@
                 const cessionarioElement = document.getElementById(`cessionarioNome${i}`);
                 const percentualElement = document.getElementById(`cessaoPercentual${i}`);
                 
-                // Early continue se elementos essenciais não existem
                 if (!tipoElement || !cedenteElement || !cessionarioElement || !percentualElement) continue;
                 
                 const tipo = tipoElement.value;
                 const cedente = cedenteElement.value;
                 
-                // Só processar se dados básicos estão preenchidos
                 if (tipo && cedente) {
                     dados.cessoes.push({
                         tipo,
@@ -1995,11 +1971,9 @@
             }
         }
 
-        // Função validarDados OTIMIZADA
         function validarDados(dados) {
             const erros = [];
             
-            // Validar herdeiros (otimizado)
             if (dados.herdeiros.length > 0) {
                 const somaHerdeiros = dados.herdeiros.reduce((sum, h) => sum + h.percentual, 0);
                 if (Math.abs(somaHerdeiros - 1.0) > 0.001) {
@@ -2007,29 +1981,23 @@
                 }
             }
             
-            // Validar cessões (otimizado)
             validarCessoes(dados, erros);
             
             return erros;
         }
 
-        // Função separada para validar cessões (mais limpa)
         function validarCessoes(dados, erros) {
-            // Criar maps para busca otimizada (O(1) ao invés de O(n))
             const advogadosMap = new Map(dados.advogados.map(adv => [adv.nome, true]));
             const herdeirosMap = new Map(dados.herdeiros.map(h => [h.nome, true]));
             const sindicatosMap = new Map(dados.sindicatos.map(s => [s.nome, true]));
             
-            // Normalizar nome do beneficiário uma vez só
             const beneficiarioNorm = dados.beneficiario.trim();
             
             dados.cessoes.forEach((cessao, i) => {
-                // Validar percentual
                 if (cessao.percentual > 1.0) {
                     erros.push(`Cessão ${i + 1}: Percentual não pode ser maior que 100%`);
                 }
                 
-                // Validar existência do cedente (otimizado com maps)
                 let cedenteExiste = false;
                 const cedenteNorm = cessao.cedente.trim();
                 
@@ -2055,7 +2023,6 @@
             });
         }
 
-        // Inicializar cache quando DOM estiver pronto
         document.addEventListener('DOMContentLoaded', function() {
             ColetaCache.init();
         });
@@ -2107,6 +2074,7 @@
                 indiceipca,
                 indiceTotal,
                 jurosmora,
+
                 //percentuais
                 percentualprinc,
                 percentualjur
@@ -2129,7 +2097,7 @@
             // RRA
             let rrapagamento = dados.rra !== 0 ? Math.round((valorBase * dados.rra) / valortotatt) : 0;
 
-            // ========== CESSÕES DO BENEFICIÁRIO PRINCIPAL ==========
+            // CESSÕES DO BENEFICIÁRIO PRINCIPAL 
             const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
             
             const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
@@ -2141,7 +2109,7 @@
 
             //verificar se há cessões do beneficiário
             if (cessoesBeneficiario.length > 0) {
-                // Cessão é sobre o valor TOTAL da dívida, não sobre o valor limitado
+                // Cessão é sobre o valor TOTAL da dívida
                 const percentualBeneficiarioFinal = 1.0 - cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
                 
                 // Calcular quanto o beneficiário tem direito na dívida total (SEM descontar honorários ainda)
@@ -2276,7 +2244,6 @@
             let valorBeneficiarioFinal = valorBeneficiarioBruto - valorPrevidencia - valorIR;
             let cessoesBeneficiarioFinais = [];
 
-            // Early return se não há cessões
             if (cessoesBeneficiario.length === 0) {
                 return {
                     valorBeneficiarioBruto,
@@ -2291,11 +2258,9 @@
                 };
             }
 
-            // OTIMIZAÇÃO: Cálculos que serão reutilizados (cache)
             const totalPercentualCessoes = cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
             percentualBeneficiarioFinal = 1.0 - totalPercentualCessoes;
             
-            // Cache cálculo pesado dos advogados (usado múltiplas vezes)
             const percentualAdvogados = dados.advogados.length > 0 ? 
                 dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0) : 0;
             const valortotattSemAdvogados = valortotatt - (valortotatt * percentualAdvogados);
@@ -2335,7 +2300,6 @@
                 valorCessoesBeneficiario = 0; 
                 valorBeneficiarioAposCessoes = maxQueBeneficiarioPodeReceber;
                 
-                // Previdência e IR aplicados sobre o valor recalculado
                 valorPrevidenciaBeneficiario = valorPrevidencia;
                 valorIRBeneficiario = valorIR;
                 valorBeneficiarioFinal = maxQueBeneficiarioPodeReceber - valorPrevidenciaBeneficiario - valorIRBeneficiario;
@@ -2345,10 +2309,8 @@
                 const valorPrevidenciaPorPercentual = valorPrevidencia; 
                 const valorIRPorPercentual = valorIR; 
                 
-                // Reset valor total de cessões
                 valorCessoesBeneficiario = 0;
                 
-                // OTIMIZAÇÃO: Um loop só para ambos arrays
                 cessoesBeneficiarioCalculadas = [];
                 cessoesBeneficiarioFinais = [];
                 
@@ -2364,7 +2326,6 @@
                         valorBruto: valorBrutoCessao
                     };
                     
-                    // Cálculos para cessão final
                     const previdenciaCessao = valorPrevidenciaPorPercentual * cessao.percentual;
                     const irCessao = valorIRPorPercentual * cessao.percentual;
                     const valorLiquidoCessao = valorBrutoCessao - previdenciaCessao - irCessao;
@@ -2447,7 +2408,6 @@
                     };
                 });
 
-                // Dados totais dos cessionários (para compatibilidade)
                 const valorBruto = valorBrutoTotal;
                 const ir = irAdvogado + irCessionarioAdv;
                 const valorLiquido = valorLiquidoAdvogado + valorLiquidoCessionario;
@@ -2501,7 +2461,7 @@
             const sindicatos = dados.sindicatos.map(sind => {
                 const percentualTotalSindicato = sind.percentual;
                 
-                // DIFERENÇA PRINCIPAL: Sindicato sempre calcula sobre valor total da dívida
+                //Sindicato sempre calcula sobre valor total da dívida
                 const valorBrutoTotal = valortotatt * percentualTotalSindicato;
                 
                 // Verificar se o sindicato fez cessão
