@@ -2949,6 +2949,8 @@
             const container = document.getElementById('resultadosContent');
             const dataAtual = obterDataAtual();
             const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
+
+            const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
             
             const html = `
                 ${gerarCabecalhoProcesso(dados, resultados, dataAtual)}
@@ -2957,10 +2959,14 @@
                 ${gerarCalculos(dados, resultados, inicioGraca, fimGraca)}
 
                 ${gerarResumoCalculos(resultados)}
+
                 ${gerarSecaoDeducoesAcessorias(resultados, dados)}
                 ${gerarSecaoCessoesSindicatos(resultados, dados)}
                 ${gerarSecaoCessoesAdvogados(resultados, dados)}
+
                 ${gerarSecaoCessoesBeneficiario(resultados, dados)}
+                ${temHerdeiros ? gerarSecaoHerdeiros(resultados, dados) : ''}
+                
                 ${gerarSecaoDeducoes(resultados, dados)}
                 ${gerarSecoesPagamentos(resultados, dados)}
                 ${gerarBotaoImprimir()}
@@ -2995,6 +3001,106 @@
 
         function formatarMoeda(valor) {
             return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function gerarSecaoHerdeiros(resultados, dados) {
+            if (!resultados.temHerdeiros || resultados.herdeiros.length === 0) return '';
+            
+            const linhasHerdeiros = resultados.herdeiros.map(h => {
+                const valorTotalHerdeiro = h.valorTotalOriginal;
+                
+                let honorarioTotalReal = 0;
+                let sindicatoTotalReal = 0;
+                
+                if (h.honorarios && h.honorarios.length > 0) {
+                    if (h.isPreferenciaParcial) {
+                        honorarioTotalReal = h.honorarios.reduce((sum, adv) => {
+                            return sum + (valorTotalHerdeiro * adv.percentual);
+                        }, 0);
+                    } else {
+                        honorarioTotalReal = h.valorHonorarioTotal || 0;
+                    }
+                }
+                
+                if (h.sindicatos && h.sindicatos.length > 0) {
+                    sindicatoTotalReal = h.sindicatos.reduce((sum, sind) => {
+                        return sum + (valorTotalHerdeiro * sind.percentual);
+                    }, 0);
+                }
+                
+                const valorLiquidoSemTributos = valorTotalHerdeiro - honorarioTotalReal - sindicatoTotalReal;
+                
+                return `
+                    <tr>
+                        <td>${h.nome}</td>
+                        <td>${(h.percentual * 100).toFixed(1)}%</td>
+                        <td>R$ ${formatarMoeda(valorTotalHerdeiro)}</td>
+                        <td>R$ ${formatarMoeda(honorarioTotalReal)}</td>
+                        <td>R$ ${formatarMoeda(sindicatoTotalReal)}</td>
+                        <td>R$ ${formatarMoeda(valorLiquidoSemTributos)}</td>
+                        <td>${h.rrapagamentoOriginal || 0}</td>
+                    </tr>
+                `;
+            }).join('');
+            
+            const totalHerdeiros = resultados.herdeiros.reduce((sum, h) => sum + h.valorTotalOriginal, 0);
+            
+            const totalHonorarios = resultados.herdeiros.reduce((sum, h) => {
+                if (h.honorarios && h.honorarios.length > 0) {
+                    if (h.isPreferenciaParcial) {
+                        return sum + h.honorarios.reduce((advSum, adv) => {
+                            return advSum + (h.valorTotalOriginal * adv.percentual);
+                        }, 0);
+                    } else {
+                        return sum + (h.valorHonorarioTotal || 0);
+                    }
+                }
+                return sum;
+            }, 0);
+            
+            const totalSindicatos = resultados.herdeiros.reduce((sum, h) => {
+                if (h.sindicatos && h.sindicatos.length > 0) {
+                    return sum + h.sindicatos.reduce((sindSum, sind) => {
+                        return sindSum + (h.valorTotalOriginal * sind.percentual);
+                    }, 0);
+                }
+                return sum;
+            }, 0);
+            
+            const totalLiquido = totalHerdeiros - totalHonorarios - totalSindicatos;
+            const totalRRA = resultados.herdeiros.reduce((sum, h) => sum + (h.rrapagamentoOriginal || 0), 0);
+            
+            return `
+                <div class="cessoes-beneficiario">
+                    <div class="table-container">
+                        <h3>👨‍👩‍👧‍👦 Distribuição entre Herdeiros</h3>
+                        <table>
+                            <tr>
+                                <th>Nome Herdeiro</th>
+                                <th>%</th>
+                                <th>Valor Bruto</th>
+                                <th>Hon. Contratuais</th>
+                                <th>Sindicatos</th>
+                                <th>Valor Líquido*</th>
+                                <th>RRA</th>
+                            </tr>
+                            ${linhasHerdeiros}
+                            <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
+                                <td><strong>TOTAIS</strong></td>
+                                <td><strong>100%</strong></td>
+                                <td><strong>R$ ${formatarMoeda(totalHerdeiros)}</strong></td>
+                                <td><strong>R$ ${formatarMoeda(totalHonorarios)}</strong></td>
+                                <td><strong>R$ ${formatarMoeda(totalSindicatos)}</strong></td>
+                                <td><strong>R$ ${formatarMoeda(totalLiquido)}</strong></td>
+                                <td><strong>${resultados.herdeiros.reduce((sum, h) => sum + (h.rrapagamentoOriginal || 0), 0) || '-'}</strong></td>
+                            </tr>
+                        </table>
+                        <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
+                            *Valor líquido sem considerar Previdência e IR 
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         function gerarCabecalhoProcesso(dados, resultados, dataAtual) {
