@@ -2688,25 +2688,16 @@
             dados.herdeiros.forEach((herdeiro, index) => {
                 const percentualHerdeiro = herdeiro.percentual;
 
-                console.log(`=== HERDEIRO ${index + 1}: ${herdeiro.nome} (${(percentualHerdeiro * 100).toFixed(1)}%) ===`);
-
                 // 1. VALORES BÁSICOS DO HERDEIRO
                 const valorTotalHerdeiro = valortotatt * percentualHerdeiro;
                 const principalHerdeiro = valorprincatt * percentualHerdeiro;
                 const jurosBaseHerdeiro = valorjurosatt * percentualHerdeiro;
                 const rrapagamentoHerdeiro = dados.rra !== 0 ? Math.round(dados.rra * percentualHerdeiro) : 0;
 
-                console.log(`Valor total: R$ ${valorTotalHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-                console.log(`Principal: R$ ${principalHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-                console.log(`Juros: R$ ${jurosBaseHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-                console.log(`RRA: ${rrapagamentoHerdeiro} meses`);
-
                 // 2. CESSÕES DO BENEFICIÁRIO PRINCIPAL
                 const percentualBeneficiarioFinal = detalhamentoTotal.percentualBeneficiarioFinal;
                 const valorDisponivelParaHerdeiros = valortotatt * percentualBeneficiarioFinal;
                 const valorHerdeiroPoscessaoBeneficiario = valorDisponivelParaHerdeiros * percentualHerdeiro;
-
-                console.log(`\nApós cessões beneficiário: R$ ${valorHerdeiroPoscessaoBeneficiario.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
 
                 // 3. CESSÕES DO PRÓPRIO HERDEIRO
                 const cessoesHerdeiro = dados.cessoes?.filter(cessao => 
@@ -2717,7 +2708,6 @@
                 if (cessoesHerdeiro.length > 0) {
                     const percentualCedido = cessoesHerdeiro.reduce((total, cessao) => total + cessao.percentual, 0);
                     valorAposCessoesHerdeiro = valorHerdeiroPoscessaoBeneficiario * (1.0 - percentualCedido);
-                    console.log(`Após cessões próprias: R$ ${valorAposCessoesHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
                 }
 
                 // 4. VALOR BASE CONFORME TIPO DE CÁLCULO
@@ -2729,8 +2719,6 @@
                     valorBaseHerdeiro = valorAposCessoesHerdeiro * (1 - dados.percentualAcordo);
                 }
 
-                console.log(`Valor base final: R$ ${valorBaseHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-
                 // 5. COMPOSIÇÃO INICIAL
                 let principalHerdeiroBase = valorBaseHerdeiro * percentualprinc;
                 const jurosBaseHerdeiroFinal = valorBaseHerdeiro * percentualjur;
@@ -2741,31 +2729,9 @@
                 let valorBaseParaHonorarios = valorBaseHerdeiro;
                 let valorHerdeiroQueRecebeEfetivamente = valorBaseHerdeiro;
 
-                console.log(`\n--- ANÁLISE PREFERÊNCIA ---`);
-                console.log(`Tipo cálculo: ${dados.tipoCalculo}`);
-                console.log(`Tem preferência: ${herdeiro.temPreferencia}`);
-                console.log(`Valor total herdeiro: R$ ${valorTotalHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-                console.log(`Valor base final: R$ ${valorBaseHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-                console.log(`É preferência parcial: ${isPreferenciaParcial}`);
-
                 // 7. HONORÁRIOS
                 const resultadoHonorarios = calcularHonorarios(dados, valorBaseParaHonorarios, valorTotalHerdeiro);
                 const { honorarios: honorariosHerdeiro, valorHonorarioTotal: valorHonorarioTotalHerdeiro } = resultadoHonorarios;
-
-                console.log(`\nHonorários: R$ ${valorHonorarioTotalHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-                honorariosHerdeiro.forEach(adv => {
-                    console.log(`  ${adv.nome}:`);
-                    console.log(`    Percentual total: ${(adv.percentual * 100).toFixed(2)}%`);
-                    console.log(`    Valor bruto advogado: R$ ${adv.valorBrutoAdvogado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-                    console.log(`    Valor bruto cessionário: R$ ${adv.valorBrutoCessionario.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-                    console.log(`    Total pago: R$ ${adv.valorBruto.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-                    
-                    if (isPreferenciaParcial) {
-                        console.log(`    ⚠️ PREFERÊNCIA PARCIAL: Cessionários aguardam pagamento`);
-                    } else {
-                        console.log(`    ✅ PREFERÊNCIA TOTAL: Todos recebem (advogado + cessionário)`);
-                    }
-                });
 
                 // 8. SINDICATOS
                 const resultadoSindicatos = calcularSindicatos(dados, valorBaseParaHonorarios, valorTotalHerdeiro);
@@ -2773,20 +2739,7 @@
                 
                 const valorSindicatoParaDescontar = isPreferenciaParcial ? 0 : valorSindicatoTotalHerdeiro;
                 const valorBeneficiarioBrutoHerdeiro = valorBaseHerdeiro - valorHonorarioTotalHerdeiro - valorSindicatoParaDescontar;
-
-                console.log(`Sindicatos: R$ ${valorSindicatoTotalHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-                console.log(`Valor bruto: R$ ${valorBeneficiarioBrutoHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-
-                if (isPreferenciaParcial && valorSindicatoTotalHerdeiro > 0) {
-                    console.log(`⚠️ Sindicatos aguardam: R$ ${valorSindicatoTotalHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})} (preferência parcial)`);
-                }
                 
-                console.log(`Valor bruto: R$ ${valorBeneficiarioBrutoHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-                console.log(`\n--- RESUMO PAGAMENTOS ---`);
-                console.log(`💰 Herdeiro recebe: R$ ${valorBaseHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-                console.log(`🏛️ Honorários pagos: R$ ${valorHonorarioTotalHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-                console.log(`🏢 Sindicatos pagos: R$ ${valorSindicatoParaDescontar.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-                console.log(`📊 Total pago agora: R$ ${(valorBaseHerdeiro).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
 
                 // 9. RECÁLCULO PARA PREFERÊNCIA PARCIAL
                 let principalHerdeiroEfetivo = principalHerdeiroBase;
@@ -2802,8 +2755,6 @@
                         rrapagamentoHerdeiroEfetivo = 0;
                     }
 
-                    console.log(`\nPreferência parcial - Principal recalculado: R$ ${principalHerdeiroEfetivo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-                    console.log(`RRA recalculado: ${rrapagamentoHerdeiroEfetivo} meses`);
                 } else if (cessoesHerdeiro.length > 0 && dados.tipoCalculo !== 'ordem') {
                     principalHerdeiroEfetivo = valorHerdeiroQueRecebeEfetivamente * percentualprinc;
                     
@@ -2819,8 +2770,6 @@
                 const resultadoPrevidencia = calcularPrevidenciaIsolada(dados, principalHerdeiroEfetivo, rrapagamentoHerdeiroEfetivo);
                 const valorPrevidenciaHerdeiro = resultadoPrevidencia.valorPrevidencia;
                 const aliquotaEfetivaHerdeiro = resultadoPrevidencia.aliquotaEfetiva;
-
-                console.log(`\nPrevidência: R$ ${valorPrevidenciaHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
 
                 // 11. IR
                 const resultadoIR = calcularIRIsolado(
@@ -2841,8 +2790,6 @@
                     baseIRRRA: baseIRRRAHerdeiro,
                     valorIRUnitario: valorIRUnitarioHerdeiro
                 } = resultadoIR;
-
-                console.log(`IR: R$ ${valorIRHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
 
                 // 12. CESSÕES FINAIS
                 const resultadoCessoes = calcularCessoesBeneficiarioPrincipal(
@@ -2873,14 +2820,8 @@
                     valorHerdeiroRecebePorPreferencia = valorBaseHerdeiro - 
                         (valorPrevidenciaHerdeiroFinal + valorIRHerdeiroFinal + valorHonorarioTotalHerdeiro);
                     valorHerdeiroSaldoDevedor = valorHerdeiroPoscessaoBeneficiario - valorBaseHerdeiro;
-
-                    console.log(`\nRecebe por preferência: R$ ${valorHerdeiroRecebePorPreferencia.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-                    console.log(`Saldo devedor: R$ ${valorHerdeiroSaldoDevedor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
                 }
-
-                console.log(`VALOR LÍQUIDO FINAL: R$ ${valorHerdeiroLiquido.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-                console.log(`=== FIM HERDEIRO ===\n`);
-
+                
                 // 14. MONTAR RESULTADO
                 const herdeiroDados = {
                     ...herdeiro,
@@ -2958,7 +2899,7 @@
                 
                 ${gerarCalculos(dados, resultados, inicioGraca, fimGraca)}
 
-                ${gerarResumoCalculos(resultados)}
+                ${gerarResumoCalculos(resultados,dados)}
 
                 ${gerarSecaoDeducoesAcessorias(resultados, dados)}
                 ${gerarSecaoCessoesSindicatos(resultados, dados)}
@@ -3282,16 +3223,60 @@
             `;
         }
 
-        function gerarResumoCalculos(resultados) {
+        function gerarResumoCalculos(resultados,dados) {
+            const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
+            let basesPagamento = '';
+            if (temHerdeiros) {
+                let herdeirosParaMostrar = [];
+                if (dados.tipoCalculo === 'preferencia') {
+                    herdeirosParaMostrar = resultados.herdeiros.filter(h => h.temPreferencia);
+                } else {
+                    herdeirosParaMostrar = resultados.herdeiros;
+                }
+                if (herdeirosParaMostrar.length > 0) {
+                basesPagamento = `
+                    <tr class="highlight">
+                        <td colspan="3"><strong>Base para Pagamento</strong></td>
+                    </tr>
+                    ${herdeirosParaMostrar.map(h => `
+                        <tr class="highlight">
+                            <td><strong>${h.nome}</strong></td>
+                            <td>R$ ${formatarMoeda(h.valorTotal)}</td>
+                            <td>${((h.valorTotal / resultados.valortotatt) * 100).toFixed(2)}%</td>
+                        </tr>
+                    `).join('')}
+                `;
+            }
+            } else {
+                basesPagamento = `
+                    <tr class="highlight">
+                        <td><strong>Base para Pagamento</strong></td>
+                        <td>R$ ${formatarMoeda(resultados.valorBase)}</td>
+                        <td>${((resultados.valorBase / resultados.valortotatt) * 100).toFixed(2)}%</td>
+                    </tr>
+                `;
+            }
             return `
                 <div class="table-container">
                     <h3>📈 Resumo dos Cálculos</h3>
                     <table>
                         <tr><th>Descrição</th><th>Valor</th><th>%</th></tr>
-                        <tr><td>Valor Principal Atualizado</td><td>R$ ${formatarMoeda(resultados.valorprincatt)}</td><td>${(resultados.percentualprinc * 100).toFixed(4)}%</td></tr>
-                        <tr><td>Valor Juros Atualizado</td><td>R$ ${formatarMoeda(resultados.valorjurosatt)}</td><td>${(resultados.percentualjur * 100).toFixed(4)}%</td></tr>
-                        <tr class="highlight"><td>Total Atualizado</td><td>R$ ${formatarMoeda(resultados.valortotatt)}</td><td>${((resultados.percentualprinc + resultados.percentualjur) * 100).toFixed(2)}%</td></tr>
-                        <tr class="highlight"><td>Base para Pagamento</td><td>R$ ${formatarMoeda(resultados.valorBase)}</td><td>${((resultados.valorBase / resultados.valortotatt) * 100).toFixed(2)}%</td></tr>
+                        <tr>
+                            <td>Valor Principal Atualizado</td>
+                            <td>R$ ${formatarMoeda(resultados.valorprincatt)}</td>
+                            <td>${(resultados.percentualprinc * 100).toFixed(4)}%</td>
+                        </tr>
+                        <tr>
+                            <td>Valor Juros Atualizado</td>
+                            <td>R$ ${formatarMoeda(resultados.valorjurosatt)}</td>
+                            <td>${(resultados.percentualjur * 100).toFixed(4)}%</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Atualizado</strong></td>
+                            <td><strong>R$ ${formatarMoeda(resultados.valortotatt)}</strong></td>
+                            <td><strong>${((resultados.percentualprinc + resultados.percentualjur) * 100).toFixed(2)}%</strong></td>
+                        </tr>
+                        ${basesPagamento}
                     </table>
                 </div>
             `;
