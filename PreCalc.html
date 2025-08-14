@@ -2059,6 +2059,18 @@
             // Detalhamento financeiro
             const detalhamento = calcularGlobal(dados, valortotatt, percentualprinc, percentualjur);
 
+            //herdeiros
+            const herdeiros = calcularHerdeiros(dados, valortotatt, valorprincatt, valorjurosatt, detalhamento);
+
+            // Resumo dos herdeiros
+            const resumoHerdeiros = {
+                valorTotalHerdeiros: herdeiros.reduce((sum, h) => sum + h.valorTotalOriginal, 0),
+                valorLiquidoTotalHerdeiros: herdeiros.reduce((sum, h) => sum + h.valorLiquido, 0),
+                quantidadeHerdeiros: herdeiros.length,
+                herdeirosComPreferencia: herdeiros.filter(h => h.temPreferencia).length,
+                herdeirosComPreferenciaParcial: herdeiros.filter(h => h.isPreferenciaParcial).length
+            };
+
             return {
                 //atualizacao
                 valorprincatt,
@@ -2067,6 +2079,11 @@
 
                 //calculo do beneficiario principal
                 ...detalhamento,
+
+                //herdeiros
+                herdeiros,
+                resumoHerdeiros,
+                temHerdeiros: herdeiros.length > 0,
 
                 // Índices para exibição
                 indicesCNJ,
@@ -2639,6 +2656,351 @@
             }
             
             return { valorPrevidencia, aliquotaEfetiva };
+        }
+
+        // herdeiros
+        function calcularTotaisParaHerdeiros(dados, valortotatt, percentualprinc, percentualjur) {
+            // Sempre calcula como se fosse ordem cronológica para obter valores totais
+            const dadosOrdem = { ...dados, tipoCalculo: 'ordem' };
+            return calcularGlobal(dadosOrdem, valortotatt, percentualprinc, percentualjur);
+        }
+
+        function calcularHerdeiros(dados, valortotatt, valorprincatt, valorjurosatt, detalhamentoBeneficiario) {
+            // Se não há herdeiros, retorna array vazio
+            if (!dados.herdeiros || dados.herdeiros.length === 0) {
+                return [];
+            }
+
+            // Calcular valores totais (como se fosse ordem cronológica)
+            const percentualprinc = valorprincatt / valortotatt;
+            const percentualjur = valorjurosatt / valortotatt;
+            const detalhamentoTotal = calcularTotaisParaHerdeiros(dados, valortotatt, percentualprinc, percentualjur);
+
+            const herdeirosCalculados = [];
+
+            // Para cada herdeiro, aplicar seu percentual sobre TODOS os componentes TOTAIS
+            dados.herdeiros.forEach((herdeiro, index) => {
+                const percentualHerdeiro = herdeiro.percentual;
+
+                // 1. COMPONENTES BÁSICOS - PERCENTUAL DO HERDEIRO SOBRE VALORES TOTAIS
+                const valorTotalHerdeiro = valortotatt * percentualHerdeiro;
+                const principalHerdeiro = valorprincatt * percentualHerdeiro;
+                const jurosBaseHerdeiro = valorjurosatt * percentualHerdeiro;
+                
+                // RRA do herdeiro (proporcional aos meses)
+                const rrapagamentoHerdeiro = dados.rra !== 0 ? Math.round(dados.rra * percentualHerdeiro) : 0;
+
+                console.log(`=== HERDEIRO ${index + 1}: ${herdeiro.nome} (${(percentualHerdeiro * 100).toFixed(1)}%) ===`);
+                console.log(`Valor total original: R$ ${valorTotalHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                console.log(`Principal: R$ ${principalHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                console.log(`Juros: R$ ${jurosBaseHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                console.log(`RRA original: ${dados.rra} → RRA herdeiro: ${rrapagamentoHerdeiro} meses`);
+
+                // 6. CALCULAR HONORÁRIOS DO HERDEIRO (igual calcularGlobal)
+                const valorBaseParaHonorariosHerdeiro = valorBaseHerdeiro;
+                const resultadoHonorariosHerdeiro = calcularHonorarios(dados, valorBaseParaHonorariosHerdeiro, valorTotalHerdeiro);
+                const { honorarios: honorariosHerdeiro, valorHonorarioTotal: valorHonorarioTotalHerdeiro } = resultadoHonorariosHerdeiro;
+
+                console.log(`\n--- HONORÁRIOS DO HERDEIRO ---`);
+                console.log(`Base para honorários: R$ ${valorBaseParaHonorariosHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                console.log(`Honorários totais: R$ ${valorHonorarioTotalHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+
+                // 7. CALCULAR SINDICATOS DO HERDEIRO (igual calcularGlobal)
+                const resultadoSindicatosHerdeiro = calcularSindicatos(dados, valorBaseParaHonorariosHerdeiro, valorTotalHerdeiro);
+                const { sindicatos: sindicatosHerdeiro, valorSindicatoTotal: valorSindicatoTotalHerdeiro } = resultadoSindicatosHerdeiro;
+                
+                const valorSindicatoParaDescontarHerdeiro = isPreferenciaParcialHerdeiro ? 0 : valorSindicatoTotalHerdeiro;
+
+                console.log(`Sindicatos totais: R$ ${valorSindicatoTotalHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                console.log(`Sindicatos para descontar: R$ ${valorSindicatoParaDescontarHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+
+                // 8. VALOR BRUTO DO HERDEIRO (igual calcularGlobal)
+                const valorBeneficiarioBrutoHerdeiro = valorBaseHerdeiro - valorHonorarioTotalHerdeiro - valorSindicatoParaDescontarHerdeiro;
+
+                console.log(`\n--- VALOR BRUTO HERDEIRO ---`);
+                console.log(`Valor base: R$ ${valorBaseHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                console.log(`Valor bruto (após descontos): R$ ${valorBeneficiarioBrutoHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+
+                // 4. CESSÕES DO BENEFICIÁRIO PRINCIPAL AFETAM O VALOR DISPONÍVEL
+                const percentualBeneficiarioFinal = detalhamentoTotal.percentualBeneficiarioFinal;
+                const valorDisponivelParaHerdeiros = valortotatt * percentualBeneficiarioFinal;
+                const valorHerdeiroPoscessaoBeneficiario = valorDisponivelParaHerdeiros * percentualHerdeiro;
+
+                console.log(`Cessões do beneficiário: ${((1 - percentualBeneficiarioFinal) * 100).toFixed(1)}%`);
+                console.log(`Valor disponível para herdeiros: R$ ${valorDisponivelParaHerdeiros.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                console.log(`Valor do herdeiro após cessões beneficiário: R$ ${valorHerdeiroPoscessaoBeneficiario.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+
+                // 5. APLICAR PREFERÊNCIA (se o herdeiro tem direito)
+                let valorBaseHerdeiro = valorHerdeiroPoscessaoBeneficiario;
+                let isPreferenciaParcialHerdeiro = false;
+                let principalHerdeiroEfetivo = principalHerdeiro * percentualBeneficiarioFinal;
+                let rrapagamentoHerdeiroEfetivo = rrapagamentoHerdeiro;
+
+                console.log(`\n--- APLICAÇÃO DE PREFERÊNCIA ---`);
+                console.log(`Tipo de cálculo: ${dados.tipoCalculo}`);
+                console.log(`Herdeiro tem preferência: ${herdeiro.temPreferencia}`);
+
+                if (dados.tipoCalculo === 'preferencia' && dados.natureza === 'alimentar' && herdeiro.temPreferencia) {
+                    // Aplicar o teto da preferência no valor que o herdeiro tem direito
+                    const valorBasePreferenciaHerdeiro = Math.min(valorHerdeiroPoscessaoBeneficiario, dados.tetoPreferencia);
+                    valorBaseHerdeiro = valorBasePreferenciaHerdeiro;
+                    isPreferenciaParcialHerdeiro = valorBasePreferenciaHerdeiro < valorHerdeiroPoscessaoBeneficiario;
+                    
+                    console.log(`Teto da preferência: R$ ${dados.tetoPreferencia.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                    console.log(`Valor base preferência: R$ ${valorBasePreferenciaHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                    console.log(`É preferência parcial: ${isPreferenciaParcialHerdeiro}`);
+                    
+                    // Recalcular principal e RRA para preferência
+                    if (isPreferenciaParcialHerdeiro) {
+                        const percentualprinc = valorprincatt / valortotatt;
+                        principalHerdeiroEfetivo = valorBaseHerdeiro * percentualprinc;
+                        
+                        if (dados.rra !== 0) {
+                            const rraCalculado = Math.round((valorBaseHerdeiro * dados.rra) / valortotatt);
+                            rrapagamentoHerdeiroEfetivo = Math.max(1, rraCalculado);
+                        } else {
+                            rrapagamentoHerdeiroEfetivo = 0;
+                        }
+                        
+                        console.log(`Principal recalculado: R$ ${principalHerdeiroEfetivo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                        console.log(`RRA recalculado: ${rrapagamentoHerdeiroEfetivo} meses`);
+                    }
+                } else {
+                    console.log(`Sem preferência - usando valor total disponível`);
+                }
+
+                // 6. HONORÁRIOS E SINDICATOS EFETIVOS 
+                // Agora aplicar as regras específicas (preferência, cessões, etc.)
+                let valorHonorarioTotalHerdeiroEfetivo = valorHonorarioTotalHerdeiro;
+                let honorariosHerdeiroEfetivo = honorariosHerdeiro;
+                let valorSindicatoTotalHerdeiroEfetivo = valorSindicatoTotalHerdeiro;
+                let sindicatosHerdeiroEfetivo = sindicatosHerdeiro;
+
+                console.log(`\n--- HONORÁRIOS E SINDICATOS EFETIVOS ---`);
+
+                if (isPreferenciaParcialHerdeiro) {
+                    // PREFERÊNCIA PARCIAL: Aplicar a mesma lógica do beneficiário principal
+                    const fatorReducaoHonorarios = valorBaseHerdeiro / valorHerdeiroPoscessaoBeneficiario;
+                    
+                    // Para honorários: aplicar a lógica igual calcularHonorarios()
+                    // Em preferência parcial, só advogado recebe (cessionário aguarda)
+                    let valorHonorarioParaDescontar = 0;
+                    
+                    honorariosHerdeiroEfetivo = honorariosHerdeiro.map(adv => {
+                        // Aplicar a mesma lógica da função calcularHonorarios para preferência parcial
+                        const valorBrutoAdvogadoReduzido = adv.valorBrutoAdvogado * fatorReducaoHonorarios;
+                        valorHonorarioParaDescontar += valorBrutoAdvogadoReduzido;
+                        
+                        return {
+                            ...adv,
+                            valorBruto: valorBrutoAdvogadoReduzido, // Só a parte do advogado
+                            observacao: 'Preferência parcial - cessionários aguardam'
+                        };
+                    });
+                    
+                    valorHonorarioTotalHerdeiroEfetivo = valorHonorarioParaDescontar;
+
+                    // Sindicatos não recebem em preferência parcial
+                    valorSindicatoTotalHerdeiroEfetivo = 0;
+                    sindicatosHerdeiroEfetivo = sindicatosHerdeiro.map(sind => ({
+                        ...sind,
+                        valorBruto: 0,
+                        ir: 0,
+                        valorLiquido: 0,
+                        podeReceber: false,
+                        observacao: 'Aguarda pagamento - preferência parcial'
+                    }));
+
+                    console.log(`Fator redução: ${(fatorReducaoHonorarios * 100).toFixed(2)}%`);
+                    console.log(`Honorários TOTAIS originais: R$ ${valorHonorarioTotalHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                    console.log(`Honorários EFETIVOS (só advogado): R$ ${valorHonorarioTotalHerdeiroEfetivo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                    console.log(`Sindicatos efetivos: R$ 0 (preferência parcial)`);
+                } else {
+                    // ORDEM COMUM: Todos recebem (advogado + cessionário + sindicatos)
+                    // Aplicar apenas cessões do beneficiário
+                    valorHonorarioTotalHerdeiroEfetivo = valorHonorarioTotalHerdeiro * percentualBeneficiarioFinal;
+                    valorSindicatoTotalHerdeiroEfetivo = valorSindicatoTotalHerdeiro * percentualBeneficiarioFinal;
+                    
+                    honorariosHerdeiroEfetivo = honorariosHerdeiro.map(adv => ({
+                        ...adv,
+                        valorBruto: adv.valorBruto * percentualBeneficiarioFinal,
+                        ir: adv.ir * percentualBeneficiarioFinal,
+                        valorLiquido: adv.valorLiquido * percentualBeneficiarioFinal
+                    }));
+                    
+                    sindicatosHerdeiroEfetivo = sindicatosHerdeiro.map(sind => ({
+                        ...sind,
+                        valorBruto: sind.valorBruto * percentualBeneficiarioFinal,
+                        ir: sind.ir * percentualBeneficiarioFinal,
+                        valorLiquido: sind.valorLiquido * percentualBeneficiarioFinal
+                    }));
+
+                    console.log(`Honorários efetivos: R$ ${valorHonorarioTotalHerdeiroEfetivo.toLocaleString('pt-BR', {minimumFractionDigits: 2})} (todos)`);
+                    console.log(`Sindicatos efetivos: R$ ${valorSindicatoTotalHerdeiroEfetivo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                }
+
+                // 9. CALCULAR PREVIDÊNCIA DO HERDEIRO (igual calcularGlobal)
+                const resultadoPrevidenciaHerdeiro = calcularPrevidenciaIsolada(dados, principalHerdeiroEfetivo, rrapagamentoHerdeiroEfetivo);
+                const valorPrevidenciaHerdeiro = resultadoPrevidenciaHerdeiro.valorPrevidencia;
+                const aliquotaEfetivaHerdeiro = resultadoPrevidenciaHerdeiro.aliquotaEfetiva;
+
+                console.log(`\n--- TRIBUTOS HERDEIRO ---`);
+                console.log(`Previdência: R$ ${valorPrevidenciaHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})} (${(aliquotaEfetivaHerdeiro * 100).toFixed(2)}%)`);
+
+                // 10. CALCULAR IR DO HERDEIRO (igual calcularGlobal)
+                const resultadoIRHerdeiro = calcularIRIsolado(
+                    dados, 
+                    valorTotalHerdeiro,        // valortotatt do herdeiro
+                    valorBaseHerdeiro,         // valorBase do herdeiro
+                    principalHerdeiroEfetivo,  // principal efetivo
+                    valorPrevidenciaHerdeiro,  // previdência já calculada
+                    rrapagamentoHerdeiroEfetivo // RRA efetivo
+                );
+                
+                const {
+                    valorIR: valorIRHerdeiro,
+                    aliquotaIR: aliquotaIRHerdeiro,
+                    baseIRHonora: baseIRHonoraHerdeiro,
+                    baseIRSindi: baseIRSindiHerdeiro,
+                    baseIRPrev: baseIRPrevHerdeiro,
+                    baseIRRRA: baseIRRRAHerdeiro,
+                    valorIRUnitario: valorIRUnitarioHerdeiro
+                } = resultadoIRHerdeiro;
+
+                console.log(`IR: R$ ${valorIRHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})} (${(aliquotaIRHerdeiro * 100).toFixed(2)}%)`);
+                console.log(`Base IR por RRA: R$ ${baseIRRRAHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                console.log(`IR unitário: R$ ${valorIRUnitarioHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+
+                // 10. CESSÕES DO PRÓPRIO HERDEIRO
+                const cessoesHerdeiro = dados.cessoes?.filter(cessao => 
+                    cessao.tipo === 'cessaoHerdeiro' && cessao.cedente === herdeiro.nome
+                ) || [];
+
+                let valorCessoesHerdeiro = 0;
+                let cessoesHerdeiroCalculadas = [];
+                let percentualHerdeiroFinal = 1.0;
+
+                if (cessoesHerdeiro.length > 0) {
+                    const totalPercentualCessoesHerdeiro = cessoesHerdeiro.reduce((total, cessao) => total + cessao.percentual, 0);
+                    percentualHerdeiroFinal = 1.0 - totalPercentualCessoesHerdeiro;
+
+                    // Calcular cessões sobre o valor bruto do herdeiro
+                    cessoesHerdeiroCalculadas = cessoesHerdeiro.map(cessao => {
+                        const valorBrutoCessao = valorBeneficiarioBrutoHerdeiro * cessao.percentual;
+                        valorCessoesHerdeiro += valorBrutoCessao;
+
+                        return {
+                            tipo: cessao.tipo,
+                            cedente: cessao.cedente,
+                            cessionario: cessao.cessionario,
+                            percentual: cessao.percentual,
+                            valorBruto: valorBrutoCessao
+                        };
+                    });
+                }
+
+                // 12. VALORES FINAIS DO HERDEIRO
+                const valorHerdeiroFinalAposCessoes = valorBeneficiarioBrutoHerdeiro * percentualHerdeiroFinal;
+                
+                // Tributos finais (proporcionais às cessões do herdeiro)
+                const valorPrevidenciaHerdeiroFinal = valorPrevidenciaHerdeiro * percentualHerdeiroFinal;
+                const valorIRHerdeiroFinal = valorIRHerdeiro * percentualHerdeiroFinal;
+                
+                // Valor líquido final
+                const valorHerdeiroLiquido = valorHerdeiroFinalAposCessoes - valorPrevidenciaHerdeiroFinal - valorIRHerdeiroFinal;
+
+                console.log(`\n--- VALORES FINAIS ---`);
+                console.log(`Valor final após cessões: R$ ${valorHerdeiroFinalAposCessoes.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                console.log(`Previdência final: R$ ${valorPrevidenciaHerdeiroFinal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                console.log(`IR final: R$ ${valorIRHerdeiroFinal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                console.log(`VALOR LÍQUIDO: R$ ${valorHerdeiroLiquido.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+
+                // 13. TRATAMENTO ESPECIAL PARA PREFERÊNCIA PARCIAL
+                let valorHerdeiroRecebePorPreferencia = valorHerdeiroLiquido;
+                let valorHerdeiroSaldoDevedor = 0;
+
+                if (isPreferenciaParcialHerdeiro) {
+                    // O que recebe agora (pela preferência)
+                    valorHerdeiroRecebePorPreferencia = valorBaseHerdeiro - 
+                        (valorPrevidenciaHerdeiroFinal + valorIRHerdeiroFinal + valorHonorarioTotalHerdeiroEfetivo);
+                    
+                    // O que fica como saldo devedor (ordem cronológica)
+                    valorHerdeiroSaldoDevedor = valorHerdeiroPoscessaoBeneficiario - valorBaseHerdeiro;
+
+                    console.log(`\n--- PREFERÊNCIA PARCIAL ---`);
+                    console.log(`Recebe por preferência: R$ ${valorHerdeiroRecebePorPreferencia.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                    console.log(`Saldo devedor: R$ ${valorHerdeiroSaldoDevedor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+                }
+
+                console.log(`\n=== FIM HERDEIRO ${herdeiro.nome} ===\n`);
+
+                // 14. MONTAR RESULTADO DO HERDEIRO
+                const herdeiroDados = {
+                    ...herdeiro,
+                    indice: index,
+                    
+                    // Valores originais (totais - antes das cessões do beneficiário)
+                    valorTotalOriginal: valorTotalHerdeiro,
+                    principalOriginal: principalHerdeiro,
+                    jurosOriginal: jurosBaseHerdeiro,
+                    rrapagamentoOriginal: rrapagamentoHerdeiro,
+                    honorariosOriginal: valorHonorarioTotalHerdeiro,
+                    sindicatosOriginal: valorSindicatoTotalHerdeiro,
+                    
+                    // Valores efetivos (após cessões do beneficiário e preferência)
+                    valorTotal: valorBaseHerdeiro,
+                    principal: principalHerdeiroEfetivo,
+                    jurosBase: jurosBaseHerdeiro * (valorBaseHerdeiro / valorTotalHerdeiro),
+                    rrapagamento: rrapagamentoHerdeiroEfetivo,
+                    
+                    // Descontos efetivos
+                    honorarios: honorariosHerdeiro,
+                    valorHonorarioTotal: valorHonorarioTotalHerdeiro,
+                    sindicatos: sindicatosHerdeiro,
+                    valorSindicatoTotal: valorSindicatoTotalHerdeiro,
+                    
+                    // Tributos calculados individualmente
+                    valorPrevidencia: valorPrevidenciaHerdeiro,
+                    aliquotaEfetiva: aliquotaEfetivaHerdeiro,
+                    valorIR: valorIRHerdeiro,
+                    aliquotaIR: aliquotaIRHerdeiro,
+                    baseIRHonora: baseIRHonoraHerdeiro,
+                    baseIRSindi: baseIRSindiHerdeiro,
+                    baseIRPrev: baseIRPrevHerdeiro,
+                    baseIRRRA: baseIRRRAHerdeiro,
+                    valorIRUnitario: valorIRUnitarioHerdeiro,
+                    valorPrevidenciaFinal: valorPrevidenciaHerdeiroFinal,
+                    valorIRFinal: valorIRHerdeiroFinal,
+                    
+                    // Cessões do beneficiário (já aplicadas no cálculo)
+                    percentualBeneficiarioFinal,
+                    valorDisponivelParaHerdeiros: valorDisponivelParaHerdeiros,
+                    valorAposCessoesBeneficiario: valorHerdeiroPoscessaoBeneficiario,
+                    
+                    // Cessões do próprio herdeiro
+                    cessoesHerdeiro: cessoesHerdeiroCalculadas,
+                    valorCessoesHerdeiro,
+                    percentualHerdeiroFinal,
+                    
+                    // Valores calculados
+                    valorBruto: valorBeneficiarioBrutoHerdeiro,
+                    valorFinalAposCessoes: valorHerdeiroFinalAposCessoes,
+                    valorLiquido: valorHerdeiroLiquido,
+                    
+                    // Preferência
+                    isPreferenciaParcial: isPreferenciaParcialHerdeiro,
+                    valorRecebePorPreferencia: valorHerdeiroRecebePorPreferencia,
+                    valorSaldoDevedor: valorHerdeiroSaldoDevedor,
+                    
+                    // Flags
+                    temCessoes: cessoesHerdeiro.length > 0,
+                    temCessoesBeneficiario: percentualBeneficiarioFinal < 1.0
+                };
+
+                herdeirosCalculados.push(herdeiroDados);
+            });
+
+            return herdeirosCalculados;
         }
 
         function calcularINSS(base) {
