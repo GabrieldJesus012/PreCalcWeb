@@ -2722,7 +2722,7 @@
                 // 5. COMPOSIÇÃO INICIAL
                 let principalHerdeiroBase = valorBaseHerdeiro * percentualprinc;
                 const jurosBaseHerdeiroFinal = valorBaseHerdeiro * percentualjur;
-                let rrapagamentoHerdeiroBase = dados.rra !== 0 ? Math.round((valorBaseHerdeiro * dados.rra) / valorTotalHerdeiro) : 0;
+                let rrapagamentoHerdeiroBase = dados.rra !== 0 ? Math.round(dados.rra * percentualHerdeiro) : 0;
 
                 // 6. VERIFICAÇÕES
                 const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && valorBaseHerdeiro < valorTotalHerdeiro;
@@ -4061,9 +4061,122 @@
         function gerarSecaoDeducoes(resultados, dados) {
             const temPrevidencia = dados.incidenciaPrevidencia;
             const temIR = dados.incidenciaIR && resultados.rrapagamento !== 0;
-            const temCessoes = resultados.cessoesBeneficiarioCalculadas && resultados.cessoesBeneficiarioCalculadas.length > 0;
+            const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
             
             if (!temPrevidencia && !temIR) return '';
+            
+            // SE TEM HERDEIROS: agrupa por valor base
+            if (temHerdeiros) {
+                const isPreferencia = dados.tipoCalculo === 'preferencia';
+                
+                // SE FOR ORDEM: discrimina por beneficiário + agrupa herdeiros por valor
+                if (!isPreferencia) {
+                    const secoes = [];
+                    
+                    // 1. BENEFICIÁRIO PRINCIPAL (se tiver cessões)
+                    const temCessoesBeneficiario = resultados.cessoesBeneficiarioCalculadas && resultados.cessoesBeneficiarioCalculadas.length > 0;
+                    if (temCessoesBeneficiario) {
+                        let secaoPrevidencia = '';
+                        if (temPrevidencia) {
+                            if (dados.tipoPrevidencia === 'fixa') {
+                                secaoPrevidencia = gerarDetalhePrevidenciaFixa(resultados, dados, temCessoesBeneficiario);
+                            } else {
+                                secaoPrevidencia = gerarDetalhePrevidenciaINSS(resultados, dados, temCessoesBeneficiario);
+                            }
+                        }
+                        
+                        let secaoIR = '';
+                        if (temIR) {
+                            secaoIR = gerarDetalheIR(resultados, dados, temPrevidencia, temCessoesBeneficiario);
+                        }
+                        
+                        if (secaoPrevidencia || secaoIR) {
+                            secoes.push(`
+                                <div style="margin-bottom: 30px; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px;">
+                                    <p style="color: #155724; font-style: italic; margin-bottom: 15px;">
+                                        <strong>Deduções do Beneficiário Principal:</strong> ${dados.beneficiario}
+                                        <span style="color: #856404;"> - R$ ${formatarMoeda(resultados.valorBase)}</span>
+                                    </p>
+                                    ${secaoPrevidencia}
+                                    ${secaoIR}
+                                </div>
+                            `);
+                        }
+                    }
+                    
+                    // 2. HERDEIROS AGRUPADOS POR VALOR
+                    const baseGroups = new Map();
+                    resultados.herdeiros.forEach(h => {
+                        const baseKey = h.valorTotal.toFixed(2);
+                        if (!baseGroups.has(baseKey)) baseGroups.set(baseKey, []);
+                        baseGroups.get(baseKey).push(h);
+                    });
+                    
+                    baseGroups.forEach((herdeiros, base) => {
+                        const valorBase = parseFloat(base);
+                        const herdeirosNomes = herdeiros.map(h => h.nome).join(', ');
+                        const primeiroHerdeiro = herdeiros[0]; // Referência para cálculos base
+                        
+                        let secaoPrevidencia = '';
+                        if (temPrevidencia) {
+                            if (dados.tipoPrevidencia === 'fixa') {
+                                secaoPrevidencia = gerarDetalhePrevidenciaFixaHerdeiros(herdeiros, dados, valorBase);
+                            } else {
+                                secaoPrevidencia = gerarDetalhePrevidenciaINSSHerdeiros(herdeiros, dados, valorBase);
+                            }
+                        }
+                        
+                        let secaoIR = '';
+                        if (temIR && primeiroHerdeiro.rrapagamento !== 0) {
+                            secaoIR = gerarDetalheIRHerdeiros(herdeiros, dados, valorBase, temPrevidencia);
+                        }
+                        
+                        if (secaoPrevidencia || secaoIR) {
+                            secoes.push(`
+                                <div style="margin-bottom: 30px; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px;">
+                                    <p style="color: #155724; font-style: italic; margin-bottom: 15px;">
+                                        <strong>Deduções de:</strong> ${herdeirosNomes}
+                                        <span style="color: #856404;"> - R$ ${formatarMoeda(valorBase)}</span>
+                                    </p>
+                                    ${secaoPrevidencia}
+                                    ${secaoIR}
+                                </div>
+                            `);
+                        }
+                    });
+                    
+                    if (secoes.length === 0) return '';
+                    
+                    return `
+                        <div class="deducoes-legais">
+                            <div class="table-container">
+                                <h3>🏦 Deduções Legais - Ordem Cronológica</h3>
+                                ${secoes.join('')}
+                                <div style="margin-top: 10px; padding: 12px; background-color: #f8f9fa; border-left: 4px solid #007bff; font-size: 0.9em;">
+                                    <strong>💡 Explicação:</strong><br>
+                                    • <strong>Beneficiário principal:</strong> Discrimina cessões quando aplicável<br>
+                                    • <strong>Herdeiros agrupados:</strong> Por valor igual, com cessões individuais<br>
+                                    • <strong>Cálculos específicos</strong> para cada situação
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // SE FOR PREFERÊNCIA: agrupa por valor base dos herdeiros
+                else {
+                    return gerarDeducoesComHerdeiros(resultados, dados, temPrevidencia, temIR);
+                }
+            }
+            
+            // SE NÃO TEM HERDEIROS: lógica original
+            else {
+                return gerarDeducoesSimples(resultados, dados, temPrevidencia, temIR);
+            }
+        }
+
+        function gerarDeducoesSimples(resultados, dados, temPrevidencia, temIR) {
+            const temCessoes = resultados.cessoesBeneficiarioCalculadas && resultados.cessoesBeneficiarioCalculadas.length > 0;
             
             let secaoPrevidencia = '';
             if (temPrevidencia) {
@@ -4090,6 +4203,463 @@
             `;
         }
 
+        function gerarDeducoesComHerdeiros(resultados, dados, temPrevidencia, temIR) {
+            // Filtra herdeiros conforme preferência
+            const herdeirosFiltrados = resultados.herdeiros.filter(h => h.temPreferencia || h.isPreferenciaParcial);
+            
+            // Agrupa herdeiros por valor base
+            const baseGroups = new Map();
+            herdeirosFiltrados.forEach(h => {
+                const baseKey = h.valorTotal.toFixed(2);
+                if (!baseGroups.has(baseKey)) baseGroups.set(baseKey, []);
+                baseGroups.get(baseKey).push(h);
+            });
+            
+            if (baseGroups.size === 0) return '';
+            
+            const secoesPorBase = [];
+            
+            baseGroups.forEach((herdeiros, base) => {
+                const valorBase = parseFloat(base);
+                const herdeirosNomes = herdeiros.map(h => h.nome).join(', ');
+                const primeiroHerdeiro = herdeiros[0]; // Usa o primeiro como referência para cálculos
+                
+                let secaoPrevidencia = '';
+                if (temPrevidencia) {
+                    if (dados.tipoPrevidencia === 'fixa') {
+                        secaoPrevidencia = gerarDetalhePrevidenciaFixaHerdeiro(primeiroHerdeiro, dados, valorBase);
+                    } else {
+                        secaoPrevidencia = gerarDetalhePrevidenciaINSSHerdeiro(primeiroHerdeiro, dados, valorBase);
+                    }
+                }
+                
+                let secaoIR = '';
+                if (temIR && primeiroHerdeiro.rrapagamento !== 0) {
+                    secaoIR = gerarDetalheIRHerdeiro(primeiroHerdeiro, dados, valorBase, temPrevidencia);
+                }
+                
+                if (secaoPrevidencia || secaoIR) {
+                    secoesPorBase.push(`
+                        <div style="margin-bottom: 30px; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px;">
+                            <p style="color: #155724; font-style: italic; margin-bottom: 15px;">
+                                <strong>Deduções calculadas sobre:</strong> R$ ${formatarMoeda(valorBase)}
+                                <span style="color: #856404;"> - ${herdeirosNomes}</span>
+                            </p>
+                            ${secaoPrevidencia}
+                            ${secaoIR}
+                        </div>
+                    `);
+                }
+            });
+            
+            if (secoesPorBase.length === 0) return '';
+            
+            const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt;
+            const titulo = isPreferenciaParcial 
+                ? '🏦 Deduções Legais - Preferência Parcial'
+                : '🏦 Deduções Legais - Preferência Total';
+            
+            return `
+                <div class="deducoes-legais">
+                    <div class="table-container">
+                        <h3>${titulo}</h3>
+                        ${secoesPorBase.join('')}
+                        <div style="margin-top: 10px; padding: 12px; background-color: #f8f9fa; border-left: 4px solid #007bff; font-size: 0.9em;">
+                            <strong>💡 Explicação:</strong><br>
+                            • <strong>Cálculos por grupo de herdeiros</strong> com mesmo valor base<br>
+                            • <strong>Previdência e IR</strong> calculados individualmente por grupo<br>
+                            • <strong>Valores específicos</strong> para cada situação de preferência
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function gerarDetalhePrevidenciaFixaHerdeiro(herdeiro, dados, valorBase) {
+            // Verifica se há cessões do herdeiro
+            const temCessoesHerdeiro = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
+            
+            const distribuicaoCessoes = temCessoesHerdeiro ? `
+                <tr style="border-top: 1px solid #dee2e6;">
+                    <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição por Cessões:</th>
+                </tr>
+                ${herdeiro.valorPrevidenciaFinal > 0 ? `
+                <tr>
+                    <th>${herdeiro.nome}:</th>
+                    <td>R$ ${formatarMoeda(herdeiro.valorPrevidenciaFinal)}</td>
+                </tr>
+                ` : ''}
+                ${herdeiro.cessoesHerdeiro ? herdeiro.cessoesHerdeiro.map((cessao) => 
+                    cessao.previdenciaCessao > 0 ? `
+                    <tr>
+                        <th>${cessao.cessionario}:</th>
+                        <td>R$ ${formatarMoeda(cessao.previdenciaCessao)}</td>
+                    </tr>
+                    ` : ''
+                ).join('') : ''}
+            ` : '';
+            
+            return `
+                <table class="ir-table" style="margin-bottom: 15px;">
+                    <tr>
+                        <th colspan="2" class="section-header">📄 Previdência - Alíquota Fixa</th>
+                    </tr>
+                    <tr>
+                        <th>Principal:</th>
+                        <td>R$ ${formatarMoeda(herdeiro.principal)}</td>
+                    </tr>
+                    <tr>
+                        <th>Alíquota Fixa:</th>
+                        <td>${(dados.aliquotaFixa * 100).toFixed(2)}%</td>
+                    </tr>
+                    <tr class="total-row">
+                        <th>Valor Previdência:</th>
+                        <td><strong>R$ ${formatarMoeda(herdeiro.valorPrevidencia)}</strong></td>
+                    </tr>
+                    ${distribuicaoCessoes}
+                </table>
+            `;
+        }
+
+        function gerarDetalhePrevidenciaINSSHerdeiro(herdeiro, dados, valorBase) {
+            const base = herdeiro.rrapagamento === 0 ? herdeiro.principal : herdeiro.principal / herdeiro.rrapagamento;
+            
+            // Verifica se há cessões do herdeiro
+            const temCessoesHerdeiro = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
+            
+            const distribuicaoCessoes = temCessoesHerdeiro ? `
+                <tr style="border-top: 1px solid #dee2e6;">
+                    <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição por Cessões:</th>
+                </tr>
+                ${herdeiro.valorPrevidenciaFinal > 0 ? `
+                <tr>
+                    <th>${herdeiro.nome}:</th>
+                    <td>R$ ${formatarMoeda(herdeiro.valorPrevidenciaFinal)}</td>
+                </tr>
+                ` : ''}
+                ${herdeiro.cessoesHerdeiro ? herdeiro.cessoesHerdeiro.map((cessao) => 
+                    cessao.previdenciaCessao > 0 ? `
+                    <tr>
+                        <th>${cessao.cessionario}:</th>
+                        <td>R$ ${formatarMoeda(cessao.previdenciaCessao)}</td>
+                    </tr>
+                    ` : ''
+                ).join('') : ''}
+            ` : '';
+            
+            return `
+                <table class="ir-table" style="margin-bottom: 15px;">
+                    <tr>
+                        <th colspan="2" class="section-header">📄 Previdência - INSS</th>
+                    </tr>
+                    <tr>
+                        <th>Principal:</th>
+                        <td>R$ ${formatarMoeda(herdeiro.principal)}</td>
+                    </tr>
+                    ${herdeiro.rrapagamento !== 0 ? `
+                    <tr>
+                        <th>RRA Pagamento:</th>
+                        <td>${Math.round(herdeiro.rrapagamento)}</td>
+                    </tr>
+                    <tr>
+                        <th>Base INSS por RRA:</th>
+                        <td>R$ ${formatarMoeda(base)}</td>
+                    </tr>` : ''}
+                    <tr>
+                        <th>Alíquota Efetiva INSS:</th>
+                        <td>${(herdeiro.aliquotaEfetiva * 100).toFixed(2)}%</td>
+                    </tr>
+                    <tr>
+                        <th>Valor INSS por RRA:</th>
+                        <td>R$ ${formatarMoeda(herdeiro.valorPrevidencia / (herdeiro.rrapagamento || 1))} ${base > 8157.41 ? '(TETO)' : ''}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <th>Valor Previdência:</th>
+                        <td><strong>R$ ${formatarMoeda(herdeiro.valorPrevidencia)}</strong></td>
+                    </tr>
+                    ${distribuicaoCessoes}
+                </table>
+            `;
+        }
+
+        function gerarDetalheIRHerdeiro(herdeiro, dados, valorBase, temPrevidencia) {
+            // Calcula percentuais para este grupo
+            let percentualTotalAdv = 0;
+            let percentualTotalSind = 0;
+            
+            if (dados.tipoCalculo === 'preferencia' && herdeiro.isPreferenciaParcial) {
+                percentualTotalAdv = dados.advogados.reduce((sum, adv) => {
+                    const cessaoAdv = dados.cessoes?.filter(cessao => 
+                        cessao.tipo === 'cessaoAdv' && cessao.cedente === adv.nome
+                    ) || [];
+                    const percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
+                    const percentualAdvogado = Math.max(0, adv.percentual - percentualCessionarioAdv);
+                    return sum + percentualAdvogado;
+                }, 0);
+                percentualTotalSind = 0;
+            } else {
+                percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+                percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
+            }
+            
+            // Verifica se há cessões do herdeiro
+            const temCessoesHerdeiro = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
+            
+            const distribuicaoCessoes = temCessoesHerdeiro ? `
+                <tr style="border-top: 1px solid #dee2e6;">
+                    <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição por Cessões:</th>
+                </tr>
+                ${herdeiro.valorIRFinal > 0 ? `
+                <tr>
+                    <th>${herdeiro.nome}:</th>
+                    <td>R$ ${formatarMoeda(herdeiro.valorIRFinal)}</td>
+                </tr>
+                ` : ''}
+                ${herdeiro.cessoesHerdeiro ? herdeiro.cessoesHerdeiro.map((cessao) => 
+                    cessao.irCessao > 0 ? `
+                    <tr>
+                        <th>${cessao.cessionario}:</th>
+                        <td>R$ ${formatarMoeda(cessao.irCessao)}</td>
+                    </tr>
+                    ` : ''
+                ).join('') : ''}
+            ` : '';
+            
+            return `
+                <table class="ir-table" style="margin-bottom: 15px;">
+                    <tr>
+                        <th colspan="2" class="section-header">📄 Imposto de Renda - MP Nª 1.294, de 11 de Abril de 2025</th>
+                    </tr>
+                    <tr>
+                        <th>Principal:</th>
+                        <td>R$ ${formatarMoeda(herdeiro.principal)}</td>
+                    </tr>
+                    <tr>
+                        <th>Base IR sem H.Contratuais (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
+                        <td>R$ ${formatarMoeda(herdeiro.baseIRHonora)}</td>
+                    </tr>
+                    ${percentualTotalSind > 0 ? `
+                    <tr>
+                        <th>Base IR sem Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
+                        <td>R$ ${formatarMoeda(herdeiro.baseIRSindi)}</td>
+                    </tr>` : ''}
+                    ${temPrevidencia ? `
+                    <tr>
+                        <th>Previdência:</th>
+                        <td>R$ ${formatarMoeda(herdeiro.valorPrevidencia)}</td>
+                    </tr>
+                    <tr>
+                        <th>Base IR sem Previdência:</th>
+                        <td>R$ ${formatarMoeda(herdeiro.baseIRPrev)}</td>
+                    </tr>` : ''}
+                    <tr>
+                        <th>RRA Pagamento:</th>
+                        <td>${Math.round(herdeiro.rrapagamento)}</td>
+                    </tr>
+                    <tr>
+                        <th>Base IR por RRA:</th>
+                        <td>R$ ${formatarMoeda(herdeiro.baseIRRRA)}</td>
+                    </tr>
+                    <tr>
+                        <th>Alíquota IR:</th>
+                        <td>${(herdeiro.aliquotaIR * 100).toFixed(1)}%</td>
+                    </tr>
+                    <tr>
+                        <th>Valor IR Mensal:</th>
+                        <td>R$ ${formatarMoeda(herdeiro.valorIRUnitario)}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <th>Valor IR Devido Total:</th>
+                        <td><strong>R$ ${formatarMoeda(herdeiro.valorIR)}</strong></td>
+                    </tr>
+                    ${distribuicaoCessoes}
+                </table>
+            `;
+        }
+
+        function gerarDetalhePrevidenciaFixaHerdeiros(herdeiros, dados, valorBase) {
+            const primeiroHerdeiro = herdeiros[0];
+            
+            // Distribuição por herdeiros e suas cessões
+            const distribuicaoHerdeiros = herdeiros.map(herdeiro => {
+                const temCessoes = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
+                
+                let linhas = `
+                    <tr>
+                        <th>${herdeiro.nome}:</th>
+                        <td>R$ ${formatarMoeda(temCessoes ? herdeiro.valorPrevidenciaFinal : herdeiro.valorPrevidencia)}</td>
+                    </tr>
+                `;
+                
+                if (temCessoes) {
+                    const cessoesLinhas = herdeiro.cessoesHerdeiro.map(cessao => `
+                        <tr>
+                            <th style="padding-left: 20px;">Cessão de ${herdeiro.nome} (${(cessao.percentual * 100).toFixed(1)}%) para ${cessao.cessionario}:</th>
+                            <td>R$ ${formatarMoeda(cessao.previdenciaCessao || 0)}</td>
+                        </tr>
+                    `).join('');
+                    linhas += cessoesLinhas;
+                }
+                
+                return linhas;
+            }).join('');
+            
+            return `
+                <table class="ir-table" style="margin-bottom: 15px;">
+                    <tr>
+                        <th colspan="2" class="section-header">📄 Previdência - Alíquota Fixa</th>
+                    </tr>
+                    <tr>
+                        <th>Principal (base):</th>
+                        <td>R$ ${formatarMoeda(primeiroHerdeiro.principal)}</td>
+                    </tr>
+                    <tr>
+                        <th>Alíquota Fixa:</th>
+                        <td>${(dados.aliquotaFixa * 100).toFixed(2)}%</td>
+                    </tr>
+                    <tr style="border-top: 1px solid #dee2e6;">
+                        <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
+                    </tr>
+                    ${distribuicaoHerdeiros}
+                </table>
+            `;
+        }
+
+        function gerarDetalhePrevidenciaINSSHerdeiros(herdeiros, dados, valorBase) {
+            const primeiroHerdeiro = herdeiros[0];
+            const base = primeiroHerdeiro.rrapagamento === 0 ? primeiroHerdeiro.principal : primeiroHerdeiro.principal / primeiroHerdeiro.rrapagamento;
+            
+            // Distribuição por herdeiros e suas cessões
+            const distribuicaoHerdeiros = herdeiros.map(herdeiro => {
+                const temCessoes = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
+                
+                let linhas = `
+                    <tr>
+                        <th>${herdeiro.nome}:</th>
+                        <td>R$ ${formatarMoeda(temCessoes ? herdeiro.valorPrevidenciaFinal : herdeiro.valorPrevidencia)}</td>
+                    </tr>
+                `;
+                
+                if (temCessoes) {
+                    const cessoesLinhas = herdeiro.cessoesHerdeiro.map(cessao => `
+                        <tr>
+                            <th style="padding-left: 20px;">Cessão de ${herdeiro.nome} (${(cessao.percentual * 100).toFixed(1)}%) para ${cessao.cessionario}:</th>
+                            <td>R$ ${formatarMoeda(cessao.previdenciaCessao || 0)}</td>
+                        </tr>
+                    `).join('');
+                    linhas += cessoesLinhas;
+                }
+                
+                return linhas;
+            }).join('');
+            
+            return `
+                <table class="ir-table" style="margin-bottom: 15px;">
+                    <tr>
+                        <th colspan="2" class="section-header">📄 Previdência - INSS</th>
+                    </tr>
+                    <tr>
+                        <th>Principal (base):</th>
+                        <td>R$ ${formatarMoeda(primeiroHerdeiro.principal)}</td>
+                    </tr>
+                    ${primeiroHerdeiro.rrapagamento !== 0 ? `
+                    <tr>
+                        <th>RRA Pagamento:</th>
+                        <td>${Math.round(primeiroHerdeiro.rrapagamento)}</td>
+                    </tr>
+                    <tr>
+                        <th>Base INSS por RRA:</th>
+                        <td>R$ ${formatarMoeda(base)}</td>
+                    </tr>` : ''}
+                    <tr>
+                        <th>Alíquota Efetiva INSS:</th>
+                        <td>${(primeiroHerdeiro.aliquotaEfetiva * 100).toFixed(2)}%</td>
+                    </tr>
+                    <tr style="border-top: 1px solid #dee2e6;">
+                        <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
+                    </tr>
+                    ${distribuicaoHerdeiros}
+                </table>
+            `;
+        }
+
+        function gerarDetalheIRHerdeiros(herdeiros, dados, valorBase, temPrevidencia) {
+            const primeiroHerdeiro = herdeiros[0];
+            
+            // Calcula percentuais (usando primeiro herdeiro como referência)
+            let percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+            let percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
+            
+            // Distribuição por herdeiros e suas cessões
+            const distribuicaoHerdeiros = herdeiros.map(herdeiro => {
+                const temCessoes = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
+                
+                let linhas = `
+                    <tr>
+                        <th>${herdeiro.nome}:</th>
+                        <td>R$ ${formatarMoeda(temCessoes ? herdeiro.valorIRFinal : herdeiro.valorIR)}</td>
+                    </tr>
+                `;
+                
+                if (temCessoes) {
+                    const cessoesLinhas = herdeiro.cessoesHerdeiro.map(cessao => `
+                        <tr>
+                            <th style="padding-left: 20px;">Cessão de ${herdeiro.nome} (${(cessao.percentual * 100).toFixed(1)}%) para ${cessao.cessionario}:</th>
+                            <td>R$ ${formatarMoeda(cessao.irCessao || 0)}</td>
+                        </tr>
+                    `).join('');
+                    linhas += cessoesLinhas;
+                }
+                
+                return linhas;
+            }).join('');
+            
+            return `
+                <table class="ir-table" style="margin-bottom: 15px;">
+                    <tr>
+                        <th colspan="2" class="section-header">📄 Imposto de Renda - MP Nª 1.294, de 11 de Abril de 2025</th>
+                    </tr>
+                    <tr>
+                        <th>Principal (base):</th>
+                        <td>R$ ${formatarMoeda(primeiroHerdeiro.principal)}</td>
+                    </tr>
+                    <tr>
+                        <th>Base IR sem H.Contratuais (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
+                        <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRHonora)}</td>
+                    </tr>
+                    ${percentualTotalSind > 0 ? `
+                    <tr>
+                        <th>Base IR sem Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
+                        <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRSindi)}</td>
+                    </tr>` : ''}
+                    ${temPrevidencia ? `
+                    <tr>
+                        <th>Previdência:</th>
+                        <td>R$ ${formatarMoeda(primeiroHerdeiro.valorPrevidencia)}</td>
+                    </tr>
+                    <tr>
+                        <th>Base IR sem Previdência:</th>
+                        <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRPrev)}</td>
+                    </tr>` : ''}
+                    <tr>
+                        <th>RRA Pagamento:</th>
+                        <td>${Math.round(primeiroHerdeiro.rrapagamento)}</td>
+                    </tr>
+                    <tr>
+                        <th>Base IR por RRA:</th>
+                        <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRRRA)}</td>
+                    </tr>
+                    <tr>
+                        <th>Alíquota IR:</th>
+                        <td>${(primeiroHerdeiro.aliquotaIR * 100).toFixed(1)}%</td>
+                    </tr>
+                    <tr style="border-top: 1px solid #dee2e6;">
+                        <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
+                    </tr>
+                    ${distribuicaoHerdeiros}
+                </table>
+            `;
+        }
         function gerarDetalhePrevidenciaFixa(resultados, dados, temCessoes) {
             const distribuicaoCessoes = temCessoes ? `
                 <tr style="border-top: 1px solid #dee2e6;">
