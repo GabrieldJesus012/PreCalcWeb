@@ -3223,39 +3223,38 @@
             `;
         }
 
-        function gerarResumoCalculos(resultados,dados) {
+        function gerarResumoCalculos(resultados, dados) {
             const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
             let basesPagamento = '';
-            if (temHerdeiros) {
-                let herdeirosParaMostrar = [];
-                if (dados.tipoCalculo === 'preferencia') {
-                    herdeirosParaMostrar = resultados.herdeiros.filter(h => h.temPreferencia);
-                } else {
-                    herdeirosParaMostrar = resultados.herdeiros;
-                }
+
+            if (temHerdeiros && dados.tipoCalculo === 'preferencia') {
+                // Preferência → discrimina os herdeiros
+                const herdeirosParaMostrar = resultados.herdeiros.filter(h => h.temPreferencia);
                 if (herdeirosParaMostrar.length > 0) {
-                basesPagamento = `
-                    <tr class="highlight">
-                        <td colspan="3"><strong>Base para Pagamento</strong></td>
-                    </tr>
-                    ${herdeirosParaMostrar.map(h => `
+                    basesPagamento = `
                         <tr class="highlight">
-                            <td><strong>${h.nome}</strong></td>
-                            <td>R$ ${formatarMoeda(h.valorTotal)}</td>
-                            <td>${((h.valorTotal / resultados.valortotatt) * 100).toFixed(2)}%</td>
+                            <td colspan="3"><strong>Base para Pagamento</strong></td>
                         </tr>
-                    `).join('')}
-                `;
-            }
+                        ${herdeirosParaMostrar.map(h => `
+                            <tr class="highlight">
+                                <td><strong>${h.nome}</strong></td>
+                                <td><strong>R$ ${formatarMoeda(h.valorTotal)}</strong></td>
+                                <td><strong>${((h.valorTotal / resultados.valortotatt) * 100).toFixed(2)}%</strong></td>
+                            </tr>
+                        `).join('')}
+                    `;
+                }
             } else {
+                // Ordem ou sem herdeiros → apenas a base do beneficiário principal
                 basesPagamento = `
                     <tr class="highlight">
                         <td><strong>Base para Pagamento</strong></td>
-                        <td>R$ ${formatarMoeda(resultados.valorBase)}</td>
-                        <td>${((resultados.valorBase / resultados.valortotatt) * 100).toFixed(2)}%</td>
+                        <td><strong>R$ ${formatarMoeda(resultados.valorBase)}</strong></td>
+                        <td><strong>${((resultados.valorBase / resultados.valortotatt) * 100).toFixed(2)}%</strong></td>
                     </tr>
                 `;
             }
+
             return `
                 <div class="table-container">
                     <h3>📈 Resumo dos Cálculos</h3>
@@ -3283,12 +3282,37 @@
         }
 
         function gerarSecaoDeducoesAcessorias(resultados, dados) {
+            const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
             const temSindicatos = resultados.sindicatos && resultados.sindicatos.length > 0;
-            const temHonorarios = resultados.honorarios && resultados.honorarios.length > 0;
-            
-            // Se não tem nem sindicatos nem honorários, não mostra nada
+
+            let temHonorarios = false;
+            let honorariosParaMostrar = [];
+
+            if (temHerdeiros) {
+                const honorariosMap = new Map();
+                resultados.herdeiros.forEach(h => {
+                    if (h.honorarios && h.honorarios.length > 0) {
+                        h.honorarios.forEach(a => {
+                            if (!honorariosMap.has(a.nome)) {
+                                honorariosMap.set(a.nome, {
+                                    nome: a.nome,
+                                    tipo: a.tipo,
+                                    percentual: a.percentual
+                                });
+                            }
+                        });
+                    }
+                });
+                honorariosParaMostrar = Array.from(honorariosMap.values());
+                temHonorarios = honorariosParaMostrar.length > 0;
+            } else {
+                temHonorarios = resultados.honorarios && resultados.honorarios.length > 0;
+                honorariosParaMostrar = resultados.honorarios || [];
+            }
+
             if (!temSindicatos && !temHonorarios) return '';
-            
+
+            // Seção Sindicatos
             let secaoSindicatos = '';
             if (temSindicatos) {
                 const linhasSindicatos = resultados.sindicatos.map(s => `
@@ -3299,9 +3323,7 @@
                         <td>R$ ${formatarMoeda(s.valorBruto)}</td>
                     </tr>
                 `).join('');
-                
-                const totalSindicatos = resultados.sindicatos.reduce((total, s) => total + s.valorBruto, 0);
-                
+                const totalSindicatos = resultados.sindicatos.reduce((sum, s) => sum + s.valorBruto, 0);
                 secaoSindicatos = `
                     <h3>🏛️ Sindicatos</h3>
                     <table>
@@ -3314,84 +3336,88 @@
                     </table>
                 `;
             }
-            
+
+            // Seção Honorários
             let secaoHonorarios = '';
-            if (temHonorarios) {
-                const tituloSecao = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt 
-                    ? '👩‍💼 Advogados (H.Contratuais) - Honorários da Preferência' 
-                    : '👩‍💼 Advogados (H.Contratuais)';
-                
-                // Calcular base real
-                let baseCalculoRealHonorarios = resultados.valorBase;
-                const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
-                    cessao.tipo === 'cessaobenPrincipal'
-                ) || [];
-                
-                if (cessoesBeneficiario.length > 0) {
-                    const percentualBeneficiarioFinal = 1.0 - cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
-                    const direitoBeneficiarioTotal = resultados.valortotatt * percentualBeneficiarioFinal;
-                    const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt;
-                    
-                    if (isPreferenciasParcial) {
-                        baseCalculoRealHonorarios = Math.min(direitoBeneficiarioTotal, resultados.valorBase);
-                    }
+            if (temHonorarios && honorariosParaMostrar.length > 0) {
+                const baseGroups = new Map();
+
+                if (temHerdeiros) {
+                    // Filtra herdeiros por preferência se for cálculo de preferência
+                    const herdeirosFiltrados = dados.tipoCalculo === 'preferencia'
+                        ? resultados.herdeiros.filter(h => h.temPreferencia || h.isPreferenciaParcial)
+                        : resultados.herdeiros;
+
+                    // Agrupa herdeiros por base de cálculo
+                    herdeirosFiltrados.forEach(h => {
+                        const baseKey = h.valorTotal.toFixed(2); // chave por valor base
+                        if (!baseGroups.has(baseKey)) baseGroups.set(baseKey, []);
+                        baseGroups.get(baseKey).push(h);
+                    });
+                } else {
+                    // Sem herdeiros, incluir beneficiário principal
+                    baseGroups.set('PRINCIPAL', [{
+                        nome: 'Beneficiário Principal',
+                        valorTotal: resultados.valorBase
+                    }]);
                 }
-                
-                let descricaoBase = '';
-                if (dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt) {
-                    if (baseCalculoRealHonorarios !== resultados.valorBase) {
-                        descricaoBase = `<p style="color: #155724; font-style: italic;">
-                            Valores calculados sobre base efetiva: R$ ${formatarMoeda(baseCalculoRealHonorarios)} 
-                            <span style="color: #856404;">(ajustada por cessões - teto original: R$ ${formatarMoeda(resultados.valorBase)})</span>
-                        </p>`;
-                    } else {
-                        descricaoBase = `<p style="color: #155724; font-style: italic;">
-                            Valores calculados sobre a preferência: R$ ${formatarMoeda(resultados.valorBase)}
-                        </p>`;
-                    }
-                } else if (baseCalculoRealHonorarios !== resultados.valorBase) {
-                    descricaoBase = `<p style="color: #155724; font-style: italic;">
-                        Valores calculados sobre base efetiva: R$ ${formatarMoeda(baseCalculoRealHonorarios)} 
-                        <span style="color: #856404;">(ajustada por cessões)</span>
-                    </p>`;
-                }
-                
-                secaoHonorarios = `
-                    <h3>${tituloSecao}</h3>
-                    ${descricaoBase}
-                    <table>
-                        <tr><th>Nome Advogado</th><th>PF/PJ</th><th>Base de Cálculo</th><th>Percentual</th><th>Valor Bruto</th></tr>
-                        ${resultados.honorarios.map(h => `
+
+                const secoes = [];
+                baseGroups.forEach((herdeiros, base) => {
+                    let valorBase = (base === 'PRINCIPAL') ? herdeiros[0].valorTotal : parseFloat(base);
+                    const herdeirosNomes = herdeiros.map(h => h.nome).join(', ');
+
+                    const titulo = dados.tipoCalculo === 'preferencia' && valorBase < resultados.valortotatt
+                        ? '👩‍💼 Advogados (H.Contratuais) - Honorários da Preferência'
+                        : '👩‍💼 Advogados (H.Contratuais)';
+
+                    const linhasAdvogados = honorariosParaMostrar.map(a => `
                         <tr>
-                            <td>${h.nome}</td>
-                            <td>${h.tipo}</td>
-                            <td>R$ ${formatarMoeda(baseCalculoRealHonorarios)}</td>
-                            <td>${(h.percentual * 100).toFixed(2)}%</td>
-                            <td>R$ ${formatarMoeda(h.valorBruto)}</td>
+                            <td>${a.nome}</td>
+                            <td>${a.tipo}</td>
+                            <td>R$ ${formatarMoeda(valorBase)}</td>
+                            <td>${(a.percentual * 100).toFixed(2)}%</td>
+                            <td>R$ ${formatarMoeda(valorBase * a.percentual)}</td>
                         </tr>
-                        `).join('')}
-                        <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
-                            <td colspan="3"><strong>TOTAL HONORÁRIOS</strong></td>
-                            <td><strong>${(resultados.honorarios.reduce((total, h) => total + h.percentual, 0) * 100).toFixed(2)}%</strong></td>
-                            <td><strong>R$ ${formatarMoeda(resultados.honorarios.reduce((total, h) => total + h.valorBruto, 0))}</strong></td>
-                        </tr>
-                    </table>
-                `;
+                    `).join('');
+
+                    const totalPercentual = honorariosParaMostrar.reduce((sum, h) => sum + h.percentual, 0);
+                    const totalValor = valorBase * totalPercentual;
+
+                    secoes.push(`
+                        <h3>${titulo}</h3>
+                        <p style="color: #155724; font-style: italic;">
+                            Valores calculados sobre: R$ ${formatarMoeda(valorBase)}
+                            <span style="color: #856404;"> - ${herdeirosNomes}</span>
+                        </p>
+                        <table>
+                            <tr><th>Nome Advogado</th><th>PF/PJ</th><th>Base de Cálculo</th><th>Percentual</th><th>Valor Bruto</th></tr>
+                            ${linhasAdvogados}
+                            <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
+                                <td colspan="3"><strong>TOTAL HONORÁRIOS</strong></td>
+                                <td><strong>${(totalPercentual * 100).toFixed(2)}%</strong></td>
+                                <td><strong>R$ ${formatarMoeda(totalValor)}</strong></td>
+                            </tr>
+                        </table>
+                    `);
+                });
+
+                secaoHonorarios = secoes.join('');
             }
-            
+
             return `
-            <div class="deducoes-acessorias">
-                <div class="table-container">
-                    <h3>📄➖ Deduções Acessórias</h3>
-                    <div class="explicacao-juridica">
-                        <div class="titulo">Entenda as Deduções Acessórias</div>
-                        <p><strong>Contribuições Sindicais:</strong> Percentual devido aos sindicatos quando aplicável.</p>
-                        <p><strong>Honorários Advocatícios:</strong> Percentual devido aos advogados conforme contrato.</p>
+                <div class="deducoes-acessorias">
+                    <div class="table-container">
+                        <h3>📄➖ Deduções Acessórias</h3>
+                        <div class="explicacao-juridica">
+                            <div class="titulo">Entenda as Deduções Acessórias</div>
+                            <p><strong>Contribuições Sindicais:</strong> Percentual devido aos sindicatos quando aplicável.</p>
+                            <p><strong>Honorários Advocatícios:</strong> Percentual devido aos advogados conforme contrato.</p>
+                        </div>
+                        ${secaoSindicatos}
+                        ${secaoHonorarios}
                     </div>
-                    ${secaoSindicatos}
-                    ${secaoHonorarios}
                 </div>
-            </div>
             `;
         }
 
