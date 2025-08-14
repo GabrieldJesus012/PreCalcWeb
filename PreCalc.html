@@ -3808,6 +3808,7 @@
 
         function gerarSecaoCessoesAdvogados(resultados, dados) {
             const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
+            
             // SE TEM HERDEIROS: verifica tipo de cálculo
             if (temHerdeiros) {
                 const isPreferencia = dados.tipoCalculo === 'preferencia';
@@ -3863,6 +3864,7 @@
                         </div>
                     `;
                 }
+                
                 // SE FOR PREFERÊNCIA: agrupa por valor base dos herdeiros
                 else {
                     const isPreferenciaParcial = isPreferencia && resultados.valorBase < resultados.valortotatt;
@@ -3986,6 +3988,8 @@
                     `;
                 }
             }
+            
+            // SE NÃO TEM HERDEIROS: lógica original
             else {
                 const advogadosComCessao = resultados.honorarios.filter(adv => 
                     adv.cessoesAdv && adv.cessoesAdv.length > 0
