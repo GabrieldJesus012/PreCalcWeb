@@ -3423,55 +3423,200 @@
 
         function gerarSecaoCessoesSindicatos(resultados, dados) {
             const ehPreferenciaParcial = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt;
-            if (ehPreferenciaParcial || !resultados.sindicatos) return '';
-            
-            const sindicatosComCessao = resultados.sindicatos.filter(sind => 
-                sind.cessoesSind && sind.cessoesSind.length > 0
-            );
-            
-            if (sindicatosComCessao.length === 0) return '';
-            
-            const secoesSindicatos = sindicatosComCessao.map(sind => {
-                const cessionarios = sind.cessionarios ? sind.cessionarios.map(cessionario => `
-                    <tr>
-                        <td>${cessionario.nome} (cessionário)</td>
-                        <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
-                        <td>R$ ${formatarMoeda(cessionario.valorBruto)}</td>
-                    </tr>
-                `).join('') : '';
+            // Só não recebe na preferência parcial (se for preferência total, recebe)
+            if (!resultados.sindicatos) return '';
+            const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
+            // SE TEM HERDEIROS: verifica tipo de cálculo
+            if (temHerdeiros) {
+                const isPreferencia = dados.tipoCalculo === 'preferencia';
                 
-                return `
-                    <div style="margin-bottom: 20px;">
-                        <h4>🔄 Cessão de Sindicato: ${sind.nome}</h4>
-                        <p><strong>Valor do Direito do Sindicato:</strong> R$ ${formatarMoeda(sind.valorBruto)}</p>
-                        <p><strong>Cedido:</strong> ${(sind.percentualCessionarioSind * 100).toFixed(2)}% para ${sind.cessoesSind.length} cessionário${sind.cessoesSind.length > 1 ? 's' : ''}</p>
+                // SE FOR ORDEM: trata como beneficiário principal único (sem agrupar)
+                if (!isPreferencia) {
+                    const sindicatosComCessao = resultados.sindicatos.filter(sind => 
+                        sind.cessoesSind && sind.cessoesSind.length > 0
+                    );
+                    
+                    if (sindicatosComCessao.length === 0) return '';
+                    
+                    const secoesSindicatos = sindicatosComCessao.map(sind => {
+                        const cessionarios = sind.cessionarios ? sind.cessionarios.map(cessionario => `
+                            <tr>
+                                <td>${cessionario.nome} (cessionário)</td>
+                                <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
+                                <td>R$ ${formatarMoeda(cessionario.valorBruto)}</td>
+                            </tr>
+                        `).join('') : '';
                         
-                        <table>
-                            <tr><th>Recebedor</th><th>Percentual</th><th>Valor Bruto</th></tr>
-                            <tr style="background-color: #f8f9fa;">
-                                <td><strong>${sind.nome} (fica com)</strong></td>
-                                <td>${(sind.percentualSindicato * 100).toFixed(2)}%</td>
-                                <td>R$ ${formatarMoeda(sind.valorBrutoSindicato)}</td>
-                            </tr>
-                            ${cessionarios}
-                            <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
-                                <td>TOTAL</td>
-                                <td>100.00%</td>
-                                <td>R$ ${formatarMoeda(sind.valorBruto)}</td>
-                            </tr>
-                        </table>
+                        return `
+                            <div style="margin-bottom: 20px;">
+                                <h4>🔄 Cessão de Sindicato: ${sind.nome}</h4>
+                                <p><strong>Valor do Direito do Sindicato:</strong> R$ ${formatarMoeda(sind.valorBruto)}</p>
+                                <p><strong>Cedido:</strong> ${(sind.percentualCessionarioSind * 100).toFixed(2)}% para ${sind.cessoesSind.length} cessionário${sind.cessoesSind.length > 1 ? 's' : ''}</p>
+                                
+                                <table>
+                                    <tr><th>Recebedor</th><th>Percentual</th><th>Valor Bruto</th></tr>
+                                    <tr style="background-color: #f8f9fa;">
+                                        <td><strong>${sind.nome} (fica com)</strong></td>
+                                        <td>${(sind.percentualSindicato * 100).toFixed(2)}%</td>
+                                        <td>R$ ${formatarMoeda(sind.valorBrutoSindicato)}</td>
+                                    </tr>
+                                    ${cessionarios}
+                                    <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
+                                        <td>TOTAL</td>
+                                        <td>100.00%</td>
+                                        <td>R$ ${formatarMoeda(sind.valorBruto)}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        `;
+                    }).join('');
+                    return `
+                        <div class="table-container">
+                            <h3>🔄 Cessões de Sindicatos</h3>
+                            ${secoesSindicatos}
+                        </div>
+                    `;
+                }
+                
+                // SE FOR PREFERÊNCIA: agrupa por valor base (só herdeiros que recebem completo)
+                else {
+                    // Só considera herdeiros que TÊM preferência E recebem completo E têm sindicato
+                    const herdeirosQueRecebemCompleto = resultados.herdeiros.filter(h => 
+                        h.temPreferencia && !h.isPreferenciaParcial && h.valorSindicatoTotal > 0
+                    );
+                    
+                    if (herdeirosQueRecebemCompleto.length === 0) return '';
+                    
+                    // Agrupa herdeiros por valor base
+                    const baseGroups = new Map();
+                    herdeirosQueRecebemCompleto.forEach(h => {
+                        const baseKey = h.valorTotal.toFixed(2);
+                        if (!baseGroups.has(baseKey)) baseGroups.set(baseKey, []);
+                        baseGroups.get(baseKey).push(h);
+                    });
+                    
+                    // Busca sindicatos com cessão
+                    const sindicatosComCessao = resultados.sindicatos.filter(sind => 
+                        sind.cessoesSind && sind.cessoesSind.length > 0
+                    );
+                    
+                    if (sindicatosComCessao.length === 0) return '';
+                    
+                    // Para cada grupo, gera a seção
+                    const secoesPorBase = [];
+                    
+                    baseGroups.forEach((herdeiros, base) => {
+                        const valorBase = parseFloat(base);
+                        const herdeirosNomes = herdeiros.map(h => h.nome).join(', ');
+                        
+                        const secoesSindicatos = sindicatosComCessao.map(sind => {
+                            // Valor do sindicato para este grupo
+                            const valorSindicatoGrupo = valorBase * sind.percentual;
+                            const valorSindicatoAposCessao = valorSindicatoGrupo * sind.percentualSindicato; // Sindicato fica com
+                            
+                            const cessionarios = sind.cessionarios ? sind.cessionarios.map(cessionario => `
+                                <tr>
+                                    <td>${cessionario.nome} (cessionário)</td>
+                                    <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
+                                    <td>R$ ${formatarMoeda(valorSindicatoGrupo * cessionario.percentual)}</td>
+                                </tr>
+                            `).join('') : '';
+                            
+                            return `
+                                <div style="margin-bottom: 20px;">
+                                    <h4>🔄 Cessão de Sindicato: ${sind.nome}</h4>
+                                    <p><strong>Valor do Direito do Sindicato:</strong> R$ ${formatarMoeda(valorSindicatoGrupo)}</p>
+                                    <p><strong>Cedido:</strong> ${(sind.percentualCessionarioSind * 100).toFixed(2)}% para ${sind.cessoesSind.length} cessionário${sind.cessoesSind.length > 1 ? 's' : ''}</p>
+                                    
+                                    <table>
+                                        <tr><th>Recebedor</th><th>Percentual</th><th>Valor Bruto</th></tr>
+                                        <tr style="background-color: #f8f9fa;">
+                                            <td><strong>${sind.nome} (fica com)</strong></td>
+                                            <td>${(sind.percentualSindicato * 100).toFixed(2)}%</td>
+                                            <td>R$ ${formatarMoeda(valorSindicatoAposCessao)}</td>
+                                        </tr>
+                                        ${cessionarios}
+                                        <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
+                                            <td>TOTAL</td>
+                                            <td>-%</td>
+                                            <td>R$ ${formatarMoeda(valorSindicatoGrupo)}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            `;
+                        }).join('');
+                        
+                        secoesPorBase.push(`
+                            <div style="margin-bottom: 30px; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px;">
+                                <p style="color: #155724; font-style: italic; margin-bottom: 10px;">
+                                    Cessões calculadas sobre o valor (base: R$ ${formatarMoeda(valorBase)})
+                                    <span style="color: #856404;"> - ${herdeirosNomes}</span>
+                                </p>
+                                ${secoesSindicatos}
+                            </div>
+                        `);
+                    });
+                    
+                    if (secoesPorBase.length === 0) return '';
+                    
+                    return `
+                        <div class="table-container">
+                            <h3>🔄 Cessões de Sindicatos - Preferência Total</h3>
+                            ${secoesPorBase.join('')}
+                            <div style="margin-top: 10px; padding: 12px; background-color: #f8f9fa; border-left: 4px solid #007bff; font-size: 0.9em;">
+                                <strong>💡 Explicação:</strong><br>
+                                • <strong>Só herdeiros que recebem valor completo:</strong> Sindicatos recebem integralmente<br>
+                                • <strong>Herdeiros com preferência parcial:</strong> Sindicatos aguardam ordem cronológica<br>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            // SE NÃO TEM HERDEIROS: lógica original (sem preferência parcial)
+            else {
+                if (ehPreferenciaParcial) return '';
+                const sindicatosComCessao = resultados.sindicatos.filter(sind => 
+                    sind.cessoesSind && sind.cessoesSind.length > 0
+                );
+                if (sindicatosComCessao.length === 0) return '';
+                const secoesSindicatos = sindicatosComCessao.map(sind => {
+                    const cessionarios = sind.cessionarios ? sind.cessionarios.map(cessionario => `
+                        <tr>
+                            <td>${cessionario.nome} (cessionário)</td>
+                            <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
+                            <td>R$ ${formatarMoeda(cessionario.valorBruto)}</td>
+                        </tr>
+                    `).join('') : '';
+                    return `
+                        <div style="margin-bottom: 20px;">
+                            <h4>🔄 Cessão de Sindicato: ${sind.nome}</h4>
+                            <p><strong>Valor do Direito do Sindicato:</strong> R$ ${formatarMoeda(sind.valorBruto)}</p>
+                            <p><strong>Cedido:</strong> ${(sind.percentualCessionarioSind * 100).toFixed(2)}% para ${sind.cessoesSind.length} cessionário${sind.cessoesSind.length > 1 ? 's' : ''}</p>
+                            <table>
+                                <tr><th>Recebedor</th><th>Percentual</th><th>Valor Bruto</th></tr>
+                                <tr style="background-color: #f8f9fa;">
+                                    <td><strong>${sind.nome} (fica com)</strong></td>
+                                    <td>${(sind.percentualSindicato * 100).toFixed(2)}%</td>
+                                    <td>R$ ${formatarMoeda(sind.valorBrutoSindicato)}</td>
+                                </tr>
+                                ${cessionarios}
+                                <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
+                                    <td>TOTAL</td>
+                                    <td>100.00%</td>
+                                    <td>R$ ${formatarMoeda(sind.valorBruto)}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <div class="table-container">
+                        <h3>🔄 Cessões de Sindicatos</h3>
+                        ${secoesSindicatos}
                     </div>
                 `;
-            }).join('');
-            
-            return `
-                <div class="table-container">
-                    <h3>🔄 Cessões de Sindicatos</h3>
-                    ${secoesSindicatos}
-                </div>
-            `;
+            }
         }
-
 
         function gerarSecaoCessoesBeneficiario(resultados, dados) {
             if (!resultados.cessoesBeneficiarioCalculadas || resultados.cessoesBeneficiarioCalculadas.length === 0) return '';
@@ -3662,7 +3807,6 @@
 
         function gerarSecaoCessoesAdvogados(resultados, dados) {
             const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
-            
             // SE TEM HERDEIROS: verifica tipo de cálculo
             if (temHerdeiros) {
                 const isPreferencia = dados.tipoCalculo === 'preferencia';
@@ -3718,7 +3862,6 @@
                         </div>
                     `;
                 }
-                
                 // SE FOR PREFERÊNCIA: agrupa por valor base dos herdeiros
                 else {
                     const isPreferenciaParcial = isPreferencia && resultados.valorBase < resultados.valortotatt;
@@ -3842,8 +3985,6 @@
                     `;
                 }
             }
-            
-            // SE NÃO TEM HERDEIROS: lógica original
             else {
                 const advogadosComCessao = resultados.honorarios.filter(adv => 
                     adv.cessoesAdv && adv.cessoesAdv.length > 0
