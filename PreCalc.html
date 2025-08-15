@@ -2792,8 +2792,9 @@
                 } = resultadoIR;
 
                 // 12. CESSÕES FINAIS
-                const resultadoCessoes = calcularCessoesBeneficiarioPrincipal(
+                const resultadoCessoes = calcularCessoesHerdeiro(
                     dados, 
+                    herdeiro,
                     valorBaseHerdeiro, 
                     valorTotalHerdeiro, 
                     valorHonorarioTotalHerdeiro, 
@@ -2803,13 +2804,14 @@
                 );
                 
                 const {
-                    valorCessoesBeneficiario: valorCessoesHerdeiro,
-                    cessoesBeneficiarioCalculadas: cessoesHerdeiroCalculadas,
-                    percentualBeneficiarioFinal: percentualHerdeiroFinal,
-                    valorBeneficiarioAposCessoes: valorHerdeiroAposCessoes,
-                    valorPrevidenciaBeneficiario: valorPrevidenciaHerdeiroFinal,
-                    valorIRBeneficiario: valorIRHerdeiroFinal,
-                    valorBeneficiarioFinal: valorHerdeiroLiquido
+                    valorCessoesHerdeiro,
+                    cessoesHerdeiroCalculadas,
+                    percentualHerdeiroFinal,
+                    valorHerdeiroAposCessoes,
+                    valorPrevidenciaHerdeiroFinal,
+                    valorIRHerdeiroFinal,
+                    valorHerdeiroLiquido,
+                    cessoesHerdeiroFinais
                 } = resultadoCessoes;
 
                 // 13. PREFERÊNCIA PARCIAL - SALDO DEVEDOR
@@ -2861,7 +2863,7 @@
                     // Cessões
                     percentualBeneficiarioFinal: detalhamentoTotal.percentualBeneficiarioFinal,
                     valorAposCessoesBeneficiario: valorHerdeiroPoscessaoBeneficiario,
-                    cessoesHerdeiro: cessoesHerdeiroCalculadas,
+                    cessoesHerdeiro: cessoesHerdeiroFinais,
                     valorCessoesHerdeiro,
                     percentualHerdeiroFinal,
                     
@@ -2884,6 +2886,140 @@
             });
 
             return herdeirosCalculados;
+        }
+
+        function calcularCessoesHerdeiro(dados, herdeiro, valorBaseHerdeiro, valorTotalHerdeiro, valorHonorarioTotal, valorSindicatoParaDescontar, valorPrevidenciaHerdeiro, valorIRHerdeiro) {
+            const valorHerdeiroBruto = valorBaseHerdeiro - valorHonorarioTotal - valorSindicatoParaDescontar;
+            const cessoesHerdeiro = dados.cessoes?.filter(cessao => 
+                cessao.tipo === 'cessaoherdeiro' && cessao.cedente === herdeiro.nome
+            ) || [];
+
+            const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && valorBaseHerdeiro < valorTotalHerdeiro;
+            
+            // Valores padrão (casos sem cessões)
+            let valorCessoesHerdeiro = 0;
+            let cessoesHerdeiroCalculadas = [];
+            let percentualHerdeiroFinal = 1.0;
+            let valorHerdeiroAposCessoes = valorHerdeiroBruto;
+            let valorPrevidenciaHerdeiroFinal = valorPrevidenciaHerdeiro;
+            let valorIRHerdeiroFinal = valorIRHerdeiro;
+            let valorHerdeiroLiquido = valorHerdeiroBruto - valorPrevidenciaHerdeiro - valorIRHerdeiro;
+            let cessoesHerdeiroFinais = [];
+
+            if (cessoesHerdeiro.length === 0) {
+                return {
+                    valorHerdeiroBruto,
+                    valorCessoesHerdeiro,
+                    cessoesHerdeiroCalculadas,
+                    percentualHerdeiroFinal,
+                    valorHerdeiroAposCessoes,
+                    valorPrevidenciaHerdeiroFinal,
+                    valorIRHerdeiroFinal,
+                    valorHerdeiroLiquido,
+                    cessoesHerdeiroFinais
+                };
+            }
+
+            const totalPercentualCessoes = cessoesHerdeiro.reduce((total, cessao) => total + cessao.percentual, 0);
+            percentualHerdeiroFinal = 1.0 - totalPercentualCessoes;
+            
+            const percentualAdvogados = dados.advogados.length > 0 ? 
+                dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0) : 0;
+            const valorTotalSemAdvogados = valorTotalHerdeiro - (valorTotalHerdeiro * percentualAdvogados);
+
+            if (isPreferenciaParcial) {
+                // PREFERÊNCIA PARCIAL - Cessionários não recebem na preferência
+                const parteHerdeiroNaDividaTotal = valorTotalSemAdvogados * percentualHerdeiroFinal;
+                const maxQueHerdeiroPodeReceber = Math.min(parteHerdeiroNaDividaTotal, valorHerdeiroBruto);
+                
+                cessoesHerdeiroCalculadas = [];
+                cessoesHerdeiroFinais = [];
+                
+                for (const cessao of cessoesHerdeiro) {
+                    const parteCessionarioNaDividaTotal = valorTotalSemAdvogados * cessao.percentual;
+                    
+                    const cessaoCalculada = {
+                        tipo: cessao.tipo,
+                        cedente: cessao.cedente,
+                        cessionario: cessao.cessionario,
+                        percentual: cessao.percentual,
+                        valorBruto: 0,
+                        valorSaldoDevedor: parteCessionarioNaDividaTotal,
+                        observacao: 'Aguarda pagamento - sem direito à preferência'
+                    };
+                    
+                    const cessaoFinal = {
+                        ...cessaoCalculada,
+                        previdenciaCessao: 0,
+                        irCessao: 0,
+                        valorLiquido: 0
+                    };
+                    
+                    cessoesHerdeiroCalculadas.push(cessaoCalculada);
+                    cessoesHerdeiroFinais.push(cessaoFinal);
+                }
+
+                valorCessoesHerdeiro = 0; 
+                valorHerdeiroAposCessoes = maxQueHerdeiroPodeReceber;
+                
+                valorPrevidenciaHerdeiroFinal = valorPrevidenciaHerdeiro;
+                valorIRHerdeiroFinal = valorIRHerdeiro;
+                valorHerdeiroLiquido = maxQueHerdeiroPodeReceber - valorPrevidenciaHerdeiroFinal - valorIRHerdeiroFinal;
+                
+            } else {
+                // PREFERÊNCIA TOTAL, ORDEM CRONOLÓGICA OU OUTROS TIPOS - Cessionários recebem
+                const valorPrevidenciaPorPercentual = valorPrevidenciaHerdeiro; 
+                const valorIRPorPercentual = valorIRHerdeiro; 
+                
+                valorCessoesHerdeiro = 0;
+                
+                cessoesHerdeiroCalculadas = [];
+                cessoesHerdeiroFinais = [];
+                
+                for (const cessao of cessoesHerdeiro) {
+                    const valorBrutoCessao = valorHerdeiroBruto * cessao.percentual;
+                    valorCessoesHerdeiro += valorBrutoCessao;
+                    
+                    const cessaoCalculada = {
+                        tipo: cessao.tipo,
+                        cedente: cessao.cedente,
+                        cessionario: cessao.cessionario,
+                        percentual: cessao.percentual,
+                        valorBruto: valorBrutoCessao
+                    };
+                    
+                    const previdenciaCessao = valorPrevidenciaPorPercentual * cessao.percentual;
+                    const irCessao = valorIRPorPercentual * cessao.percentual;
+                    const valorLiquidoCessao = valorBrutoCessao - previdenciaCessao - irCessao;
+                    
+                    const cessaoFinal = {
+                        ...cessaoCalculada,
+                        previdenciaCessao,
+                        irCessao,
+                        valorLiquido: valorLiquidoCessao
+                    };
+                    
+                    cessoesHerdeiroCalculadas.push(cessaoCalculada);
+                    cessoesHerdeiroFinais.push(cessaoFinal);
+                }
+                
+                valorHerdeiroAposCessoes = valorHerdeiroBruto * percentualHerdeiroFinal;
+                valorPrevidenciaHerdeiroFinal = valorPrevidenciaHerdeiro * percentualHerdeiroFinal;
+                valorIRHerdeiroFinal = valorIRHerdeiro * percentualHerdeiroFinal;
+                valorHerdeiroLiquido = valorHerdeiroAposCessoes - valorPrevidenciaHerdeiroFinal - valorIRHerdeiroFinal;
+            }
+
+            return {
+                valorHerdeiroBruto,
+                valorCessoesHerdeiro,
+                cessoesHerdeiroCalculadas,
+                percentualHerdeiroFinal,
+                valorHerdeiroAposCessoes,
+                valorPrevidenciaHerdeiroFinal,
+                valorIRHerdeiroFinal,
+                valorHerdeiroLiquido,
+                cessoesHerdeiroFinais
+            };
         }
 
         function exibirResultados(resultados, dados) {
@@ -3805,6 +3941,8 @@
             `;
         }
 
+        
+
 
         function gerarSecaoCessoesAdvogados(resultados, dados) {
             const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
@@ -4436,24 +4574,43 @@
             const distribuicaoHerdeiros = herdeiros.map(herdeiro => {
                 const temCessoes = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
                 
-                let linhas = `
-                    <tr>
-                        <th>${herdeiro.nome}:</th>
-                        <td>R$ ${formatarMoeda(temCessoes ? herdeiro.valorPrevidenciaFinal : herdeiro.valorPrevidencia)}</td>
-                    </tr>
-                `;
-                
-                if (temCessoes) {
-                    const cessoesLinhas = herdeiro.cessoesHerdeiro.map(cessao => `
+                if (!temCessoes) {
+                    // Sem cessões - só o herdeiro
+                    return `
                         <tr>
-                            <th style="padding-left: 20px;">Cessão de ${herdeiro.nome} (${(cessao.percentual * 100).toFixed(1)}%) para ${cessao.cessionario}:</th>
-                            <td>R$ ${formatarMoeda(cessao.previdenciaCessao || 0)}</td>
+                            <th>${herdeiro.nome}:</th>
+                            <td>R$ ${formatarMoeda(herdeiro.valorPrevidencia)}</td>
                         </tr>
-                    `).join('');
-                    linhas += cessoesLinhas;
+                    `;
+                } else {
+                    // Com cessões - distribui proporcionalmente
+                    const valorPrevidenciaTotal = herdeiro.valorPrevidencia;
+                    const cessoesTotais = herdeiro.cessoesHerdeiro.reduce((total, cessao) => total + cessao.percentual, 0);
+                    const percentualHerdeiro = 1.0 - cessoesTotais;
+                    
+                    // Valor do herdeiro após cessões
+                    const valorHerdeiro = valorPrevidenciaTotal * percentualHerdeiro;
+                    
+                    let linhas = `
+                        <tr>
+                            <th>${herdeiro.nome}:</th>
+                            <td>R$ ${formatarMoeda(valorHerdeiro)}</td>
+                        </tr>
+                    `;
+                    
+                    // Valores dos cessionários
+                    herdeiro.cessoesHerdeiro.forEach(cessao => {
+                        const valorCessionario = valorPrevidenciaTotal * cessao.percentual;
+                        linhas += `
+                            <tr>
+                                <th style="padding-left: 20px;">${cessao.cessionario} (Cessionário de ${herdeiro.nome} - ${(cessao.percentual * 100).toFixed(1)}%):</th>
+                                <td>R$ ${formatarMoeda(valorCessionario)}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    return linhas;
                 }
-                
-                return linhas;
             }).join('');
             
             return `
@@ -4467,10 +4624,14 @@
                     </tr>
                     <tr>
                         <th>Alíquota Fixa:</th>
-                        <td>${(dados.aliquotaFixa * 100).toFixed(2)}%</td>
+                        <td>${(dados.aliquotaPrevidencia * 100).toFixed(2)}%</td>
+                    </tr>
+                    <tr>
+                        <th>Valor Previdência Total:</th>
+                        <td>R$ ${formatarMoeda(primeiroHerdeiro.valorPrevidencia)}</td>
                     </tr>
                     <tr style="border-top: 1px solid #dee2e6;">
-                        <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
+                        <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição por Cessões:</th>
                     </tr>
                     ${distribuicaoHerdeiros}
                 </table>
@@ -4485,24 +4646,43 @@
             const distribuicaoHerdeiros = herdeiros.map(herdeiro => {
                 const temCessoes = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
                 
-                let linhas = `
-                    <tr>
-                        <th>${herdeiro.nome}:</th>
-                        <td>R$ ${formatarMoeda(temCessoes ? herdeiro.valorPrevidenciaFinal : herdeiro.valorPrevidencia)}</td>
-                    </tr>
-                `;
-                
-                if (temCessoes) {
-                    const cessoesLinhas = herdeiro.cessoesHerdeiro.map(cessao => `
+                if (!temCessoes) {
+                    // Sem cessões - só o herdeiro
+                    return `
                         <tr>
-                            <th style="padding-left: 20px;">Cessão de ${herdeiro.nome} (${(cessao.percentual * 100).toFixed(1)}%) para ${cessao.cessionario}:</th>
-                            <td>R$ ${formatarMoeda(cessao.previdenciaCessao || 0)}</td>
+                            <th>${herdeiro.nome}:</th>
+                            <td>R$ ${formatarMoeda(herdeiro.valorPrevidencia)}</td>
                         </tr>
-                    `).join('');
-                    linhas += cessoesLinhas;
+                    `;
+                } else {
+                    // Com cessões - distribui proporcionalmente
+                    const valorPrevidenciaTotal = herdeiro.valorPrevidencia;
+                    const cessoesTotais = herdeiro.cessoesHerdeiro.reduce((total, cessao) => total + cessao.percentual, 0);
+                    const percentualHerdeiro = 1.0 - cessoesTotais;
+                    
+                    // Valor do herdeiro após cessões
+                    const valorHerdeiro = valorPrevidenciaTotal * percentualHerdeiro;
+                    
+                    let linhas = `
+                        <tr>
+                            <th>${herdeiro.nome}:</th>
+                            <td>R$ ${formatarMoeda(valorHerdeiro)}</td>
+                        </tr>
+                    `;
+                    
+                    // Valores dos cessionários
+                    herdeiro.cessoesHerdeiro.forEach(cessao => {
+                        const valorCessionario = valorPrevidenciaTotal * cessao.percentual;
+                        linhas += `
+                            <tr>
+                                <th style="padding-left: 20px;">${cessao.cessionario} (Cessionário de ${herdeiro.nome} - ${(cessao.percentual * 100).toFixed(1)}%):</th>
+                                <td>R$ ${formatarMoeda(valorCessionario)}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    return linhas;
                 }
-                
-                return linhas;
             }).join('');
             
             return `
@@ -4527,8 +4707,12 @@
                         <th>Alíquota Efetiva INSS:</th>
                         <td>${(primeiroHerdeiro.aliquotaEfetiva * 100).toFixed(2)}%</td>
                     </tr>
+                    <tr>
+                        <th>Valor Previdência Total:</th>
+                        <td>R$ ${formatarMoeda(primeiroHerdeiro.valorPrevidencia)}</td>
+                    </tr>
                     <tr style="border-top: 1px solid #dee2e6;">
-                        <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
+                        <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição por Cessões:</th>
                     </tr>
                     ${distribuicaoHerdeiros}
                 </table>
@@ -4543,7 +4727,6 @@
             let percentualTotalSind = 0;
 
             if (dados.tipoCalculo === 'preferencia' && temAlgumParcial) {
-                // PREFERÊNCIA PARCIAL: só conta advogados que recebem na preferência
                 percentualTotalAdv = dados.advogados.reduce((sum, adv) => {
                     const cessaoAdv = dados.cessoes?.filter(cessao => 
                         cessao.tipo === 'cessaoAdv' && cessao.cedente === adv.nome
@@ -4563,24 +4746,43 @@
             const distribuicaoHerdeiros = herdeiros.map(herdeiro => {
                 const temCessoes = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
                 
-                let linhas = `
-                    <tr>
-                        <th>${herdeiro.nome}:</th>
-                        <td>R$ ${formatarMoeda(temCessoes ? herdeiro.valorIRFinal : herdeiro.valorIR)}</td>
-                    </tr>
-                `;
-                
-                if (temCessoes) {
-                    const cessoesLinhas = herdeiro.cessoesHerdeiro.map(cessao => `
+                if (!temCessoes) {
+                    // Sem cessões - só o herdeiro
+                    return `
                         <tr>
-                            <th style="padding-left: 20px;">Cessão de ${herdeiro.nome} (${(cessao.percentual * 100).toFixed(1)}%) para ${cessao.cessionario}:</th>
-                            <td>R$ ${formatarMoeda(cessao.irCessao || 0)}</td>
+                            <th>${herdeiro.nome}:</th>
+                            <td>R$ ${formatarMoeda(herdeiro.valorIR)}</td>
                         </tr>
-                    `).join('');
-                    linhas += cessoesLinhas;
+                    `;
+                } else {
+                    // Com cessões - distribui proporcionalmente
+                    const valorIRTotal = herdeiro.valorIR;
+                    const cessoesTotais = herdeiro.cessoesHerdeiro.reduce((total, cessao) => total + cessao.percentual, 0);
+                    const percentualHerdeiro = 1.0 - cessoesTotais;
+                    
+                    // Valor do herdeiro após cessões
+                    const valorHerdeiro = valorIRTotal * percentualHerdeiro;
+                    
+                    let linhas = `
+                        <tr>
+                            <th>${herdeiro.nome}:</th>
+                            <td>R$ ${formatarMoeda(valorHerdeiro)}</td>
+                        </tr>
+                    `;
+                    
+                    // Valores dos cessionários
+                    herdeiro.cessoesHerdeiro.forEach(cessao => {
+                        const valorCessionario = valorIRTotal * cessao.percentual;
+                        linhas += `
+                            <tr>
+                                <th style="padding-left: 20px;">${cessao.cessionario} (Cessionário de ${herdeiro.nome} - ${(cessao.percentual * 100).toFixed(1)}%):</th>
+                                <td>R$ ${formatarMoeda(valorCessionario)}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    return linhas;
                 }
-                
-                return linhas;
             }).join('');
             
             return `
@@ -4622,8 +4824,16 @@
                         <th>Alíquota IR:</th>
                         <td>${(primeiroHerdeiro.aliquotaIR * 100).toFixed(1)}%</td>
                     </tr>
+                    <tr>
+                        <th>Valor IR Mensal:</th>
+                        <td>R$ ${formatarMoeda(primeiroHerdeiro.valorIRUnitario)}</td>
+                    </tr>
+                    <tr>
+                        <th>Valor IR Devido Total:</th>
+                        <td>R$ ${formatarMoeda(primeiroHerdeiro.valorIR)}</td>
+                    </tr>
                     <tr style="border-top: 1px solid #dee2e6;">
-                        <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
+                        <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição por Cessões:</th>
                     </tr>
                     ${distribuicaoHerdeiros}
                 </table>
