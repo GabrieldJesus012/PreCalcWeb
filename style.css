@@ -957,23 +957,88 @@ tr.highlight {
         margin-bottom: 8px !important;
     }
     
-    .pagamentos-finais {
-        border-left: 3px solid #10B981 !important;
-        -webkit-print-color-adjust: exact !important;
-        color-adjust: exact !important;
-        padding: 10px !important;
+    .pagamentos-finais .table-container {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
         margin: 8px 0 !important;
-        border-radius: 4px !important;
     }
     
-    .pagamentos-finais h3 {
-        color: #065F46 !important;
-        font-weight: 600 !important;
+    .pagamentos-finais .table-container h3 {
         font-size: 13px !important;
-        background: transparent !important;
-        border: none !important;
-        padding: 0 !important;
-        margin-bottom: 8px !important;
+        margin: 0 0 8px 0 !important;
+    }
+    
+    .pagamentos-finais table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin: 0 !important;
+        font-size: 10px !important;
+        page-break-inside: avoid !important;
+    }
+    
+    .pagamentos-finais table thead th {
+        padding: 6px 4px !important;
+        font-size: 10px !important;
+        line-height: 1.2 !important;
+    }
+    
+    .pagamentos-finais table tbody td {
+        padding: 5px 4px !important;
+        font-size: 10px !important;
+        line-height: 1.2 !important;
+        vertical-align: top !important;
+    }
+    
+    .pagamentos-finais table tfoot td {
+        padding: 6px 4px !important;
+        font-size: 10px !important;
+        line-height: 1.2 !important;
+    }
+    
+    /* Estilo para o primeiro td (nome do credor) */
+    .pagamentos-finais table tbody td:first-child,
+    .pagamentos-finais table thead th:first-child,
+    .pagamentos-finais table tfoot td:first-child {
+        max-width: 140px !important;
+        width: 40% !important;
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        hyphens: auto !important;
+        overflow-wrap: break-word !important;
+    }
+    
+    /* Colunas de valores */
+    .pagamentos-finais table tbody td:not(:first-child),
+    .pagamentos-finais table thead th:not(:first-child),
+    .pagamentos-finais table tfoot td:not(:first-child) {
+        width: 15% !important;
+        text-align: right !important;
+        white-space: nowrap !important;
+        font-family: 'Courier New', monospace !important;
+    }
+    
+    /* Notas explicativas */
+    .pagamentos-finais .table-container > div[style*="margin-top"] {
+        margin-top: 8px !important;
+        padding: 8px !important;
+        font-size: 9px !important;
+        line-height: 1.3 !important;
+    }
+    
+    .pagamentos-finais .table-container > div[style*="margin-top"] h4 {
+        font-size: 10px !important;
+        margin: 0 0 6px 0 !important;
+    }
+    
+    .pagamentos-finais .table-container > div[style*="margin-top"] p {
+        margin: 3px 0 !important;
+        font-size: 9px !important;
+        line-height: 1.2 !important;
+    }
+    
+    /* Força quebra de linha em nomes muito longos */
+    .pagamentos-finais table tbody td:first-child {
+        overflow: hidden !important;
     }
     
     .tabs-nav,
@@ -1135,7 +1200,6 @@ tr.highlight {
     .deducoes-acessorias,
     .deducoes-legais,
     .cessoes-beneficiario,
-    .pagamentos-finais,
     .valor-final {
         page-break-inside: avoid;
         break-inside: avoid;
