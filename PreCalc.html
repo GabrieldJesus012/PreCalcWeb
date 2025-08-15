@@ -3887,6 +3887,9 @@
                         const valorBase = parseFloat(base);
                         const herdeirosNomes = herdeiros.map(h => h.nome).join(', ');
                         
+                        // Verifica se este grupo é preferência parcial ou total
+                        const grupoEPreferenciaParcial = herdeiros.some(h => h.isPreferenciaParcial);
+                        
                         // Busca advogados com cessão para este valor base
                         const advogadosComCessao = resultados.honorarios.filter(adv => 
                             adv.cessoesAdv && adv.cessoesAdv.length > 0
@@ -3897,10 +3900,10 @@
                         const secoesCessoes = advogadosComCessao.map(adv => {
                             // Valor do honorário deste advogado neste grupo
                             const valorHonorarioAdvogado = valorBase * adv.percentual;
-                            const valorAdvogadoAposCessao = valorBase * adv.percentualAdvogado; // Advogado fica com
+                            const valorAdvogadoAposCessao = valorBase * adv.percentualAdvogado;
                             
                             let cessionarios = '';
-                            if (isPreferenciaParcial) {
+                            if (grupoEPreferenciaParcial) {
                                 // Preferência parcial: cessionários aguardam
                                 cessionarios = adv.cessionarios ? adv.cessionarios.map(cessionario => `
                                     <tr>
@@ -3910,7 +3913,7 @@
                                     </tr>
                                 `).join('') : '';
                             } else {
-                                // Ordem comum ou preferência total: cessionários recebem
+                                // Preferência total: cessionários recebem
                                 cessionarios = adv.cessionarios ? adv.cessionarios.map(cessionario => `
                                     <tr>
                                         <td>${cessionario.nome} (cessionário)</td>
@@ -3923,11 +3926,11 @@
                             return `
                                 <div style="margin-bottom: 20px;">
                                     <h4>🔄 Cessão de Honorários: ${adv.nome}</h4>
-                                    <p><strong>Valor do Honorário ${isPreferenciaParcial ? '(Preferência)' : ''}:</strong> R$ ${formatarMoeda(valorHonorarioAdvogado)}</p>
+                                    <p><strong>Valor do Honorário:</strong> R$ ${formatarMoeda(valorHonorarioAdvogado)}</p>
                                     <p><strong>Cedido:</strong> ${(adv.percentualCessionarioAdv * 100).toFixed(2)}% para ${adv.cessoesAdv.length} cessionário${adv.cessoesAdv.length > 1 ? 's' : ''}</p>
                                     
                                     <table>
-                                        <tr><th>Recebedor</th><th>Percentual</th><th>Valor ${isPreferenciaParcial ? 'do Direito' : 'Bruto'}</th></tr>
+                                        <tr><th>Recebedor</th><th>Percentual</th><th>Valor ${grupoEPreferenciaParcial ? 'do Direito' : 'Bruto'}</th></tr>
                                         <tr style="background-color: #f8f9fa;">
                                             <td><strong>${adv.nome} (fica com)</strong></td>
                                             <td>${(adv.percentualAdvogado * 100).toFixed(2)}%</td>
@@ -3944,16 +3947,16 @@
                             `;
                         }).join('');
                         
-                        if (secoesCessoes.trim() === '') return; // Não há cessões válidas neste grupo
+                        if (secoesCessoes.trim() === '') return; 
                         
-                        const alertaStatus = isPreferenciaParcial 
-                            ? `<p style="color: #856404; font-weight: bold;">⚠️ Preferência Parcial: Só advogados recebem agora, cessionários aguardam ordem cronológica</p>`
-                            : '';
+                        const alertaStatus = grupoEPreferenciaParcial 
+                            ? `<p style="color: #856404; font-weight: bold;">⚠️ Preferência Parcial: Grupo limitado pelo teto (R$ ${formatarMoeda(dados.tetoPreferencia)}) - Cessionários aguardam</p>`
+                            : `<p style="color: #155724; font-weight: bold;">✅ Preferência Total: Grupo recebe valor completo - Todos recebem</p>`;
                         
                         secoesPorBase.push(`
                             <div style="margin-bottom: 30px; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px;">
                                 <p style="color: #155724; font-style: italic; margin-bottom: 10px;">
-                                    Cessões calculadas sobre ${isPreferenciaParcial ? 'a preferência' : 'o valor'} (base: R$ ${formatarMoeda(valorBase)})
+                                    <strong>Cessões calculadas sobre:</strong> R$ ${formatarMoeda(valorBase)}
                                     <span style="color: #856404;"> - ${herdeirosNomes}</span>
                                 </p>
                                 ${alertaStatus}
@@ -3962,19 +3965,17 @@
                         `);
                     });
                     
-                    if (secoesPorBase.length === 0) return ''; // Nenhum grupo tem cessões
+                    if (secoesPorBase.length === 0) return ''; 
                     
-                    const titulo = isPreferenciaParcial 
-                        ? '🔄 Cessões de Honorários - Preferência Parcial'
+                    const temAlgumParcial = secoesPorBase.some(secao => secao.includes('Preferência Parcial'));
+                    const titulo = temAlgumParcial 
+                        ? '🔄 Cessões de Honorários - Preferência (Parcial/Total)'
                         : '🔄 Cessões de Honorários - Preferência Total';
                     
-                    const explicacao = isPreferenciaParcial 
-                        ? `• <strong>Advogados</strong> têm direito à preferência e recebem sua parte agora<br>
-                        • <strong>Cessionários</strong> não têm direito à preferência (Art. 42. Resolução CNJ 303/19.) e aguardam ordem cronológica<br>
-                        • <strong>Valores calculados por grupo de herdeiros</strong> conforme valor da preferência`
-                        : `• <strong>Preferência total:</strong> Todos os honorários são pagos integralmente<br>
-                        • <strong>Advogados e cessionários</strong> recebem seus valores<br>
-                        • <strong>Valores calculados por grupo de herdeiros</strong> conforme valor total`;
+                    const explicacao = `• <strong>Preferência por grupo:</strong> Cada grupo tem tratamento específico<br>
+                        • <strong>Parcial:</strong> Só advogados recebem, cessionários aguardam<br>
+                        • <strong>Total:</strong> Advogados e cessionários recebem integralmente<br>
+                        • <strong>Valores calculados</strong> conforme situação de cada grupo`;
                     
                     return `
                         <div class="table-container">
@@ -3989,7 +3990,6 @@
                 }
             }
             
-            // SE NÃO TEM HERDEIROS: lógica original
             else {
                 const advogadosComCessao = resultados.honorarios.filter(adv => 
                     adv.cessoesAdv && adv.cessoesAdv.length > 0
