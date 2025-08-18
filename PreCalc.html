@@ -386,6 +386,161 @@
             document.getElementById('tipoPrevidencia').dispatchEvent(new Event('change'));
         });
 
+
+        // Armazenar
+        const DadosFormulario = {
+            advogados: [],
+            herdeiros: [],
+            sindicatos: [],
+            cessoes: [],
+            
+            // Salvar dados de uma seção específica
+            salvar(tipo) {
+                switch(tipo) {
+                    case 'advogados':
+                        this.salvarAdvogados();
+                        break;
+                    case 'herdeiros':
+                        this.salvarHerdeiros();
+                        break;
+                    case 'sindicatos':
+                        this.salvarSindicatos();
+                        break;
+                    case 'cessoes':
+                        this.salvarCessoes();
+                        break;
+                    case 'todos':
+                        this.salvarTodos();
+                        break;
+                }
+            },
+            
+            salvarAdvogados() {
+                this.advogados = [];
+                const quantidade = parseInt(document.getElementById('quantAdvogados')?.value) || 0;
+                for (let i = 0; i < quantidade; i++) {
+                    this.advogados.push({
+                        nome: document.getElementById(`advNome${i}`)?.value || '',
+                        tipo: document.getElementById(`advTipo${i}`)?.value || 'PF',
+                        percentual: document.getElementById(`advPercentual${i}`)?.value || ''
+                    });
+                }
+            },
+            
+            salvarHerdeiros() {
+                this.herdeiros = [];
+                const quantidade = parseInt(document.getElementById('quantHerdeiros')?.value) || 0;
+                for (let i = 0; i < quantidade; i++) {
+                    this.herdeiros.push({
+                        nome: document.getElementById(`herdNome${i}`)?.value || '',
+                        percentual: document.getElementById(`herdPercentual${i}`)?.value || '',
+                        preferencia: document.getElementById(`herdPreferencia${i}`)?.value || 'sim'
+                    });
+                }
+            },
+            
+            salvarSindicatos() {
+                this.sindicatos = [];
+                const quantidade = parseInt(document.getElementById('quantSindicatos')?.value) || 0;
+                for (let i = 0; i < quantidade; i++) {
+                    this.sindicatos.push({
+                        nome: document.getElementById(`sindNome${i}`)?.value || '',
+                        percentual: document.getElementById(`sindPercentual${i}`)?.value || '',
+                        tributacao: document.getElementById(`sindTrib${i}`)?.value || 'nao',
+                        aliquota: document.getElementById(`aliquotaSind${i}`)?.value || ''
+                    });
+                }
+            },
+            
+            salvarCessoes() {
+                this.cessoes = [];
+                const quantidade = parseInt(document.getElementById('quantCessoes')?.value) || 0;
+                for (let i = 0; i < quantidade; i++) {
+                    this.cessoes.push({
+                        tipo: document.getElementById(`cessaoTipo${i}`)?.value || '',
+                        cedente: document.getElementById(`cedenteNome${i}`)?.value || '',
+                        cessionario: document.getElementById(`cessionarioNome${i}`)?.value || '',
+                        percentual: document.getElementById(`cessaoPercentual${i}`)?.value || ''
+                    });
+                }
+            },
+            
+            salvarTodos() {
+                this.salvarAdvogados();
+                this.salvarHerdeiros();
+                this.salvarSindicatos();
+                this.salvarCessoes();
+            },
+            
+            // Restaurar dados
+            restaurarAdvogados() {
+                const limite = Math.min(this.advogados.length, parseInt(document.getElementById('quantAdvogados')?.value) || 0);
+                for (let i = 0; i < limite; i++) {
+                    const advNome = document.getElementById(`advNome${i}`);
+                    const advTipo = document.getElementById(`advTipo${i}`);
+                    const advPercentual = document.getElementById(`advPercentual${i}`);
+                    
+                    if (advNome) advNome.value = this.advogados[i].nome;
+                    if (advTipo) advTipo.value = this.advogados[i].tipo;
+                    if (advPercentual) advPercentual.value = this.advogados[i].percentual;
+                }
+            },
+            
+            restaurarHerdeiros() {
+                const limite = Math.min(this.herdeiros.length, parseInt(document.getElementById('quantHerdeiros')?.value) || 0);
+                for (let i = 0; i < limite; i++) {
+                    const herdNome = document.getElementById(`herdNome${i}`);
+                    const herdPercentual = document.getElementById(`herdPercentual${i}`);
+                    const herdPreferencia = document.getElementById(`herdPreferencia${i}`);
+                    
+                    if (herdNome) herdNome.value = this.herdeiros[i].nome;
+                    if (herdPercentual) herdPercentual.value = this.herdeiros[i].percentual;
+                    if (herdPreferencia) herdPreferencia.value = this.herdeiros[i].preferencia;
+                }
+            },
+            
+            restaurarSindicatos() {
+                const limite = Math.min(this.sindicatos.length, parseInt(document.getElementById('quantSindicatos')?.value) || 0);
+                for (let i = 0; i < limite; i++) {
+                    const sindNome = document.getElementById(`sindNome${i}`);
+                    const sindPercentual = document.getElementById(`sindPercentual${i}`);
+                    const sindTrib = document.getElementById(`sindTrib${i}`);
+                    const aliquotaSind = document.getElementById(`aliquotaSind${i}`);
+                    
+                    if (sindNome) sindNome.value = this.sindicatos[i].nome;
+                    if (sindPercentual) sindPercentual.value = this.sindicatos[i].percentual;
+                    if (sindTrib) {
+                        sindTrib.value = this.sindicatos[i].tributacao;
+                        toggleAliquotaSindicato(i);
+                    }
+                    if (aliquotaSind && this.sindicatos[i].tributacao === 'fixa') {
+                        aliquotaSind.value = this.sindicatos[i].aliquota;
+                    }
+                }
+            },
+            
+            restaurarCessoes() {
+                const limite = Math.min(this.cessoes.length, parseInt(document.getElementById('quantCessoes')?.value) || 0);
+                for (let i = 0; i < limite; i++) {
+                    const cessaoTipo = document.getElementById(`cessaoTipo${i}`);
+                    if (cessaoTipo && this.cessoes[i].tipo) {
+                        cessaoTipo.value = this.cessoes[i].tipo;
+                        atualizarCedentes(i);
+                        
+                        setTimeout(() => {
+                            const cedenteNome = document.getElementById(`cedenteNome${i}`);
+                            const cessionarioNome = document.getElementById(`cessionarioNome${i}`);
+                            const cessaoPercentual = document.getElementById(`cessaoPercentual${i}`);
+                            
+                            if (cedenteNome) cedenteNome.value = this.cessoes[i].cedente;
+                            if (cessionarioNome) cessionarioNome.value = this.cessoes[i].cessionario;
+                            if (cessaoPercentual) cessaoPercentual.value = this.cessoes[i].percentual;
+                        }, 50);
+                    }
+                }
+            }
+        };
+
         const CessaoCache = {
             container: null,
             beneficiario: null,
@@ -416,41 +571,53 @@
         function criarCessoes(quant) {
             if (!CessaoCache.container) CessaoCache.init();
             
+            // SEMPRE salvar cessões antes de recriar
+            DadosFormulario.salvarCessoes();
+            
             CessaoCache.container.innerHTML = '';
             
             const { advogados, herdeiros, sindicatos } = CessaoCache.getQuantidades();
             const opcoesTipo = criarOpcoesTipoCessao(advogados, herdeiros, sindicatos);
-            const temUnicaOpcao = opcoesTipo.split('<option').length === 3; // 1 vazia + 1 real + split extra
+            const temUnicaOpcao = opcoesTipo.split('<option').length === 3;
             
             const fragment = document.createDocumentFragment();
             
             for (let i = 0; i < quant; i++) {
                 const cessaoDiv = criarElementoCessao(i, opcoesTipo);
                 fragment.appendChild(cessaoDiv);
-                
-                if (temUnicaOpcao) {
-                    setTimeout(() => {
-                        const select = document.getElementById(`cessaoTipo${i}`);
-                        if (select) {
-                            select.value = 'cessaobenPrincipal';
-                            atualizarCedentes(i);
-                        }
-                    }, 0);
-                }
             }
             
             CessaoCache.container.appendChild(fragment);
             
+            // Restaurar dados salvos ou configurar novas cessões
             setTimeout(() => {
+                // Primeiro restaurar dados existentes
+                if (DadosFormulario.cessoes.length > 0) {
+                    DadosFormulario.restaurarCessoes();
+                }
+                
+                // Para TODAS as cessões, verificar se precisam atualização
                 for (let i = 0; i < quant; i++) {
                     const cessaoTipo = document.getElementById(`cessaoTipo${i}`);
                     const cedenteSelect = document.getElementById(`cedenteNome${i}`);
                     
-                    if (cessaoTipo?.value && cedenteSelect?.value === '') {
-                        atualizarCedentes(i);
+                    // Se é uma nova cessão (sem dados salvos)
+                    if (i >= DadosFormulario.cessoes.length) {
+                        if (temUnicaOpcao && cessaoTipo) {
+                            cessaoTipo.value = 'cessaobenPrincipal';
+                            atualizarCedentes(i);
+                        }
+                    } 
+                    // Se já tem tipo mas cedente está vazio ou inválido
+                    else if (cessaoTipo?.value && cedenteSelect) {
+                        // Verificar se o select de cedente está vazio ou com mensagem padrão
+                        if (!cedenteSelect.value || cedenteSelect.value === '' || 
+                            cedenteSelect.options[cedenteSelect.selectedIndex]?.text.includes('Selecione')) {
+                            atualizarCedentes(i);
+                        }
                     }
                 }
-            }, 10);
+            }, 20);
         }
 
         function criarElementoCessao(index, opcoesTipo) {
@@ -491,13 +658,33 @@
             
             const { cessoes } = CessaoCache.getQuantidades();
             
+            // NÃO recriar cessões, apenas atualizar opções
             if (cessoes > 0) {
-                criarCessoes(cessoes);
+                // Salvar estado atual das cessões
+                DadosFormulario.salvarCessoes();
+                
+                requestAnimationFrame(() => {
+                    for (let i = 0; i < cessoes; i++) {
+                        const cessaoTipo = document.getElementById(`cessaoTipo${i}`);
+                        if (cessaoTipo?.value) {
+                            const cedenteAtual = document.getElementById(`cedenteNome${i}`)?.value;
+                            atualizarCedentes(i);
+                            
+                            // Restaurar cedente se ainda existir
+                            setTimeout(() => {
+                                const cedenteSelect = document.getElementById(`cedenteNome${i}`);
+                                if (cedenteSelect && cedenteAtual) {
+                                    const opcoes = Array.from(cedenteSelect.options);
+                                    const opcaoExiste = opcoes.some(opt => opt.value === cedenteAtual);
+                                    if (opcaoExiste) {
+                                        cedenteSelect.value = cedenteAtual;
+                                    }
+                                }
+                            }, 10);
+                        }
+                    }
+                });
             }
-            
-            requestAnimationFrame(() => {
-                atualizarTodosCedentes();
-            });
         }
 
         function criarOpcoesTipoCessao(quantAdvogados, quantHerdeiros, quantSindicatos) {
@@ -621,9 +808,14 @@
 
         // Função genérica para criar elementos (DRY principle)
         function criarElementosFormulario(config) {
-            const { container, quantidade, criarElementoFn, callback } = config;
+            const { container, quantidade, criarElementoFn, callback, tipo } = config;
             
             if (!container) return;
+            
+            // Salvar dados ANTES de limpar
+            if (tipo) {
+                DadosFormulario.salvar(tipo);
+            }
             
             container.innerHTML = '';
             
@@ -640,7 +832,26 @@
             }
             
             container.appendChild(fragment);
-            callback && callback();
+            
+            // Restaurar dados após criar elementos
+            if (tipo) {
+                setTimeout(() => {
+                    switch(tipo) {
+                        case 'advogados':
+                            DadosFormulario.restaurarAdvogados();
+                            break;
+                        case 'herdeiros':
+                            DadosFormulario.restaurarHerdeiros();
+                            break;
+                        case 'sindicatos':
+                            DadosFormulario.restaurarSindicatos();
+                            break;
+                    }
+                    callback && callback();
+                }, 10);
+            } else {
+                callback && callback();
+            }
         }
 
         function criarElementoAdvogado(index) {
@@ -725,6 +936,7 @@
             const herdDiv = document.createElement('div');
             herdDiv.className = 'advogado-item';
             
+            // SEMPRE criar o campo de preferência, apenas ocultá-lo se necessário
             let htmlHerdeiro = `
                 <div class="advogado-header">Herdeiro ${index + 1}</div>
                 <div class="advogado-row">
@@ -735,29 +947,37 @@
                     <div class="input-group">
                         <label>Percentual (ex: 0.1 para 10%):</label>
                         <input type="number" id="herdPercentual${index}" step="0.01" min="0" max="1" placeholder="0.00">
-                    </div>`;
-            
-            if (mostraPreferencia) {
-                htmlHerdeiro += `
-                    <div class="input-group">
+                    </div>
+                    <div class="input-group" style="${mostraPreferencia ? '' : 'display: none;'}" id="herdPreferenciaContainer${index}">
                         <label>Tem direito à preferência?</label>
                         <select id="herdPreferencia${index}">
                             <option value="sim">Sim</option>
                             <option value="nao">Não</option>
                         </select>
-                    </div>`;
-            }
+                    </div>
+                </div>`;
             
-            htmlHerdeiro += `</div>`;
             herdDiv.innerHTML = htmlHerdeiro;
             
-            // Event listener otimizado (sem inline)
             const nomeInput = herdDiv.querySelector(`#herdNome${index}`);
             if (nomeInput) {
                 nomeInput.addEventListener('change', atualizarOpcoesCessao);
             }
             
             return herdDiv;
+        }
+
+        function atualizarVisibilidadePreferencia() {
+            const tipoCalculo = FormCache.tipoCalculo?.value;
+            const mostraPreferencia = tipoCalculo === 'preferencia';
+            const quantHerdeiros = parseInt(FormCache.quantHerdeiros?.value) || 0;
+            
+            for (let i = 0; i < quantHerdeiros; i++) {
+                const container = document.getElementById(`herdPreferenciaContainer${i}`);
+                if (container) {
+                    container.style.display = mostraPreferencia ? '' : 'none';
+                }
+            }
         }
 
         function initializeFormEventListeners() {
@@ -768,6 +988,7 @@
                     container: FormCache.advogadosContainer,
                     quantidade: quant,
                     criarElementoFn: criarElementoAdvogado,
+                    tipo: 'advogados',
                     callback: atualizarOpcoesCessao
                 });
             });
@@ -779,6 +1000,7 @@
                     container: FormCache.sindicatosContainer,
                     quantidade: quant,
                     criarElementoFn: criarElementoSindicato,
+                    tipo: 'sindicatos',
                     callback: atualizarOpcoesCessao
                 });
             });
@@ -790,6 +1012,7 @@
                     container: FormCache.herdeirosContainer,
                     quantidade: quant,
                     criarElementoFn: criarElementoHerdeiro,
+                    tipo: 'herdeiros',
                     callback: atualizarOpcoesCessao
                 });
             });
@@ -800,13 +1023,16 @@
                 criarCessoes(quant);
             });
 
-            // Tipo de cálculo (para atualizar herdeiros)
+            // Tipo de cálculo - MODIFICADO para NÃO recriar herdeiros
             FormCache.tipoCalculo?.addEventListener('change', function() {
-                const quantHerdeiros = parseInt(FormCache.quantHerdeiros?.value) || 0;
-                if (quantHerdeiros > 0) {
-                    // Recriar herdeiros com campos de preferência atualizados
-                    FormCache.quantHerdeiros.dispatchEvent(new Event('change'));
-                }
+                // Salvar dados dos herdeiros ANTES
+                DadosFormulario.salvarHerdeiros();
+                
+                // Apenas atualizar visibilidade dos campos de preferência
+                atualizarVisibilidadePreferencia();
+                
+                // NÃO disparar evento de change no quantHerdeiros
+                // Isso evita a recriação dos elementos
             });
 
             // Beneficiário
@@ -848,6 +1074,12 @@
         }
 
         function limparFormulario() {
+            // Limpar cache
+            DadosFormulario.advogados = [];
+            DadosFormulario.herdeiros = [];
+            DadosFormulario.sindicatos = [];
+            DadosFormulario.cessoes = [];
+            
             FormCache.calculatorForm?.reset();
             
             const containersConfig = [
