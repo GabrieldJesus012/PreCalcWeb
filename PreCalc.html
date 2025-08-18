@@ -1887,73 +1887,112 @@
                 const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
                 const dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
                 const urlselic = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.4390/dados?formato=json&dataInicial=01/12/2021&dataFinal=${dataFinal}`;
+                
                 const response = await fetch(urlselic);
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
                 const dadosselic = await response.json();
-                // Função para converter string de data da API em Date
-                function strParaData(dataStr) {
-                    const [dia, mes, ano] = dataStr.split('/');
-                    return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
-                }
-                // Aplica SELIC antes do início da graça
-                let selicAntesGraca = [];
-                let periodoAntesGraca = '';
+                
+                return processarDadosSelic(dadosselic, dataBase, inicioGraca, fimGraca);
+                
+            } catch (error) {
+                console.error(`Erro ao obter dados da SELIC: ${error}`);
+                console.log('A API do Banco Central está indisponível. Será necessário inserir os valores manualmente.');
+                
+                // Solicita valores manuais
+                return await solicitarValoresManuais(dataBase, inicioGraca, fimGraca);
+            }
+        }
+
+        async function solicitarValoresManuais(dataBase, inicioGraca, fimGraca) {
+            try {
+                let indiceSelicAntes = 1.0;
+                let indiceSelicApos = 1.0;
+                let temSelicAntes = false;
+                let temSelicApos = false;
+                
+                // Data de início da aplicação da SELIC (dezembro/2021) - igual à API
+                const inicioSelicBrasil = new Date(2021, 11, 1); // dezembro/2021
+                
+                // Verifica se precisa de SELIC antes da graça
                 if (dataBase < inicioGraca) {
-                    const dadosAntesGraca = dadosselic.filter(item => {
-                        const dataItem = strParaData(item.data);
-                        return dataBase <= dataItem && dataItem < inicioGraca;
-                    });
-                    selicAntesGraca = dadosAntesGraca.map(item => parseFloat(item.valor.replace(',', '.')));
-                    // Definir período antes da graça
-                    if (dadosAntesGraca.length > 0) {
-                        const primeiraData = dadosAntesGraca[0].data;
-                        const ultimaData = dadosAntesGraca[dadosAntesGraca.length - 1].data;
-                        periodoAntesGraca = `${primeiraData} a ${ultimaData}`;
+                    // Simula o filtro da API: só pede se houver período válido (>= dez/2021 e < início graça)
+                    const dataInicioEfetivo = dataBase > inicioSelicBrasil ? dataBase : inicioSelicBrasil;
+                    
+                    // Só pergunta se há período válido para aplicar SELIC
+                    if (dataInicioEfetivo < inicioGraca) {
+                        const valorAntes = prompt(
+                            `Digite o índice SELIC ANTES da graça (período de ${dataInicioEfetivo.toLocaleDateString('pt-BR')} a ${inicioGraca.toLocaleDateString('pt-BR')}):\n` +
+                            `Formato: 1,XXXX ou 1.XXXX (exemplo: 1.4273 para 42,73% acumulado)`
+                        );
+                        
+                        if (valorAntes) {
+                            const valorNormalizado = valorAntes.replace(',', '.');
+                            if (!isNaN(parseFloat(valorNormalizado))) {
+                                indiceSelicAntes = parseFloat(valorNormalizado);
+                                temSelicAntes = true;
+                            }
+                        }
                     }
                 }
-                let dadosAposGraca = [];
+                
+                // Verifica se precisa de SELIC após a graça
+                const hoje = new Date();
+                
+                // Simula a mesma lógica da API
                 if (dataBase > fimGraca) {
-                    // Se dataBase é após a graça, aplica SELIC da dataBase até hoje
-                    dadosAposGraca = dadosselic.filter(item => {
-                        const dataItem = strParaData(item.data);
-                        return dataItem >= dataBase; // A partir da data base
-                    });
+                    // Se dataBase é após a graça, aplica SELIC da dataBase (se >= dez/2021) até hoje
+                    const dataInicioEfetivo = dataBase > inicioSelicBrasil ? dataBase : inicioSelicBrasil;
+                    if (dataInicioEfetivo < hoje) {
+                        const valorApos = prompt(
+                            `Digite o índice SELIC APÓS a graça (período de ${dataInicioEfetivo.toLocaleDateString('pt-BR')} até hoje):\n` +
+                            `Formato: 1,XXXX ou 1.XXXX (exemplo: 1.4273 para 42,73% acumulado)`
+                        );
+                        
+                        if (valorApos) {
+                            const valorNormalizado = valorApos.replace(',', '.');
+                            if (!isNaN(parseFloat(valorNormalizado))) {
+                                indiceSelicApos = parseFloat(valorNormalizado);
+                                temSelicApos = true;
+                            }
+                        }
+                    }
                 } else {
                     // Se dataBase é antes/durante a graça, aplica SELIC após a graça até hoje
-                    dadosAposGraca = dadosselic.filter(item => {
-                        const dataItem = strParaData(item.data);
-                        return dataItem > fimGraca; // Após o fim da graça
-                    });
+                    // CORREÇÃO: só pergunta se fim da graça < hoje (sempre vai ser no seu exemplo)
+                    if (fimGraca < hoje) {
+                        const dataInicioEfetivo = fimGraca > inicioSelicBrasil ? fimGraca : inicioSelicBrasil;
+                        const valorApos = prompt(
+                            `Digite o índice SELIC APÓS a graça (período de ${dataInicioEfetivo.toLocaleDateString('pt-BR')} até hoje):\n` +
+                            `Formato: 1,XXXX ou 1.XXXX (exemplo: 1.4273 para 42,73% acumulado)`
+                        );
+                        
+                        if (valorApos) {
+                            const valorNormalizado = valorApos.replace(',', '.');
+                            if (!isNaN(parseFloat(valorNormalizado))) {
+                                indiceSelicApos = parseFloat(valorNormalizado);
+                                temSelicApos = true;
+                            }
+                        }
+                    }
                 }
-
-                const selicAposGraca = dadosAposGraca.map(item => parseFloat(item.valor.replace(',', '.')));
-                // Definir período após a graça
-                let periodoAposGraca = '';
-                if (dadosAposGraca.length > 0) {
-                    const primeiraData = dadosAposGraca[0].data;
-                    const ultimaData = dadosAposGraca[dadosAposGraca.length - 1].data;
-                    periodoAposGraca = `${primeiraData} a ${ultimaData}`;
-                }
-                // Soma da SELIC
-                const somaSelicAntes = selicAntesGraca.reduce((sum, val) => sum + val, 0);
-                const somaSelicApos = selicAposGraca.reduce((sum, val) => sum + val, 0);
-                const somaSelic = somaSelicAntes + somaSelicApos;
-                const indiceselic = 1 + (somaSelic / 100);
-                const indiceSelicAntes = somaSelicAntes > 0 ? 1 + (somaSelicAntes / 100) : 1.0;
-                const indiceSelicApos = somaSelicApos > 0 ? 1 + (somaSelicApos / 100) : 1.0;
+                
+                // Calcula índice total
+                const indiceselic = indiceSelicAntes * indiceSelicApos;
+                
                 return {
                     indiceselic,
                     indiceSelicAntes,
                     indiceSelicApos,
-                    periodoAntesGraca,
-                    periodoAposGraca,
-                    temSelicAntes: selicAntesGraca.length > 0,
-                    temSelicApos: selicAposGraca.length > 0
+                    periodoAntesGraca: temSelicAntes ? `${(dataBase > inicioSelicBrasil ? dataBase : inicioSelicBrasil).toLocaleDateString('pt-BR')} a ${inicioGraca.toLocaleDateString('pt-BR')} (manual)` : '',
+                    periodoAposGraca: temSelicApos ? `${(dataBase > fimGraca ? (dataBase > inicioSelicBrasil ? dataBase : inicioSelicBrasil) : (fimGraca > inicioSelicBrasil ? fimGraca : inicioSelicBrasil)).toLocaleDateString('pt-BR')} até hoje (manual)` : '',
+                    temSelicAntes,
+                    temSelicApos
                 };
+                
             } catch (error) {
-                console.error(`Erro ao obter dados da SELIC: ${error}`);
+                console.error('Erro ao processar valores manuais:', error);
                 return {
                     indiceselic: 1.00,
                     indiceSelicAntes: 1.00,
@@ -1964,6 +2003,75 @@
                     temSelicApos: false
                 };
             }
+        }
+
+        function processarDadosSelic(dadosselic, dataBase, inicioGraca, fimGraca) {
+            // Função para converter string de data da API em Date
+            function strParaData(dataStr) {
+                const [dia, mes, ano] = dataStr.split('/');
+                return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+            }
+            
+            // Aplica SELIC antes do início da graça
+            let selicAntesGraca = [];
+            let periodoAntesGraca = '';
+            if (dataBase < inicioGraca) {
+                const dadosAntesGraca = dadosselic.filter(item => {
+                    const dataItem = strParaData(item.data);
+                    return dataBase <= dataItem && dataItem < inicioGraca;
+                });
+                selicAntesGraca = dadosAntesGraca.map(item => parseFloat(item.valor.replace(',', '.')));
+                
+                // Definir período antes da graça
+                if (dadosAntesGraca.length > 0) {
+                    const primeiraData = dadosAntesGraca[0].data;
+                    const ultimaData = dadosAntesGraca[dadosAntesGraca.length - 1].data;
+                    periodoAntesGraca = `${primeiraData} a ${ultimaData}`;
+                }
+            }
+            
+            let dadosAposGraca = [];
+            if (dataBase > fimGraca) {
+                // Se dataBase é após a graça, aplica SELIC da dataBase até hoje
+                dadosAposGraca = dadosselic.filter(item => {
+                    const dataItem = strParaData(item.data);
+                    return dataItem >= dataBase;
+                });
+            } else {
+                // Se dataBase é antes/durante a graça, aplica SELIC após a graça até hoje
+                dadosAposGraca = dadosselic.filter(item => {
+                    const dataItem = strParaData(item.data);
+                    return dataItem > fimGraca;
+                });
+            }
+            
+            const selicAposGraca = dadosAposGraca.map(item => parseFloat(item.valor.replace(',', '.')));
+            
+            // Definir período após a graça
+            let periodoAposGraca = '';
+            if (dadosAposGraca.length > 0) {
+                const primeiraData = dadosAposGraca[0].data;
+                const ultimaData = dadosAposGraca[dadosAposGraca.length - 1].data;
+                periodoAposGraca = `${primeiraData} a ${ultimaData}`;
+            }
+            
+            // Soma da SELIC
+            const somaSelicAntes = selicAntesGraca.reduce((sum, val) => sum + val, 0);
+            const somaSelicApos = selicAposGraca.reduce((sum, val) => sum + val, 0);
+            const somaSelic = somaSelicAntes + somaSelicApos;
+            const indiceselic = 1 + (somaSelic / 100);
+            const indiceSelicAntes = somaSelicAntes > 0 ? 1 + (somaSelicAntes / 100) : 1.0;
+            const indiceSelicApos = somaSelicApos > 0 ? 1 + (somaSelicApos / 100) : 1.0;
+            
+            return {
+                indiceselic,
+                indiceSelicAntes,
+                indiceSelicApos,
+                periodoAntesGraca,
+                periodoAposGraca,
+                temSelicAntes: selicAntesGraca.length > 0,
+                temSelicApos: selicAposGraca.length > 0
+            };
         }
 
         // Função para calcular IPCA-e acumulado
