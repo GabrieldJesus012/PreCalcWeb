@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="print.css" media="print">
     <title>Calculador Precatórios</title>
 </head>
 <body>
@@ -1119,6 +1120,8 @@
                 resultadosContent.innerHTML = '<p class="loading">Execute o cálculo para ver os resultados aqui...</p>';
             }
             
+            limparNotasExplicativas();
+
             showTab('tab1');
         }
 
@@ -3475,6 +3478,9 @@
                 
                 ${gerarSecaoDeducoes(resultados, dados)}
                 ${gerarSecoesPagamentos(resultados, dados)}
+
+                ${gerarSecaoNotasExplicativas()}
+                
                 ${gerarBotaoImprimir()}
             `;
             container.innerHTML = html;
@@ -6456,11 +6462,61 @@
                 return total + valorLiquidoCalculado;
             }, 0);
         }
+
+        function gerarSecaoNotasExplicativas() {
+            return `
+                <div class="notas-explicativas">
+                    <h3>📝 Notas Explicativas do Cálculo</h3>
+                    <textarea id="notasExplicativas" class="textarea-notas" placeholder="Digite aqui as notas explicativas sobre os critérios utilizados no cálculo, fundamentação legal, decisões judiciais aplicadas, metodologia de atualização monetária, etc. Exemplo: 1- Destaque do crédito preferencial, conforme decisão de id... 2- Atualização do Cálculo do id..." maxlength="5000"></textarea>
+                </div>
+            `;
+        }
+
+        function obterNotasExplicativas() {
+            const textarea = document.getElementById('notasExplicativas');
+            return textarea ? textarea.value.trim() : '';
+        }
+
+        // Função para preparar o textarea para impressão
+        function prepararTextareaParaImpressao() {
+            // Primeiro, remove qualquer elemento anterior
+            const elementoAnterior = document.getElementById('notasParaImpressao');
+            if (elementoAnterior) {
+                elementoAnterior.remove();
+            }
+            
+            const textarea = document.getElementById('notasExplicativas');
+            if (textarea && textarea.value.trim()) {
+                // Na impressão, criar um div com o conteúdo
+                const notasDiv = document.createElement('div');
+                notasDiv.id = 'notasParaImpressao';
+                notasDiv.style.display = 'none';
+                notasDiv.innerHTML = `
+                    <div class="notas-explicativas-impressao">
+                        <h3>📝 Notas Explicativas do Cálculo</h3>
+                        <div class="conteudo-notas">${textarea.value}</div>
+                    </div>
+                `;
+                
+                // Inserir antes do botão de imprimir
+                const botao = document.querySelector('.print-button-container');
+                if (botao) {
+                    botao.parentNode.insertBefore(notasDiv, botao);
+                }
+            }
+        }
+
+        function limparNotasExplicativas() {
+            const textarea = document.getElementById('notasExplicativas');
+            if (textarea) {
+                textarea.value = '';
+            }
+        }
         
         function gerarBotaoImprimir() {
             return `
                 <div class="print-button-container" style="text-align: center; margin: 20px 0; display: block;">
-                    <button onclick="window.print()" style="
+                    <button onclick="prepararTextareaParaImpressao(); window.print();" style="
                         background-color: #343A40;
                         color: white;
                         border: none;

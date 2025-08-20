@@ -682,6 +682,64 @@ tr.highlight {
     font-size: 16px;
 }
 
+.notas-explicativas {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 32px;
+    margin: 24px 0;
+    box-shadow: var(--shadow-card);
+    border: 1px solid rgba(197, 165, 114, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.notas-explicativas::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: var(--gradient-gold);
+}
+
+.notas-explicativas h3 {
+    color: var(--primary-navy);
+    margin-bottom: 24px;
+    font-size: 1.4em;
+    font-weight: 700;
+    font-family: var(--font-heading);
+    border-bottom: 2px solid var(--light-gold);
+    padding-bottom: 12px;
+}
+
+.textarea-notas {
+    width: 100%;
+    height: 250px; /* Altura fixa */
+    padding: 20px;
+    border: 2px solid #E9ECEF;
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: var(--font-primary);
+    line-height: 1.6;
+    transition: all 0.2s ease;
+    background: var(--white);
+    color: var(--dark-gray);
+    resize: vertical; /* Permite redimensionar manualmente */
+    outline: none;
+    overflow-y: auto; /* Scroll normal */
+}
+
+.textarea-notas:focus {
+    border-color: var(--primary-gold);
+    box-shadow: 0 0 0 4px rgba(197, 165, 114, 0.15);
+}
+
+.textarea-notas:hover {
+    border-color: var(--primary-gold);
+}
+
+
 /* Responsividade */
 @media (max-width: 768px) {
     .header h1 {
@@ -733,6 +791,16 @@ tr.highlight {
         margin: 8px auto;
         width: 80%;
         max-width: 300px;
+    }
+
+    .notas-explicativas {
+        padding: 20px;
+    }
+    
+    .textarea-notas {
+        min-height: 150px;
+        padding: 16px;
+        font-size: 13px;
     }
 }
 
@@ -786,429 +854,3 @@ tr.highlight {
     background: var(--accent-gold);
 }
 
-@media print {
-    @page {
-        size: A4;
-        margin: 12mm 10mm;
-    }
-    
-    * {
-        -webkit-print-color-adjust: exact !important;
-        color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-    
-    .header {
-        background: var(--gradient-primary) !important;
-        color: var(--white) !important;
-    }
-
-    body {
-        background: white !important;
-        padding: 0 !important;
-        font-size: 12px !important;
-        line-height: 1.4 !important;
-        font-family: 'Segoe UI', Arial, sans-serif !important;
-        margin: 0 !important;
-    }
-    
-    .container {
-        box-shadow: none !important;
-        margin: 0 !important;
-        max-width: none !important;
-        padding: 0 !important;
-    }
-
-    .header {
-        padding: 10px 15px !important;
-        margin-bottom: 4px !important;
-        min-height: auto !important;
-        height: auto !important;
-        page-break-after: avoid !important;
-        border-radius: 4px !important;
-    }
-    
-    .header::before,
-    .header::after{
-        display: none !important;
-    }
-    
-    .header h1 {
-        font-size: 16px !important;
-        margin: 0 0 4px 0 !important;
-        padding: 0 !important;
-        line-height: 1.2 !important;
-        text-shadow: none !important;
-        font-weight: 600 !important;
-    }
-    
-    .header p {
-        font-size: 11px !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        opacity: 0.9 !important;
-        line-height: 1.2 !important;
-    }
-
-    table th.section-header {
-        background: linear-gradient(135deg, #568f58, #4a7c59) !important;
-        background-color: #568f58 !important;
-        color: white !important;
-        font-size: 11px !important;
-    }
-    
-    th.section-header {
-        background: linear-gradient(135deg, #568f58, #4a7c59) !important;
-        background-color: #568f58 !important;
-        color: white !important;
-        font-size: 11px !important;
-    }
-
-    table {
-        width: 100% !important;
-        border-collapse: collapse !important;
-        margin: 8px 0 !important;
-        font-size: 11px !important;
-        page-break-inside: avoid !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
-        border: 1px solid var(--primary-navy) !important;
-    }
-    
-    th {
-        background: var(--gradient-primary) !important;
-        color: var(--white) !important;
-        padding: 8px 10px !important;
-        font-weight: 600 !important;
-        font-size: 11px !important;
-        border: 1px solid #34495e !important;
-        text-align: left !important;
-    }
-    
-    td {
-        padding: 6px 10px !important;
-        font-weight: 500 !important;
-        color: #2c3e50 !important;
-        background: white !important;
-        border: 1px solid #e9ecef !important;
-        font-size: 11px !important;
-        vertical-align: top !important;
-    }
-    
-    tr:nth-child(even) td {
-        background: #f8f9fa !important;
-    }
-    
-    .total-row th,
-    .total-row td {
-        background: var(--primary-navy) !important;
-        color: var(--white) !important;
-        font-weight: 700 !important;
-        font-size: 11px !important;
-        padding: 10px !important;
-    }
-    
-    .deducoes-acessorias {
-        border-left: 3px solid #DC2626 !important;
-        -webkit-print-color-adjust: exact !important;
-        color-adjust: exact !important;
-        padding: 10px !important;
-        margin: 8px 0 !important;
-        border-radius: 4px !important;
-    }
-    
-    .deducoes-acessorias h3 {
-        color: #DC2626 !important;
-        font-weight: 600 !important;
-        font-size: 13px !important;
-        background: transparent !important;
-        border: none !important;
-        padding: 0 !important;
-        margin-bottom: 8px !important;
-    }
-    
-    .deducoes-legais {
-        border-left: 3px solid #1F2937 !important;
-        -webkit-print-color-adjust: exact !important;
-        color-adjust: exact !important;
-        padding: 10px !important;
-        margin: 8px 0 !important;
-        border-radius: 4px !important;
-    }
-    
-    .deducoes-legais h3 {
-        color: #1F2937 !important;
-        font-weight: 600 !important;
-        font-size: 13px !important;
-        background: transparent !important;
-        border: none !important;
-        padding: 0 !important;
-        margin-bottom: 8px !important;
-    }
-    
-    .cessoes-beneficiario {
-        border-left: 3px solid #3B82F6 !important;
-        -webkit-print-color-adjust: exact !important;
-        color-adjust: exact !important;
-        padding: 10px !important;
-        margin: 8px 0 !important;
-        border-radius: 4px !important;
-    }
-    
-    .cessoes-beneficiario h3 {
-        color: #1E40AF !important;
-        font-weight: 600 !important;
-        font-size: 13px !important;
-        background: transparent !important;
-        border: none !important;
-        padding: 0 !important;
-        margin-bottom: 8px !important;
-    }
-    
-    .pagamentos-finais .table-container {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        margin: 8px 0 !important;
-    }
-    
-    .pagamentos-finais .table-container h3 {
-        font-size: 13px !important;
-        margin: 0 0 8px 0 !important;
-    }
-    
-    .pagamentos-finais table {
-        width: 100% !important;
-        border-collapse: collapse !important;
-        margin: 0 !important;
-        font-size: 10px !important;
-        page-break-inside: avoid !important;
-    }
-    
-    .pagamentos-finais table thead th {
-        padding: 6px 4px !important;
-        font-size: 10px !important;
-        line-height: 1.2 !important;
-    }
-    
-    .pagamentos-finais table tbody td {
-        padding: 5px 4px !important;
-        font-size: 10px !important;
-        line-height: 1.2 !important;
-        vertical-align: top !important;
-    }
-    
-    .pagamentos-finais table tfoot td {
-        padding: 6px 4px !important;
-        font-size: 10px !important;
-        line-height: 1.2 !important;
-    }
-    
-    /* Estilo para o primeiro td (nome do credor) */
-    .pagamentos-finais table tbody td:first-child,
-    .pagamentos-finais table thead th:first-child,
-    .pagamentos-finais table tfoot td:first-child {
-        max-width: 140px !important;
-        width: 40% !important;
-        word-wrap: break-word !important;
-        word-break: break-word !important;
-        hyphens: auto !important;
-        overflow-wrap: break-word !important;
-    }
-    
-    /* Colunas de valores */
-    .pagamentos-finais table tbody td:not(:first-child),
-    .pagamentos-finais table thead th:not(:first-child),
-    .pagamentos-finais table tfoot td:not(:first-child) {
-        width: 15% !important;
-        text-align: right !important;
-        white-space: nowrap !important;
-        font-family: 'Courier New', monospace !important;
-    }
-    
-    /* Notas explicativas */
-    .pagamentos-finais .table-container > div[style*="margin-top"] {
-        margin-top: 8px !important;
-        padding: 8px !important;
-        font-size: 9px !important;
-        line-height: 1.3 !important;
-    }
-    
-    .pagamentos-finais .table-container > div[style*="margin-top"] h4 {
-        font-size: 10px !important;
-        margin: 0 0 6px 0 !important;
-    }
-    
-    .pagamentos-finais .table-container > div[style*="margin-top"] p {
-        margin: 3px 0 !important;
-        font-size: 9px !important;
-        line-height: 1.2 !important;
-    }
-    
-    /* Força quebra de linha em nomes muito longos */
-    .pagamentos-finais table tbody td:first-child {
-        overflow: hidden !important;
-    }
-    
-    .tabs-nav,
-    .btn-container,
-    .section-title,
-    .print-button-container{
-        display: none !important;
-    }
-    
-    .tab-content {
-        display: none !important;
-    }
-    
-    #tab7 {
-        display: block !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        page-break-before: avoid !important;
-    }
-
-    #resultadosContent {
-        margin-top: 0 !important;
-        padding-top: 0 !important;
-    }
-    
-    #results {
-        margin-top: 0 !important;
-        padding-top: 0 !important;
-    }
-    
-    .tabs-container {
-        padding: 0 !important;
-        background: transparent !important;
-        border: none !important;
-        margin: 0 !important;
-    }
-    
-    .form-group {
-        margin-bottom: 12px !important;
-        padding: 12px !important;
-        border: 1px solid var(--primary-gold) !important;
-        border-radius: 6px !important;
-        page-break-inside: avoid !important;
-        background: #fafafa !important;
-    }
-    
-    .form-group h3,
-    .section-header {
-        font-size: 14px !important;
-        margin-bottom: 8px !important;
-        padding: 6px 10px !important;
-        background: var(--gradient-light) !important;
-        border-left: 6px solid var(--primary-gold) !important;
-        font-weight: 600 !important;
-        color: #2c3e50 !important;
-        border-radius: 3px !important;
-    }
-    
-    .highlight {
-        background: linear-gradient(135deg, #E8F5E8, #D4EDDA) !important;
-        color: var(--success) !important;
-        padding: 6px 10px !important;
-        border-radius: 4px !important;
-        font-weight: 600 !important;
-        border: 1px solid #c3e6cb !important;
-    }
-    
-    .section-title {
-        background: var(--gradient-light) !important;
-        border-left: 6px solid var(--primary-gold) !important;
-    }
-    
-    .advogado-item {
-        background: var(--light-gold) !important;
-        border-left: 4px solid var(--success) !important;
-        padding: 8px 12px !important;
-        margin: 6px 0 !important;
-        border-radius: 4px !important;
-    }
-    
-    .success-box {
-        background: #D4EDDA !important;
-        color: #155724 !important;
-        padding: 8px 12px !important;
-        border-radius: 4px !important;
-        border: 1px solid #b8dabd !important;
-        margin: 6px 0 !important;
-        box-shadow: 0 1px 3px rgba(21, 87, 36, 0.1) !important;
-    }
-    
-    .selic-acumulada {
-        background: linear-gradient(135deg, #E8E6FA, #D4D2F7) !important;
-        color: var(--primary-navy) !important;
-        padding: 6px 10px !important;
-        border-radius: 4px !important;
-        border: 1px solid #c4c1f5 !important;
-    }
-    
-    .ir-table {
-        background: var(--white) !important;
-        border: 2px solid #E9ECEF !important;
-        margin: 10px 0 !important;
-        font-size: 10px !important;
-        border-radius: 4px !important;
-        overflow: hidden !important;
-    }
-    
-    .ir-table th {
-        background: #F8F9FA !important;
-        color: var(--primary-navy) !important;
-        font-weight: 600 !important;
-        padding: 8px 10px !important;
-        font-size: 10px !important;
-        border-right: 1px solid #DEE2E6 !important;
-    }
-    
-    .ir-table td {
-        padding: 6px 10px !important;
-        font-weight: 500 !important;
-        color: var(--dark-gray) !important;
-        background: var(--white) !important;
-        border-bottom: 1px solid #F1F3F4 !important;
-        font-family: 'Courier New', monospace !important;
-        font-size: 10px !important;
-    }
-    
-    .ir-table .total-row th,
-    .ir-table .total-row td {
-        background: var(--primary-navy) !important;
-        color: var(--white) !important;
-        font-weight: 700 !important;
-        font-size: 10px !important;
-        padding: 10px !important;
-    }
-
-    ul, ol {
-        margin: 6px 0 !important;
-        padding-left: 20px !important;
-    }
-    
-    li {
-        margin: 3px 0 !important;
-        line-height: 1.3 !important;
-    }
-    
-    p {
-        margin: 4px 0 !important;
-        line-height: 1.4 !important;
-    }
-    
-    h1, h2, h3, h4, h5, h6 {
-        margin: 8px 0 4px 0 !important;
-        line-height: 1.3 !important;
-    }
-
-    .form-group,
-    .table-container,
-    .advogado-item,
-    .deducoes-acessorias,
-    .deducoes-legais,
-    .cessoes-beneficiario,
-    .valor-final {
-        page-break-inside: avoid;
-        break-inside: avoid;
-    }
-}
