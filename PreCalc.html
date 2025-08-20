@@ -1911,16 +1911,18 @@
                 let indiceSelicApos = 1.0;
                 let temSelicAntes = false;
                 let temSelicApos = false;
+                let periodoAntesGraca = '';
+                let periodoAposGraca = '';
                 
                 // Data de início da aplicação da SELIC (dezembro/2021) - igual à API
-                const inicioSelicBrasil = new Date(2021, 11, 1); // dezembro/2021
+                const inicioSelicPrec = new Date(2021, 11, 1); // dezembro/2021
+                const hoje = new Date();
                 
                 // Verifica se precisa de SELIC antes da graça
                 if (dataBase < inicioGraca) {
-                    // Simula o filtro da API: só pede se houver período válido (>= dez/2021 e < início graça)
-                    const dataInicioEfetivo = dataBase > inicioSelicBrasil ? dataBase : inicioSelicBrasil;
+                    // Só pede se houver período válido (>= dez/2021 e < início graça)
+                    const dataInicioEfetivo = dataBase > inicioSelicPrec ? dataBase : inicioSelicPrec;
                     
-                    // Só pergunta se há período válido para aplicar SELIC
                     if (dataInicioEfetivo < inicioGraca) {
                         const valorAntes = prompt(
                             `Digite o índice SELIC ANTES da graça (período de ${dataInicioEfetivo.toLocaleDateString('pt-BR')} a ${inicioGraca.toLocaleDateString('pt-BR')}):\n` +
@@ -1932,18 +1934,16 @@
                             if (!isNaN(parseFloat(valorNormalizado))) {
                                 indiceSelicAntes = parseFloat(valorNormalizado);
                                 temSelicAntes = true;
+                                periodoAntesGraca = `${dataInicioEfetivo.toLocaleDateString('pt-BR')} a ${inicioGraca.toLocaleDateString('pt-BR')} (manual)`;
                             }
                         }
                     }
                 }
                 
                 // Verifica se precisa de SELIC após a graça
-                const hoje = new Date();
-                
-                // Simula a mesma lógica da API
                 if (dataBase > fimGraca) {
                     // Se dataBase é após a graça, aplica SELIC da dataBase (se >= dez/2021) até hoje
-                    const dataInicioEfetivo = dataBase > inicioSelicBrasil ? dataBase : inicioSelicBrasil;
+                    const dataInicioEfetivo = dataBase > inicioSelicPrec ? dataBase : inicioSelicPrec;
                     if (dataInicioEfetivo < hoje) {
                         const valorApos = prompt(
                             `Digite o índice SELIC APÓS a graça (período de ${dataInicioEfetivo.toLocaleDateString('pt-BR')} até hoje):\n` +
@@ -1955,25 +1955,24 @@
                             if (!isNaN(parseFloat(valorNormalizado))) {
                                 indiceSelicApos = parseFloat(valorNormalizado);
                                 temSelicApos = true;
+                                periodoAposGraca = `${dataInicioEfetivo.toLocaleDateString('pt-BR')} até hoje (manual)`;
                             }
                         }
                     }
-                } else {
+                } else if (fimGraca < hoje) {
                     // Se dataBase é antes/durante a graça, aplica SELIC após a graça até hoje
-                    // CORREÇÃO: só pergunta se fim da graça < hoje (sempre vai ser no seu exemplo)
-                    if (fimGraca < hoje) {
-                        const dataInicioEfetivo = fimGraca > inicioSelicBrasil ? fimGraca : inicioSelicBrasil;
-                        const valorApos = prompt(
-                            `Digite o índice SELIC APÓS a graça (período de ${dataInicioEfetivo.toLocaleDateString('pt-BR')} até hoje):\n` +
-                            `Formato: 1,XXXX ou 1.XXXX (exemplo: 1.4273 para 42,73% acumulado)`
-                        );
-                        
-                        if (valorApos) {
-                            const valorNormalizado = valorApos.replace(',', '.');
-                            if (!isNaN(parseFloat(valorNormalizado))) {
-                                indiceSelicApos = parseFloat(valorNormalizado);
-                                temSelicApos = true;
-                            }
+                    const dataInicioEfetivo = fimGraca > inicioSelicPrec ? fimGraca : inicioSelicPrec;
+                    const valorApos = prompt(
+                        `Digite o índice SELIC APÓS a graça (período de ${dataInicioEfetivo.toLocaleDateString('pt-BR')} até hoje):\n` +
+                        `Formato: 1,XXXX ou 1.XXXX (exemplo: 1.4273 para 42,73% acumulado)`
+                    );
+                    
+                    if (valorApos) {
+                        const valorNormalizado = valorApos.replace(',', '.');
+                        if (!isNaN(parseFloat(valorNormalizado))) {
+                            indiceSelicApos = parseFloat(valorNormalizado);
+                            temSelicApos = true;
+                            periodoAposGraca = `${dataInicioEfetivo.toLocaleDateString('pt-BR')} até hoje (manual)`;
                         }
                     }
                 }
@@ -1985,8 +1984,8 @@
                     indiceselic,
                     indiceSelicAntes,
                     indiceSelicApos,
-                    periodoAntesGraca: temSelicAntes ? `${(dataBase > inicioSelicBrasil ? dataBase : inicioSelicBrasil).toLocaleDateString('pt-BR')} a ${inicioGraca.toLocaleDateString('pt-BR')} (manual)` : '',
-                    periodoAposGraca: temSelicApos ? `${(dataBase > fimGraca ? (dataBase > inicioSelicBrasil ? dataBase : inicioSelicBrasil) : (fimGraca > inicioSelicBrasil ? fimGraca : inicioSelicBrasil)).toLocaleDateString('pt-BR')} até hoje (manual)` : '',
+                    periodoAntesGraca,
+                    periodoAposGraca,
                     temSelicAntes,
                     temSelicApos
                 };
@@ -2083,43 +2082,93 @@
                 const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
                 const dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
                 const urlipca = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.10764/dados?formato=json&dataInicial=01/12/2021&dataFinal=${dataFinal}`;
+                
                 const response = await fetch(urlipca);
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
                 const dadosipca = await response.json();
                 
-                // Função para converter string de data da API em Date
-                function strParaData(dataStr) {
-                    const [dia, mes, ano] = dataStr.split('/');
-                    return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
-                }
+                return processarDadosIpca(dadosipca, dataBase, inicioGraca, fimGraca);
                 
-                let ipcaGraca = [];
-                
-                if (dataBase <= fimGraca) {
-                    // Determina o início efetivo: o maior entre dataBase e inicioGraca
-                    const inicioEfetivo = dataBase > inicioGraca ? dataBase : inicioGraca;
-                    
-                    ipcaGraca = dadosipca
-                        .filter(item => {
-                            const dataItem = strParaData(item.data);
-                            return inicioEfetivo <= dataItem && dataItem <= fimGraca;
-                        })
-                        .map(item => parseFloat(item.valor.replace(',', '.')));
-                }
-                // Se dataBase > fimGraca, não aplica IPCA (ipcaGraca fica vazio)
-                
-                let indiceipca = 1.0;
-                for (const valor of ipcaGraca) {
-                    indiceipca *= 1 + (valor / 100);
-                }
-                
-                return indiceipca;
             } catch (error) {
                 console.error(`Erro ao obter dados do IPCA: ${error}`);
-                return 1.0; 
+                console.log('A API do Banco Central está indisponível. Será necessário inserir o valor do IPCA manualmente.');
+                
+                // Solicita valor manual
+                return await solicitarIpcaManual(dataBase, inicioGraca, fimGraca);
             }
+        }
+
+        async function solicitarIpcaManual(dataBase, inicioGraca, fimGraca) {
+            try {
+                let indiceipca = 1.0;
+                
+                // Data de início da aplicação do IPCA (dezembro/2021) - igual à API
+                const inicioIPCAPrec = new Date(2021, 11, 1); // dezembro/2021
+                
+                // Verifica se precisa de IPCA durante a graça
+                if (dataBase <= fimGraca) {
+                    // Determina o início efetivo: o maior entre dataBase, inicioGraca e dez/2021
+                    let inicioEfetivo = dataBase > inicioGraca ? dataBase : inicioGraca;
+                    if (inicioEfetivo < inicioIPCAPrec) {
+                        inicioEfetivo = inicioIPCAPrec;
+                    }
+                    
+                    // Só pergunta se há período válido para aplicar IPCA
+                    if (inicioEfetivo <= fimGraca) {
+                        const valorIpca = prompt(
+                            `Digite o índice IPCA DURANTE a graça (período de ${inicioEfetivo.toLocaleDateString('pt-BR')} a ${fimGraca.toLocaleDateString('pt-BR')}):\n` +
+                            `Formato: 1,XXXX ou 1.XXXX (exemplo: 1,1250 ou 1.1250 para 12,50% acumulado)`
+                        );
+                        
+                        if (valorIpca) {
+                            // Normaliza vírgula para ponto
+                            const valorNormalizado = valorIpca.replace(',', '.');
+                            if (!isNaN(parseFloat(valorNormalizado))) {
+                                indiceipca = parseFloat(valorNormalizado);
+                            }
+                        }
+                    }
+                }
+                // Se dataBase > fimGraca, não aplica IPCA (mantém 1.0)
+                
+                return indiceipca;
+                
+            } catch (error) {
+                console.error('Erro ao processar valor manual do IPCA:', error);
+                return 1.0;
+            }
+        }
+
+        function processarDadosIpca(dadosipca, dataBase, inicioGraca, fimGraca) {
+            // Função para converter string de data da API em Date
+            function strParaData(dataStr) {
+                const [dia, mes, ano] = dataStr.split('/');
+                return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+            }
+            
+            let ipcaGraca = [];
+            
+            if (dataBase <= fimGraca) {
+                // Determina o início efetivo: o maior entre dataBase e inicioGraca
+                const inicioEfetivo = dataBase > inicioGraca ? dataBase : inicioGraca;
+                
+                ipcaGraca = dadosipca
+                    .filter(item => {
+                        const dataItem = strParaData(item.data);
+                        return inicioEfetivo <= dataItem && dataItem <= fimGraca;
+                    })
+                    .map(item => parseFloat(item.valor.replace(',', '.')));
+            }
+            // Se dataBase > fimGraca, não aplica IPCA (ipcaGraca fica vazio)
+            
+            let indiceipca = 1.0;
+            for (const valor of ipcaGraca) {
+                indiceipca *= 1 + (valor / 100);
+            }
+            
+            return indiceipca;
         }
 
         const ColetaCache = {
