@@ -42,6 +42,13 @@
                             <label>Beneficiário Principal:</label>
                             <input type="text" id="beneficiario" placeholder="Nome do beneficiário principal">
                         </div>
+                        <div class="input-group tipo-beneficiario" id="tipoBeneficiarioGroup">
+                            <label>Tipo do Beneficiário:</label>
+                            <select id="tipoBeneficiario">
+                                <option value="pf">Pessoa Física (PF)</option>
+                                <option value="pj">Pessoa Jurídica (PJ)</option>
+                            </select>
+                        </div>
                         <div class="input-group">
                             <label>Devedor:</label>
                             <input type="text" id="credor" placeholder="Nome do Devedor">
@@ -49,7 +56,7 @@
                         <h3>⚖️ Configurações do Processo</h3>
                         <div class="input-group">
                             <label>Natureza da Ação:</label>
-                            <select id="natureza">
+                            <select id="natureza" onchange="toggleTipoBeneficiario()">
                                 <option value="alimentar">Alimentar</option>
                                 <option value="comum">Comum</option>
                             </select>
@@ -340,6 +347,19 @@
             const element = document.getElementById(elementId);
             if (element) {
                 element.style.display = mostrar ? 'block' : 'none';
+            }
+        }
+
+        function toggleTipoBeneficiario() {
+            const natureza = document.getElementById('natureza').value;
+            const tipoBeneficiarioGroup = document.getElementById('tipoBeneficiarioGroup');
+            
+            if (natureza === 'comum') {
+                tipoBeneficiarioGroup.classList.add('show');
+            } else {
+                tipoBeneficiarioGroup.classList.remove('show');
+                // Reset para PF quando não for comum
+                document.getElementById('tipoBeneficiario').value = 'pf';
             }
         }
 
@@ -2180,6 +2200,7 @@
                     numprocesso: document.getElementById('numprocesso'),
                     anoOrcamento: document.getElementById('anoOrcamento'),
                     beneficiario: document.getElementById('beneficiario'),
+                    tipoBeneficiario: document.getElementById('tipoBeneficiario'),
                     credor: document.getElementById('credor'),
                     mesBase: document.getElementById('mesBase'),
                     anoBase: document.getElementById('anoBase'),
@@ -2240,6 +2261,7 @@
                 numProcesso: cache.getValue('numprocesso', 'Processo'),
                 anoOrcamento: cache.getValue('anoOrcamento', 2026, parseInt),
                 beneficiario: cache.getValue('beneficiario', 'Beneficiario'),
+                tipoBeneficiario: cache.getValue('tipoBeneficiario', 'pf'),
                 credor: cache.getValue('credor', 'Devedor'),
                 mesBase: cache.getValue('mesBase'),
                 anoBase: cache.getValue('anoBase', 0, parseInt),
@@ -2969,7 +2991,7 @@
             let baseIRRRA = 0;
             let valorIRUnitario = 0;
 
-            if (dados.incidenciaIR && rrapagamentoRecalculado !== 0) {
+            if (dados.incidenciaIR && (dados.tipoBeneficiario === 'pj' || rrapagamentoRecalculado !== 0)) {
                 let percentualTotalAdv = 0;
                 let percentualTotalSind = 0;
                 if (dados.tipoCalculo === 'preferencia' && valorBase < valortotatt) {
@@ -2988,16 +3010,29 @@
                     percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
                     percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
                 }
-                
-                const baseIR = (principalBase - (principalBase * percentualTotalAdv) - (principalBase * percentualTotalSind) - valorPrevidencia) / rrapagamentoRecalculado;
-                valorIRUnitario = calcularIR(baseIR);
-                valorIR = valorIRUnitario * rrapagamentoRecalculado;
-                aliquotaIR = obterAliquotaIR(baseIR);
+                if (dados.natureza === 'comum' && dados.tipoBeneficiario === 'pj') {
+                    // PESSOA JURÍDICA: Base diferente e alíquota fixa de 3%
+                    const baseIRPJ = valortotatt - (valortotatt * percentualTotalAdv) - (valortotatt * percentualTotalSind);
+                    valorIR = baseIRPJ * 0.03;
+                    aliquotaIR = 0.03;
+                    valorIRUnitario = valorIR; // Para PJ não divide por RRA
+                    
+                    // Returns para manter compatibilidade (valores não utilizados para PJ, mas necessários)
+                    baseIRHonora = 1;
+                    baseIRSindi = 1;
+                    baseIRPrev = 1;
+                    baseIRRRA = 1;
+                } else {
+                        const baseIR = (principalBase - (principalBase * percentualTotalAdv) - (principalBase * percentualTotalSind) - valorPrevidencia) / rrapagamentoRecalculado;
+                        valorIRUnitario = calcularIR(baseIR);
+                        valorIR = valorIRUnitario * rrapagamentoRecalculado;
+                        aliquotaIR = obterAliquotaIR(baseIR);
 
-                baseIRHonora = principalBase - (principalBase * percentualTotalAdv);
-                baseIRSindi = baseIRHonora - (principalBase * percentualTotalSind);
-                baseIRPrev = baseIRHonora - valorPrevidencia;
-                baseIRRRA = baseIRPrev / rrapagamentoRecalculado;
+                        baseIRHonora = principalBase - (principalBase * percentualTotalAdv);
+                        baseIRSindi = baseIRHonora - (principalBase * percentualTotalSind);
+                        baseIRPrev = baseIRHonora - valorPrevidencia;
+                        baseIRRRA = baseIRPrev / rrapagamentoRecalculado;
+                }
             }
 
             return {
@@ -3030,6 +3065,10 @@
         function calcularPrevidenciaIsolada(dados, principalBase, rrapagamento) {
             let valorPrevidencia = 0;
             let aliquotaEfetiva = 0;
+
+            if (dados.tipoBeneficiario === 'pj') {
+                return { valorPrevidencia: 0, aliquotaEfetiva: 0 };
+            }
             
             if (dados.incidenciaPrevidencia) {
                 if (dados.tipoPrevidencia === 'fixa') {
@@ -4769,10 +4808,15 @@
 
         function gerarSecaoDeducoes(resultados, dados) {
             const temPrevidencia = dados.incidenciaPrevidencia;
-            const temIR = dados.incidenciaIR && resultados.rrapagamento !== 0;
+            const temIR = dados.incidenciaIR && (dados.tipoBeneficiario === 'pj' || resultados.rrapagamento !== 0);
             const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
+        
             
             if (!temPrevidencia && !temIR) return '';
+
+            if (dados.natureza === 'comum') {
+                return gerarDeducoesSimples(resultados, dados, temPrevidencia, temIR);
+            }
             
             // SE TEM HERDEIROS: agrupa por valor base
             if (temHerdeiros) {
@@ -4956,9 +5000,10 @@
 
         function gerarDeducoesSimples(resultados, dados, temPrevidencia, temIR) {
             const temCessoes = resultados.cessoesBeneficiarioCalculadas && resultados.cessoesBeneficiarioCalculadas.length > 0;
+            const isPJ = dados.natureza === 'comum' && dados.tipoBeneficiario === 'pj';
             
             let secaoPrevidencia = '';
-            if (temPrevidencia) {
+            if (temPrevidencia && !isPJ) { // PJ não tem previdência
                 if (dados.tipoPrevidencia === 'fixa') {
                     secaoPrevidencia = gerarDetalhePrevidenciaFixa(resultados, dados, temCessoes);
                 } else {
@@ -4968,13 +5013,23 @@
             
             let secaoIR = '';
             if (temIR) {
-                secaoIR = gerarDetalheIR(resultados, dados, temPrevidencia, temCessoes);
+                if (isPJ) {
+                    secaoIR = gerarDetalheIRPJ(resultados, dados, temCessoes);
+                } else {
+                    secaoIR = gerarDetalheIR(resultados, dados, temPrevidencia, temCessoes);
+                }
             }
+
+            if (!secaoPrevidencia && !secaoIR) {
+                return '';
+            }
+            
+            const titulo = isPJ ? '🏦 Deduções Legais - Pessoa Jurídica' : '🏦 Deduções Legais';
             
             return `
                 <div class="deducoes-legais">
                     <div class="table-container">
-                        <h3>🏦 Deduções Legais</h3>
+                        <h3>${titulo}</h3>
                         ${secaoPrevidencia}
                         ${secaoIR}
                     </div>
@@ -5590,6 +5645,61 @@
                     <tr>
                         <th>Valor IR Mensal:</th>
                         <td>R$ ${formatarMoeda(resultados.valorIRUnitario)}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <th>Valor IR Devido Total:</th>
+                        <td><strong>R$ ${formatarMoeda(resultados.valorIR)}</strong></td>
+                    </tr>
+                    ${distribuicaoCessoes}
+                </table>
+            `;
+        }
+
+        function gerarDetalheIRPJ(resultados, dados, temCessoes) {
+            let percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+            let percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
+            
+            const distribuicaoCessoes = temCessoes ? `
+                <tr style="border-top: 1px solid #dee2e6;">
+                    <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
+                </tr>
+                ${resultados.valorIRBeneficiario > 0 ? `
+                <tr>
+                    <th>${dados.beneficiario}:</th>
+                    <td>R$ ${formatarMoeda(resultados.valorIRBeneficiario)}</td>
+                </tr>
+                ` : ''}
+                ${resultados.cessoesBeneficiarioFinais ? resultados.cessoesBeneficiarioFinais.map((cessao) => 
+                    cessao.irCessao > 0 ? `
+                    <tr>
+                        <th>${cessao.cessionario}:</th>
+                        <td>R$ ${formatarMoeda(cessao.irCessao)}</td>
+                    </tr>
+                    ` : ''
+                ).join('') : ''}
+            ` : '';
+            
+            return `
+                <table class="ir-table">
+                    <tr>
+                        <th colspan="2" class="section-header">📄 Imposto de Renda PJ - Art. 27, da Lei nº 10.833/03</th>
+                    </tr>
+                    <tr>
+                        <th>Valor Total:</th>
+                        <td>R$ ${formatarMoeda(resultados.valortotatt)}</td>
+                    </tr>
+                    <tr>
+                        <th>Base IR sem H.Contratuais (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
+                        <td>R$ ${formatarMoeda(resultados.valortotatt - (resultados.valortotatt * percentualTotalAdv))}</td>
+                    </tr>
+                    ${percentualTotalSind > 0 ? `
+                    <tr>
+                        <th>Base IR sem Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
+                        <td>R$ ${formatarMoeda(resultados.valortotatt - (resultados.valortotatt * percentualTotalAdv) - (resultados.valortotatt * percentualTotalSind))}</td>
+                    </tr>` : ''}
+                    <tr>
+                        <th>Alíquota IR:</th>
+                        <td>3,0%</td>
                     </tr>
                     <tr class="total-row">
                         <th>Valor IR Devido Total:</th>
