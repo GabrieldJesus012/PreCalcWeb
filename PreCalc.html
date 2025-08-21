@@ -22,6 +22,7 @@
                 <button class="tab-button" onclick="showTab('tab4')">👩‍💼 Deduções Acessórias</button>
                 <button class="tab-button" onclick="showTab('tab5')">👥 Herdeiros</button>
                 <button class="tab-button" onclick="showTab('tab6')">🔄 Cessões de Crédito</button>
+                <button class="tab-button" id="tabAcordo" onclick="showTab('tab8')" style="display: none;">🤝 Adesão ao Acordo</button>
                 <button class="tab-button" onclick="showTab('tab7')">📊 Resultados</button>
             </div>
 
@@ -219,7 +220,24 @@
                 </div>
             </div>
 
-            <!-- Tab 7: Resultados -->
+            <!-- Tab 8: Adesão ao Acordo (Nova Aba) -->
+            <div id="tab8" class="tab-content">
+                <div class="form-section">
+                    <div class="form-group">
+                        <div class="alerta-didatico">
+                            <h4>⚠️ Importante</h4>
+                            <p>Selecione abaixo apenas as pessoas/entidades que aderiram ao acordo. O cálculo será realizado somente para os selecionados.</p>
+                        </div>
+                        
+                        <h3>🤝 Quem Aderiu ao Acordo?</h3>
+                        <div id="acordoContainer">
+                            <p class="loading">Preencha as abas anteriores para ver as opções de adesão...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 8: Resultados -->
             <div id="tab7" class="tab-content">
                 <div id="results" class="results">
                     <div class="section-title">Resultados dos Cálculos</div>
@@ -342,6 +360,10 @@
                     btn.classList.remove('active');
                 }
             });
+
+            if (tabId === 'tab8') {
+                atualizarAdesaoAcordo();
+            }
         }
 
         function mostrarOcultar(elementId, mostrar) {
@@ -371,6 +393,8 @@
             
             mostrarOcultar('tetoPreferencia', tipo === 'preferencia' && natureza === 'alimentar');
             mostrarOcultar('percentualAcordo', tipo === 'acordo');
+
+            toggleAbaAcordo();
         });
 
         document.getElementById('natureza').addEventListener('change', function() {
@@ -405,6 +429,8 @@
             document.getElementById('natureza').dispatchEvent(new Event('change'));
             document.getElementById('incidenciaPrevidencia').dispatchEvent(new Event('change'));
             document.getElementById('tipoPrevidencia').dispatchEvent(new Event('change'));
+
+            toggleAbaAcordo();
         });
 
 
@@ -1123,12 +1149,241 @@
             limparNotasExplicativas();
 
             showTab('tab1');
+            toggleAbaAcordo();
         }
 
         document.addEventListener('DOMContentLoaded', function() {
             FormCache.init();
             initializeFormEventListeners();
         });
+
+        function toggleAbaAcordo() {
+            const tipoCalculo = document.getElementById('tipoCalculo').value;
+            const tabAcordo = document.getElementById('tabAcordo');
+            const natureza = document.getElementById('natureza').value;
+            
+            // Mostrar/ocultar outros campos baseado no tipo
+            mostrarOcultar('tetoPreferencia', tipoCalculo === 'preferencia' && natureza === 'alimentar');
+            mostrarOcultar('percentualAcordo', tipoCalculo === 'acordo');
+            
+            // Mostrar/ocultar aba de acordo
+            if (tipoCalculo === 'acordo') {
+                tabAcordo.style.display = 'block';
+            } else {
+                tabAcordo.style.display = 'none';
+                // Se estava na aba de acordo, voltar para a primeira
+                if (currentTab === 'tab8') {
+                    showTab('tab1');
+                }
+            }
+        }
+
+        // Função para atualizar opções de adesão ao acordo
+        function atualizarAdesaoAcordo() {
+            const container = document.getElementById('acordoContainer');
+            if (!container) return;
+
+            DadosFormulario.salvarTodos();
+
+            const beneficiario = document.getElementById('beneficiario')?.value.trim() || 'Beneficiário Principal';
+            const quantAdvogados = parseInt(document.getElementById('quantAdvogados')?.value) || 0;
+            const quantHerdeiros = parseInt(document.getElementById('quantHerdeiros')?.value) || 0;
+            const quantSindicatos = parseInt(document.getElementById('quantSindicatos')?.value) || 0;
+            const quantCessoes = parseInt(document.getElementById('quantCessoes')?.value) || 0;
+
+            let html = '';
+
+            // Beneficiário Principal - APENAS se NÃO houver herdeiros (pessoa ainda viva)
+            if (quantHerdeiros === 0) {
+                const percentualCedidoBeneficiario = calcularPercentualCedido('beneficiario', beneficiario);
+                const percentualLiquidoBeneficiario = 100 - percentualCedidoBeneficiario;
+                
+                if (percentualLiquidoBeneficiario > 0) {
+                    html += criarItemAcordo('beneficiario', beneficiario, 'Beneficiário Principal', `${percentualLiquidoBeneficiario.toFixed(2)}% do valor`);
+                }
+            }
+
+            // Advogados
+            for (let i = 0; i < quantAdvogados; i++) {
+                const nome = DadosFormulario.advogados[i]?.nome || `Advogado ${i + 1}`;
+                const percentualOriginal = parseFloat(DadosFormulario.advogados[i]?.percentual || '0');
+                const percentualCedido = calcularPercentualCedido('advogado', nome);
+                const percentualLiquido = (percentualOriginal * 100) - percentualCedido;
+                
+                if (percentualLiquido > 0) {
+                    html += criarItemAcordo(`advogado_${i}`, nome, 'Advogado', `${percentualLiquido.toFixed(2)}% dos honorários`);
+                }
+            }
+
+            // Herdeiros
+            for (let i = 0; i < quantHerdeiros; i++) {
+                const nome = DadosFormulario.herdeiros[i]?.nome || `Herdeiro ${i + 1}`;
+                const percentualOriginal = parseFloat(DadosFormulario.herdeiros[i]?.percentual || '0');
+                const percentualCedido = calcularPercentualCedido('herdeiro', nome);
+                const percentualLiquido = (percentualOriginal * 100) - percentualCedido;
+                
+                if (percentualLiquido > 0) {
+                    html += criarItemAcordo(`herdeiro_${i}`, nome, 'Herdeiro', `${percentualLiquido.toFixed(2)}% da herança`);
+                }
+            }
+
+            // Sindicatos
+            for (let i = 0; i < quantSindicatos; i++) {
+                const nome = DadosFormulario.sindicatos[i]?.nome || `Sindicato ${i + 1}`;
+                const percentualOriginal = parseFloat(DadosFormulario.sindicatos[i]?.percentual || '0');
+                const percentualCedido = calcularPercentualCedido('sindicato', nome);
+                const percentualLiquido = (percentualOriginal * 100) - percentualCedido;
+                
+                if (percentualLiquido > 0) {
+                    html += criarItemAcordo(`sindicato_${i}`, nome, 'Sindicato', `${percentualLiquido.toFixed(2)}% de contribuição`);
+                }
+            }
+
+            // Cessionários
+            for (let i = 0; i < quantCessoes; i++) {
+                const cessionario = DadosFormulario.cessoes[i]?.cessionario || `Cessionário ${i + 1}`;
+                const cedente = DadosFormulario.cessoes[i]?.cedente || `Cedente ${i + 1}`;
+                const percentual = parseFloat(DadosFormulario.cessoes[i]?.percentual || '0');
+                const tipo = DadosFormulario.cessoes[i]?.tipo || '';
+                
+                let tipoTexto = '';
+                switch(tipo) {
+                    case 'cessaobenPrincipal': tipoTexto = 'do Beneficiário'; break;
+                    case 'cessaoAdv': tipoTexto = 'do Advogado'; break;
+                    case 'cessaoherdeiro': tipoTexto = 'do Herdeiro'; break;
+                    case 'cessaoSindicato': tipoTexto = 'do Sindicato'; break;
+                    default: tipoTexto = 'Cessão';
+                }
+                
+                if (percentual > 0) {
+                    html += criarItemAcordo(`cessionario_${i}`, cessionario, 'Cessionário', `${(percentual * 100).toFixed(2)}% ${tipoTexto} (${cedente})`);
+                }
+            }
+
+            if (html === '') {
+                html = '<p class="loading">Nenhuma pessoa/entidade cadastrada para aderir ao acordo.</p>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        // Função auxiliar para calcular percentual cedido por uma pessoa/entidade
+        function calcularPercentualCedido(tipoCedente, nomeCedente) {
+            let totalCedido = 0;
+            const quantCessoes = parseInt(document.getElementById('quantCessoes')?.value) || 0;
+            
+            for (let i = 0; i < quantCessoes; i++) {
+                const cedente = DadosFormulario.cessoes[i]?.cedente;
+                const percentualCessao = parseFloat(DadosFormulario.cessoes[i]?.percentual || '0');
+                const tipoCessao = DadosFormulario.cessoes[i]?.tipo;
+                
+                // Verificar se é cessão desta pessoa/entidade
+                let isCedenteCorreto = false;
+                
+                switch(tipoCedente) {
+                    case 'beneficiario':
+                        isCedenteCorreto = (tipoCessao === 'cessaobenPrincipal' && cedente === nomeCedente);
+                        break;
+                    case 'advogado':
+                        isCedenteCorreto = (tipoCessao === 'cessaoAdv' && cedente === nomeCedente);
+                        break;
+                    case 'herdeiro':
+                        isCedenteCorreto = (tipoCessao === 'cessaoherdeiro' && cedente === nomeCedente);
+                        break;
+                    case 'sindicato':
+                        isCedenteCorreto = (tipoCessao === 'cessaoSindicato' && cedente === nomeCedente);
+                        break;
+                }
+                
+                if (isCedenteCorreto) {
+                    totalCedido += (percentualCessao * 100);
+                }
+            }
+            
+            return totalCedido;
+        }
+
+        // Função para criar item de adesão ao acordo
+        function criarItemAcordo(id, nome, tipo, detalhes) {
+            return `
+                <div class="acordo-item" id="acordo_${id}">
+                    <input type="checkbox" class="acordo-checkbox" id="check_${id}" onchange="toggleAcordoItem('${id}')">
+                    <div class="acordo-info">
+                        <div class="acordo-name">${nome}</div>
+                        <div class="acordo-details">${tipo} - ${detalhes}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Função para alternar seleção de item do acordo
+        function toggleAcordoItem(id) {
+            const checkbox = document.getElementById(`check_${id}`);
+            const item = document.getElementById(`acordo_${id}`);
+            
+            if (checkbox && item) {
+                if (checkbox.checked) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            }
+        }
+
+        // Função para obter quem aderiu ao acordo
+        function obterAdesaoAcordo() {
+            const adesoes = {
+                beneficiario: false,
+                advogados: [],
+                herdeiros: [],
+                sindicatos: [],
+                cessionarios: []
+            };
+
+            // Verificar beneficiário
+            const checkBeneficiario = document.getElementById('check_beneficiario');
+            if (checkBeneficiario?.checked) {
+                adesoes.beneficiario = true;
+            }
+
+            // Verificar advogados
+            const quantAdvogados = parseInt(document.getElementById('quantAdvogados')?.value) || 0;
+            for (let i = 0; i < quantAdvogados; i++) {
+                const check = document.getElementById(`check_advogado_${i}`);
+                if (check?.checked) {
+                    adesoes.advogados.push(i);
+                }
+            }
+
+            // Verificar herdeiros
+            const quantHerdeiros = parseInt(document.getElementById('quantHerdeiros')?.value) || 0;
+            for (let i = 0; i < quantHerdeiros; i++) {
+                const check = document.getElementById(`check_herdeiro_${i}`);
+                if (check?.checked) {
+                    adesoes.herdeiros.push(i);
+                }
+            }
+
+            // Verificar sindicatos
+            const quantSindicatos = parseInt(document.getElementById('quantSindicatos')?.value) || 0;
+            for (let i = 0; i < quantSindicatos; i++) {
+                const check = document.getElementById(`check_sindicato_${i}`);
+                if (check?.checked) {
+                    adesoes.sindicatos.push(i);
+                }
+            }
+
+            // Verificar cessionários
+            const quantCessoes = parseInt(document.getElementById('quantCessoes')?.value) || 0;
+            for (let i = 0; i < quantCessoes; i++) {
+                const check = document.getElementById(`check_cessionario_${i}`);
+                if (check?.checked) {
+                    adesoes.cessionarios.push(i);
+                }
+            }
+
+            return adesoes;
+        }
         
         // Configurações e dados simulados
         const meses = {

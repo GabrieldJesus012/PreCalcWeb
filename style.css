@@ -388,6 +388,83 @@ body {
     display: block;
 }
 
+/* Estilos para adesão ao acordo - Adequados ao tema */
+.acordo-item {
+    background: var(--white);
+    border: 2px solid var(--light-gold);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    box-shadow: var(--shadow-card);
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.acordo-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--primary-gold);
+    transition: all 0.2s ease;
+}
+
+.acordo-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-elevated);
+    border-color: var(--primary-gold);
+}
+
+.acordo-item.selected {
+    border-color: var(--success);
+    background: var(--valor-positivo-bg);
+    box-shadow: 0 8px 32px rgba(40, 167, 69, 0.2);
+}
+
+.acordo-item.selected::before {
+    background: var(--success);
+    width: 6px;
+}
+
+.acordo-checkbox {
+    margin-right: 20px;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--primary-gold);
+}
+
+.acordo-info {
+    flex: 1;
+}
+
+.acordo-name {
+    font-weight: 700;
+    color: var(--primary-navy);
+    font-size: 1.1em;
+    margin-bottom: 4px;
+    font-family: var(--font-heading);
+}
+
+.acordo-details {
+    font-size: 0.9em;
+    color: var(--medium-gray);
+    font-weight: 500;
+}
+
+.acordo-item.selected .acordo-name {
+    color: var(--success);
+}
+
+.acordo-item.selected .acordo-details {
+    color: var(--valor-positivo-text);
+}
+
 label {
     display: block;
     margin-bottom: 8px;
