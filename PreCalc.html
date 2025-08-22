@@ -7352,7 +7352,6 @@
             };
             
             return `
-                <div class="pagamentos-acordo">
                     <!-- 1ª TABELA: Cálculo do Deságio -->
                     <div class="table-container">
                         <h3>📊 Cálculo do Deságio ${(percentualDesagio * 100).toFixed(1)}%</h3>
@@ -7378,10 +7377,10 @@
                             </tfoot>
                         </table>
                     </div>
-
+                <div class="pagamentos-acordo">
                     <!-- 2ª TABELA: Valores Finais para Pagamento -->
                     <div class="table-container">
-                        <h3>💰 Valores Finais - Pagamento do Acordo</h3>
+                        <h3>💰 Pagamento do Acordo</h3>
                         <table>
                             <thead>
                                 <tr>
@@ -7407,7 +7406,7 @@
                                 </tr>
                             </tfoot>
                         </table>
-                         <div style="margin-top: 15px; padding: 10px; background-color: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">
+                        <div style="margin-top: 15px; padding: 10px; background-color: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">
                             <h4>⚖️ Informações do Acordo:</h4>
                             <p style="margin: 5px 0;"><strong>Deságio aplicado:</strong> ${(percentualDesagio * 100).toFixed(1)}% sobre o valor devido</p>
                             <p style="margin: 5px 0;"><strong>Tributos calculados:</strong> Sobre o valor após deságio</p>

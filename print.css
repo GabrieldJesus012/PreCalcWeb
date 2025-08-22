@@ -252,7 +252,6 @@ tr:nth-child(even) td {
     overflow: hidden !important;
 }
 
-
 /* CSS print para duas tabelas de acordo */
 .pagamentos-acordo {
     border-left: 3px solid #10B981 !important;
@@ -308,7 +307,8 @@ tr:nth-child(even) td {
     font-family: 'Courier New', monospace !important;
 }
 
-.pagamentos-acordo table tbody td:first-child {
+.pagamentos-acordo table tbody td:first-child,
+.pagamentos-acordo table tfoot td:first-child {
     text-align: left !important;
     font-size: 9px !important;
     line-height: 1.3 !important;
@@ -316,17 +316,17 @@ tr:nth-child(even) td {
 }
 
 /* Larguras para 1ª TABELA (4 colunas) - Cálculo do Deságio */
-.pagamentos-acordo .table-container:first-child table th:nth-child(1) { width: 30% !important; }
-.pagamentos-acordo .table-container:first-child table th:nth-child(2) { width: 23% !important; }
-.pagamentos-acordo .table-container:first-child table th:nth-child(3) { width: 23% !important; }
-.pagamentos-acordo .table-container:first-child table th:nth-child(4) { width: 24% !important; }
+.pagamentos-acordo .table-container:first-child table th:nth-child(1) { width: 25% !important; }
+.pagamentos-acordo .table-container:first-child table th:nth-child(2) { width: 25% !important; }
+.pagamentos-acordo .table-container:first-child table th:nth-child(3) { width: 25% !important; }
+.pagamentos-acordo .table-container:first-child table th:nth-child(4) { width: 25% !important; }
 
 /* Larguras para 2ª TABELA (6 colunas) - Pagamentos Finais */
-.pagamentos-acordo .table-container:last-child table th:nth-child(1) { width: 16% !important; }
-.pagamentos-acordo .table-container:last-child table th:nth-child(2) { width: 20% !important; }
-.pagamentos-acordo .table-container:last-child table th:nth-child(3) { width: 20% !important; }
+.pagamentos-acordo .table-container:last-child table th:nth-child(1) { width: 20% !important; }
+.pagamentos-acordo .table-container:last-child table th:nth-child(2) { width: 16% !important; }
+.pagamentos-acordo .table-container:last-child table th:nth-child(3) { width: 16% !important; }
 .pagamentos-acordo .table-container:last-child table th:nth-child(4) { width: 16% !important; }
-.pagamentos-acordo .table-container:last-child table th:nth-child(5) { width: 20% !important; }
+.pagamentos-acordo .table-container:last-child table th:nth-child(5) { width: 22% !important; }
 .pagamentos-acordo .table-container:last-child table th:nth-child(6) { width: 10% !important; }
 
 /* Notas explicativas */
