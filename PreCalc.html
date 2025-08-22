@@ -76,7 +76,7 @@
                             <input type="number" id="tetoPreferenciaPrincipal" step="0.01" placeholder="0.00">
                         </div>
                         <div class="input-group" id="percentualAcordo" style="display: none;">
-                            <label>% do Deságio (ex: 0.2 para 20%):</label>
+                            <label>% do Deságio (ex: 0.4 para 40%):</label>
                             <input type="number" id="percentualAcordoValor" step="0.01" min="0" max="1" placeholder="0.00">
                         </div>
                     </div>
@@ -1172,7 +1172,8 @@
             } else {
                 tabAcordo.style.display = 'none';
                 // Se estava na aba de acordo, voltar para a primeira
-                if (currentTab === 'tab8') {
+                const abaAcordoAtiva = document.getElementById('tab8');
+                if (abaAcordoAtiva && abaAcordoAtiva.classList.contains('active')) {
                     showTab('tab1');
                 }
             }
@@ -2649,6 +2650,21 @@
                     erros.push(`A soma dos percentuais dos herdeiros deve ser 100% (atual: ${(somaHerdeiros * 100).toFixed(1)}%)`);
                 }
             }
+
+            if (dados.tipoCalculo === 'acordo') {
+                const adesoes = obterAdesaoAcordo();
+                
+                // Verificar se pelo menos alguém aderiu
+                const temAdesao = adesoes.beneficiario || 
+                                adesoes.advogados.length > 0 || 
+                                adesoes.herdeiros.length > 0 || 
+                                adesoes.sindicatos.length > 0 || 
+                                adesoes.cessionarios.length > 0;
+                
+                if (!temAdesao) {
+                    erros.push("Para cálculo de acordo, pelo menos 1 pessoa/entidade deve aderir ao acordo. Vá para a aba 'Adesão ao Acordo' e selecione quem aderiu.");
+                }
+            }
             
             validarCessoes(dados, erros);
             
@@ -2771,9 +2787,7 @@
             let valorBase = valortotatt;
             if (dados.tipoCalculo === 'preferencia' && dados.natureza === 'alimentar') {
                 valorBase = Math.min(valortotatt, dados.tetoPreferencia);
-            } else if (dados.tipoCalculo === 'acordo') {
-                valorBase = valortotatt * (1 - dados.percentualAcordo);
-            }
+            } 
 
             // Composição inicial
             let principal = valorBase * percentualprinc;
@@ -2852,6 +2866,8 @@
             const resultadoPrevidencia = calcularPrevidenciaIsolada(dados, principal, rrapagamento);
             let valorPrevidencia = resultadoPrevidencia.valorPrevidencia;
             let aliquotaEfetiva = resultadoPrevidencia.aliquotaEfetiva;
+            let valorDesagioPrevidencia = resultadoPrevidencia.valorDesagioPrevidencia;       
+            let percentualDesagioPrevidencia = resultadoPrevidencia.percentualDesagioPrevidencia; 
 
             const resultadoIR = calcularIRIsolado(dados, valortotatt, valorBase, principal, valorPrevidencia, rrapagamento);
             let {
@@ -2859,9 +2875,13 @@
                 aliquotaIR,
                 baseIRHonora,
                 baseIRSindi,
+                principalComDesagio,
+                percentualDesagioIR,
+                rraComDesagio,
                 baseIRPrev,
                 baseIRRRA,
-                valorIRUnitario
+                valorIRUnitario,
+    
             } = resultadoIR;
 
             const resultadoCessoes = calcularCessoesBeneficiarioPrincipal(dados, valorBase, valortotatt, valorHonorarioTotal, valorSindicatoParaDescontar, valorPrevidencia, valorIR);
@@ -2890,14 +2910,20 @@
 
                 valorPrevidencia,
                 aliquotaEfetiva,
+                valorDesagioPrevidencia,   
+                percentualDesagioPrevidencia,
+
                 valorIR,
                 aliquotaIR,
                 baseIRHonora,
                 baseIRSindi,
                 baseIRPrev,
+                principalComDesagio,
+                percentualDesagioIR,
+                rraComDesagio,
                 baseIRRRA,
                 valorIRUnitario,
-
+                
                 valorBeneficiarioBruto: resultadoCessoes.valorBeneficiarioBruto,
                 valorCessoesBeneficiario,
                 percentualBeneficiarioFinal,
@@ -3248,10 +3274,15 @@
             let baseIRPrev = 0;
             let baseIRRRA = 0;
             let valorIRUnitario = 0;
+            let principalComDesagio =0;
+            let valorDesagioIR = 0;
+            let percentualDesagioIR = 0;
+            let rraComDesagio = 0;
 
             if (dados.incidenciaIR && (dados.tipoBeneficiario === 'pj' || rrapagamentoRecalculado !== 0)) {
                 let percentualTotalAdv = 0;
                 let percentualTotalSind = 0;
+                
                 if (dados.tipoCalculo === 'preferencia' && valorBase < valortotatt) {
                     // PREFERÊNCIA PARCIAL: Só desconta honorários que são pagos (advogados)
                     percentualTotalAdv = dados.advogados.reduce((sum, adv) => {
@@ -3268,6 +3299,7 @@
                     percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
                     percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
                 }
+                
                 if (dados.natureza === 'comum' && dados.tipoBeneficiario === 'pj') {
                     // PESSOA JURÍDICA: Base diferente e alíquota fixa de 3%
                     const baseIRPJ = valortotatt - (valortotatt * percentualTotalAdv) - (valortotatt * percentualTotalSind);
@@ -3275,21 +3307,48 @@
                     aliquotaIR = 0.03;
                     valorIRUnitario = valorIR; // Para PJ não divide por RRA
                     
-                    // Returns para manter compatibilidade (valores não utilizados para PJ, mas necessários)
-                    baseIRHonora = 1;
-                    baseIRSindi = 1;
-                    baseIRPrev = 1;
-                    baseIRRRA = 1;
+                    // Aplicar deságio se for acordo
+                    if (dados.tipoCalculo === 'acordo') {
+                        percentualDesagioIR = dados.percentualAcordo || 0;
+                        const valorDesagioIR = valorIR * percentualDesagioIR;
+                        valorIR = valorIR - valorDesagioIR;
+                        valorIRUnitario = valorIR;
+                    }
+                    
+                    // Para PJ, as bases são simbólicas (valor 1)
+                    baseIRHonora = baseIRSindi = baseIRPrev = baseIRRRA = 1;
                 } else {
-                        const baseIR = (principalBase - (principalBase * percentualTotalAdv) - (principalBase * percentualTotalSind) - valorPrevidencia) / rrapagamentoRecalculado;
-                        valorIRUnitario = calcularIR(baseIR);
-                        valorIR = valorIRUnitario * rrapagamentoRecalculado;
-                        aliquotaIR = obterAliquotaIR(baseIR);
+                    // PESSOA FÍSICA
+                    baseIRHonora = principalBase - (principalBase * percentualTotalAdv);
+    
+                    // Base 2: Sem sindicatos
+                    baseIRSindi = baseIRHonora - (principalBase * percentualTotalSind);
+                    
+                    // Base 3: Com deságio (se acordo)
+                    principalComDesagio = baseIRSindi;
+                    
+                    if (dados.tipoCalculo === 'acordo') {
+                        percentualDesagioIR = dados.percentualAcordo || 0;
+                        const valorDesagioIR = baseIRSindi * percentualDesagioIR;
+                        principalComDesagio = baseIRSindi - valorDesagioIR;
+                    }
 
-                        baseIRHonora = principalBase - (principalBase * percentualTotalAdv);
-                        baseIRSindi = baseIRHonora - (principalBase * percentualTotalSind);
-                        baseIRPrev = baseIRHonora - valorPrevidencia;
-                        baseIRRRA = baseIRPrev / rrapagamentoRecalculado;
+                     // Recalcular RRA baseado no deságio
+                    percentualDesagioIR = dados.percentualAcordo || 0;
+                    const proporcaoSemDesagio = 1 - percentualDesagioIR;
+                    rraComDesagio = dados.rra !== 0 ? 
+                        Math.max(1, Math.round(rrapagamentoRecalculado * proporcaoSemDesagio)) : 0;
+                    
+                    // Base 4: Sem previdência
+                    baseIRPrev = principalComDesagio - valorPrevidencia;
+                    
+                    // Base 5: Por RRA
+                    baseIRRRA = baseIRPrev / rraComDesagio;
+                    
+                    // Calcular IR final
+                    valorIRUnitario = calcularIR(baseIRRRA);
+                    valorIR = valorIRUnitario * rraComDesagio;
+                    aliquotaIR = obterAliquotaIR(baseIRRRA);
                 }
             }
 
@@ -3299,8 +3358,11 @@
                 baseIRHonora,
                 baseIRSindi,
                 baseIRPrev,
+                principalComDesagio,
+                percentualDesagioIR, 
+                rraComDesagio,
                 baseIRRRA,
-                valorIRUnitario
+                valorIRUnitario,
             };
         }
 
@@ -3323,9 +3385,16 @@
         function calcularPrevidenciaIsolada(dados, principalBase, rrapagamento) {
             let valorPrevidencia = 0;
             let aliquotaEfetiva = 0;
+            let valorDesagioPrevidencia = 0;
+            let percentualDesagioPrevidencia = 0;
 
             if (dados.tipoBeneficiario === 'pj') {
-                return { valorPrevidencia: 0, aliquotaEfetiva: 0 };
+                return { 
+                    valorPrevidencia: 0, 
+                    aliquotaEfetiva: 0,
+                    valorDesagioPrevidencia: 0,
+                    percentualDesagioPrevidencia: 0
+                };
             }
             
             if (dados.incidenciaPrevidencia) {
@@ -3338,9 +3407,15 @@
                     valorPrevidencia = resultadoINSS * (rrapagamento || 1);
                     aliquotaEfetiva = resultadoINSS / base;
                 }
+
+                if (dados.tipoCalculo === 'acordo') {
+                    percentualDesagioPrevidencia = dados.percentualAcordo || 0;
+                    valorDesagioPrevidencia = valorPrevidencia * percentualDesagioPrevidencia;
+                    valorPrevidencia = valorPrevidencia - valorDesagioPrevidencia;
+                }
             }
             
-            return { valorPrevidencia, aliquotaEfetiva };
+            return { valorPrevidencia, aliquotaEfetiva,valorDesagioPrevidencia,percentualDesagioPrevidencia };
         }
 
         function calcularINSS(base) {
@@ -3401,8 +3476,6 @@
                 
                 if (dados.tipoCalculo === 'preferencia' && dados.natureza === 'alimentar' && herdeiro.temPreferencia) {
                     valorBaseHerdeiro = Math.min(valorAposCessoesHerdeiro, dados.tetoPreferencia);
-                } else if (dados.tipoCalculo === 'acordo') {
-                    valorBaseHerdeiro = valorAposCessoesHerdeiro * (1 - dados.percentualAcordo);
                 }
 
                 // 5. COMPOSIÇÃO INICIAL
@@ -3426,10 +3499,10 @@
                 const valorSindicatoParaDescontar = isPreferenciaParcial ? 0 : valorSindicatoTotalHerdeiro;
                 const valorBeneficiarioBrutoHerdeiro = valorBaseHerdeiro - valorHonorarioTotalHerdeiro - valorSindicatoParaDescontar;
                 
-
                 // 9. RECÁLCULO PARA PREFERÊNCIA PARCIAL
                 let principalHerdeiroEfetivo = principalHerdeiroBase;
                 let rrapagamentoHerdeiroEfetivo = rrapagamentoHerdeiroBase;
+
 
                 if (isPreferenciaParcial) {
                     principalHerdeiroEfetivo = valorHerdeiroQueRecebeEfetivamente * percentualprinc;
@@ -3454,17 +3527,21 @@
 
                 // 10. PREVIDÊNCIA
                 const resultadoPrevidencia = calcularPrevidenciaIsolada(dados, principalHerdeiroEfetivo, rrapagamentoHerdeiroEfetivo);
-                const valorPrevidenciaHerdeiro = resultadoPrevidencia.valorPrevidencia;
-                const aliquotaEfetivaHerdeiro = resultadoPrevidencia.aliquotaEfetiva;
+                const {
+                    valorPrevidencia: valorPrevidenciaHerdeiro,
+                    aliquotaEfetiva: aliquotaEfetivaHerdeiro,
+                    valorDesagioPrevidencia: valorDesagioPrevidenciaHerdeiro,
+                    percentualDesagioPrevidencia: percentualDesagioPrevidenciaHerdeiro
+                } = resultadoPrevidencia;
 
-                // 11. IR
+                // 11. IR (calcularIRIsolado vai aplicar o deságio no RRA internamente)
                 const resultadoIR = calcularIRIsolado(
                     dados, 
                     valorTotalHerdeiro,
                     valorBaseHerdeiro,
                     principalHerdeiroEfetivo,
                     valorPrevidenciaHerdeiro,
-                    rrapagamentoHerdeiroEfetivo
+                    rrapagamentoHerdeiroEfetivo  
                 );
                 
                 const {
@@ -3474,7 +3551,10 @@
                     baseIRSindi: baseIRSindiHerdeiro,
                     baseIRPrev: baseIRPrevHerdeiro,
                     baseIRRRA: baseIRRRAHerdeiro,
-                    valorIRUnitario: valorIRUnitarioHerdeiro
+                    valorIRUnitario: valorIRUnitarioHerdeiro,
+                    principalComDesagio: principalComDesagioHerdeiro,
+                    percentualDesagioIR: percentualDesagioIRHerdeiro,
+                    rraComDesagio: rraComDesagioHerdeiro  
                 } = resultadoIR;
 
                 // 12. CESSÕES FINAIS
@@ -3525,7 +3605,8 @@
                     valorTotal: valorBaseHerdeiro,
                     principal: principalHerdeiroEfetivo,
                     jurosBase: jurosBaseHerdeiroFinal,
-                    rrapagamento: rrapagamentoHerdeiroEfetivo,
+                    rrapagamento: rrapagamentoHerdeiroEfetivo,  // RRA sem deságio
+                    rraComDesagio: rraComDesagioHerdeiro,       // RRA com deságio (vem da calcularIRIsolado)
                     
                     // Descontos
                     honorarios: honorariosHerdeiro,
@@ -3536,6 +3617,9 @@
                     // Tributos
                     valorPrevidencia: valorPrevidenciaHerdeiro,
                     aliquotaEfetiva: aliquotaEfetivaHerdeiro,
+                    valorDesagioPrevidencia: valorDesagioPrevidenciaHerdeiro,
+                    percentualDesagioPrevidencia: percentualDesagioPrevidenciaHerdeiro,
+                    
                     valorIR: valorIRHerdeiro,
                     aliquotaIR: aliquotaIRHerdeiro,
                     baseIRHonora: baseIRHonoraHerdeiro,
@@ -3543,6 +3627,9 @@
                     baseIRPrev: baseIRPrevHerdeiro,
                     baseIRRRA: baseIRRRAHerdeiro,
                     valorIRUnitario: valorIRUnitarioHerdeiro,
+                    principalComDesagio: principalComDesagioHerdeiro,
+                    percentualDesagioIR: percentualDesagioIRHerdeiro,
+                    
                     valorPrevidenciaFinal: valorPrevidenciaHerdeiroFinal,
                     valorIRFinal: valorIRHerdeiroFinal,
                     
@@ -5071,19 +5158,55 @@
             const temPrevidencia = dados.incidenciaPrevidencia;
             const temIR = dados.incidenciaIR && (dados.tipoBeneficiario === 'pj' || resultados.rrapagamento !== 0);
             const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
-        
-            
+
             if (!temPrevidencia && !temIR) return '';
+
+            
+
+            if (dados.tipoCalculo === 'acordo') {
+                const adesoes = obterAdesaoAcordo();
+                
+                // Verificar se beneficiário ou herdeiros aderiram
+                const beneficiarioOuHerdeirosAderiram = adesoes.beneficiario || adesoes.herdeiros.length > 0;
+                
+                let cessionarioRelevante = false;
+                if (adesoes.cessionarios.length > 0) {
+                    for (let i = 0; i < adesoes.cessionarios.length; i++) {
+                        const cessaoIndex = adesoes.cessionarios[i];
+                        const cessao = dados.cessoes[cessaoIndex];
+                        if (cessao && (cessao.tipo === 'cessaobenPrincipal' || cessao.tipo === 'cessaoherdeiro')) {
+                            cessionarioRelevante = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!beneficiarioOuHerdeirosAderiram && !cessionarioRelevante) {
+                    return '';
+                }
+            }
 
             if (dados.natureza === 'comum') {
                 return gerarDeducoesSimples(resultados, dados, temPrevidencia, temIR);
             }
             
-            // SE TEM HERDEIROS: agrupa por valor base
+            //HERDEIROS
             if (temHerdeiros) {
                 const isPreferencia = dados.tipoCalculo === 'preferencia';
                 
-                // SE FOR ORDEM: discrimina por beneficiário + agrupa herdeiros por valor
+                // FILTRAR HERDEIROS POR ADESÃO AO ACORDO
+                let herdeirosFiltrados = resultados.herdeiros;
+                
+                if (dados.tipoCalculo === 'acordo') {
+                    const adesoes = obterAdesaoAcordo();
+                    
+                    // Filtrar só herdeiros que aderiram ao acordo
+                    herdeirosFiltrados = resultados.herdeiros.filter((h, index) => 
+                        adesoes.herdeiros.includes(index)  
+                    );
+                }
+                
+                // ORDEM: discrimina por beneficiário + agrupa herdeiros por valor
                 if (!isPreferencia) {
                     const secoes = [];
                     
@@ -5118,53 +5241,55 @@
                         }
                     }
                     
-                    // 2. HERDEIROS AGRUPADOS POR VALOR
-                    const baseGroups = new Map();
-                    resultados.herdeiros.forEach(h => {
-                        const baseKey = h.valorTotal.toFixed(2);
-                        if (!baseGroups.has(baseKey)) baseGroups.set(baseKey, []);
-                        baseGroups.get(baseKey).push(h);
-                    });
-                    
-                    baseGroups.forEach((herdeiros, base) => {
-                        const valorBase = parseFloat(base);
-                        const herdeirosNomes = herdeiros.map(h => h.nome).join(', ');
-                        const primeiroHerdeiro = herdeiros[0]; // Referência para cálculos base
+                    // 2. HERDEIROS AGRUPADOS POR VALOR (FILTRADOS)
+                    if (herdeirosFiltrados.length > 0) {
+                        const baseGroups = new Map();
+                        herdeirosFiltrados.forEach(h => {
+                            const baseKey = h.valorTotal.toFixed(2);
+                            if (!baseGroups.has(baseKey)) baseGroups.set(baseKey, []);
+                            baseGroups.get(baseKey).push(h);
+                        });
                         
-                        let secaoPrevidencia = '';
-                        if (temPrevidencia) {
-                            if (dados.tipoPrevidencia === 'fixa') {
-                                secaoPrevidencia = gerarDetalhePrevidenciaFixaHerdeiros(herdeiros, dados, valorBase);
-                            } else {
-                                secaoPrevidencia = gerarDetalhePrevidenciaINSSHerdeiros(herdeiros, dados, valorBase);
+                        baseGroups.forEach((herdeiros, base) => {
+                            const valorBase = parseFloat(base);
+                            const herdeirosNomes = herdeiros.map(h => h.nome).join(', ');
+                            const primeiroHerdeiro = herdeiros[0]; // Referência para cálculos base
+                            
+                            let secaoPrevidencia = '';
+                            if (temPrevidencia) {
+                                if (dados.tipoPrevidencia === 'fixa') {
+                                    secaoPrevidencia = gerarDetalhePrevidenciaFixaHerdeiros(herdeiros, dados, valorBase);
+                                } else {
+                                    secaoPrevidencia = gerarDetalhePrevidenciaINSSHerdeiros(herdeiros, dados, valorBase);
+                                }
                             }
-                        }
-                        
-                        let secaoIR = '';
-                        if (temIR && primeiroHerdeiro.rrapagamento !== 0) {
-                            secaoIR = gerarDetalheIRHerdeiros(herdeiros, dados, valorBase, temPrevidencia, false);
-                        }
-                        
-                        if (secaoPrevidencia || secaoIR) {
-                            secoes.push(`
-                                <div style="margin-bottom: 30px; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px;">
-                                    <p style="color: #155724; font-style: italic; margin-bottom: 15px;">
-                                        <strong>Deduções de:</strong> ${herdeirosNomes}
-                                        <span style="color: #856404;"> - R$ ${formatarMoeda(valorBase)}</span>
-                                    </p>
-                                    ${secaoPrevidencia}
-                                    ${secaoIR}
-                                </div>
-                            `);
-                        }
-                    });
+                            
+                            let secaoIR = '';
+                            if (temIR && primeiroHerdeiro.rrapagamento !== 0) {
+                                secaoIR = gerarDetalheIRHerdeiros(herdeiros, dados, valorBase, temPrevidencia, false);
+                            }
+                            
+                            if (secaoPrevidencia || secaoIR) {
+                                secoes.push(`
+                                    <div style="margin-bottom: 30px; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px;">
+                                        <p style="color: #155724; font-style: italic; margin-bottom: 15px;">
+                                            <strong>Deduções de:</strong> ${herdeirosNomes}
+                                            <span style="color: #856404;"> - R$ ${formatarMoeda(valorBase)}</span>
+                                        </p>
+                                        ${secaoPrevidencia}
+                                        ${secaoIR}
+                                    </div>
+                                `);
+                            }
+                        });
+                    }
                     
                     if (secoes.length === 0) return '';
                     
                     return `
                         <div class="deducoes-legais">
                             <div class="table-container">
-                                <h3>🏦 Deduções Legais - Ordem Cronológica</h3>
+                                <h3>🏦 Deduções Legais</h3>
                                 ${secoes.join('')}
                                 <div style="margin-top: 10px; padding: 12px; background-color: #f8f9fa; border-left: 4px solid #007bff; font-size: 0.9em;">
                                     <strong>💡 Explicação:</strong><br>
@@ -5177,14 +5302,22 @@
                     `;
                 }
                 
-                // SE FOR PREFERÊNCIA: agrupa por valor base (sem cessões)
+                // PREFERÊNCIA
                 else {
-                    // Filtra herdeiros conforme preferência
-                    const herdeirosFiltrados = resultados.herdeiros.filter(h => h.temPreferencia || h.isPreferenciaParcial);
+                    // Filtra herdeiros conforme preferência E adesão ao acordo
+                    let herdeirosFiltradosPreferencia;
+                    
+                    if (dados.tipoCalculo === 'acordo') {
+                        // Se é acordo: usar herdeiros já filtrados por adesão
+                        herdeirosFiltradosPreferencia = herdeirosFiltrados.filter(h => h.temPreferencia || h.isPreferenciaParcial);
+                    } else {
+                        // Se não é acordo: filtrar só por preferência
+                        herdeirosFiltradosPreferencia = resultados.herdeiros.filter(h => h.temPreferencia || h.isPreferenciaParcial);
+                    }
                     
                     // Agrupa herdeiros por valor base
                     const baseGroups = new Map();
-                    herdeirosFiltrados.forEach(h => {
+                    herdeirosFiltradosPreferencia.forEach(h => {
                         const baseKey = h.valorTotal.toFixed(2);
                         if (!baseGroups.has(baseKey)) baseGroups.set(baseKey, []);
                         baseGroups.get(baseKey).push(h);
@@ -5253,7 +5386,7 @@
                 }
             }
             
-            // SE NÃO TEM HERDEIROS: lógica original
+            // BEN. Principal
             else {
                 return gerarDeducoesSimples(resultados, dados, temPrevidencia, temIR);
             }
@@ -5298,8 +5431,341 @@
             `;
         }
 
+        function gerarDetalhePrevidenciaFixa(resultados, dados, temCessoes) {
+            const isAcordo = dados.tipoCalculo === 'acordo';
+            const percentualDesagio = dados.percentualAcordo || 0;
+            
+            // Calcular valores para exibição
+            let valorSemDesagio = resultados.valorPrevidencia;
+            let valorDesagio = 0;
+            let valorComDesagio = resultados.valorPrevidencia;
+            
+            if (isAcordo && resultados.valorDesagioPrevidencia) {
+                // valorPrevidencia já vem COM deságio aplicado
+                valorComDesagio = resultados.valorPrevidencia; // valor final (já com deságio)
+                valorDesagio = resultados.valorDesagioPrevidencia; // valor do desconto
+                valorSemDesagio = resultados.valorPrevidencia + resultados.valorDesagioPrevidencia; // valor original
+            }
+
+            const distribuicaoCessoes = temCessoes ? `
+                <tr style="border-top: 1px solid #dee2e6;">
+                    <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
+                </tr>
+                ${resultados.valorPrevidenciaBeneficiario > 0 ? `
+                <tr>
+                    <th>${dados.beneficiario}:</th>
+                    <td>R$ ${formatarMoeda(resultados.valorPrevidenciaBeneficiario)}</td>
+                </tr>` : ''}
+                ${resultados.cessoesBeneficiarioFinais ? resultados.cessoesBeneficiarioFinais.map((cessao) => 
+                    cessao.previdenciaCessao > 0 ? `
+                <tr>
+                    <th>${cessao.cessionario}:</th>
+                    <td>R$ ${formatarMoeda(cessao.previdenciaCessao)}</td>
+                </tr>` : ''
+                ).join('') : ''}
+            ` : '';
+            
+            return `
+                <table class="ir-table">
+                    <tr>
+                        <th colspan="2" class="section-header">📄 Previdência - Alíquota Fixa</th>
+                    </tr>
+                    <tr>
+                        <th>Principal:</th>
+                        <td>R$ ${formatarMoeda(resultados.principal)}</td>
+                    </tr>
+                    <tr>
+                        <th>Alíquota Fixa:</th>
+                        <td>${(dados.aliquotaFixa * 100).toFixed(2)}%</td>
+                    </tr>
+                    <tr ${!isAcordo ? 'class="total-row"' : ''}>
+                        <th>Valor Previdência ${isAcordo ? 'sem Deságio' : ''}:</th>
+                        <td>${!isAcordo ? '<strong>' : ''}R$ ${formatarMoeda(valorSemDesagio)}${!isAcordo ? '</strong>' : ''}</td>
+                    </tr>
+                    ${isAcordo && valorDesagio > 0 ? `
+                    <tr style="color: #dc3545;">
+                        <th>(-) Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                        <td>R$ ${formatarMoeda(valorDesagio)}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <th>Valor Previdência com Deságio:</th>
+                        <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
+                    </tr>` : ''}
+                    ${distribuicaoCessoes}
+                </table>
+            `;
+        }
+
+        function gerarDetalhePrevidenciaINSS(resultados, dados, temCessoes) {
+            const isAcordo = dados.tipoCalculo === 'acordo';
+            const percentualDesagio = dados.percentualAcordo || 0;
+            const base = resultados.rrapagamento === 0 ? resultados.principal : resultados.principal / resultados.rrapagamento;
+            
+            // Calcular valores para exibição
+            let valorSemDesagio = resultados.valorPrevidencia;
+            let valorDesagio = 0;
+            let valorComDesagio = resultados.valorPrevidencia;
+            
+            if (isAcordo && resultados.valorDesagioPrevidencia) {
+                // valorPrevidencia já vem COM deságio aplicado
+                valorComDesagio = resultados.valorPrevidencia; // valor final (já com deságio)
+                valorDesagio = resultados.valorDesagioPrevidencia; // valor do desconto
+                valorSemDesagio = resultados.valorPrevidencia + resultados.valorDesagioPrevidencia; // valor original
+            }
+            
+            const distribuicaoCessoes = temCessoes ? `
+                <tr style="border-top: 1px solid #dee2e6;">
+                    <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
+                </tr>
+                ${resultados.valorPrevidenciaBeneficiario > 0 ? `
+                <tr>
+                    <th>${dados.beneficiario}:</th>
+                    <td>R$ ${formatarMoeda(resultados.valorPrevidenciaBeneficiario)}</td>
+                </tr>` : ''}
+                ${resultados.cessoesBeneficiarioFinais ? resultados.cessoesBeneficiarioFinais.map((cessao) => 
+                    cessao.previdenciaCessao > 0 ? `
+                <tr>
+                    <th>${cessao.cessionario}:</th>
+                    <td>R$ ${formatarMoeda(cessao.previdenciaCessao)}</td>
+                </tr>` : ''
+                ).join('') : ''}
+            ` : '';
+            
+            return `
+                <table class="ir-table">
+                    <tr>
+                        <th colspan="2" class="section-header">📄 Previdência - INSS</th>
+                    </tr>
+                    <tr>
+                        <th>Principal:</th>
+                        <td>R$ ${formatarMoeda(resultados.principal)}</td>
+                    </tr>
+                    ${resultados.rrapagamento !== 0 ? `
+                    <tr>
+                        <th>RRA Pagamento:</th>
+                        <td>${Math.round(resultados.rrapagamento)}</td>
+                    </tr>
+                    <tr>
+                        <th>Base INSS por RRA:</th>
+                        <td>R$ ${formatarMoeda(base)}</td>
+                    </tr>` : ''}
+                    <tr>
+                        <th>Alíquota Efetiva INSS:</th>
+                        <td>${(resultados.aliquotaEfetiva * 100).toFixed(2)}%</td>
+                    </tr>
+                    <tr>
+                        <th>Valor INSS por RRA:</th>
+                        <td>R$ ${formatarMoeda(valorSemDesagio / (resultados.rrapagamento || 1))} ${base > 8157.41 ? '(TETO)' : ''}</td>
+                    </tr>
+                    <tr ${!isAcordo ? 'class="total-row"' : ''}>
+                        <th>Valor Previdência ${isAcordo ? 'sem Deságio' : ''}:</th>
+                        <td>${!isAcordo ? '<strong>' : ''}R$ ${formatarMoeda(valorSemDesagio)}${!isAcordo ? '</strong>' : ''}</td>
+                    </tr>
+                    ${isAcordo && valorDesagio > 0 ? `
+                    <tr style="color: #dc3545;">
+                        <th>(-) Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                        <td>R$ ${formatarMoeda(valorDesagio)}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <th>Valor Previdência com Deságio:</th>
+                        <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
+                    </tr>` : ''}
+                    ${distribuicaoCessoes}
+                </table>
+            `;
+        }
+
+        function gerarDetalheIR(resultados, dados, temPrevidencia, temCessoes) {
+            const isAcordo = dados.tipoCalculo === 'acordo';
+            const percentualDesagio = dados.percentualAcordo || 0;
+
+            let percentualTotalAdv = 0;
+            let percentualTotalSind = 0;
+            
+            if (dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt) {
+                percentualTotalAdv = dados.advogados.reduce((sum, adv) => {
+                    const cessaoAdv = dados.cessoes?.filter(cessao => 
+                        cessao.tipo === 'cessaoAdv' && cessao.cedente === adv.nome
+                    ) || [];
+                    const percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
+                    const percentualAdvogado = Math.max(0, adv.percentual - percentualCessionarioAdv);
+                    return sum + percentualAdvogado;
+                }, 0);
+                percentualTotalSind = 0;
+            } else {
+                percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+                percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
+            }
+
+            // Mostrar base com deságio se for acordo
+            let baseComDesagio = '';
+            if (isAcordo && resultados.percentualDesagioIR > 0) {
+                baseComDesagio = `
+                <tr>
+                    <th>Base IR com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
+                    <td>R$ ${formatarMoeda(resultados.principalComDesagio)}</td>
+                </tr>`;
+            }
+            
+            const distribuicaoCessoes = temCessoes ? `
+                <tr style="border-top: 1px solid #dee2e6;">
+                    <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
+                </tr>
+                ${resultados.valorIRBeneficiario > 0 ? `
+                <tr>
+                    <th>${dados.beneficiario}:</th>
+                    <td>R$ ${formatarMoeda(resultados.valorIRBeneficiario)}</td>
+                </tr>
+                ` : ''}
+                ${resultados.cessoesBeneficiarioFinais ? resultados.cessoesBeneficiarioFinais.map((cessao) => 
+                    cessao.irCessao > 0 ? `
+                    <tr>
+                        <th>${cessao.cessionario}:</th>
+                        <td>R$ ${formatarMoeda(cessao.irCessao)}</td>
+                    </tr>
+                    ` : ''
+                ).join('') : ''}
+            ` : '';
+            
+            return `
+                <table class="ir-table">
+                    <tr>
+                        <th colspan="2" class="section-header">📄 Imposto de Renda - MP Nª 1.294, de 11 de Abril de 2025</th>
+                    </tr>
+                    <tr>
+                        <th>Principal:</th>
+                        <td>R$ ${formatarMoeda(resultados.principal)}</td>
+                    </tr>
+                    <tr>
+                        <th>Base IR sem H.Contratuais (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
+                        <td>R$ ${formatarMoeda(resultados.baseIRHonora)}</td>
+                    </tr>
+                    ${percentualTotalSind > 0 ? `
+                    <tr>
+                        <th>Base IR sem Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
+                        <td>R$ ${formatarMoeda(resultados.baseIRSindi)}</td>
+                    </tr>` : ''}
+                    ${baseComDesagio}
+                    ${temPrevidencia ? `
+                    <tr>
+                        <th>Previdência:</th>
+                        <td>R$ ${formatarMoeda(resultados.valorPrevidencia)}</td>
+                    </tr>
+                    <tr>
+                        <th>Base IR sem Previdência:</th>
+                        <td>R$ ${formatarMoeda(resultados.baseIRPrev)}</td>
+                    </tr>` : ''}
+                    <tr>
+                        <th>RRA Pagamento:</th>
+                        <td>${Math.round(resultados.rraComDesagio || resultados.rrapagamento)}</td>
+                    </tr>
+                    <tr>
+                        <th>Base IR por RRA:</th>
+                        <td>R$ ${formatarMoeda(resultados.baseIRRRA)}</td>
+                    </tr>
+                    <tr>
+                        <th>Alíquota IR:</th>
+                        <td>${(resultados.aliquotaIR * 100).toFixed(1)}%</td>
+                    </tr>
+                    <tr>
+                        <th>Valor IR Mensal:</th>
+                        <td>R$ ${formatarMoeda(resultados.valorIRUnitario)}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <th>Valor IR Devido Total:</th>
+                        <td><strong>R$ ${formatarMoeda(resultados.valorIR)}</strong></td>
+                    </tr>
+                    ${distribuicaoCessoes}
+                </table>
+            `;
+        }
+
+        function gerarDetalheIRPJ(resultados, dados, temCessoes) {
+            const isAcordo = dados.tipoCalculo === 'acordo';
+            const percentualDesagio = dados.percentualAcordo || 0;
+            
+            let percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+            let percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
+            
+            const baseSemHonorarios = resultados.valortotatt - (resultados.valortotatt * percentualTotalAdv);
+            const baseSemSindicatos = baseSemHonorarios - (resultados.valortotatt * percentualTotalSind);
+            
+            let baseComDesagio = '';
+            if (isAcordo && percentualDesagio > 0) {
+                const baseAposDesagio = baseSemSindicatos * (1 - percentualDesagio);
+                
+                baseComDesagio = `
+                <tr>
+                    <th>Base IR com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                    <td>R$ ${formatarMoeda(baseAposDesagio)}</td>
+                </tr>`;
+            }
+            
+            const distribuicaoCessoes = temCessoes ? `
+                <tr style="border-top: 1px solid #dee2e6;">
+                    <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
+                </tr>
+                ${resultados.valorIRBeneficiario > 0 ? `
+                <tr>
+                    <th>${dados.beneficiario}:</th>
+                    <td>R$ ${formatarMoeda(resultados.valorIRBeneficiario)}</td>
+                </tr>
+                ` : ''}
+                ${resultados.cessoesBeneficiarioFinais ? resultados.cessoesBeneficiarioFinais.map((cessao) => 
+                    cessao.irCessao > 0 ? `
+                    <tr>
+                        <th>${cessao.cessionario}:</th>
+                        <td>R$ ${formatarMoeda(cessao.irCessao)}</td>
+                    </tr>
+                    ` : ''
+                ).join('') : ''}
+            ` : '';
+            
+            return `
+                <table class="ir-table">
+                    <tr>
+                        <th colspan="2" class="section-header">📄 Imposto de Renda PJ - Art. 27, da Lei nº 10.833/03</th>
+                    </tr>
+                    <tr>
+                        <th>Valor Total:</th>
+                        <td>R$ ${formatarMoeda(resultados.valortotatt)}</td>
+                    </tr>
+                    <tr>
+                        <th>Base IR sem H.Contratuais (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
+                        <td>R$ ${formatarMoeda(baseSemHonorarios)}</td>
+                    </tr>
+                    ${percentualTotalSind > 0 ? `
+                    <tr>
+                        <th>Base IR sem Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
+                        <td>R$ ${formatarMoeda(baseSemSindicatos)}</td>
+                    </tr>` : ''}
+                    ${baseComDesagio}
+                    <tr>
+                        <th>Alíquota IR:</th>
+                        <td>3,0%</td>
+                    </tr>
+                    <tr class="total-row">
+                        <th>Valor IR Devido Total:</th>
+                        <td><strong>R$ ${formatarMoeda(resultados.valorIR)}</strong></td>
+                    </tr>
+                    ${distribuicaoCessoes}
+                </table>
+            `;
+        }
+
         function gerarDetalhePrevidenciaFixaHerdeirosSemCessao(herdeiros, dados, valorBase) {
             const primeiroHerdeiro = herdeiros[0];
+            const isAcordo = dados.tipoCalculo === 'acordo';
+            const percentualDesagio = dados.percentualAcordo || 0;
+            
+            // Calcular valores para exibição
+            let valorSemDesagio = primeiroHerdeiro.valorPrevidencia;
+            let valorComDesagio = primeiroHerdeiro.valorPrevidencia;
+            
+            if (isAcordo && primeiroHerdeiro.valorDesagioPrevidencia) {
+                valorComDesagio = primeiroHerdeiro.valorPrevidencia; 
+                valorSemDesagio = primeiroHerdeiro.valorPrevidencia + primeiroHerdeiro.valorDesagioPrevidencia; 
+            }
             
             // Distribuição por herdeiros (SEM cessões)
             const distribuicaoHerdeiros = herdeiros.map(herdeiro => `
@@ -5322,6 +5788,15 @@
                         <th>Alíquota Fixa:</th>
                         <td>${(dados.aliquotaFixa * 100).toFixed(2)}%</td>
                     </tr>
+                    <tr ${!isAcordo ? 'class="total-row"' : ''}>
+                        <th>Valor Previdência ${isAcordo ? 'sem Deságio' : 'por Herdeiro'}:</th>
+                        <td>${!isAcordo ? '<strong>' : ''}R$ ${formatarMoeda(valorSemDesagio)}${!isAcordo ? '</strong>' : ''}</td>
+                    </tr>
+                    ${isAcordo && primeiroHerdeiro.valorDesagioPrevidencia > 0 ? `
+                    <tr class="total-row">
+                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                        <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
+                    </tr>` : ''}
                     <tr style="border-top: 1px solid #dee2e6;">
                         <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
                     </tr>
@@ -5332,7 +5807,20 @@
 
         function gerarDetalhePrevidenciaINSSHerdeirosSemCessao(herdeiros, dados, valorBase) {
             const primeiroHerdeiro = herdeiros[0];
+            const isAcordo = dados.tipoCalculo === 'acordo';
+            const percentualDesagio = dados.percentualAcordo || 0;
+            
             const base = primeiroHerdeiro.rrapagamento === 0 ? primeiroHerdeiro.principal : primeiroHerdeiro.principal / primeiroHerdeiro.rrapagamento;
+            
+            // Calcular valores para exibição
+            let valorSemDesagio = primeiroHerdeiro.valorPrevidencia;
+            let valorComDesagio = primeiroHerdeiro.valorPrevidencia;
+            
+            if (isAcordo && primeiroHerdeiro.valorDesagioPrevidencia) {
+                // valorPrevidencia já vem COM deságio aplicado
+                valorComDesagio = primeiroHerdeiro.valorPrevidencia; // valor final (já com deságio)
+                valorSemDesagio = primeiroHerdeiro.valorPrevidencia + primeiroHerdeiro.valorDesagioPrevidencia; // valor original
+            }
             
             // Distribuição por herdeiros (SEM cessões)
             const distribuicaoHerdeiros = herdeiros.map(herdeiro => `
@@ -5364,6 +5852,19 @@
                         <th>Alíquota Efetiva INSS:</th>
                         <td>${(primeiroHerdeiro.aliquotaEfetiva * 100).toFixed(2)}%</td>
                     </tr>
+                    <tr>
+                        <th>Valor INSS por RRA:</th>
+                        <td>R$ ${formatarMoeda(valorSemDesagio / (primeiroHerdeiro.rrapagamento || 1))} ${base > 8157.41 ? '(TETO)' : ''}</td>
+                    </tr>
+                    <tr ${!isAcordo ? 'class="total-row"' : ''}>
+                        <th>Valor Previdência ${isAcordo ? 'sem Deságio' : 'por Herdeiro'}:</th>
+                        <td>${!isAcordo ? '<strong>' : ''}R$ ${formatarMoeda(valorSemDesagio)}${!isAcordo ? '</strong>' : ''}</td>
+                    </tr>
+                    ${isAcordo && primeiroHerdeiro.valorDesagioPrevidencia > 0 ? `
+                    <tr class="total-row">
+                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                        <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
+                    </tr>` : ''}
                     <tr style="border-top: 1px solid #dee2e6;">
                         <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
                     </tr>
@@ -5372,8 +5873,10 @@
             `;
         }
 
-        function gerarDetalheIRHerdeirosSemCessao(herdeiros, dados, valorBase, temPrevidencia,temAlgumParcial) {
+        function gerarDetalheIRHerdeirosSemCessao(herdeiros, dados, valorBase, temPrevidencia, temAlgumParcial) {
             const primeiroHerdeiro = herdeiros[0];
+            const isAcordo = dados.tipoCalculo === 'acordo';
+            const percentualDesagio = dados.percentualAcordo || 0;
             
             // Calcula percentuais (usando primeiro herdeiro como referência)
             let percentualTotalAdv = 0;
@@ -5393,6 +5896,16 @@
                 // ORDEM CRONOLÓGICA ou PREFERÊNCIA TOTAL: usa todos os percentuais
                 percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
                 percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
+            }
+            
+            // Mostrar base com deságio se for acordo
+            let baseComDesagio = '';
+            if (isAcordo && percentualDesagio > 0) {
+                baseComDesagio = `
+                <tr>
+                    <th>Base IR com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                    <td>R$ ${formatarMoeda(primeiroHerdeiro.principalComDesagio || primeiroHerdeiro.baseIRSindi)}</td>
+                </tr>`;
             }
             
             // Distribuição por herdeiros (SEM cessões)
@@ -5421,6 +5934,7 @@
                         <th>Base IR sem Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
                         <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRSindi)}</td>
                     </tr>` : ''}
+                    ${baseComDesagio}
                     ${temPrevidencia ? `
                     <tr>
                         <th>Previdência:</th>
@@ -5432,7 +5946,7 @@
                     </tr>` : ''}
                     <tr>
                         <th>RRA Pagamento:</th>
-                        <td>${Math.round(primeiroHerdeiro.rrapagamento)}</td>
+                        <td>${Math.round(primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento)}</td>
                     </tr>
                     <tr>
                         <th>Base IR por RRA:</th>
@@ -5441,6 +5955,14 @@
                     <tr>
                         <th>Alíquota IR:</th>
                         <td>${(primeiroHerdeiro.aliquotaIR * 100).toFixed(1)}%</td>
+                    </tr>
+                    <tr>
+                        <th>Valor IR Mensal:</th>
+                        <td>R$ ${formatarMoeda(primeiroHerdeiro.valorIRUnitario)}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <th>Valor IR Devido Total por Herdeiro:</th>
+                        <td><strong>R$ ${formatarMoeda(primeiroHerdeiro.valorIR)}</strong></td>
                     </tr>
                     <tr style="border-top: 1px solid #dee2e6;">
                         <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
@@ -5452,6 +5974,18 @@
 
         function gerarDetalhePrevidenciaFixaHerdeiros(herdeiros, dados, valorBase) {
             const primeiroHerdeiro = herdeiros[0];
+            const isAcordo = dados.tipoCalculo === 'acordo';
+            const percentualDesagio = dados.percentualAcordo || 0;
+            
+            // Calcular valores para exibição
+            let valorSemDesagio = primeiroHerdeiro.valorPrevidencia;
+            let valorComDesagio = primeiroHerdeiro.valorPrevidencia;
+            
+            if (isAcordo && primeiroHerdeiro.valorDesagioPrevidencia) {
+                // valorPrevidencia já vem COM deságio aplicado
+                valorComDesagio = primeiroHerdeiro.valorPrevidencia; // valor final (já com deságio)
+                valorSemDesagio = primeiroHerdeiro.valorPrevidencia + primeiroHerdeiro.valorDesagioPrevidencia; // valor original
+            }
             
             // Distribuição por herdeiros e suas cessões
             const distribuicaoHerdeiros = herdeiros.map(herdeiro => {
@@ -5507,12 +6041,17 @@
                     </tr>
                     <tr>
                         <th>Alíquota Fixa:</th>
-                        <td>${(dados.aliquotaPrevidencia * 100).toFixed(2)}%</td>
+                        <td>${(dados.aliquotaFixa * 100).toFixed(2)}%</td>
                     </tr>
-                    <tr>
-                        <th>Valor Previdência Total:</th>
-                        <td>R$ ${formatarMoeda(primeiroHerdeiro.valorPrevidencia)}</td>
+                    <tr ${!isAcordo ? 'class="total-row"' : ''}>
+                        <th>Valor Previdência ${isAcordo ? 'sem Deságio' : 'por Herdeiro'}:</th>
+                        <td>${!isAcordo ? '<strong>' : ''}R$ ${formatarMoeda(valorSemDesagio)}${!isAcordo ? '</strong>' : ''}</td>
                     </tr>
+                    ${isAcordo && primeiroHerdeiro.valorDesagioPrevidencia > 0 ? `
+                    <tr class="total-row">
+                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                        <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
+                    </tr>` : ''}
                     <tr style="border-top: 1px solid #dee2e6;">
                         <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
                     </tr>
@@ -5523,7 +6062,20 @@
 
         function gerarDetalhePrevidenciaINSSHerdeiros(herdeiros, dados, valorBase) {
             const primeiroHerdeiro = herdeiros[0];
+            const isAcordo = dados.tipoCalculo === 'acordo';
+            const percentualDesagio = dados.percentualAcordo || 0;
+            
             const base = primeiroHerdeiro.rrapagamento === 0 ? primeiroHerdeiro.principal : primeiroHerdeiro.principal / primeiroHerdeiro.rrapagamento;
+            
+            // Calcular valores para exibição
+            let valorSemDesagio = primeiroHerdeiro.valorPrevidencia;
+            let valorComDesagio = primeiroHerdeiro.valorPrevidencia;
+            
+            if (isAcordo && primeiroHerdeiro.valorDesagioPrevidencia) {
+                // valorPrevidencia já vem COM deságio aplicado
+                valorComDesagio = primeiroHerdeiro.valorPrevidencia; // valor final (já com deságio)
+                valorSemDesagio = primeiroHerdeiro.valorPrevidencia + primeiroHerdeiro.valorDesagioPrevidencia; // valor original
+            }
             
             // Distribuição por herdeiros e suas cessões
             const distribuicaoHerdeiros = herdeiros.map(herdeiro => {
@@ -5580,7 +6132,7 @@
                     ${primeiroHerdeiro.rrapagamento !== 0 ? `
                     <tr>
                         <th>RRA Pagamento:</th>
-                        <td>${Math.round(primeiroHerdeiro.rrapagamento)}</td>
+                        <td>${Math.round(primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento)}</td>
                     </tr>
                     <tr>
                         <th>Base INSS por RRA:</th>
@@ -5591,9 +6143,18 @@
                         <td>${(primeiroHerdeiro.aliquotaEfetiva * 100).toFixed(2)}%</td>
                     </tr>
                     <tr>
-                        <th>Valor Previdência Total:</th>
-                        <td>R$ ${formatarMoeda(primeiroHerdeiro.valorPrevidencia)}</td>
+                        <th>Valor INSS por RRA:</th>
+                        <td>R$ ${formatarMoeda(valorSemDesagio / (primeiroHerdeiro.rrapagamento || 1))} ${base > 8157.41 ? '(TETO)' : ''}</td>
                     </tr>
+                    <tr ${!isAcordo ? 'class="total-row"' : ''}>
+                        <th>Valor Previdência ${isAcordo ? 'sem Deságio' : 'por Herdeiro'}:</th>
+                        <td>${!isAcordo ? '<strong>' : ''}R$ ${formatarMoeda(valorSemDesagio)}${!isAcordo ? '</strong>' : ''}</td>
+                    </tr>
+                    ${isAcordo && primeiroHerdeiro.valorDesagioPrevidencia > 0 ? `
+                    <tr class="total-row">
+                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                        <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
+                    </tr>` : ''}
                     <tr style="border-top: 1px solid #dee2e6;">
                         <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
                     </tr>
@@ -5604,6 +6165,8 @@
 
         function gerarDetalheIRHerdeiros(herdeiros, dados, valorBase, temPrevidencia, temAlgumParcial) {
             const primeiroHerdeiro = herdeiros[0];
+            const isAcordo = dados.tipoCalculo === 'acordo';
+            const percentualDesagio = dados.percentualAcordo || 0;
             
             // Calcula percentuais (usando primeiro herdeiro como referência)
             let percentualTotalAdv = 0;
@@ -5623,6 +6186,16 @@
                 // ORDEM CRONOLÓGICA ou PREFERÊNCIA TOTAL: usa todos os percentuais
                 percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
                 percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
+            }
+            
+            // Mostrar base com deságio se for acordo
+            let baseComDesagio = '';
+            if (isAcordo && percentualDesagio > 0) {
+                baseComDesagio = `
+                <tr>
+                    <th>Base IR com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                    <td>R$ ${formatarMoeda(primeiroHerdeiro.principalComDesagio || primeiroHerdeiro.baseIRSindi)}</td>
+                </tr>`;
             }
             
             // Distribuição por herdeiros e suas cessões
@@ -5686,6 +6259,7 @@
                         <th>Base IR sem Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
                         <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRSindi)}</td>
                     </tr>` : ''}
+                    ${baseComDesagio}
                     ${temPrevidencia ? `
                     <tr>
                         <th>Previdência:</th>
@@ -5697,7 +6271,7 @@
                     </tr>` : ''}
                     <tr>
                         <th>RRA Pagamento:</th>
-                        <td>${Math.round(primeiroHerdeiro.rrapagamento)}</td>
+                        <td>${Math.round(primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento)}</td>
                     </tr>
                     <tr>
                         <th>Base IR por RRA:</th>
@@ -5711,262 +6285,14 @@
                         <th>Valor IR Mensal:</th>
                         <td>R$ ${formatarMoeda(primeiroHerdeiro.valorIRUnitario)}</td>
                     </tr>
-                    <tr>
-                        <th>Valor IR Devido Total:</th>
-                        <td>R$ ${formatarMoeda(primeiroHerdeiro.valorIR)}</td>
+                    <tr class="total-row">
+                        <th>Valor IR Devido Total por Herdeiro:</th>
+                        <td><strong>R$ ${formatarMoeda(primeiroHerdeiro.valorIR)}</strong></td>
                     </tr>
                     <tr style="border-top: 1px solid #dee2e6;">
                         <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
                     </tr>
                     ${distribuicaoHerdeiros}
-                </table>
-            `;
-        }
-
-        // Funções originais mantidas para compatibilidade
-        function gerarDetalhePrevidenciaFixa(resultados, dados, temCessoes) {
-            const distribuicaoCessoes = temCessoes ? `
-                <tr style="border-top: 1px solid #dee2e6;">
-                    <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
-                </tr>
-                ${resultados.valorPrevidenciaBeneficiario > 0 ? `
-                <tr>
-                    <th>${dados.beneficiario}:</th>
-                    <td>R$ ${formatarMoeda(resultados.valorPrevidenciaBeneficiario)}</td>
-                </tr>
-                ` : ''}
-                ${resultados.cessoesBeneficiarioFinais ? resultados.cessoesBeneficiarioFinais.map((cessao) => 
-                    cessao.previdenciaCessao > 0 ? `
-                    <tr>
-                        <th>${cessao.cessionario}:</th>
-                        <td>R$ ${formatarMoeda(cessao.previdenciaCessao)}</td>
-                    </tr>
-                    ` : ''
-                ).join('') : ''}
-            ` : '';
-            
-            return `
-                <table class="ir-table">
-                    <tr>
-                        <th colspan="2" class="section-header">📄 Previdência - Alíquota Fixa</th>
-                    </tr>
-                    <tr>
-                        <th>Principal:</th>
-                        <td>R$ ${formatarMoeda(resultados.principal)}</td>
-                    </tr>
-                    <tr>
-                        <th>Alíquota Fixa:</th>
-                        <td>${(dados.aliquotaFixa * 100).toFixed(2)}%</td>
-                    </tr>
-                    <tr class="total-row">
-                        <th>Valor Previdência:</th>
-                        <td><strong>R$ ${formatarMoeda(resultados.valorPrevidencia)}</strong></td>
-                    </tr>
-                    ${distribuicaoCessoes}
-                </table>
-            `;
-        }
-
-        function gerarDetalhePrevidenciaINSS(resultados, dados, temCessoes) {
-            const base = resultados.rrapagamento === 0 ? resultados.principal : resultados.principal / resultados.rrapagamento;
-            
-            const distribuicaoCessoes = temCessoes ? `
-                <tr style="border-top: 1px solid #dee2e6;">
-                    <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
-                </tr>
-                ${resultados.valorPrevidenciaBeneficiario > 0 ? `
-                <tr>
-                    <th>${dados.beneficiario}:</th>
-                    <td>R$ ${formatarMoeda(resultados.valorPrevidenciaBeneficiario)}</td>
-                </tr>
-                ` : ''}
-                ${resultados.cessoesBeneficiarioFinais ? resultados.cessoesBeneficiarioFinais.map((cessao) => 
-                    cessao.previdenciaCessao > 0 ? `
-                    <tr>
-                        <th>${cessao.cessionario}:</th>
-                        <td>R$ ${formatarMoeda(cessao.previdenciaCessao)}</td>
-                    </tr>
-                    ` : ''
-                ).join('') : ''}
-            ` : '';
-            
-            return `
-                <table class="ir-table">
-                    <tr>
-                        <th colspan="2" class="section-header">📄 Previdência - INSS</th>
-                    </tr>
-                    <tr>
-                        <th>Principal:</th>
-                        <td>R$ ${formatarMoeda(resultados.principal)}</td>
-                    </tr>
-                    ${resultados.rrapagamento !== 0 ? `
-                    <tr>
-                        <th>RRA Pagamento:</th>
-                        <td>${Math.round(resultados.rrapagamento)}</td>
-                    </tr>
-                    <tr>
-                        <th>Base INSS por RRA:</th>
-                        <td>R$ ${formatarMoeda(base)}</td>
-                    </tr>` : ''}
-                    <tr>
-                        <th>Alíquota Efetiva INSS:</th>
-                        <td>${(resultados.aliquotaEfetiva * 100).toFixed(2)}%</td>
-                    </tr>
-                    <tr>
-                        <th>Valor INSS por RRA:</th>
-                        <td>R$ ${formatarMoeda(resultados.valorPrevidencia / (resultados.rrapagamento || 1))} ${base > 8157.41 ? '(TETO)' : ''}</td>
-                    </tr>
-                    <tr class="total-row">
-                        <th>Valor Previdência:</th>
-                        <td><strong>R$ ${formatarMoeda(resultados.valorPrevidencia)}</strong></td>
-                    </tr>
-                    ${distribuicaoCessoes}
-                </table>
-            `;
-        }
-
-        function gerarDetalheIR(resultados, dados, temPrevidencia, temCessoes) {
-            let percentualTotalAdv = 0;
-            let percentualTotalSind = 0;
-            
-            if (dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt) {
-                percentualTotalAdv = dados.advogados.reduce((sum, adv) => {
-                    const cessaoAdv = dados.cessoes?.filter(cessao => 
-                        cessao.tipo === 'cessaoAdv' && cessao.cedente === adv.nome
-                    ) || [];
-                    const percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
-                    const percentualAdvogado = Math.max(0, adv.percentual - percentualCessionarioAdv);
-                    return sum + percentualAdvogado;
-                }, 0);
-                percentualTotalSind = 0;
-            } else {
-                percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
-                percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
-            }
-            
-            const distribuicaoCessoes = temCessoes ? `
-                <tr style="border-top: 1px solid #dee2e6;">
-                    <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
-                </tr>
-                ${resultados.valorIRBeneficiario > 0 ? `
-                <tr>
-                    <th>${dados.beneficiario}:</th>
-                    <td>R$ ${formatarMoeda(resultados.valorIRBeneficiario)}</td>
-                </tr>
-                ` : ''}
-                ${resultados.cessoesBeneficiarioFinais ? resultados.cessoesBeneficiarioFinais.map((cessao) => 
-                    cessao.irCessao > 0 ? `
-                    <tr>
-                        <th>${cessao.cessionario}:</th>
-                        <td>R$ ${formatarMoeda(cessao.irCessao)}</td>
-                    </tr>
-                    ` : ''
-                ).join('') : ''}
-            ` : '';
-            
-            return `
-                <table class="ir-table">
-                    <tr>
-                        <th colspan="2" class="section-header">📄 Imposto de Renda - MP Nª 1.294, de 11 de Abril de 2025</th>
-                    </tr>
-                    <tr>
-                        <th>Principal:</th>
-                        <td>R$ ${formatarMoeda(resultados.principal)}</td>
-                    </tr>
-                    <tr>
-                        <th>Base IR sem H.Contratuais (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
-                        <td>R$ ${formatarMoeda(resultados.baseIRHonora)}</td>
-                    </tr>
-                    ${percentualTotalSind > 0 ? `
-                    <tr>
-                        <th>Base IR sem Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
-                        <td>R$ ${formatarMoeda(resultados.baseIRSindi)}</td>
-                    </tr>` : ''}
-                    ${temPrevidencia ? `
-                    <tr>
-                        <th>Previdência:</th>
-                        <td>R$ ${formatarMoeda(resultados.valorPrevidencia)}</td>
-                    </tr>
-                    <tr>
-                        <th>Base IR sem Previdência:</th>
-                        <td>R$ ${formatarMoeda(resultados.baseIRPrev)}</td>
-                    </tr>` : ''}
-                    <tr>
-                        <th>RRA Pagamento:</th>
-                        <td>${Math.round(resultados.rrapagamento)}</td>
-                    </tr>
-                    <tr>
-                        <th>Base IR por RRA:</th>
-                        <td>R$ ${formatarMoeda(resultados.baseIRRRA)}</td>
-                    </tr>
-                    <tr>
-                        <th>Alíquota IR:</th>
-                        <td>${(resultados.aliquotaIR * 100).toFixed(1)}%</td>
-                    </tr>
-                    <tr>
-                        <th>Valor IR Mensal:</th>
-                        <td>R$ ${formatarMoeda(resultados.valorIRUnitario)}</td>
-                    </tr>
-                    <tr class="total-row">
-                        <th>Valor IR Devido Total:</th>
-                        <td><strong>R$ ${formatarMoeda(resultados.valorIR)}</strong></td>
-                    </tr>
-                    ${distribuicaoCessoes}
-                </table>
-            `;
-        }
-
-        function gerarDetalheIRPJ(resultados, dados, temCessoes) {
-            let percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
-            let percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
-            
-            const distribuicaoCessoes = temCessoes ? `
-                <tr style="border-top: 1px solid #dee2e6;">
-                    <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
-                </tr>
-                ${resultados.valorIRBeneficiario > 0 ? `
-                <tr>
-                    <th>${dados.beneficiario}:</th>
-                    <td>R$ ${formatarMoeda(resultados.valorIRBeneficiario)}</td>
-                </tr>
-                ` : ''}
-                ${resultados.cessoesBeneficiarioFinais ? resultados.cessoesBeneficiarioFinais.map((cessao) => 
-                    cessao.irCessao > 0 ? `
-                    <tr>
-                        <th>${cessao.cessionario}:</th>
-                        <td>R$ ${formatarMoeda(cessao.irCessao)}</td>
-                    </tr>
-                    ` : ''
-                ).join('') : ''}
-            ` : '';
-            
-            return `
-                <table class="ir-table">
-                    <tr>
-                        <th colspan="2" class="section-header">📄 Imposto de Renda PJ - Art. 27, da Lei nº 10.833/03</th>
-                    </tr>
-                    <tr>
-                        <th>Valor Total:</th>
-                        <td>R$ ${formatarMoeda(resultados.valortotatt)}</td>
-                    </tr>
-                    <tr>
-                        <th>Base IR sem H.Contratuais (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
-                        <td>R$ ${formatarMoeda(resultados.valortotatt - (resultados.valortotatt * percentualTotalAdv))}</td>
-                    </tr>
-                    ${percentualTotalSind > 0 ? `
-                    <tr>
-                        <th>Base IR sem Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
-                        <td>R$ ${formatarMoeda(resultados.valortotatt - (resultados.valortotatt * percentualTotalAdv) - (resultados.valortotatt * percentualTotalSind))}</td>
-                    </tr>` : ''}
-                    <tr>
-                        <th>Alíquota IR:</th>
-                        <td>3,0%</td>
-                    </tr>
-                    <tr class="total-row">
-                        <th>Valor IR Devido Total:</th>
-                        <td><strong>R$ ${formatarMoeda(resultados.valorIR)}</strong></td>
-                    </tr>
-                    ${distribuicaoCessoes}
                 </table>
             `;
         }
