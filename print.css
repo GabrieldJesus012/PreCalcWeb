@@ -252,6 +252,96 @@ tr:nth-child(even) td {
     overflow: hidden !important;
 }
 
+
+/* CSS print para duas tabelas de acordo */
+.pagamentos-acordo {
+    border-left: 3px solid #10B981 !important;
+    padding: 10px !important;
+    margin: 8px 0 !important;
+    border-radius: 4px !important;
+    page-break-inside: avoid !important;
+}
+
+.pagamentos-acordo .table-container {
+    margin: 0 0 12px 0 !important;
+    background: transparent !important;
+    page-break-inside: avoid !important;
+}
+
+.pagamentos-acordo h3 {
+    color: #065F46 !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin-bottom: 4px !important;
+}
+
+.pagamentos-acordo table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 0 !important;
+    font-size: 10px !important;
+    page-break-inside: avoid !important;
+}
+
+.pagamentos-acordo table thead th,
+.pagamentos-acordo table tfoot td {
+    padding: 4px 3px !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+    font-weight: 700 !important;
+}
+
+.pagamentos-acordo table thead th {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+.pagamentos-acordo table tbody td {
+    padding: 3px 2px !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+    vertical-align: top !important;
+    text-align: right !important;
+    font-family: 'Courier New', monospace !important;
+}
+
+.pagamentos-acordo table tbody td:first-child {
+    text-align: left !important;
+    font-size: 9px !important;
+    line-height: 1.3 !important;
+    font-family: inherit !important;
+}
+
+/* Larguras para 1ª TABELA (4 colunas) - Cálculo do Deságio */
+.pagamentos-acordo .table-container:first-child table th:nth-child(1) { width: 30% !important; }
+.pagamentos-acordo .table-container:first-child table th:nth-child(2) { width: 23% !important; }
+.pagamentos-acordo .table-container:first-child table th:nth-child(3) { width: 23% !important; }
+.pagamentos-acordo .table-container:first-child table th:nth-child(4) { width: 24% !important; }
+
+/* Larguras para 2ª TABELA (6 colunas) - Pagamentos Finais */
+.pagamentos-acordo .table-container:last-child table th:nth-child(1) { width: 16% !important; }
+.pagamentos-acordo .table-container:last-child table th:nth-child(2) { width: 20% !important; }
+.pagamentos-acordo .table-container:last-child table th:nth-child(3) { width: 20% !important; }
+.pagamentos-acordo .table-container:last-child table th:nth-child(4) { width: 16% !important; }
+.pagamentos-acordo .table-container:last-child table th:nth-child(5) { width: 20% !important; }
+.pagamentos-acordo .table-container:last-child table th:nth-child(6) { width: 10% !important; }
+
+/* Notas explicativas */
+.pagamentos-acordo .table-container > div[style*="margin-top"] {
+    margin-top: 8px !important;
+    padding: 6px !important;
+    font-size: 9px !important;
+    line-height: 1.3 !important;
+}
+
+.pagamentos-acordo .table-container > div[style*="margin-top"] h4 {
+    font-size: 10px !important;
+    margin: 0 0 4px 0 !important;
+}
+
 .tabs-nav,
 .btn-container,
 .section-title,

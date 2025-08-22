@@ -308,6 +308,35 @@ body {
     font-weight: 600;
 }
 
+.pagamentos-acordo {
+    border-left: 3px solid #10B981;
+}
+
+.pagamentos-acordo .table-container {
+    background: transparent;
+    margin-bottom: 20px; /* Espaço entre as tabelas */
+}
+
+.pagamentos-acordo h3 {
+    color: #065F46;
+    background: transparent;
+    font-weight: 600;
+}
+
+/* Larguras para 1ª TABELA (4 colunas) - Cálculo do Deságio */
+.pagamentos-acordo .table-container:first-child table th:nth-child(1) { width: 30%; }
+.pagamentos-acordo .table-container:first-child table th:nth-child(2) { width: 23%; }
+.pagamentos-acordo .table-container:first-child table th:nth-child(3) { width: 23%; }
+.pagamentos-acordo .table-container:first-child table th:nth-child(4) { width: 24%; }
+
+/* Larguras para 2ª TABELA (6 colunas) - Pagamentos Finais */
+.pagamentos-acordo .table-container:last-child table th:nth-child(1) { width: 15%; }
+.pagamentos-acordo .table-container:last-child table th:nth-child(2) { width: 18%; }
+.pagamentos-acordo .table-container:last-child table th:nth-child(3) { width: 15%; }
+.pagamentos-acordo .table-container:last-child table th:nth-child(4) { width: 12%; }
+.pagamentos-acordo .table-container:last-child table th:nth-child(5) { width: 20%; }
+.pagamentos-acordo .table-container:last-child table th:nth-child(6) { width: 10%; }
+
 /* Seção de Valor Final */
 .valor-final h3 {
     color: #059669;

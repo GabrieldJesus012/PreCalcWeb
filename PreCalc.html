@@ -267,16 +267,16 @@
                     ["JUAREZ CHAVES DE AZEVEDO JUNIOR - SOCIEDADE INDIVIDUAL DE ADVOCACIA", "PJ", 0.013333333]
                 ],
                 cessoes: [
-                    ["cessaoAdv", "FURTADO COELHO ADVOGADOS ASSOCIADOS", "LAGUZ I FUNDO DE INVESTIMENTO EM DIREITOS CREDITORIOS NAO PADROZINADOS", 0.02],
-                    ["cessaoAdv", "FURTADO COELHO ADVOGADOS ASSOCIADOS", "DOMUS OCTANTE I FUNDO DE INVESTIMENTO EM DIREITOS CREDITORIOS DE RESPONSABILIDADE LIMITADA", 0.02],
-                    ["cessaoAdv", "ADAUTO FORTES ADVOGADOS ASSOCIADOS", "LAGUZ I FUNDO DE INVESTIMENTO EM DIREITOS CREDITORIOS NAO PADROZINADOS", 0.0063],
-                    ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "LAGUZ I FUNDO DE INVESTIMENTO EM DIREITOS CREDITORIOS NAO PADROZINADOS", 0.01],
-                    ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "REAG LEGAL CLAIMS FUNDO DE INVESTIMENTO EM DIREITOS CREDITORIOS NAO PADRONIZADO", 0.01],
+                    ["cessaoAdv", "FURTADO COELHO ADVOGADOS ASSOCIADOS", "LAGUZ I FIDC NP", 0.02],
+                    ["cessaoAdv", "FURTADO COELHO ADVOGADOS ASSOCIADOS", "DOMUS OCTANTE I FIDC LTDA", 0.02],
+                    ["cessaoAdv", "ADAUTO FORTES ADVOGADOS ASSOCIADOS", "LAGUZ I FIDC NP", 0.0063],
+                    ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "LAGUZ I FIDC NP", 0.01],
+                    ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "REAG LEGAL CLAIMS FIDC NP", 0.01],
                     ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "FLAVIA CEOLIN LOPES PIANA", 0.00444],
-                    ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "FJ CONSULTORIA LTDA", 0.00165],
-                    ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "ISA MARIA LEME OPPENHEIMER BORGES", 0.00391],
-                    ["cessaoSindicato", "Sindifaz", "TABARE FUNDO DE INVESTIMENTO EM DIREITOS CREDITORIOS NAO PADRONIZADOS DE RESPONSABILIDADE ILIMITADA", 0.5],
-                    ["cessaoSindicato", "Sindifaz", "ZEFIROS I FUNDO DE INVESTIMENTO EM DIREITOS CREDITORIOS NAO PADRONIZADOS", 0.5]
+                    ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "FJ CONSULTORIA LTDA", 0.001653],
+                    ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "ISA MARIA LEME OPPENHEIMER BORGES", 0.003907],
+                    ["cessaoSindicato", "Sindifaz", "TABARE FIDC NP", 0.5],
+                    ["cessaoSindicato", "Sindifaz", "ZEFIROS I FIDC NP", 0.5]
                 ]
             };
             
@@ -7092,7 +7092,7 @@
                         const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
                         
                         pagamentosAcordo.push({
-                            credor: `${advogado.nome} (Advogado ${advogado.tipo})`,
+                            credor: `${advogado.nome} (Adv. ${advogado.tipo})`,
                             valorDevido: valorDevido,
                             valorDesagio: valorDesagio,
                             valorAposDesagio: valorAposDesagio,
@@ -7148,7 +7148,7 @@
                             const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
                             
                             pagamentosAcordo.push({
-                                credor: `${cessao.cessionario} (Cessionário de ${dados.beneficiario})`,
+                                credor: `${cessao.cessionario} (Cess. de ${dados.beneficiario})`,
                                 valorDevido: valorDevido,
                                 valorDesagio: valorDesagio,
                                 valorAposDesagio: valorAposDesagio,
@@ -7174,7 +7174,7 @@
                                 const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
                                 
                                 pagamentosAcordo.push({
-                                    credor: `${cessao.cessionario} (Cessionário de ${herdeiro.nome})`,
+                                    credor: `${cessao.cessionario} (Cess. de ${herdeiro.nome})`,
                                     valorDevido: valorDevido,
                                     valorDesagio: valorDesagio,
                                     valorAposDesagio: valorAposDesagio,
@@ -7205,7 +7205,7 @@
                                     const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
                                     
                                     pagamentosAcordo.push({
-                                        credor: `${cessao.cessionario} (Cessionário de ${cessao.cedente})`,
+                                        credor: `${cessao.cessionario} (Cess. de ${cessao.cedente})`,
                                         valorDevido: valorDevido,
                                         valorDesagio: valorDesagio,
                                         valorAposDesagio: valorAposDesagio,
@@ -7235,7 +7235,7 @@
                                             const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
                                             
                                             pagamentosAcordo.push({
-                                                credor: `${cessao.cessionario} (Cessionário de ${cessao.cedente})`,
+                                                credor: `${cessao.cessionario} (Cess. de ${cessao.cedente})`,
                                                 valorDevido: valorDevido,
                                                 valorDesagio: valorDesagio,
                                                 valorAposDesagio: valorAposDesagio,
@@ -7269,7 +7269,7 @@
                                     const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
                                     
                                     pagamentosAcordo.push({
-                                        credor: `${cessao.cessionario} (Cessionário de ${cessao.cedente})`,
+                                        credor: `${cessao.cessionario} (Cess. de ${cessao.cedente})`,
                                         valorDevido: valorDevido,
                                         valorDesagio: valorDesagio,
                                         valorAposDesagio: valorAposDesagio,
@@ -7299,7 +7299,7 @@
                                             const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
                                             
                                             pagamentosAcordo.push({
-                                                credor: `${cessao.cessionario} (Cessionário de ${cessao.cedente})`,
+                                                credor: `${cessao.cessionario} (Cess. de ${cessao.cedente})`,
                                                 valorDevido: valorDevido,
                                                 valorDesagio: valorDesagio,
                                                 valorAposDesagio: valorAposDesagio,
@@ -7318,13 +7318,21 @@
             }
             
             if (pagamentosAcordo.length === 0) return '';
-            
-            // Gerar tabela (agora os valores já estão arredondados)
-            const linhas = pagamentosAcordo.map(pagamento => `
+    
+            // GERAR 1ª TABELA: Cálculo do Deságio
+            const linhasCalculo = pagamentosAcordo.map(pagamento => `
                 <tr>
                     <td>${pagamento.credor}</td>
                     <td>R$ ${formatarMoeda(pagamento.valorDevido)}</td>
                     <td>R$ ${formatarMoeda(pagamento.valorDesagio)}</td>
+                    <td>R$ ${formatarMoeda(pagamento.valorAposDesagio)}</td>
+                </tr>
+            `).join('');
+            
+            // GERAR 2ª TABELA: Pagamentos Finais
+            const linhasPagamento = pagamentosAcordo.map(pagamento => `
+                <tr>
+                    <td>${pagamento.credor}</td>
                     <td>R$ ${formatarMoeda(pagamento.valorAposDesagio)}</td>
                     <td>R$ ${formatarMoeda(pagamento.previdencia)}</td>
                     <td>R$ ${formatarMoeda(pagamento.ir)}</td>
@@ -7344,30 +7352,53 @@
             };
             
             return `
-                <div class="pagamentos-finais">
+                <div class="pagamentos-acordo">
+                    <!-- 1ª TABELA: Cálculo do Deságio -->
                     <div class="table-container">
-                        <h3>🤝 Pagamentos do Acordo - Deságio ${(percentualDesagio * 100).toFixed(1)}%</h3>
+                        <h3>📊 Cálculo do Deságio ${(percentualDesagio * 100).toFixed(1)}%</h3>
                         <table>
                             <thead>
                                 <tr>
                                     <th>Credor</th>
                                     <th>Valor Devido</th>
-                                    <th>(-) Deságio ${(percentualDesagio * 100).toFixed(1)}%</th>
-                                    <th>(=) Valor Após Deságio</th>
-                                    <th>Previdência</th>
-                                    <th>Imposto de Renda</th>
-                                    <th>Valor Líquido</th>
-                                    <th>RRA</th>
+                                    <th>Deságio ${(percentualDesagio * 100).toFixed(1)}%</th>
+                                    <th>Valor Após Deságio</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${linhas}
+                                ${linhasCalculo}
                             </tbody>
                             <tfoot>
                                 <tr class="highlight">
                                     <td><strong>TOTAL</strong></td>
                                     <td><strong>R$ ${formatarMoeda(totais.valorDevido)}</strong></td>
                                     <td><strong>R$ ${formatarMoeda(totais.valorDesagio)}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totais.valorAposDesagio)}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- 2ª TABELA: Valores Finais para Pagamento -->
+                    <div class="table-container">
+                        <h3>💰 Valores Finais - Pagamento do Acordo</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Credor</th>
+                                    <th>Valor Base</th>
+                                    <th>Previdência</th>
+                                    <th>IR</th>
+                                    <th>Valor Líquido</th>
+                                    <th>RRA</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${linhasPagamento}
+                            </tbody>
+                            <tfoot>
+                                <tr class="highlight">
+                                    <td><strong>TOTAL</strong></td>
                                     <td><strong>R$ ${formatarMoeda(totais.valorAposDesagio)}</strong></td>
                                     <td><strong>R$ ${formatarMoeda(totais.previdencia)}</strong></td>
                                     <td><strong>R$ ${formatarMoeda(totais.ir)}</strong></td>
@@ -7376,13 +7407,14 @@
                                 </tr>
                             </tfoot>
                         </table>
-                        
-                        <div style="margin-top: 15px; padding: 10px; background-color: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">
-                            <h4>⚖️ Informações do Acordo:</h4>
-                            <p style="margin: 5px 0;"><strong>Deságio aplicado:</strong> ${(percentualDesagio * 100).toFixed(1)}% sobre o valor devido</p>
-                            <p style="margin: 5px 0;"><strong>Tributos calculados:</strong> Sobre o valor após deságio</p>
-                            <p style="margin: 5px 0;"><strong>Apenas credores que aderiram</strong> ao acordo aparecem nesta tabela</p>
-                        </div>
+                    </div>
+                    
+                    <!-- Informações do Acordo -->
+                    <div style="margin-top: 15px; padding: 10px; background-color: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">
+                        <h4>⚖️ Informações do Acordo:</h4>
+                        <p style="margin: 5px 0;"><strong>Deságio aplicado:</strong> ${(percentualDesagio * 100).toFixed(1)}% sobre o valor devido</p>
+                        <p style="margin: 5px 0;"><strong>Tributos calculados:</strong> Sobre o valor após deságio</p>
+                        <p style="margin: 5px 0;"><strong>Apenas credores que aderiram</strong> ao acordo aparecem nesta tabela</p>
                     </div>
                 </div>
             `;
