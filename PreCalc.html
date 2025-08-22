@@ -3073,6 +3073,9 @@
 
         function calcularHonorarios(dados, valorBase, valortotatt) {
             let valorHonorarioTotal = 0;
+            const isAcordo = dados.tipoCalculo === 'acordo';
+            const percentualDesagio = dados.percentualAcordo || 0;
+            
             const honorarios = dados.advogados.map(adv => {
                 const percentualTotalAdvogado = adv.percentual;
                 const valorBrutoTotal = valorBase * percentualTotalAdvogado;
@@ -3089,18 +3092,27 @@
                 const valorBrutoAdvogado = valorBase * Math.max(0, percentualAdvogado);
                 const valorBrutoCessionario = valorBase * percentualCessionarioAdv;
 
+                // CALCULAR IR COM DESÁGIO (SE ACORDO)
+                let valorParaIRAdvogado = valorBrutoAdvogado;
+                let valorParaIRCessionario = valorBrutoCessionario;
+                
+                if (isAcordo) {
+                    valorParaIRAdvogado = valorBrutoAdvogado * (1 - percentualDesagio);
+                    valorParaIRCessionario = valorBrutoCessionario * (1 - percentualDesagio);
+                }
+
                 let irAdvogado = 0;
                 if (adv.tipo === 'PF') {
-                    irAdvogado = calcularIR(valorBrutoAdvogado); 
+                    irAdvogado = calcularIR(valorParaIRAdvogado); 
                 } else {
-                    irAdvogado = valorBrutoAdvogado * 0.015; 
+                    irAdvogado = valorParaIRAdvogado * 0.015; 
                 }
 
                 let irCessionarioAdv = 0;
                 if (adv.tipo === 'PF') {
-                    irCessionarioAdv = calcularIR(valorBrutoCessionario); 
+                    irCessionarioAdv = calcularIR(valorParaIRCessionario); 
                 } else {
-                    irCessionarioAdv = valorBrutoCessionario * 0.015; 
+                    irCessionarioAdv = valorParaIRCessionario * 0.015; 
                 }
 
                 const valorLiquidoAdvogado = valorBrutoAdvogado - irAdvogado;
@@ -3108,7 +3120,13 @@
 
                 const cessionarios = cessaoAdv.map(cessao => {
                     const valorBrutoCessao = valorBase * cessao.percentual;
-                    const irCessao = adv.tipo === 'PF' ? calcularIR(valorBrutoCessao) : valorBrutoCessao * 0.015;
+                    let valorParaIRCessao = valorBrutoCessao;
+                    
+                    if (isAcordo) {
+                        valorParaIRCessao = valorBrutoCessao * (1 - percentualDesagio);
+                    }
+                    
+                    const irCessao = adv.tipo === 'PF' ? calcularIR(valorParaIRCessao) : valorParaIRCessao * 0.015;
                     return {
                         nome: cessao.cessionario,
                         percentual: cessao.percentual,
@@ -3164,6 +3182,8 @@
 
         function calcularSindicatos(dados, valorBase, valortotatt) {
             let valorSindicatoTotal = 0;
+            const isAcordo = dados.tipoCalculo === 'acordo';
+            const percentualDesagio = dados.percentualAcordo || 0;
             
             // Verificar se é preferência parcial (não paga sindicatos)
             const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
@@ -3184,8 +3204,16 @@
                 const percentualSindicato = Math.max(0, percentualTotalSindicato - percentualCessionarioSind);
 
                 const valorBrutoSindicato = valorBrutoTotal * percentualSindicato; 
-
                 const valorBrutoCessionario = valorBrutoTotal * percentualCessionarioSind; 
+
+                // CALCULAR IR COM DESÁGIO (SE ACORDO)
+                let valorParaIRSindicato = valorBrutoSindicato;
+                let valorParaIRCessionario = valorBrutoCessionario;
+                
+                if (isAcordo) {
+                    valorParaIRSindicato = valorBrutoSindicato * (1 - percentualDesagio);
+                    valorParaIRCessionario = valorBrutoCessionario * (1 - percentualDesagio);
+                }
 
                 let irSindicato = 0;
                 let irCessionarioSind = 0;
@@ -3196,12 +3224,12 @@
                     irCessionarioSind = 0;
                 } else if (sind.tributacao === 'lei') {
                     // Art. 27, Lei 10.833/03 (aliquotaTributacao = 0.03)
-                    irSindicato = valorBrutoSindicato * 0.03;
-                    irCessionarioSind = valorBrutoCessionario * 0.03;
+                    irSindicato = valorParaIRSindicato * 0.03;
+                    irCessionarioSind = valorParaIRCessionario * 0.03;
                 } else if (sind.tributacao === 'fixa') {
                     // Alíquota fixa personalizada
-                    irSindicato = valorBrutoSindicato * sind.aliquotaTributacao;
-                    irCessionarioSind = valorBrutoCessionario * sind.aliquotaTributacao;
+                    irSindicato = valorParaIRSindicato * sind.aliquotaTributacao;
+                    irCessionarioSind = valorParaIRCessionario * sind.aliquotaTributacao;
                 }
 
                 const valorLiquidoSindicato = valorBrutoSindicato - irSindicato;
@@ -3210,14 +3238,19 @@
                 // Detalhes dos cessionários
                 const cessionarios = cessaoSind.map(cessao => {
                     const valorBrutoCessao = valorBrutoTotal * cessao.percentual; 
-                    let irCessao = 0;
+                    let valorParaIRCessao = valorBrutoCessao;
                     
+                    if (isAcordo) {
+                        valorParaIRCessao = valorBrutoCessao * (1 - percentualDesagio);
+                    }
+                    
+                    let irCessao = 0;
                     if (sind.tributacao === 'nao') {
                         irCessao = 0;
                     } else if (sind.tributacao === 'lei') {
-                        irCessao = valorBrutoCessao * 0.03;
+                        irCessao = valorParaIRCessao * 0.03;
                     } else if (sind.tributacao === 'fixa') {
-                        irCessao = valorBrutoCessao * sind.aliquotaTributacao;
+                        irCessao = valorParaIRCessao * sind.aliquotaTributacao;
                     }
                     
                     return {
@@ -6302,67 +6335,12 @@
         }
 
         function gerarSecoesPagamentos(resultados, dados) {
-            const todosPagamentos = coletarTodosPagamentos(resultados, dados);
-    
-            if (todosPagamentos.length === 0) return '';
 
-            return `
-                <div class="pagamentos-finais">
-                    <div class="table-container">
-                        <h3>💰 Resumo de Pagamentos</h3>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Credor</th>
-                                    <th>Valor Devido</th>
-                                    <th>Previdência</th>
-                                    <th>Imposto de Renda</th>
-                                    <th>Valor Líquido</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${todosPagamentos.map(pagamento => {
-                                    const valorDevidoArredondado = arredondarParaDuasCasas(pagamento.valorDevido);
-                                    const previdenciaArredondada = arredondarParaDuasCasas(pagamento.previdencia);
-                                    const irArredondado = arredondarParaDuasCasas(pagamento.ir);
-                                    
-                                    // Calcula o valor líquido com os valores já arredondados
-                                    const valorLiquidoCalculado = arredondarParaDuasCasas(valorDevidoArredondado - previdenciaArredondada - irArredondado);
-                                    
-                                    return `
-                                        <tr>
-                                            <td>${pagamento.credor}</td>
-                                            <td>R$ ${formatarMoeda(valorDevidoArredondado)}</td>
-                                            <td>R$ ${formatarMoeda(previdenciaArredondada)}</td>
-                                            <td>R$ ${formatarMoeda(irArredondado)}</td>
-                                            <td>R$ ${formatarMoeda(valorLiquidoCalculado)}</td>
-                                        </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                            <tfoot>
-                                <tr class="highlight">
-                                    <td><strong>TOTAL</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(calcularTotalDevido(todosPagamentos))}</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(calcularTotalPrevidencia(todosPagamentos))}</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(calcularTotalIR(todosPagamentos))}</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(calcularTotalLiquido(todosPagamentos))}</strong></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                        
-                        <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
-                            <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 MP Nª 1.294, de 11 de Abril de 2025</p>
-                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
-                            <p style="margin: 5px 0;"><strong>Sindicatos:</strong> Tributação conforme Art. 27, da Lei nº 10.833/03 ou alíquota fixa quando aplicável</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
+            if (dados.tipoCalculo === 'acordo') {
+                
+                return gerarTabelaPagamentosAcordo(resultados, dados);
+            }
 
-        function gerarSecoesPagamentos(resultados, dados) {
             const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
 
             if (temHerdeiros) {
@@ -7042,6 +7020,372 @@
                 const valorLiquidoCalculado = arredondarParaDuasCasas(valorDevidoArredondado - previdenciaArredondada - irArredondado);
                 return total + valorLiquidoCalculado;
             }, 0);
+        }
+
+        function gerarTabelaPagamentosAcordo(resultados, dados) {
+            if (dados.tipoCalculo !== 'acordo') return '';
+            
+            const adesoes = obterAdesaoAcordo();
+            const percentualDesagio = dados.percentualAcordo || 0;
+            const pagamentosAcordo = [];
+            
+            // 1. BENEFICIÁRIO PRINCIPAL
+            if (adesoes.beneficiario && resultados.valorBeneficiarioFinal > 0) {
+                const valorDevido = arredondarParaDuasCasas(resultados.valorBeneficiarioAposCessoes);
+                const valorDesagio = arredondarParaDuasCasas(valorDevido * percentualDesagio);
+                const valorAposDesagio = arredondarParaDuasCasas(valorDevido - valorDesagio);
+                const previdencia = arredondarParaDuasCasas(resultados.valorPrevidenciaBeneficiario);
+                const ir = arredondarParaDuasCasas(resultados.valorIRBeneficiario);
+                const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
+                
+                pagamentosAcordo.push({
+                    credor: `${dados.beneficiario} (Beneficiário)`,
+                    valorDevido: valorDevido,
+                    valorDesagio: valorDesagio,
+                    valorAposDesagio: valorAposDesagio,
+                    previdencia: previdencia,
+                    ir: ir,
+                    valorLiquido: valorLiquido,
+                    rra: resultados.rraComDesagio || resultados.rrapagamento
+                });
+            }
+            
+            // 2. HERDEIROS QUE ADERIRAM
+            if (resultados.temHerdeiros && adesoes.herdeiros.length > 0) {
+                resultados.herdeiros.forEach((herdeiro, index) => {
+                    if (adesoes.herdeiros.includes(index) && herdeiro.valorLiquido > 0) {
+                        const temCessoes = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
+                        const valorDevidoOriginal = temCessoes ? herdeiro.valorFinalAposCessoes : herdeiro.valorBruto;
+                        const previdenciaOriginal = temCessoes ? herdeiro.valorPrevidenciaFinal : herdeiro.valorPrevidencia;
+                        const irOriginal = temCessoes ? herdeiro.valorIRFinal : herdeiro.valorIR;
+                        
+                        const valorDevido = arredondarParaDuasCasas(valorDevidoOriginal);
+                        const valorDesagio = arredondarParaDuasCasas(valorDevido * percentualDesagio);
+                        const valorAposDesagio = arredondarParaDuasCasas(valorDevido - valorDesagio);
+                        const previdencia = arredondarParaDuasCasas(previdenciaOriginal);
+                        const ir = arredondarParaDuasCasas(irOriginal);
+                        const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
+                        
+                        pagamentosAcordo.push({
+                            credor: `${herdeiro.nome} (Herdeiro)`,
+                            valorDevido: valorDevido,
+                            valorDesagio: valorDesagio,
+                            valorAposDesagio: valorAposDesagio,
+                            previdencia: previdencia,
+                            ir: ir,
+                            valorLiquido: valorLiquido,
+                            rra: herdeiro.rraComDesagio || herdeiro.rrapagamento
+                        });
+                    }
+                });
+            }
+
+            // 2.5. ADVOGADOS QUE ADERIRAM
+            if (adesoes.advogados.length > 0 && resultados.honorarios) {
+                resultados.honorarios.forEach((advogado, index) => {
+                    if (adesoes.advogados.includes(index) && advogado.valorBrutoAdvogado > 0) {
+                        const valorDevido = arredondarParaDuasCasas(advogado.valorBrutoAdvogado);
+                        const valorDesagio = arredondarParaDuasCasas(valorDevido * percentualDesagio);
+                        const valorAposDesagio = arredondarParaDuasCasas(valorDevido - valorDesagio);
+                        const previdencia = 0;
+                        const ir = arredondarParaDuasCasas(advogado.irAdvogado || 0);
+                        const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
+                        
+                        pagamentosAcordo.push({
+                            credor: `${advogado.nome} (Advogado ${advogado.tipo})`,
+                            valorDevido: valorDevido,
+                            valorDesagio: valorDesagio,
+                            valorAposDesagio: valorAposDesagio,
+                            previdencia: previdencia,
+                            ir: ir,
+                            valorLiquido: valorLiquido,
+                            rra: '-'
+                        });
+                    }
+                });
+            }
+            
+            // 2.6. SINDICATOS QUE ADERIRAM
+            if (adesoes.sindicatos.length > 0 && resultados.sindicatos) {
+                resultados.sindicatos.forEach((sindicato, index) => {
+                    if (adesoes.sindicatos.includes(index) && sindicato.valorBrutoSindicato > 0) {
+                        const valorDevido = arredondarParaDuasCasas(sindicato.valorBrutoSindicato);
+                        const valorDesagio = arredondarParaDuasCasas(valorDevido * percentualDesagio);
+                        const valorAposDesagio = arredondarParaDuasCasas(valorDevido - valorDesagio);
+                        const previdencia = 0;
+                        const ir = arredondarParaDuasCasas(sindicato.irSindicato || 0);
+                        const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
+                        
+                        pagamentosAcordo.push({
+                            credor: `${sindicato.nome} (Sindicato)`,
+                            valorDevido: valorDevido,
+                            valorDesagio: valorDesagio,
+                            valorAposDesagio: valorAposDesagio,
+                            previdencia: previdencia,
+                            ir: ir,
+                            valorLiquido: valorLiquido,
+                            rra: '-'
+                        });
+                    }
+                });
+            }
+            
+            // 3. CESSIONÁRIOS QUE ADERIRAM
+            if (adesoes.cessionarios.length > 0) {
+                adesoes.cessionarios.forEach(cessaoIndex => {
+                    const cessao = dados.cessoes[cessaoIndex];
+                    if (!cessao) return;
+                    
+                    // Cessionários do beneficiário
+                    if (cessao.tipo === 'cessaobenPrincipal' && resultados.cessoesBeneficiarioFinais) {
+                        const cessionarioData = resultados.cessoesBeneficiarioFinais.find(c => c.cessionario === cessao.cessionario);
+                        if (cessionarioData && cessionarioData.valorLiquido > 0) {
+                            const valorDevido = arredondarParaDuasCasas(cessionarioData.valorBruto);
+                            const valorDesagio = arredondarParaDuasCasas(valorDevido * percentualDesagio);
+                            const valorAposDesagio = arredondarParaDuasCasas(valorDevido - valorDesagio);
+                            const previdencia = arredondarParaDuasCasas(cessionarioData.previdenciaCessao);
+                            const ir = arredondarParaDuasCasas(cessionarioData.irCessao);
+                            const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
+                            
+                            pagamentosAcordo.push({
+                                credor: `${cessao.cessionario} (Cessionário de ${dados.beneficiario})`,
+                                valorDevido: valorDevido,
+                                valorDesagio: valorDesagio,
+                                valorAposDesagio: valorAposDesagio,
+                                previdencia: previdencia,
+                                ir: ir,
+                                valorLiquido: valorLiquido,
+                                rra: resultados.rraComDesagio || resultados.rrapagamento
+                            });
+                        }
+                    }
+                    
+                    // Cessionários de herdeiros
+                    if (cessao.tipo === 'cessaoherdeiro' && resultados.temHerdeiros) {
+                        const herdeiro = resultados.herdeiros.find(h => h.nome === cessao.cedente);
+                        if (herdeiro && herdeiro.cessoesHerdeiro) {
+                            const cessionarioData = herdeiro.cessoesHerdeiro.find(c => c.cessionario === cessao.cessionario);
+                            if (cessionarioData && cessionarioData.valorLiquido > 0) {
+                                const valorDevido = arredondarParaDuasCasas(cessionarioData.valorBruto);
+                                const valorDesagio = arredondarParaDuasCasas(valorDevido * percentualDesagio);
+                                const valorAposDesagio = arredondarParaDuasCasas(valorDevido - valorDesagio);
+                                const previdencia = arredondarParaDuasCasas(cessionarioData.previdenciaCessao);
+                                const ir = arredondarParaDuasCasas(cessionarioData.irCessao);
+                                const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
+                                
+                                pagamentosAcordo.push({
+                                    credor: `${cessao.cessionario} (Cessionário de ${herdeiro.nome})`,
+                                    valorDevido: valorDevido,
+                                    valorDesagio: valorDesagio,
+                                    valorAposDesagio: valorAposDesagio,
+                                    previdencia: previdencia,
+                                    ir: ir,
+                                    valorLiquido: valorLiquido,
+                                    rra: herdeiro.rraComDesagio || herdeiro.rrapagamento
+                                });
+                            }
+                        }
+                    }
+                    
+                    // Cessionários de advogados
+                    if (cessao.tipo === 'cessaoAdv') {
+                        let cessionarioEncontrado = false;
+                        
+                        // Verificar nos advogados do beneficiário
+                        if (resultados.honorarios) {
+                            const advogado = resultados.honorarios.find(adv => adv.nome === cessao.cedente);
+                            if (advogado && advogado.cessionarios) {
+                                const cessionarioData = advogado.cessionarios.find(c => c.nome === cessao.cessionario);
+                                if (cessionarioData && cessionarioData.valorLiquido > 0) {
+                                    const valorDevido = arredondarParaDuasCasas(cessionarioData.valorBruto);
+                                    const valorDesagio = arredondarParaDuasCasas(valorDevido * percentualDesagio);
+                                    const valorAposDesagio = arredondarParaDuasCasas(valorDevido - valorDesagio);
+                                    const previdencia = 0;
+                                    const ir = arredondarParaDuasCasas(cessionarioData.ir);
+                                    const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
+                                    
+                                    pagamentosAcordo.push({
+                                        credor: `${cessao.cessionario} (Cessionário de ${cessao.cedente})`,
+                                        valorDevido: valorDevido,
+                                        valorDesagio: valorDesagio,
+                                        valorAposDesagio: valorAposDesagio,
+                                        previdencia: previdencia,
+                                        ir: ir,
+                                        valorLiquido: valorLiquido,
+                                        rra: '-'
+                                    });
+                                    cessionarioEncontrado = true;
+                                }
+                            }
+                        }
+                        
+                        // Verificar nos advogados dos herdeiros
+                        if (!cessionarioEncontrado && resultados.temHerdeiros) {
+                            resultados.herdeiros.forEach(herdeiro => {
+                                if (herdeiro.honorarios) {
+                                    const advogado = herdeiro.honorarios.find(adv => adv.nome === cessao.cedente);
+                                    if (advogado && advogado.cessionarios) {
+                                        const cessionarioData = advogado.cessionarios.find(c => c.nome === cessao.cessionario);
+                                        if (cessionarioData && cessionarioData.valorLiquido > 0) {
+                                            const valorDevido = arredondarParaDuasCasas(cessionarioData.valorBruto);
+                                            const valorDesagio = arredondarParaDuasCasas(valorDevido * percentualDesagio);
+                                            const valorAposDesagio = arredondarParaDuasCasas(valorDevido - valorDesagio);
+                                            const previdencia = 0;
+                                            const ir = arredondarParaDuasCasas(cessionarioData.ir);
+                                            const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
+                                            
+                                            pagamentosAcordo.push({
+                                                credor: `${cessao.cessionario} (Cessionário de ${cessao.cedente})`,
+                                                valorDevido: valorDevido,
+                                                valorDesagio: valorDesagio,
+                                                valorAposDesagio: valorAposDesagio,
+                                                previdencia: previdencia,
+                                                ir: ir,
+                                                valorLiquido: valorLiquido,
+                                                rra: '-'
+                                            });
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                    
+                    // Cessionários de sindicatos
+                    if (cessao.tipo === 'cessaoSind') {
+                        let cessionarioEncontrado = false;
+                        
+                        // Verificar nos sindicatos do beneficiário
+                        if (resultados.sindicatos) {
+                            const sindicato = resultados.sindicatos.find(sind => sind.nome === cessao.cedente);
+                            if (sindicato && sindicato.cessionarios) {
+                                const cessionarioData = sindicato.cessionarios.find(c => c.nome === cessao.cessionario);
+                                if (cessionarioData && cessionarioData.valorLiquido > 0) {
+                                    const valorDevido = arredondarParaDuasCasas(cessionarioData.valorBruto);
+                                    const valorDesagio = arredondarParaDuasCasas(valorDevido * percentualDesagio);
+                                    const valorAposDesagio = arredondarParaDuasCasas(valorDevido - valorDesagio);
+                                    const previdencia = 0;
+                                    const ir = arredondarParaDuasCasas(cessionarioData.ir);
+                                    const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
+                                    
+                                    pagamentosAcordo.push({
+                                        credor: `${cessao.cessionario} (Cessionário de ${cessao.cedente})`,
+                                        valorDevido: valorDevido,
+                                        valorDesagio: valorDesagio,
+                                        valorAposDesagio: valorAposDesagio,
+                                        previdencia: previdencia,
+                                        ir: ir,
+                                        valorLiquido: valorLiquido,
+                                        rra: '-'
+                                    });
+                                    cessionarioEncontrado = true;
+                                }
+                            }
+                        }
+                        
+                        // Verificar nos sindicatos dos herdeiros
+                        if (!cessionarioEncontrado && resultados.temHerdeiros) {
+                            resultados.herdeiros.forEach(herdeiro => {
+                                if (herdeiro.sindicatos) {
+                                    const sindicato = herdeiro.sindicatos.find(sind => sind.nome === cessao.cedente);
+                                    if (sindicato && sindicato.cessionarios) {
+                                        const cessionarioData = sindicato.cessionarios.find(c => c.nome === cessao.cessionario);
+                                        if (cessionarioData && cessionarioData.valorLiquido > 0) {
+                                            const valorDevido = arredondarParaDuasCasas(cessionarioData.valorBruto);
+                                            const valorDesagio = arredondarParaDuasCasas(valorDevido * percentualDesagio);
+                                            const valorAposDesagio = arredondarParaDuasCasas(valorDevido - valorDesagio);
+                                            const previdencia = 0;
+                                            const ir = arredondarParaDuasCasas(cessionarioData.ir);
+                                            const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
+                                            
+                                            pagamentosAcordo.push({
+                                                credor: `${cessao.cessionario} (Cessionário de ${cessao.cedente})`,
+                                                valorDevido: valorDevido,
+                                                valorDesagio: valorDesagio,
+                                                valorAposDesagio: valorAposDesagio,
+                                                previdencia: previdencia,
+                                                ir: ir,
+                                                valorLiquido: valorLiquido,
+                                                rra: '-'
+                                            });
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+            
+            if (pagamentosAcordo.length === 0) return '';
+            
+            // Gerar tabela (agora os valores já estão arredondados)
+            const linhas = pagamentosAcordo.map(pagamento => `
+                <tr>
+                    <td>${pagamento.credor}</td>
+                    <td>R$ ${formatarMoeda(pagamento.valorDevido)}</td>
+                    <td>R$ ${formatarMoeda(pagamento.valorDesagio)}</td>
+                    <td>R$ ${formatarMoeda(pagamento.valorAposDesagio)}</td>
+                    <td>R$ ${formatarMoeda(pagamento.previdencia)}</td>
+                    <td>R$ ${formatarMoeda(pagamento.ir)}</td>
+                    <td>R$ ${formatarMoeda(pagamento.valorLiquido)}</td>
+                    <td>${pagamento.rra}</td>
+                </tr>
+            `).join('');
+            
+            // Calcular totais
+            const totais = {
+                valorDevido: pagamentosAcordo.reduce((total, p) => total + p.valorDevido, 0),
+                valorDesagio: pagamentosAcordo.reduce((total, p) => total + p.valorDesagio, 0),
+                valorAposDesagio: pagamentosAcordo.reduce((total, p) => total + p.valorAposDesagio, 0),
+                previdencia: pagamentosAcordo.reduce((total, p) => total + p.previdencia, 0),
+                ir: pagamentosAcordo.reduce((total, p) => total + p.ir, 0),
+                valorLiquido: pagamentosAcordo.reduce((total, p) => total + p.valorLiquido, 0)
+            };
+            
+            return `
+                <div class="pagamentos-finais">
+                    <div class="table-container">
+                        <h3>🤝 Pagamentos do Acordo - Deságio ${(percentualDesagio * 100).toFixed(1)}%</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Credor</th>
+                                    <th>Valor Devido</th>
+                                    <th>(-) Deságio ${(percentualDesagio * 100).toFixed(1)}%</th>
+                                    <th>(=) Valor Após Deságio</th>
+                                    <th>Previdência</th>
+                                    <th>Imposto de Renda</th>
+                                    <th>Valor Líquido</th>
+                                    <th>RRA</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${linhas}
+                            </tbody>
+                            <tfoot>
+                                <tr class="highlight">
+                                    <td><strong>TOTAL</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totais.valorDevido)}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totais.valorDesagio)}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totais.valorAposDesagio)}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totais.previdencia)}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totais.ir)}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totais.valorLiquido)}</strong></td>
+                                    <td><strong>-</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        
+                        <div style="margin-top: 15px; padding: 10px; background-color: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">
+                            <h4>⚖️ Informações do Acordo:</h4>
+                            <p style="margin: 5px 0;"><strong>Deságio aplicado:</strong> ${(percentualDesagio * 100).toFixed(1)}% sobre o valor devido</p>
+                            <p style="margin: 5px 0;"><strong>Tributos calculados:</strong> Sobre o valor após deságio</p>
+                            <p style="margin: 5px 0;"><strong>Apenas credores que aderiram</strong> ao acordo aparecem nesta tabela</p>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         function gerarSecaoNotasExplicativas() {
