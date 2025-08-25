@@ -99,8 +99,6 @@
                             <label>Ano do Orçamento:</label>
                             <input type="number" id="anoOrcamento" placeholder="Ano do Orçamento">
                         </div>
-                    </div>
-                    <div class="form-group">
                         <h3>💰 Informações Financeiras</h3>
                         <div class="input-group">
                             <label>Mês Base:</label>
@@ -139,195 +137,181 @@
                             <label>RRA:</label>
                             <input type="number" id="rra" value="0" min="0">
                         </div>
-                        <div class="form-group">
-                            <h3>📊 Índices de Atualização</h3>
-                            <div class="checkbox-group">
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="principalCNJ" checked>
-                                    <label for="principalCNJ">CNJ</label>
-                                </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="principalSELIC" checked>
-                                    <label for="principalSELIC">SELIC</label>
-                                </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="principalIPCA" checked>
-                                    <label for="principalIPCA">IPCA</label>
-                                </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="principalJurosMora" checked>
-                                    <label for="principalJurosMora">Juros de Mora</label>
-                                </div>
+                        <h3>📊 Índices de Atualização</h3>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="principalCNJ" checked>
+                                <label for="principalCNJ">CNJ</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="principalSELIC" checked>
+                                <label for="principalSELIC">SELIC</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="principalIPCA" checked>
+                                <label for="principalIPCA">IPCA</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="principalJurosMora" checked>
+                                <label for="principalJurosMora">Juros de Mora</label>
                             </div>
                         </div>
-                        <div class="form-section">
-                            <div class="form-group">
-                                <h3>🏦 Impostos e Contribuições</h3>
-                                <div class="input-group">
-                                    <label>Incidência de IR:</label>
-                                    <select id="incidenciaIR">
-                                        <option value="sim">Sim</option>
-                                        <option value="nao">Não</option>
-                                    </select>
-                                </div>
-                                <div class="input-group">
-                                    <label>Incidência de Previdência:</label>
-                                    <select id="incidenciaPrevidencia">
-                                        <option value="sim">Sim</option>
-                                        <option value="nao">Não</option>
-                                    </select>
-                                </div>
-                                <div class="input-group" id="tipoPrevidenciaDiv" style="display: none;">
-                                    <label>Tipo de Previdência:</label>
-                                    <select id="tipoPrevidencia">
-                                        <option value="inss">INSS</option>
-                                        <option value="fixa">Alíquota Fixa</option>
-                                    </select>
-                                </div>
-                                <div class="input-group" id="aliquotaFixaDiv" style="display: none;">
-                                    <label>Alíquota Fixa (ex: 0.14 para 14%):</label>
-                                    <input type="number" id="aliquotaFixa" step="0.01" min="0" max="1" placeholder="0.00">
-                                </div>
-                            </div>
+                        <h3>🏦 Impostos e Contribuições</h3>
+                        <div class="input-group">
+                            <label>Incidência de IR:</label>
+                            <select id="incidenciaIR">
+                                <option value="sim">Sim</option>
+                                <option value="nao">Não</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Incidência de Previdência:</label>
+                            <select id="incidenciaPrevidencia">
+                                <option value="sim">Sim</option>
+                                <option value="nao">Não</option>
+                            </select>
+                        </div>
+                        <div class="input-group" id="tipoPrevidenciaDiv" style="display: none;">
+                            <label>Tipo de Previdência:</label>
+                            <select id="tipoPrevidencia">
+                                <option value="inss">INSS</option>
+                                <option value="fixa">Alíquota Fixa</option>
+                            </select>
+                        </div>
+                        <div class="input-group" id="aliquotaFixaDiv" style="display: none;">
+                            <label>Alíquota Fixa (ex: 0.14 para 14%):</label>
+                            <input type="number" id="aliquotaFixa" step="0.01" min="0" max="1" placeholder="0.00">
                         </div>
                         <button class="btn btn-success" onclick="adicionarValorPrincipal()">
                             ➕ Adicionar Valor Principal
                         </button>
-            
                         <div style="margin-top: 20px;">
                             <h3>📋 Valores Cadastrados</h3>
                             <div id="listaValoresPrincipais" class="lista-items">
                                 <!-- Valores serão adicionados aqui -->
                             </div>
                         </div>
-                    </div>
-                </div>
-                <div class="section">
-                    <h2>⚖️ Multas</h2>
-                    
-                    <div class="question-section">
-                        <h3>Há multas no processo?</h3>
-                        <div class="radio-group">
-                            <div class="radio-item">
-                                <input type="radio" name="temMultas" value="sim" id="multasSim">
-                                <label for="multasSim">Sim</label>
-                            </div>
-                            <div class="radio-item">
-                                <input type="radio" name="temMultas" value="nao" id="multasNao" checked>
-                                <label for="multasNao">Não</label>
-                            </div>
-                        </div>
-        
-                        <div id="multasSection" class="conditional-section">
-                            <div class="select-valor-section">
-                                <h4>Selecione sobre quais valores principais a multa incide:</h4>
-                                <div class="alert alert-info">
-                                    Você pode selecionar múltiplos valores principais.
-                                </div>
-                                <div id="valoresParaMulta">
-                                    <!-- Valores principais aparecerão aqui para seleção múltipla -->
-                                </div>
-                            </div>
-        
-                            <div class="form-row">
-                                <div class="form-col">
-                                    <label>Percentual da Multa (%):</label>
-                                    <input type="number" id="percentualMulta" step="0.01" placeholder="Ex: 2,00">
-                                </div>
-                                <div class="form-col">
-                                    <label>Descrição:</label>
-                                    <input type="text" id="descricaoMulta" placeholder="Ex: Multa por atraso">
-                                </div>
-                            </div>
-                            
-                            <button class="btn btn-success" onclick="adicionarMulta()">
-                                ➕ Adicionar Multa
-                            </button>
-        
-                            <div style="margin-top: 15px;">
-                                <div id="listaMultas" class="lista-items">
-                                    <!-- Multas serão adicionadas aqui -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-        
-                <!-- SEÇÃO: CUSTAS -->
-                <div class="section">
-                    <h2>📋 Custas e Outras Despesas</h2>
-                    
-                    <div class="form-row">
-                        <div class="form-col">
-                            <label>Tipo:</label>
+
+                        <h2>⚖️ Multas</h2>
+                        <div class="question-section">
+                            <h3>Há multas no processo?</h3>
                             <div class="radio-group">
                                 <div class="radio-item">
-                                    <input type="radio" name="tipoCusta" value="valor" id="custaValor" checked>
-                                    <label for="custaValor">Valor Fixo</label>
+                                    <input type="radio" name="temMultas" value="sim" id="multasSim">
+                                    <label for="multasSim">Sim</label>
                                 </div>
                                 <div class="radio-item">
-                                    <input type="radio" name="tipoCusta" value="percentual" id="custaPercentual">
-                                    <label for="custaPercentual">Percentual</label>
+                                    <input type="radio" name="temMultas" value="nao" id="multasNao" checked>
+                                    <label for="multasNao">Não</label>
+                                </div>
+                            </div>
+            
+                            <div id="multasSection" class="conditional-section">
+                                <div class="select-valor-section">
+                                    <h4>Selecione sobre quais valores principais a multa incide:</h4>
+                                    <div class="alert alert-info">
+                                        Você pode selecionar múltiplos valores principais.
+                                    </div>
+                                    <div id="valoresParaMulta">
+                                        <!-- Valores principais aparecerão aqui para seleção múltipla -->
+                                    </div>
+                                </div>
+            
+                                <div class="form-row">
+                                    <div class="form-col">
+                                        <label>Percentual da Multa (%):</label>
+                                        <input type="number" id="percentualMulta" step="0.01" placeholder="Ex: 2,00">
+                                    </div>
+                                    <div class="form-col">
+                                        <label>Descrição:</label>
+                                        <input type="text" id="descricaoMulta" placeholder="Ex: Multa por atraso">
+                                    </div>
+                                </div>
+                                
+                                <button class="btn btn-success" onclick="adicionarMulta()">
+                                    ➕ Adicionar Multa
+                                </button>
+            
+                                <div style="margin-top: 15px;">
+                                    <div id="listaMultas" class="lista-items">
+                                        <!-- Multas serão adicionadas aqui -->
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-        
-                    <div class="form-row">
-                        <div class="form-col" id="valorCustaDiv">
-                            <label>Valor (R$):</label>
-                            <input type="number" id="valorCusta" step="0.01" placeholder="0,00">
-                        </div>
-                        <div class="form-col" id="percentualCustaDiv" style="display: none;">
-                            <label>Percentual (%):</label>
-                            <input type="number" id="percentualCusta" step="0.01" placeholder="0,00">
-                        </div>
-                        <div class="form-col">
-                            <label>Data Base:</label>
-                            <input type="date" id="dataBaseCusta">
-                        </div>
-                        <div class="form-col">
-                            <label>Descrição:</label>
-                            <input type="text" id="descricaoCusta" placeholder="Ex: Custas processuais">
-                        </div>
-                    </div>
-        
-                    <div class="form-row">
-                        <div class="form-col">
-                            <label>Índices de Correção:</label>
-                            <div class="checkbox-group">
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="custaCNJ">
-                                    <label for="custaCNJ">CNJ</label>
-                                </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="custaSELIC">
-                                    <label for="custaSELIC">SELIC</label>
-                                </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="custaIPCA" checked>
-                                    <label for="custaIPCA">IPCA</label>
-                                </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="custaJurosMora">
-                                    <label for="custaJurosMora">Juros de Mora</label>
+                    
+                        <h2>📋 Custas e Outras Despesas</h2>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label>Tipo:</label>
+                                <div class="radio-group">
+                                    <div class="radio-item">
+                                        <input type="radio" name="tipoCusta" value="valor" id="custaValor" checked>
+                                        <label for="custaValor">Valor Fixo</label>
+                                    </div>
+                                    <div class="radio-item">
+                                        <input type="radio" name="tipoCusta" value="percentual" id="custaPercentual">
+                                        <label for="custaPercentual">Percentual</label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-        
-                    <button class="btn btn-success" onclick="adicionarCusta()">
-                        ➕ Adicionar Custa/Despesa
-                    </button>
-        
-                    <div style="margin-top: 20px;">
-                        <h3>📋 Custas Cadastradas</h3>
-                        <div id="listaCustas" class="lista-items">
-                            <!-- Custas serão adicionadas aqui -->
+            
+                        <div class="form-row">
+                            <div class="form-col" id="valorCustaDiv">
+                                <label>Valor (R$):</label>
+                                <input type="number" id="valorCusta" step="0.01" placeholder="0,00">
+                            </div>
+                            <div class="form-col" id="percentualCustaDiv" style="display: none;">
+                                <label>Percentual (%):</label>
+                                <input type="number" id="percentualCusta" step="0.01" placeholder="0,00">
+                            </div>
+                            <div class="form-col">
+                                <label>Data Base:</label>
+                                <input type="date" id="dataBaseCusta">
+                            </div>
+                            <div class="form-col">
+                                <label>Descrição:</label>
+                                <input type="text" id="descricaoCusta" placeholder="Ex: Custas processuais">
+                            </div>
+                        </div>
+            
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label>Índices de Correção:</label>
+                                <div class="checkbox-group">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="custaCNJ">
+                                        <label for="custaCNJ">CNJ</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="custaSELIC">
+                                        <label for="custaSELIC">SELIC</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="custaIPCA" checked>
+                                        <label for="custaIPCA">IPCA</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="custaJurosMora">
+                                        <label for="custaJurosMora">Juros de Mora</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+            
+                        <button class="btn btn-success" onclick="adicionarCusta()">
+                            ➕ Adicionar Custa/Despesa
+                        </button>
+            
+                        <div style="margin-top: 20px;">
+                            <h3>📋 Custas Cadastradas</h3>
+                            <div id="listaCustas" class="lista-items">
+                                <!-- Custas serão adicionadas aqui -->
+                            </div>
                         </div>
                     </div>
                 </div>
-        
             </div>
 
             <!-- Tab 3: Deduções Legais -->
