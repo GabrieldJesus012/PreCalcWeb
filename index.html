@@ -70,6 +70,7 @@
                                 <option value="ordem">Ordem</option>
                                 <option value="preferencia">Preferência</option>
                                 <option value="acordo">Acordo</option>
+                                <option value="parcial">Parcial</option>
                             </select>
                         </div>
                         <div class="input-group" id="tetoPreferencia" style="display: none;">
@@ -79,6 +80,10 @@
                         <div class="input-group" id="percentualAcordo" style="display: none;">
                             <label>% do Deságio (ex: 0.4 para 40%):</label>
                             <input type="number" id="percentualAcordoValor" step="0.01" min="0" max="1" placeholder="0.00">
+                        </div>
+                        <div class="input-group" id="saldoParcial" style="display: none;">
+                            <label>Saldo Parcial (R$):</label>
+                            <input type="number" id="saldoParcialValor" step="0.01" placeholder="0.00">
                         </div>
                     </div>
                 </form>
@@ -394,6 +399,7 @@
             
             mostrarOcultar('tetoPreferencia', tipo === 'preferencia' && natureza === 'alimentar');
             mostrarOcultar('percentualAcordo', tipo === 'acordo');
+            mostrarOcultar('saldoParcial', tipo === 'parcial');
 
             toggleAbaAcordo();
         });
@@ -2482,7 +2488,8 @@
                     
                     // Campos condicionais
                     tetoPreferenciaPrincipal: document.getElementById('tetoPreferenciaPrincipal'),
-                    percentualAcordoValor: document.getElementById('percentualAcordoValor')
+                    percentualAcordoValor: document.getElementById('percentualAcordoValor'),
+                    saldoParcialValor: document.getElementById('saldoParcialValor')
                 };
             },
             
@@ -2554,6 +2561,9 @@
             }
             if (dados.tipoCalculo === 'acordo') {
                 dados.percentualAcordo = cache.getValue('percentualAcordoValor', 0, parseFloat);
+            }
+            if (dados.tipoCalculo === 'parcial') { 
+                dados.saldoParcial = cache.getValue('saldoParcialValor', 0, parseFloat);
             }
             
             coletarAdvogados(dados);
@@ -2788,7 +2798,9 @@
             let valorBase = valortotatt;
             if (dados.tipoCalculo === 'preferencia' && dados.natureza === 'alimentar') {
                 valorBase = Math.min(valortotatt, dados.tetoPreferencia);
-            } 
+            } else if (dados.tipoCalculo === 'parcial') {
+                valorBase = Math.min(valortotatt, dados.saldoParcial);
+            }
 
             // Composição inicial
             let principal = valorBase * percentualprinc;
@@ -2799,6 +2811,7 @@
 
             // CESSÕES DO BENEFICIÁRIO PRINCIPAL 
             const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
+            const isParcial = dados.tipoCalculo === 'parcial';
             
             const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
                 cessao.tipo === 'cessaobenPrincipal'
@@ -2820,7 +2833,7 @@
                     Math.min(direitoBeneficiarioTotal, valorBase) : direitoBeneficiarioTotal;
                 
                 // Base para honorários
-                if (isPreferenciasParcial) {
+                if (isPreferenciasParcial || isParcial) {
                     valorBaseParaHonorarios = valorBeneficiarioQueRecebeEfetivamente;
                 } else {
                     valorBaseParaHonorarios = valorBase;
@@ -3141,12 +3154,18 @@
                 const ir = irAdvogado + irCessionarioAdv;
                 const valorLiquido = valorLiquidoAdvogado + valorLiquidoCessionario;
 
+                const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
+                const isParcial = dados.tipoCalculo === 'parcial';
+
                 // Ajuste para valorHonorarioTotal
                 let valorParaDescontar = valorBrutoAdvogado;
-                if (dados.tipoCalculo === 'preferencia' && valorBase < valortotatt) {
+                if (isPreferenciaParcial) {
                     // Preferência parcial: só advogado recebe, cessionário aguarda
                     valorParaDescontar = valorBrutoAdvogado;
-                } else {
+                } else if (isParcial) {
+                    // Pagamento parcial: todos recebem proporcionalmente
+                    valorParaDescontar = valorBrutoTotal;
+                }else {
                     // Ordem comum ou preferência total: todos recebem
                     valorParaDescontar = valorBrutoTotal;
                 }
@@ -3188,12 +3207,14 @@
             
             // Verificar se é preferência parcial (não paga sindicatos)
             const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
+            const isParcial = dados.tipoCalculo === 'parcial';
             
             const sindicatos = dados.sindicatos.map(sind => {
                 const percentualTotalSindicato = sind.percentual;
                 
                 //Sindicato sempre calcula sobre valor total da dívida
-                const valorBrutoTotal = valortotatt * percentualTotalSindicato;
+                const valorBaseCalculo = isParcial ? valorBase : valortotatt;
+                const valorBrutoTotal = valorBaseCalculo * percentualTotalSindicato;
                 
                 // Verificar se o sindicato fez cessão
                 const cessaoSind = dados.cessoes?.filter(cessao => 
@@ -3896,7 +3917,14 @@
                 ? `<tr><td>Rendimentos Recebidos Acumuladamente Total (RRA):</td><td>${dados.rra} meses</td></tr>`
                 : '';
 
-            const tipoCalculo = dados.tipoCalculo === 'preferencia' ? 'Preferencial' : 'Ordem Cronológica';
+                const tipos = {
+                ordem: "Ordem Cronológica",
+                preferencia: "Preferencial",
+                acordo: "Acordo",
+                parcial: "Parcial"
+            };
+
+            const tipoCalculo = tipos[dados.tipoCalculo] || "Não definido";
             
             return `
                 <div class="table-container">
@@ -4145,10 +4173,12 @@
             // Seção Sindicatos
             let secaoSindicatos = '';
             if (temSindicatos) {
+                const isParcial = dados.tipoCalculo === 'parcial';
+                const baseCalculoSindicato = isParcial ? resultados.valorBase : resultados.valortotatt;
                 const linhasSindicatos = resultados.sindicatos.map(s => `
                     <tr>
                         <td>${s.nome}</td>
-                        <td>R$ ${formatarMoeda(resultados.valortotatt)}</td>
+                        <td>R$ ${formatarMoeda(baseCalculoSindicato)}</td>
                         <td>${(s.percentual * 100).toFixed(2)}%</td>
                         <td>R$ ${formatarMoeda(s.valorBruto)}</td>
                     </tr>
@@ -4938,8 +4968,9 @@
             // SE TEM HERDEIROS: verifica tipo de cálculo
             if (temHerdeiros) {
                 const isPreferencia = dados.tipoCalculo === 'preferencia';
+                const isParcial = dados.tipoCalculo === 'parcial';
                 
-                // SE FOR ORDEM: trata como beneficiário principal único (sem agrupar)
+                // SE FOR ORDEM OU PARCIAL: trata como beneficiário principal único (sem agrupar)
                 if (!isPreferencia) {
                     const advogadosComCessao = resultados.honorarios.filter(adv => 
                         adv.cessoesAdv && adv.cessoesAdv.length > 0
@@ -4948,25 +4979,38 @@
                     if (advogadosComCessao.length === 0) return '';
                     
                     const secoesCessoes = advogadosComCessao.map(adv => {
-                        const valorHonorario = adv.valorBruto;
-                        const valorAdvogado = adv.valorBrutoAdvogado;
+                        // No pagamento parcial, usar valores proporcionais
+                        const valorHonorario = isParcial ? adv.valorBruto : adv.valorBruto;
+                        const valorAdvogado = isParcial ? adv.valorBrutoAdvogado : adv.valorBrutoAdvogado;
                         
-                        const cessionarios = adv.cessionarios ? adv.cessionarios.map(cessionario => `
-                            <tr>
-                                <td>${cessionario.nome} (cessionário)</td>
-                                <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
-                                <td>R$ ${formatarMoeda(cessionario.valorBruto)}</td>
-                            </tr>
-                        `).join('') : '';
+                        // No pagamento parcial, cessionários recebem proporcionalmente
+                        let cessionarios = '';
+                        if (isParcial) {
+                            cessionarios = adv.cessionarios ? adv.cessionarios.map(cessionario => `
+                                <tr>
+                                    <td>${cessionario.nome} (cessionário)</td>
+                                    <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
+                                    <td>R$ ${formatarMoeda(cessionario.valorBruto)}</td>
+                                </tr>
+                            `).join('') : '';
+                        } else {
+                            cessionarios = adv.cessionarios ? adv.cessionarios.map(cessionario => `
+                                <tr>
+                                    <td>${cessionario.nome} (cessionário)</td>
+                                    <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
+                                    <td>R$ ${formatarMoeda(cessionario.valorBruto)}</td>
+                                </tr>
+                            `).join('') : '';
+                        }
                         
                         return `
                             <div style="margin-bottom: 20px;">
                                 <h4>🔄 Cessão de Honorários: ${adv.nome}</h4>
-                                <p><strong>Valor do Honorário:</strong> R$ ${formatarMoeda(valorHonorario)}</p>
+                                <p><strong>Valor do Honorário${isParcial ? ' (Parcial)' : ''}:</strong> R$ ${formatarMoeda(valorHonorario)}</p>
                                 <p><strong>Cedido:</strong> ${(adv.percentualCessionarioAdv * 100).toFixed(2)}% para ${adv.cessoesAdv.length} cessionário${adv.cessoesAdv.length > 1 ? 's' : ''}</p>
                                 
                                 <table>
-                                    <tr><th>Recebedor</th><th>Percentual</th><th>Valor Bruto</th></tr>
+                                    <tr><th>Recebedor</th><th>Percentual</th><th>Valor ${isParcial ? 'Parcial' : 'Bruto'}</th></tr>
                                     <tr style="background-color: #f8f9fa;">
                                         <td><strong>${adv.nome} (fica com)</strong></td>
                                         <td>${(adv.percentualAdvogado * 100).toFixed(2)}%</td>
@@ -4983,9 +5027,11 @@
                         `;
                     }).join('');
                     
+                    const titulo = isParcial ? '🔄 Cessões de Honorários - Pagamento Parcial' : '🔄 Cessões de Honorários';
+                    
                     return `
                         <div class="table-container">
-                            <h3>🔄 Cessões de Honorários</h3>
+                            <h3>${titulo}</h3>
                             ${secoesCessoes}
                         </div>
                     `;
@@ -5124,14 +5170,30 @@
                 if (advogadosComCessao.length === 0) return '';
                 
                 const isPreferencia = dados.tipoCalculo === 'preferencia';
+                const isParcial = dados.tipoCalculo === 'parcial';
                 const isPreferenciaParcial = isPreferencia && resultados.valorBase < resultados.valortotatt;
                 
                 const secoesCessoes = advogadosComCessao.map(adv => {
-                    const valorHonorario = isPreferenciaParcial ? adv.valorBruto : (resultados.valortotatt * adv.percentual);
-                    const valorAdvogado = isPreferenciaParcial ? adv.valorBrutoAdvogado : (resultados.valortotatt * adv.percentualAdvogado);
+                    // Incluir pagamento parcial na lógica
+                    let valorHonorario, valorAdvogado;
+                    
+                    if (isPreferenciaParcial || isParcial) {
+                        // Preferência parcial ou pagamento parcial: usar valores proporcionais
+                        valorHonorario = adv.valorBruto;
+                        valorAdvogado = adv.valorBrutoAdvogado;
+                    } else if (isPreferencia) {
+                        // Preferência total: calcular sobre valor total
+                        valorHonorario = resultados.valortotatt * adv.percentual;
+                        valorAdvogado = resultados.valortotatt * adv.percentualAdvogado;
+                    } else {
+                        // Ordem comum
+                        valorHonorario = adv.valorBruto;
+                        valorAdvogado = adv.valorBrutoAdvogado;
+                    }
                     
                     let cessionarios = '';
                     if (isPreferenciaParcial) {
+                        // Preferência parcial: cessionários aguardam
                         cessionarios = adv.cessionarios ? adv.cessionarios.map(cessionario => `
                             <tr>
                                 <td>${cessionario.nome} (cessionário) - <em>aguarda</em></td>
@@ -5139,24 +5201,44 @@
                                 <td>R$ ${formatarMoeda(cessionario.valorBruto)}</td>
                             </tr>
                         `).join('') : '';
-                    } else {
+                    } else if (isParcial) {
+                        // Pagamento parcial: cessionários recebem proporcionalmente
                         cessionarios = adv.cessionarios ? adv.cessionarios.map(cessionario => `
                             <tr>
                                 <td>${cessionario.nome} (cessionário)</td>
                                 <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
-                                <td>R$ ${formatarMoeda(isPreferencia ? (resultados.valortotatt * cessionario.percentual) : cessionario.valorBruto)}</td>
+                                <td>R$ ${formatarMoeda(cessionario.valorBruto)}</td>
                             </tr>
                         `).join('') : '';
+                    } else {
+                        // Ordem comum ou preferência total: cessionários recebem
+                        cessionarios = adv.cessionarios ? adv.cessionarios.map(cessionario => {
+                            const valorCessionario = isPreferencia 
+                                ? (resultados.valortotatt * cessionario.percentual)
+                                : cessionario.valorBruto;
+                            
+                            return `
+                                <tr>
+                                    <td>${cessionario.nome} (cessionário)</td>
+                                    <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
+                                    <td>R$ ${formatarMoeda(valorCessionario)}</td>
+                                </tr>
+                            `;
+                        }).join('') : '';
                     }
+                    
+                    let textoValor = 'Bruto';
+                    if (isPreferenciaParcial) textoValor = 'do Direito';
+                    else if (isParcial) textoValor = 'Parcial';
                     
                     return `
                         <div style="margin-bottom: 20px;">
                             <h4>🔄 Cessão de Honorários: ${adv.nome}</h4>
-                            <p><strong>Valor do Honorário ${isPreferenciaParcial ? '(Preferência)' : ''}:</strong> R$ ${formatarMoeda(valorHonorario)}</p>
+                            <p><strong>Valor do Honorário${isPreferenciaParcial ? ' (Preferência)' : isParcial ? ' (Parcial)' : ''}:</strong> R$ ${formatarMoeda(valorHonorario)}</p>
                             <p><strong>Cedido:</strong> ${(adv.percentualCessionarioAdv * 100).toFixed(2)}% para ${adv.cessoesAdv.length} cessionário${adv.cessoesAdv.length > 1 ? 's' : ''}</p>
                             
                             <table>
-                                <tr><th>Recebedor</th><th>Percentual</th><th>Valor ${isPreferenciaParcial ? 'do Direito' : 'Bruto'}</th></tr>
+                                <tr><th>Recebedor</th><th>Percentual</th><th>Valor ${textoValor}</th></tr>
                                 <tr style="background-color: #f8f9fa;">
                                     <td><strong>${adv.nome} (fica com)</strong></td>
                                     <td>${(adv.percentualAdvogado * 100).toFixed(2)}%</td>
@@ -5173,11 +5255,10 @@
                     `;
                 }).join('');
                 
-                const titulo = isPreferenciaParcial 
-                    ? '🔄 Cessões de Honorários - Preferência Parcial'
-                    : isPreferencia 
-                        ? '🔄 Cessões de Honorários - Preferência Total'
-                        : '🔄 Cessões de Honorários';
+                let titulo = '🔄 Cessões de Honorários';
+                if (isPreferenciaParcial) titulo = '🔄 Cessões de Honorários - Preferência Parcial';
+                else if (isParcial) titulo = '🔄 Cessões de Honorários - Pagamento Parcial';
+                else if (isPreferencia) titulo = '🔄 Cessões de Honorários - Preferência Total';
                 
                 return `
                     <div class="table-container">
