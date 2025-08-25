@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="print.css" media="print">
     <link rel="shortcut icon" href="assets/precalc2.ico" type="image/x-icon">
+    <meta name="description" content="Cálculos de Precatórios.">
     <title>PreCalc Web</title>
 </head>
 <body>
@@ -34,7 +35,7 @@
                         <h3>📅 Informações Gerais</h3>
                         <div class="input-group">
                             <div class="label-with-button">
-                                <label>Processo:</label>
+                                <label for="numprocesso">Processo:</label>
                                 <button type="button" class="btn-sindifaz" onclick="configurarSindiFaz()" title="Preencher dados padrão do SindiFaz">
                                     SindiFaz
                                 </button>
@@ -42,7 +43,7 @@
                             <input type="text" id="numprocesso" placeholder="Número do processo">
                         </div>
                         <div class="input-group">
-                            <label>Beneficiário Principal:</label>
+                            <label for="beneficiario">Beneficiário Principal:</label>
                             <input type="text" id="beneficiario" placeholder="Nome do beneficiário principal">
                         </div>
                         <div class="input-group tipo-beneficiario" id="tipoBeneficiarioGroup">
@@ -53,19 +54,19 @@
                             </select>
                         </div>
                         <div class="input-group">
-                            <label>Devedor:</label>
+                            <label for="credor">Devedor:</label>
                             <input type="text" id="credor" placeholder="Nome do Devedor">
                         </div>
                         <h3>⚖️ Configurações do Processo</h3>
                         <div class="input-group">
-                            <label>Natureza da Ação:</label>
+                            <label for="natureza">Natureza da Ação:</label>
                             <select id="natureza" onchange="toggleTipoBeneficiario()">
                                 <option value="alimentar">Alimentar</option>
                                 <option value="comum">Comum</option>
                             </select>
                         </div>
                         <div class="input-group">
-                            <label>Tipo de Cálculo:</label>
+                            <label for="tipoCalculo">Tipo de Cálculo:</label>
                             <select id="tipoCalculo">
                                 <option value="ordem">Ordem</option>
                                 <option value="preferencia">Preferência</option>
