@@ -200,51 +200,6 @@
                                 <!-- Valores serão adicionados aqui -->
                             </div>
                         </div>
-                        <div class="multas-section">
-                            <h2>⚖️ Multas</h2>
-                            <div class="question-section">
-                                <h3>Há multas no processo?</h3>
-                                <div class="radio-group">
-                                    <div class="radio-item">
-                                        <input type="radio" name="temMultas" value="sim" id="multasSim">
-                                        <label for="multasSim">Sim</label>
-                                    </div>
-                                    <div class="radio-item">
-                                        <input type="radio" name="temMultas" value="nao" id="multasNao" checked>
-                                        <label for="multasNao">Não</label>
-                                    </div>
-                                </div>
-                
-                                <div id="multasSection" class="conditional-section">
-                                    <div class="select-valor-section">
-                                        <h4 style="color: #8b4513; font-size: 14px; margin-bottom: 10px;">Selecione sobre quais valores principais a multa incide:</h4>
-                                        <div id="valoresParaMulta">
-                                            <!-- Valores principais aparecerão aqui para seleção múltipla -->
-                                        </div>
-                                    </div>
-                                    <div class="form-col">
-                                        <label>Descrição:</label>
-                                        <input type="text" id="descricaoMulta" placeholder="Ex: Multas processuais">
-                                    </div>
-                                    <div class="form-row">
-                                        <div class="form-col">
-                                            <label>Percentual da Multa (%):</label>
-                                            <input type="number" id="percentualMulta" step="0.01" placeholder="0.00">
-                                        </div>
-                                    </div>
-                                    
-                                    <button class="btn-add" onclick="adicionarMulta()">
-                                        ➕ Adicionar Multa
-                                    </button>
-                                    <div style="margin-top: 20px;">
-                                        <h3>📋 Multas Cadastradas</h3>
-                                        <div id="listaMultas" class="lista-items">
-                                            <!-- Multas serão adicionadas aqui -->
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                         <div class="custas-section">
                             <h2>📋 Custas e Outras Despesas</h2>
                             <div class="question-section">
@@ -308,6 +263,51 @@
                                         <h3>📋 Custas Cadastradas</h3>
                                         <div id="listaCustas" class="lista-items">
                                             <!-- Custas serão adicionadas aqui -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="multas-section">
+                            <h2>⚖️ Multas</h2>
+                            <div class="question-section">
+                                <h3>Há multas no processo?</h3>
+                                <div class="radio-group">
+                                    <div class="radio-item">
+                                        <input type="radio" name="temMultas" value="sim" id="multasSim">
+                                        <label for="multasSim">Sim</label>
+                                    </div>
+                                    <div class="radio-item">
+                                        <input type="radio" name="temMultas" value="nao" id="multasNao" checked>
+                                        <label for="multasNao">Não</label>
+                                    </div>
+                                </div>
+                
+                                <div id="multasSection" class="conditional-section">
+                                    <div class="select-valor-section">
+                                        <h4 style="color: #8b4513; font-size: 14px; margin-bottom: 10px;">Selecione sobre quais valores principais a multa incide:</h4>
+                                        <div id="valoresParaMulta">
+                                            <!-- Valores principais aparecerão aqui para seleção múltipla -->
+                                        </div>
+                                    </div>
+                                    <div class="form-col">
+                                        <label>Descrição:</label>
+                                        <input type="text" id="descricaoMulta" placeholder="Ex: Multas processuais">
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-col">
+                                            <label>Percentual da Multa (%):</label>
+                                            <input type="number" id="percentualMulta" step="0.01" placeholder="0.00">
+                                        </div>
+                                    </div>
+                                    
+                                    <button class="btn-add" onclick="adicionarMulta()">
+                                        ➕ Adicionar Multa
+                                    </button>
+                                    <div style="margin-top: 20px;">
+                                        <h3>📋 Multas Cadastradas</h3>
+                                        <div id="listaMultas" class="lista-items">
+                                            <!-- Multas serão adicionadas aqui -->
                                         </div>
                                     </div>
                                 </div>
