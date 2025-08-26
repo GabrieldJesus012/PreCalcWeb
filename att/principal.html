@@ -101,7 +101,7 @@
                         <h3>💰 Informações Financeiras</h3>
                             <div class="input-group">
                                 <label>Descrição:</label>
-                                <input type="text" id="descricaoMulta" placeholder="Ex: Salários">
+                                <input type="text" id="descricaoPrincipal" placeholder="Ex: Salários">
                             </div>
                             <div class="date-row">
                                 <div class="input-group">
@@ -263,51 +263,6 @@
                                         <h3>📋 Custas Cadastradas</h3>
                                         <div id="listaCustas" class="lista-items">
                                             <!-- Custas serão adicionadas aqui -->
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="multas-section">
-                            <h2>⚖️ Multas</h2>
-                            <div class="question-section">
-                                <h3>Há multas no processo?</h3>
-                                <div class="radio-group">
-                                    <div class="radio-item">
-                                        <input type="radio" name="temMultas" value="sim" id="multasSim">
-                                        <label for="multasSim">Sim</label>
-                                    </div>
-                                    <div class="radio-item">
-                                        <input type="radio" name="temMultas" value="nao" id="multasNao" checked>
-                                        <label for="multasNao">Não</label>
-                                    </div>
-                                </div>
-                
-                                <div id="multasSection" class="conditional-section">
-                                    <div class="select-valor-section">
-                                        <h4 style="color: #8b4513; font-size: 14px; margin-bottom: 10px;">Selecione sobre quais valores principais a multa incide:</h4>
-                                        <div id="valoresParaMulta">
-                                            <!-- Valores principais aparecerão aqui para seleção múltipla -->
-                                        </div>
-                                    </div>
-                                    <div class="form-col">
-                                        <label>Descrição:</label>
-                                        <input type="text" id="descricaoMulta" placeholder="Ex: Multas processuais">
-                                    </div>
-                                    <div class="form-row">
-                                        <div class="form-col">
-                                            <label>Percentual da Multa (%):</label>
-                                            <input type="number" id="percentualMulta" step="0.01" placeholder="0.00">
-                                        </div>
-                                    </div>
-                                    
-                                    <button class="btn-add" onclick="adicionarMulta()">
-                                        ➕ Adicionar Multa
-                                    </button>
-                                    <div style="margin-top: 20px;">
-                                        <h3>📋 Multas Cadastradas</h3>
-                                        <div id="listaMultas" class="lista-items">
-                                            <!-- Multas serão adicionadas aqui -->
                                         </div>
                                     </div>
                                 </div>
@@ -581,16 +536,7 @@
         });
 
         let valoresPrincipais = [];
-        let multas = [];
         let custas = [];
-
-        // Controle de exibição condicional para multas
-        document.querySelectorAll('input[name="temMultas"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                const section = document.getElementById('multasSection');
-                section.style.display = this.value === 'sim' ? 'block' : 'none';
-            });
-        });
 
         // Controle de exibição condicional para custas
         document.querySelectorAll('input[name="temCustas"]').forEach(radio => {
@@ -607,7 +553,7 @@
             const valorJuros = document.getElementById('valorJuros').value;
             const valorSelic = document.getElementById('valorSelic').value;
             const rra = document.getElementById('rra').value;
-            const descricao = document.getElementById('descricaoMulta').value; // Campo de descrição
+            const descricao = document.getElementById('descricaoPrincipal').value; // Campo de descrição
 
             if (!anoBase || (!valorPrincipal && !valorJuros && !valorSelic)) {
                 alert('Preencha o ano base e pelo menos um valor (principal, juros ou selic)');
@@ -646,36 +592,6 @@
             limparFormularioPrincipal();
         }
 
-        // Adicionar multa
-        function adicionarMulta() {
-            const percentual = document.getElementById('percentualMulta').value;
-            const descricao = document.getElementById('descricaoMulta').value;
-
-            if (!percentual) {
-                alert('Preencha o percentual da multa');
-                return;
-            }
-
-            // Verificar se há valores principais selecionados (implementar lógica futura)
-            const valoresSelecionados = obterValoresSelecionadosParaMulta();
-            
-            if (valoresSelecionados.length === 0 && valoresPrincipais.length > 0) {
-                alert('Selecione pelo menos um valor principal para aplicar a multa');
-                return;
-            }
-
-            const multa = {
-                id: Date.now(),
-                percentual: parseFloat(percentual),
-                descricao: descricao || 'Multa',
-                valoresAplicados: valoresSelecionados
-            };
-
-            multas.push(multa);
-            renderizarMultas();
-            limparFormularioMulta();
-        }
-
         // Adicionar custa
         function adicionarCusta() {
             const valor = document.getElementById('valorCusta').value;
@@ -700,12 +616,6 @@
             custas.push(custa);
             renderizarCustas();
             limparFormularioCusta();
-        }
-
-        function obterValoresSelecionadosParaMulta() {
-            // Por enquanto retorna todos os valores principais
-            // Futura implementação: interface de seleção múltipla
-            return valoresPrincipais.map(v => v.id);
         }
 
         // Renderizar valores principais
@@ -749,36 +659,6 @@
                 `;
                 lista.appendChild(div);
             });
-            
-            // Atualizar interface de seleção de multas se houver
-            atualizarSelecaoMultas();
-        }
-
-        // Renderizar multas
-        function renderizarMultas() {
-            const lista = document.getElementById('listaMultas');
-            lista.innerHTML = '';
-
-            multas.forEach(multa => {
-                const div = document.createElement('div');
-                div.className = 'item-card';
-                
-                const valoresAplicadosTexto = multa.valoresAplicados.length > 0 
-                    ? `${multa.valoresAplicados.length} valor(es) principal(is)`
-                    : 'Todos os valores';
-                
-                div.innerHTML = `
-                    <div class="item-header">
-                        <strong>${multa.descricao}</strong>
-                        <button class="btn-add" onclick="removerMulta(${multa.id})">🗑️ Remover</button>
-                    </div>
-                    <div class="item-info">
-                        <span><strong>Percentual:</strong> ${multa.percentual}%</span>
-                        <span><strong>Aplicada em:</strong> ${valoresAplicadosTexto}</span>
-                    </div>
-                `;
-                lista.appendChild(div);
-            });
         }
 
         // Renderizar custas
@@ -812,43 +692,10 @@
             });
         }
 
-        // Atualizar seleção de multas (interface futura)
-        function atualizarSelecaoMultas() {
-            const container = document.getElementById('valoresParaMulta');
-            if (!container) return;
-            
-            container.innerHTML = '';
-            
-            if (valoresPrincipais.length === 0) {
-                container.innerHTML = '<p style="color: #666; font-size: 13px;">Adicione valores principais primeiro</p>';
-                return;
-            }
-            
-            valoresPrincipais.forEach(valor => {
-                const div = document.createElement('div');
-                div.className = 'checkbox-item';
-                div.style.margin = '8px 0';
-                
-                div.innerHTML = `
-                    <input type="checkbox" id="multa_valor_${valor.id}" checked>
-                    <label for="multa_valor_${valor.id}" style="margin: 0; font-size: 13px; color: #333;">
-                        ${valor.descricao} (${valor.mesBase}/${valor.anoBase})
-                    </label>
-                `;
-                
-                container.appendChild(div);
-            });
-        }
-
         // Funções para remover itens
         function removerValorPrincipal(id) {
             valoresPrincipais = valoresPrincipais.filter(v => v.id !== id);
             renderizarValoresPrincipais();
-        }
-
-        function removerMulta(id) {
-            multas = multas.filter(m => m.id !== id);
-            renderizarMultas();
         }
 
         function removerCusta(id) {
@@ -862,41 +709,13 @@
             document.getElementById('valorJuros').value = '';
             document.getElementById('valorSelic').value = '';
             document.getElementById('rra').value = '0';
-            document.getElementById('descricaoMulta').value = ''; // Campo de descrição
-        }
-
-        function limparFormularioMulta() {
-            document.getElementById('percentualMulta').value = '';
-            document.getElementById('descricaoMulta').value = '';
+            document.getElementById('descricaoPrincipal').value = ''; 
         }
 
         function limparFormularioCusta() {
             document.getElementById('valorCusta').value = '';
             document.getElementById('dataBaseCusta').value = '';
             document.getElementById('descricaoCusta').value = '';
-        }
-
-        // Executar cálculo final
-        function executarCalculo() {
-            if (valoresPrincipais.length === 0) {
-                alert('Adicione pelo menos um valor principal para calcular');
-                return;
-            }
-
-            const dados = {
-                configuracoes: {
-                    anoOrcamento: parseInt(document.getElementById('anoOrcamento').value)
-                },
-                valoresPrincipais,
-                multas,
-                custas
-            };
-
-            console.log('Dados completos para cálculo:', dados);
-            alert('Dados coletados com sucesso! Verifique o console para ver a estrutura completa.');
-            
-            // Aqui você chamaria sua função de cálculo adaptada
-            // calcularValoresCompletos(dados);
         }
 
         // Definir valores padrão na inicialização

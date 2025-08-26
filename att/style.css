@@ -970,22 +970,6 @@ tr.highlight {
     box-shadow: 0 8px 24px rgba(40, 167, 69, 0.4);
 }
 
-#tab2 .multas-section {
-    background: linear-gradient(135deg, #fff8f0, #ffe8d6);
-    border: 2px solid #ffb366;
-    border-radius: 12px;
-    padding: 20px;
-    margin-top: 25px;
-}
-
-#tab2 .multas-section h2 {
-    color: #8b4513;
-    border-bottom: 2px solid #C5A572;
-    padding-bottom: 8px;
-    margin-bottom: 18px;
-    font-size: 18px;
-}
-
 #tab2 .question-section {
     background: rgba(255, 255, 255, 0.6);
     border: 1px solid rgba(255, 179, 102, 0.5);
