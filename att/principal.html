@@ -2756,17 +2756,8 @@
                     beneficiario: document.getElementById('beneficiario'),
                     tipoBeneficiario: document.getElementById('tipoBeneficiario'),
                     credor: document.getElementById('credor'),
-                    mesBase: document.getElementById('mesBase'),
-                    anoBase: document.getElementById('anoBase'),
-                    valorPrincipal: document.getElementById('valorPrincipal'),
-                    valorJuros: document.getElementById('valorJuros'),
-                    rra: document.getElementById('rra'),
                     natureza: document.getElementById('natureza'),
-                    tipoCalculo: document.getElementById('tipoCalculo'),
-                    incidenciaIR: document.getElementById('incidenciaIR'),
-                    incidenciaPrevidencia: document.getElementById('incidenciaPrevidencia'),
-                    tipoPrevidencia: document.getElementById('tipoPrevidencia'),
-                    aliquotaFixa: document.getElementById('aliquotaFixa'),
+                    tipoCalculo: document.getElementById('tipoCalculo'),                
                     
                     // Quantidades
                     quantAdvogados: document.getElementById('quantAdvogados'),
@@ -2821,15 +2812,23 @@
                 natureza: cache.getValue('natureza'),
                 tipoCalculo: cache.getValue('tipoCalculo'),
                 
-                mesBase: cache.getValue('mesBase'),
-                anoBase: cache.getValue('anoBase', 0, parseInt),
-                valorPrincipal: cache.getValue('valorPrincipal', 0, parseFloat),
-                valorJuros: cache.getValue('valorJuros', 0, parseFloat),
-                rra: cache.getValue('rra', 0, parseFloat),
-                incidenciaIR: cache.getValue('incidenciaIR') === 'sim',
-                incidenciaPrevidencia: cache.getValue('incidenciaPrevidencia') === 'sim',
-                tipoPrevidencia: cache.getValue('tipoPrevidencia'),
-                aliquotaFixa: cache.getValue('aliquotaFixa', 0, parseFloat),
+                valoresPrincipais: valoresPrincipais.map(valor => ({
+                    ...valor,
+                    // Garante que valores numéricos estão corretos
+                    valorPrincipal: parseFloat(valor.valorPrincipal) || 0,
+                    valorJuros: parseFloat(valor.valorJuros) || 0,
+                    valorSelic: parseFloat(valor.valorSelic) || 0,
+                    tributacao: {
+                        ...valor.tributacao,
+                        rra: parseFloat(valor.tributacao.rra) || 0,
+                        aliquotaFixa: parseFloat(valor.tributacao.aliquotaFixa) || 0
+                    }
+                })),
+
+                custas: custas.map(custa => ({
+                    ...custa,
+                    valor: parseFloat(custa.valor) || 0
+                })),
                 
                 // Quantidades
                 quantAdvogados: cache.getValue('quantAdvogados', 0, parseInt),
