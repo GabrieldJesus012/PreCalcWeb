@@ -551,7 +551,6 @@
             const anoBase = document.getElementById('anoBase').value;
             const valorPrincipal = document.getElementById('valorPrincipal').value;
             const valorJuros = document.getElementById('valorJuros').value;
-            const valorSelic = document.getElementById('valorSelic').value;
             const rra = document.getElementById('rra').value;
             const descricao = document.getElementById('descricaoPrincipal').value; // Campo de descrição
 
@@ -581,7 +580,6 @@
                 anoBase: parseInt(anoBase),
                 valorPrincipal: parseFloat(valorPrincipal) || 0,
                 valorJuros: parseFloat(valorJuros) || 0,
-                valorSelic: parseFloat(valorSelic) || 0,
                 indices,
                 tributacao,
                 descricao: descricao || 'Valor Principal'
@@ -652,7 +650,6 @@
                         <span><strong>Base:</strong> ${valor.mesBase}/${valor.anoBase}</span>
                         <span><strong>Principal:</strong> R$ ${valor.valorPrincipal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                         <span><strong>Juros:</strong> R$ ${valor.valorJuros.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
-                        <span><strong>Selic:</strong> R$ ${valor.valorSelic.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                         <span><strong>Índices:</strong> ${indicesTexto}</span>
                         <span><strong>Tributação:</strong> ${tributacaoTexto.join(', ') || 'Nenhuma'}</span>
                     </div>
@@ -3011,40 +3008,270 @@
             ColetaCache.init();
         });
 
-        async function calcularValores(dados) {
-            //datas
-            const dataBase = criarDataBase(dados.mesBase, dados.anoBase);
+        async function calcularItemPrincipal(item, dados) {
+            console.log(`\n=== CALCULANDO ITEM: ${item.descricao} ===`);
+            console.log('Dados do item:', {
+                valorPrincipal: item.valorPrincipal,
+                valorJuros: item.valorJuros,
+                mesBase: item.mesBase,
+                anoBase: item.anoBase,
+                indices: item.indices,
+                tributacao: item.tributacao
+            });
+
             const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
-
-            //indices
-            const indicesCNJ = obterIndiceCNJ(dados.mesBase, dados.anoBase); // CNJ
-            const dadosSelic = await calcularSelic(dataBase, inicioGraca, fimGraca);// SELIC
-            const indiceipca = await calcularIpca(dataBase, inicioGraca, fimGraca); // IPCA
-            const jurosmora = calcularSomaJurosMora(dados.mesBase, dados.anoBase, dados.natureza, inicioGraca, fimGraca)/100;; // Juros de Mora
-
-            // Cálculos básicos
+            console.log('Período de graça:', { inicioGraca, fimGraca });
+            
+            // Data base específica do item
+            const dataBase = criarDataBase(item.mesBase, item.anoBase);
+            console.log('Data base criada:', dataBase);
+            
+            // Cálculo dos índices condicionais para este item
+            let indicesCNJ = 1;
+            let dadosSelic = { indiceselic: 1 };
+            let indiceipca = 1;
+            let jurosmora = 0;
+            
+            if (item.indices.cnj) {
+                indicesCNJ = obterIndiceCNJ(item.mesBase, item.anoBase);
+                console.log('Índice CNJ aplicado:', indicesCNJ);
+            } else {
+                console.log('Índice CNJ não aplicado (= 1)');
+            }
+            
+            if (item.indices.selic) {
+                dadosSelic = await calcularSelic(dataBase, inicioGraca, fimGraca);
+                console.log('Índice SELIC aplicado:', dadosSelic.indiceselic);
+            } else {
+                console.log('Índice SELIC não aplicado (= 1)');
+            }
+            
+            if (item.indices.ipca) {
+                indiceipca = await calcularIpca(dataBase, inicioGraca, fimGraca);
+                console.log('Índice IPCA aplicado:', indiceipca);
+            } else {
+                console.log('Índice IPCA não aplicado (= 1)');
+            }
+            
+            if (item.indices.jurosMora) {
+                jurosmora = calcularSomaJurosMora(item.mesBase, item.anoBase, dados.natureza, inicioGraca, fimGraca) / 100;
+                console.log('Juros de mora aplicado:', jurosmora);
+            } else {
+                console.log('Juros de mora não aplicado (= 0)');
+            }
+            
+            // Cálculos dos índices compostos
             const indiceprinc = indicesCNJ * dadosSelic.indiceselic * indiceipca;
             const indicejur = dadosSelic.indiceselic * indiceipca;
+            
+            console.log('Índices compostos:', {
+                indicePrincipal: indiceprinc,
+                indiceJuros: indicejur
+            });
+            
+            // Cálculo de juros de mora
+            const valorjurosmora = item.valorPrincipal * indicesCNJ * jurosmora;
+            const jurosItem = valorjurosmora + (item.valorJuros * indicesCNJ);
+            
+            console.log('Cálculo juros:', {
+                valorJurosMora: valorjurosmora,
+                jurosOriginais: item.valorJuros,
+                jurosOriginaisAtualizados: item.valorJuros * indicesCNJ,
+                jurosTotal: jurosItem
+            });
+            
+            // Valores atualizados
+            const valorPrincipalAtualizado = item.valorPrincipal * indiceprinc;
+            const valorJurosAtualizado = jurosItem * indicejur;
+            const valorTotalItem = valorPrincipalAtualizado + valorJurosAtualizado;
+            
+            console.log('Valores atualizados do item:', {
+                principalOriginal: item.valorPrincipal,
+                principalAtualizado: valorPrincipalAtualizado,
+                jurosAtualizado: valorJurosAtualizado,
+                totalItem: valorTotalItem
+            });
+            
+            const resultado = {
+                id: item.id,
+                descricao: item.descricao,
+                valorOriginal: {
+                    principal: item.valorPrincipal,
+                    juros: item.valorJuros,
+                    total: item.valorPrincipal + item.valorJuros
+                },
+                valorAtualizado: {
+                    principal: valorPrincipalAtualizado,
+                    juros: valorJurosAtualizado,
+                    total: valorTotalItem
+                },
+                indices: {
+                    cnj: indicesCNJ,
+                    selic: dadosSelic.indiceselic,
+                    ipca: indiceipca,
+                    jurosMora: jurosmora,
+                    indicePrincipal: indiceprinc,
+                    indiceJuros: indicejur
+                },
+                tributacao: item.tributacao,
+                jurosMoraCalculado: valorjurosmora
+            };
+            
+            console.log('=== FIM CÁLCULO ITEM ===\n');
+            return resultado;
+        }
 
-            //jurosmora
-            const valorjurosmora = dados.valorPrincipal * indicesCNJ * jurosmora;
-            const juros = valorjurosmora + (dados.valorJuros * indicesCNJ);
+        // Função para totalizar valores por tipo de tributação
+        function totalizarTributacao(itensCalculados) {
+            console.log('\n=== TOTALIZANDO TRIBUTAÇÃO ===');
+            console.log('Quantidade de itens para totalizar:', itensCalculados.length);
+            
+            const totais = {
+                valorPrincipalTotal: 0,
+                valorJurosTotal: 0,
+                valorGeralTotal: 0,
+                rraTotal: 0,
+                
+                // Tributação IR
+                principalTributadoIR: 0,
+                jurosTributadoIR: 0,
+                isentoIR: 0,
+                
+                // Tributação Previdência
+                principalTributadoPrevidencia: 0,
+                jurosTributadoPrevidencia: 0,
+                isentoPrevidencia: 0
+            };
+            
+            for (const item of itensCalculados) {
+                console.log(`\nProcessando totalização - ${item.descricao}:`);
+                console.log('Valores do item:', {
+                    principal: item.valorAtualizado.principal,
+                    juros: item.valorAtualizado.juros,
+                    total: item.valorAtualizado.total,
+                    temIR: item.tributacao.ir,
+                    temPrevidencia: item.tributacao.previdencia,
+                    rra: item.tributacao.rra
+                });
+                
+                // Totais gerais
+                totais.valorPrincipalTotal += item.valorAtualizado.principal;
+                totais.valorJurosTotal += item.valorAtualizado.juros;
+                totais.valorGeralTotal += item.valorAtualizado.total;
+                totais.rraTotal += item.tributacao.rra || 0;
+                
+                // Tributação IR
+                if (item.tributacao.ir) {
+                    totais.principalTributadoIR += item.valorAtualizado.principal;
+                    totais.jurosTributadoIR += item.valorAtualizado.juros;
+                    console.log('→ Adicionado ao IR tributado');
+                } else {
+                    totais.isentoIR += item.valorAtualizado.total;
+                    console.log('→ Adicionado ao IR isento');
+                }
+                
+                // Tributação Previdência
+                if (item.tributacao.previdencia) {
+                    totais.principalTributadoPrevidencia += item.valorAtualizado.principal;
+                    totais.jurosTributadoPrevidencia += item.valorAtualizado.juros;
+                    console.log('→ Adicionado à Previdência tributada');
+                } else {
+                    totais.isentoPrevidencia += item.valorAtualizado.total;
+                    console.log('→ Adicionado à Previdência isenta');
+                }
+            }
+            
+            console.log('\n--- TOTAIS FINAIS ---');
+            console.log('Valores gerais:', {
+                principalTotal: totais.valorPrincipalTotal,
+                jurosTotal: totais.valorJurosTotal,
+                valorGeralTotal: totais.valorGeralTotal,
+                rraTotal: totais.rraTotal
+            });
+            
+            console.log('Tributação IR:', {
+                principalTributado: totais.principalTributadoIR,
+                jurosTributado: totais.jurosTributadoIR,
+                isento: totais.isentoIR,
+                totalTributadoIR: totais.principalTributadoIR + totais.jurosTributadoIR
+            });
+            
+            console.log('Tributação Previdência:', {
+                principalTributado: totais.principalTributadoPrevidencia,
+                jurosTributado: totais.jurosTributadoPrevidencia,
+                isento: totais.isentoPrevidencia,
+                totalTributadoPrevidencia: totais.principalTributadoPrevidencia + totais.jurosTributadoPrevidencia
+            });
+            
+            console.log('=== FIM TOTALIZAÇÃO ===\n');
+            return totais;
+        }
 
-            //valores atualizaco
-            const valorprincatt = dados.valorPrincipal * indiceprinc;
-            const valorjurosatt = juros * indicejur;
-            const valortotatt = valorprincatt + valorjurosatt;
-
-            //percentuais
-            const percentualprinc = valorprincatt / valortotatt;
-            const percentualjur = valorjurosatt / valortotatt;
-            const indiceTotal = valortotatt / (dados.valorPrincipal + dados.valorJuros);
-
-            // Detalhamento financeiro
-            const detalhamento = calcularGlobal(dados, valortotatt, percentualprinc, percentualjur);
-
-            const herdeiros = calcularHerdeiros(dados, valortotatt, valorprincatt, valorjurosatt, detalhamento);
-
+        async function calcularValores(dados) {
+            console.log('\n🚀 INICIANDO CÁLCULO DE VALORES 🚀');
+            console.log('Dados recebidos:', {
+                anoOrcamento: dados.anoOrcamento,
+                natureza: dados.natureza,
+                quantidadeItens: dados.valoresPrincipais?.length || 0
+            });
+            
+            // Validação básica
+            if (!dados.valoresPrincipais || dados.valoresPrincipais.length === 0) {
+                console.error('❌ Erro: Nenhum valor principal encontrado!');
+                return null;
+            }
+            
+            // Array para armazenar cada item calculado
+            const itensCalculados = [];
+            
+            // Calcula cada item individualmente
+            for (let i = 0; i < dados.valoresPrincipais.length; i++) {
+                const item = dados.valoresPrincipais[i];
+                console.log(`\n📊 Processando item ${i + 1} de ${dados.valoresPrincipais.length}`);
+                
+                try {
+                    const itemCalculado = await calcularItemPrincipal(item, dados);
+                    itensCalculados.push(itemCalculado);
+                    console.log('✅ Item calculado com sucesso');
+                } catch (error) {
+                    console.error(`❌ Erro ao calcular item ${item.descricao}:`, error);
+                    throw error;
+                }
+            }
+            
+            // Totaliza todos os valores
+            const totais = totalizarTributacao(itensCalculados);
+            
+            // Cálculos de percentuais
+            const percentualprinc = totais.valorPrincipalTotal / totais.valorGeralTotal;
+            const percentualjur = totais.valorJurosTotal / totais.valorGeralTotal;
+            
+            console.log('\n📈 CÁLCULOS DE PERCENTUAIS:');
+            console.log('Percentual principal:', percentualprinc);
+            console.log('Percentual juros:', percentualjur);
+            
+            // Valor original total para cálculo do índice total
+            const valorOriginalTotal = itensCalculados.reduce((sum, item) => 
+                sum + item.valorOriginal.total, 0);
+            const indiceTotal = totais.valorGeralTotal / valorOriginalTotal;
+            
+            console.log('Índice total de correção:', indiceTotal);
+            console.log('Valor original total:', valorOriginalTotal);
+            
+            // Detalhamento financeiro (usando os totais calculados)
+            const dadosParaDetalhamento = {
+                ...dados,
+                valorPrincipal: totais.valorPrincipalTotal,
+                valorJuros: totais.valorJurosTotal,
+                rra: totais.rraTotal
+            };
+            
+            console.log('\n🧮 Calculando detalhamento financeiro...');
+            const detalhamento = calcularGlobal(dadosParaDetalhamento, totais.valorGeralTotal, percentualprinc, percentualjur);
+            
+            console.log('\n👨‍👩‍👧‍👦 Calculando herdeiros...');
+            const herdeiros = calcularHerdeiros(dadosParaDetalhamento, totais.valorGeralTotal, totais.valorPrincipalTotal, totais.valorJurosTotal, detalhamento);
+            
             // Resumo dos herdeiros
             const resumoHerdeiros = {
                 valorTotalHerdeiros: herdeiros.reduce((sum, h) => sum + h.valorTotalOriginal, 0),
@@ -3053,32 +3280,74 @@
                 herdeirosComPreferencia: herdeiros.filter(h => h.temPreferencia).length,
                 herdeirosComPreferenciaParcial: herdeiros.filter(h => h.isPreferenciaParcial).length
             };
-
-            return {
-                //atualizacao
-                valorprincatt,
-                valorjurosatt,
-                valortotatt,
-
-                //calculo do beneficiario principal
+            
+            // Cálculo de percentuais de tributação para exibição
+            const percentualPrincipalTributadoIR = (totais.principalTributadoIR / totais.valorGeralTotal) * 100;
+            const percentualJurosTributadoIR = (totais.jurosTributadoIR / totais.valorGeralTotal) * 100;
+            const percentualIsentoIR = (totais.isentoIR / totais.valorGeralTotal) * 100;
+            
+            console.log('\n📊 PERCENTUAIS DE TRIBUTAÇÃO IR:');
+            console.log(`Principal tributado: ${percentualPrincipalTributadoIR.toFixed(4)}%`);
+            console.log(`Juros tributados: ${percentualJurosTributadoIR.toFixed(4)}%`);
+            console.log(`Isento: ${percentualIsentoIR.toFixed(4)}%`);
+            
+            const resultadoFinal = {
+                // Valores atualizados totais (compatibilidade com função original)
+                valorprincatt: totais.valorPrincipalTotal,
+                valorjurosatt: totais.valorJurosTotal,
+                valortotatt: totais.valorGeralTotal,
+                
+                // Separação para tributação IR
+                tributacaoIR: {
+                    principalTributado: totais.principalTributadoIR,
+                    jurosTributado: totais.jurosTributadoIR,
+                    isento: totais.isentoIR,
+                    percentuais: {
+                        principalTributado: percentualPrincipalTributadoIR,
+                        jurosTributado: percentualJurosTributadoIR,
+                        isento: percentualIsentoIR
+                    }
+                },
+                
+                // Separação para tributação Previdência
+                tributacaoPrevidencia: {
+                    principalTributado: totais.principalTributadoPrevidencia,
+                    jurosTributado: totais.jurosTributadoPrevidencia,
+                    isento: totais.isentoPrevidencia
+                },
+                
+                // RRA total
+                rraTotal: totais.rraTotal,
+                
+                // Detalhamento de cada item
+                itensCalculados,
+                
+                // Cálculo do beneficiário principal (compatibilidade)
                 ...detalhamento,
-
-                //herdeiros
+                
+                // Herdeiros (compatibilidade)
                 herdeiros,
                 resumoHerdeiros,
                 temHerdeiros: herdeiros.length > 0,
-
-                // Índices para exibição
-                indicesCNJ,
-                dadosSelic,
-                indiceipca,
+                
+                // Índices e percentuais (compatibilidade)
                 indiceTotal,
-                jurosmora,
-
-                //percentuais
                 percentualprinc,
-                percentualjur
+                percentualjur,
+                
+                // Informações adicionais
+                quantidadeItens: dados.valoresPrincipais.length,
+                valorOriginalTotal
             };
+            
+            console.log('\n✅ CÁLCULO FINALIZADO COM SUCESSO!');
+            console.log('📋 RESUMO FINAL:');
+            console.log(`💰 Valor total atualizado: R$ ${totais.valorGeralTotal.toFixed(2)}`);
+            console.log(`📊 Quantidade de itens processados: ${dados.valoresPrincipais.length}`);
+            console.log(`📈 Índice total de correção: ${indiceTotal.toFixed(6)}`);
+            console.log('🔚 Fim do processamento\n');
+            
+            return resultadoFinal;
         }
 
         function calcularGlobal(dados, valortotatt, percentualprinc, percentualjur) {
