@@ -915,6 +915,173 @@ tr.highlight {
     letter-spacing: 0.2px;
 }
 
+#tab2 .checkbox-group {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    background: #F5F1E8;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(197, 165, 114, 0.3);
+    margin-top: 8px;
+}
+
+#tab2 .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+}
+
+#tab2 .checkbox-item input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: #C5A572;
+}
+
+#tab2 .checkbox-item label {
+    margin: 0;
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: 12px;
+    color: #1a2332;
+    font-weight: 500;
+}
+
+#tab2 .btn-add {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    color: white;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 16px rgba(40, 167, 69, 0.3);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 15px 0;
+}
+
+#tab2 .btn-add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(40, 167, 69, 0.4);
+}
+
+#tab2 .multas-section {
+    background: linear-gradient(135deg, #fff8f0, #ffe8d6);
+    border: 2px solid #ffb366;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 25px;
+}
+
+#tab2 .multas-section h2 {
+    color: #8b4513;
+    border-bottom: 2px solid #C5A572;
+    padding-bottom: 8px;
+    margin-bottom: 18px;
+    font-size: 18px;
+}
+
+#tab2 .question-section {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(255, 179, 102, 0.5);
+    border-radius: 8px;
+    padding: 15px;
+}
+
+#tab2 .question-section h3 {
+    color: #8b4513;
+    margin-bottom: 12px;
+    font-size: 15px;
+    border: none;
+}
+
+#tab2 .radio-group {
+    display: flex;
+    gap: 20px;
+    background: rgba(245, 241, 232, 0.7);
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+
+#tab2 .radio-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#tab2 .radio-item input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #C5A572;
+}
+
+#tab2 .radio-item label {
+    margin: 0;
+    text-transform: none;
+    font-size: 13px;
+    color: #1a2332;
+    font-weight: 500;
+}
+
+#tab2 .conditional-section {
+    display: none;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(197, 165, 114, 0.3);
+    animation: fadeIn 0.3s ease;
+}
+
+#tab2 .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+#tab2 .form-col {
+    display: flex;
+    flex-direction: column;
+}
+
+#tab2 .alert {
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, #d1ecf1, #b8e6f1);
+    border: 1px solid #bee5eb;
+    color: #0c5460;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+#tab2 .date-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+#tab2 .custas-section {
+    background: linear-gradient(135deg, #f0f8ff, #e6f3ff);
+    border: 2px solid #87ceeb;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 25px;
+}
+
+#tab2 .custas-section h2 {
+    color: #1e40af;
+    border-bottom: 2px solid #C5A572;
+    padding-bottom: 8px;
+    margin-bottom: 18px;
+    font-size: 18px;
+}
 
 /* Responsividade */
 @media (max-width: 768px) {
