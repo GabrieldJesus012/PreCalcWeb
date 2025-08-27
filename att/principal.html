@@ -95,17 +95,17 @@
                     <div class="form-group">
                         <h3>📅 Datas-base de cálculos</h3>
                         <div class="input-group">
-                            <label>Ano do Orçamento:</label>
+                            <label for="anoOrcamento">Ano do Orçamento:</label>
                             <input type="number" id="anoOrcamento" placeholder="Ano do Orçamento">
                         </div>
                         <h3>💰 Informações Financeiras</h3>
                             <div class="input-group">
-                                <label>Descrição:</label>
+                                <label for="descricaoPrincipal">Descrição:</label>
                                 <input type="text" id="descricaoPrincipal" placeholder="Ex: Salários">
                             </div>
                             <div class="date-row">
                                 <div class="input-group">
-                                    <label>Mês Base:</label>
+                                    <label for="mesBase">Mês Base:</label>
                                     <select id="mesBase">
                                         <option value="janeiro">Janeiro</option>
                                         <option value="fevereiro">Fevereiro</option>
@@ -122,26 +122,27 @@
                                     </select>
                                 </div>
                                 <div class="input-group">
-                                    <label>Ano Base:</label>
+                                    <label for="anoBase">Ano Base:</label>
                                     <input type="number" id="anoBase" placeholder="Ano Base">
                                 </div>
                             </div>
                             <div class="date-row">
                                 <div class="input-group">
-                                    <label>Valor Principal (R$):</label>
+                                    <label for="valorPrincipal">Valor Principal (R$):</label>
                                     <input type="number" id="valorPrincipal" step="0.01" placeholder="0.00">
                                 </div>
                                 <div class="input-group">
-                                    <label>Valor dos Juros (R$):</label>
+                                    <label for="valorJuros">Valor dos Juros (R$):</label>
                                     <input type="number" id="valorJuros" step="0.01" placeholder="0.00">
                                 </div>
                             </div>
-                        <div class="input-group">
+                        <!-- <div class="input-group">
                             <label>Valor Selic (R$):</label>
                             <input type="number" id="valorSelic" step="0.01" placeholder="0.00">
                         </div>
+                        -->
                         <div class="input-group">
-                            <label>RRA:</label>
+                            <label for="rra">RRA:</label>
                             <input type="number" id="rra" value="0" min="0">
                         </div>
                         <label>Índices de Correção:</label>
@@ -166,14 +167,14 @@
                         <h3>🏦 Impostos e Contribuições</h3>
                         <div class="date-row">
                             <div class="input-group">
-                                <label>Incidência de IR:</label>
+                                <label for="incidenciaIR">Incidência de IR:</label>
                                 <select id="incidenciaIR">
                                     <option value="sim">Sim</option>
                                     <option value="nao">Não</option>
                                 </select>
                             </div>
                             <div class="input-group">
-                                <label>Incidência de Previdência:</label>
+                                <label for="incidenciaPrevidencia">Incidência de Previdência:</label>
                                 <select id="incidenciaPrevidencia">
                                     <option value="sim">Sim</option>
                                     <option value="nao">Não</option>
@@ -181,14 +182,14 @@
                             </div>
                         </div>
                         <div class="input-group" id="tipoPrevidenciaDiv" style="display: none;">
-                            <label>Tipo de Previdência:</label>
+                            <label for="tipoPrevidencia">Tipo de Previdência:</label>
                             <select id="tipoPrevidencia">
                                 <option value="inss">INSS</option>
                                 <option value="fixa">Alíquota Fixa</option>
                             </select>
                         </div>
                         <div class="input-group" id="aliquotaFixaDiv" style="display: none;">
-                            <label>Alíquota Fixa (ex: 0.14 para 14%):</label>
+                            <label for="aliquotaFixa">Alíquota Fixa (ex: 0.14 para 14%):</label>
                             <input type="number" id="aliquotaFixa" step="0.01" min="0" max="1" placeholder="0.00">
                         </div>
                         <div style="text-align: center;">
@@ -212,13 +213,13 @@
                     <div class="form-group">
                         <h3>👩‍💼 Honorários Contratuais</h3>
                         <div class="input-group">
-                            <label>Quantidade de Advogados:</label>
+                            <label for="quantAdvogados">Quantidade de Advogados:</label>
                             <input type="number" id="quantAdvogados" value="0" min="0">
                         </div>
                         <div id="advogadosContainer"></div>
                         <h3>🤝 Sindicatos</h3>
                         <div class="input-group">
-                            <label>Quantidade de Sindicatos:</label>
+                            <label for="quantSindicatos">Quantidade de Sindicatos:</label>
                             <input type="number" id="quantSindicatos" value="0" min="0">
                         </div>
                         <div id="sindicatosContainer"></div>
@@ -233,7 +234,7 @@
                     <div class="form-group">
                         <h3>👥 Herdeiros</h3>
                         <div class="input-group">
-                            <label>Quantidade de Herdeiros:</label>
+                            <label for="quantHerdeiros">Quantidade de Herdeiros:</label>
                             <input type="number" id="quantHerdeiros" value="0" min="0">
                         </div>
                         <div id="herdeirosContainer"></div>
@@ -247,7 +248,7 @@
                     <div class="form-group">
                         <h3>🔄 Cessões</h3>
                         <div class="input-group">
-                            <label>Quantidade de Cessões:</label>
+                            <label for="quantCessoes">Quantidade de Cessões:</label>
                             <input type="number" id="quantCessoes" value="0" min="0">
                         </div>
                         <div id="cessaoContainer"></div>
