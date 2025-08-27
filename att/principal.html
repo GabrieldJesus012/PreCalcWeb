@@ -191,9 +191,11 @@
                             <label>Alíquota Fixa (ex: 0.14 para 14%):</label>
                             <input type="number" id="aliquotaFixa" step="0.01" min="0" max="1" placeholder="0.00">
                         </div>
-                        <button class="btn-add" onclick="adicionarValorPrincipal()">
-                            ➕ Adicionar Valor Principal
-                        </button>
+                        <div style="text-align: center;">
+                            <button class="btn-add" onclick="adicionarValorPrincipal()">
+                                ➕ Adicionar Valor Principal
+                            </button>
+                        </div>
                         <div style="margin-top: 20px;">
                             <h3>📋 Valores Cadastrados</h3>
                             <div id="listaValoresPrincipais" class="lista-items">
@@ -511,6 +513,8 @@
             valoresPrincipais.push(valor);
             renderizarValoresPrincipais();
             limparFormularioPrincipal();
+
+            alert("✅ Valor cadastrado com sucesso!");
         }
 
         // Renderizar valores principais
@@ -2638,6 +2642,11 @@
         async function calcular() {
             if (!ColetaCache.elementos) {
                 ColetaCache.init();
+            }
+
+            if (!valoresPrincipais || valoresPrincipais.length === 0) {
+                alert("⚠️ Você precisa adicionar pelo menos um Valor Principal antes de calcular!");
+                return;
             }
             
             const dados = coletarDados();
