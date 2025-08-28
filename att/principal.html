@@ -4346,6 +4346,32 @@
             };
 
             const tipoCalculo = tipos[dados.tipoCalculo] || "Não definido";
+
+            let secaoDataBase = '';
+            if (dados.valoresPrincipais && dados.valoresPrincipais.length > 0) {
+                // Coletar todas as datas base únicas
+                const datasBase = new Set();
+                dados.valoresPrincipais.forEach(item => {
+                    if (item.mesBase && item.anoBase) {
+                        datasBase.add(`${item.mesBase}/${item.anoBase}`);
+                    }
+                });
+                
+                const datasUnicas = Array.from(datasBase);
+                
+                if (datasUnicas.length === 1) {
+                    // Uma única data base
+                    secaoDataBase = `<tr><td>Data-base do cálculo homologado na execução</td><td>${datasUnicas[0]}</td></tr>`;
+                } else if (datasUnicas.length > 1) {
+                    // Múltiplas datas base - mostrar todas
+                    secaoDataBase = `<tr><td>Datas-base dos cálculos homologados</td><td>${datasUnicas.join(', ')}</td></tr>`;
+                } else {
+                    // Fallback se não houver datas
+                    secaoDataBase = `<tr><td>Data-base do cálculo homologado na execução</td><td>Não informado</td></tr>`;
+                }
+            } else {
+                secaoDataBase = `<tr><td>Data-base do cálculo homologado na execução</td><td>Não informado</td></tr>`;
+            }
             
             return `
                 <div class="table-container">
@@ -4356,7 +4382,7 @@
                         <tr><td>Ano do orçamento do Precatório</td><td>${dados.anoOrcamento || 'Não informado'}</td></tr>
                         <tr><td>Natureza do Processo</td><td>${dados.natureza === 'alimentar' ? '⚖️ Alimentar' : '⚖️ Comum'}</td></tr>
                         ${secaoRRA}
-                        <tr><td>Data-base do cálculo homologado na execução</td><td>${dados.mesBase || 'Não informado'}/${dados.anoBase || 'Não informado'}</td></tr>
+                        ${secaoDataBase}
                         <tr><td>Beneficiário Principal</td><td>${dados.beneficiario || 'Não informado'}</td></tr>
                         <tr><td>Devedor</td><td>${dados.credor || 'Não informado'}</td></tr>
                         <tr><td>Data do Cálculo</td><td>${dataAtual}</td></tr>
