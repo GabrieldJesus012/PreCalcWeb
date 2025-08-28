@@ -541,7 +541,7 @@
                 if (valor.tributacao.ir) tributacaoTexto.push('IR');
                 if (valor.tributacao.previdencia) {
                     if (valor.tributacao.tipoPrevidencia === 'fixa') {
-                        tributacaoTexto.push(`PREV: ${(valor.tributacao.aliquotaFixa * 100).toFixed(1)}%`);
+                        tributacaoTexto.push(`PREV: ${(valor.tributacao.aliquotaFixa * 100).toFixed(2)}%`);
                     } else {
                         tributacaoTexto.push('PREV: INSS');
                     }
@@ -2814,7 +2814,7 @@
             if (dados.herdeiros.length > 0) {
                 const somaHerdeiros = dados.herdeiros.reduce((sum, h) => sum + h.percentual, 0);
                 if (Math.abs(somaHerdeiros - 1.0) > 0.001) {
-                    erros.push(`A soma dos percentuais dos herdeiros deve ser 100% (atual: ${(somaHerdeiros * 100).toFixed(1)}%)`);
+                    erros.push(`A soma dos percentuais dos herdeiros deve ser 100% (atual: ${(somaHerdeiros * 100).toFixed(2)}%)`);
                 }
             }
 
@@ -5066,7 +5066,7 @@
             }
             
             const listaCessionarios = resultados.cessoesBeneficiarioCalculadas.map(cessao => 
-                `${cessao.cessionario} (${(cessao.percentual * 100).toFixed(1)}%)`
+                `${cessao.cessionario} (${(cessao.percentual * 100).toFixed(2)}%)`
             ).join(', ');
             
             const totalCedido = resultados.cessoesBeneficiarioCalculadas.reduce((total, cessao) => 
@@ -5086,7 +5086,7 @@
                     <td>${cessao.cessionario}</td>
                     <td>${(cessao.percentual * 100).toFixed(2)}%</td>
                     <td>R$ ${formatarMoeda(valorBrutoCessionario)}</td>
-                    <td>${(percentualDeducoes * 100).toFixed(1)}%</td>
+                    <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
                     <td>R$ ${formatarMoeda(deducoesCessionario)}</td>
                     <td>R$ ${formatarMoeda(parteCessionario)}</td>
                     <td>R$ ${formatarMoeda(cessionarioRecebe)}</td>
@@ -5139,7 +5139,7 @@
                             <h4>Cessão do Beneficiário: ${dados.beneficiario}</h4>
                             <p><strong>Tipo de Cálculo:</strong> ${dados.tipoCalculo} ${dados.tipoCalculo === 'preferencia' ? '(preferencial)' : '(ordem comum)'}</p>
                             <p><strong>Dívida Total:</strong> R$ ${formatarMoeda(dividaTotalAtualizada)}</p>
-                            <p><strong>Total Cedido:</strong> ${(totalCedido * 100).toFixed(1)}% para: ${listaCessionarios}</p>
+                            <p><strong>Total Cedido:</strong> ${(totalCedido * 100).toFixed(2)}% para: ${listaCessionarios}</p>
                             ${temHerdeiros ? `
                             <div style="background-color: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
                                 <p style="color: #004085; margin: 0;">
@@ -5168,7 +5168,7 @@
                                     <td>${dados.beneficiario}${temHerdeiros ? ' †' : ''}</td>
                                     <td>${(resultados.percentualBeneficiarioFinal * 100).toFixed(2)}%</td>
                                     <td>R$ ${formatarMoeda(valorBrutoBeneficiario)}</td>
-                                    <td>${(percentualDeducoes * 100).toFixed(1)}%</td>
+                                    <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
                                     <td>R$ ${formatarMoeda(deducoesBeneficiario)}</td>
                                     <td>R$ ${formatarMoeda(parteBeneficiario)}</td>
                                     <td>R$ ${formatarMoeda(beneficiarioRecebe)}</td>
@@ -5191,7 +5191,7 @@
                                     <td>TOTAL</td>
                                     <td>100.00%</td>
                                     <td>R$ ${formatarMoeda(totalValorBruto)}</td>
-                                    <td>${(percentualDeducoes * 100).toFixed(1)}%</td>
+                                    <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
                                     <td>R$ ${formatarMoeda(totalDeducoes)}</td>
                                     <td>R$ ${formatarMoeda(totalLiquido)}</td>
                                     <td>R$ ${formatarMoeda(totalRecebe)}</td>
@@ -5201,9 +5201,9 @@
                             <div style="padding: 8px; margin: 10px 0; font-size: 0.85em; color: #666;">
                                 <p style="margin: 0;">
                                     <strong>📝 Deduções Acessórias:</strong> 
-                                    Honorários (${(percentualTotalAdv * 100).toFixed(1)}%) + 
-                                    Sindicatos (${(percentualTotalSind * 100).toFixed(1)}%) = 
-                                    ${(percentualDeducoes * 100).toFixed(1)}%
+                                    Honorários (${(percentualTotalAdv * 100).toFixed(2)}%) + 
+                                    Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%) = 
+                                    ${(percentualDeducoes * 100).toFixed(2)}%
                                 </p>
                                 <p style="margin: 5px 0 0 0;">
                                     <strong>* Valor Líquido:</strong> Valor após dedução de honorários e sindicatos. 
@@ -5249,7 +5249,7 @@
                 return `
                     <tr>
                         <td>${h.nome}</td>
-                        <td>${(h.percentual * 100).toFixed(1)}%</td>
+                        <td>${(h.percentual * 100).toFixed(2)}%</td>
                         <td>R$ ${formatarMoeda(valorBrutoHerdeiro)}</td>
                         <td>R$ ${formatarMoeda(honorarioTotalReal)}</td>
                         <td>R$ ${formatarMoeda(sindicatoTotalReal)}</td>
@@ -5282,7 +5282,7 @@
             // Verificar se houve cessão do beneficiário
             const houveCessaoBeneficiario = resultados.percentualBeneficiarioFinal && resultados.percentualBeneficiarioFinal < 1;
             const percentualCedido = houveCessaoBeneficiario ? 
-                ((1 - resultados.percentualBeneficiarioFinal) * 100).toFixed(1) : 0;
+                ((1 - resultados.percentualBeneficiarioFinal) * 100).toFixed(2) : 0;
             
             // HTML com informações sobre cessão se houver
             let htmlCessaoInfo = '';
@@ -5360,7 +5360,7 @@
                 
                 // Lista de cessionários
                 const listaCessionarios = herdeiro.cessoesHerdeiro.map(cessao => 
-                    `${cessao.cessionario} (${(cessao.percentual * 100).toFixed(1)}%)`
+                    `${cessao.cessionario} (${(cessao.percentual * 100).toFixed(2)}%)`
                 ).join(', ');
                 
                 const totalCedido = herdeiro.cessoesHerdeiro.reduce((total, cessao) => 
@@ -5396,7 +5396,7 @@
                             <td>${cessao.cessionario}</td>
                             <td>${(cessao.percentual * 100).toFixed(2)}%</td>
                             <td>R$ ${formatarMoeda(valorBrutoCessionario)}</td>
-                            <td>${(percentualDeducoes * 100).toFixed(1)}%</td>
+                            <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
                             <td>R$ ${formatarMoeda(deducoesCessionario)}</td>
                             <td>R$ ${formatarMoeda(valorLiquidoCessionario)}</td>
                             <td>R$ ${formatarMoeda(cessionarioRecebe)}</td>
@@ -5443,7 +5443,7 @@
                     <div style="margin-bottom: 30px;">
                         <h4>Cessão do Herdeiro: ${herdeiro.nome}</h4>
                         <p><strong>Valor Original do Herdeiro:</strong> R$ ${formatarMoeda(valorTotalHerdeiro)}</p>
-                        <p><strong>Total Cedido:</strong> ${(totalCedido * 100).toFixed(1)}% para: ${listaCessionarios}</p>
+                        <p><strong>Total Cedido:</strong> ${(totalCedido * 100).toFixed(2)}% para: ${listaCessionarios}</p>
                         
                         <table>
                             <tr>
@@ -5463,7 +5463,7 @@
                                 <td>${herdeiro.nome}</td>
                                 <td>${((1 - totalCedido) * 100).toFixed(2)}%</td>
                                 <td>R$ ${formatarMoeda(valorBrutoHerdeiroAposCessoes)}</td>
-                                <td>${(percentualDeducoes * 100).toFixed(1)}%</td>
+                                <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
                                 <td>R$ ${formatarMoeda(deducoesHerdeiro)}</td>
                                 <td>R$ ${formatarMoeda(valorLiquidoHerdeiro)}</td>
                                 <td>R$ ${formatarMoeda(herdeiroRecebeAgora)}</td>
@@ -5474,7 +5474,7 @@
                                 <td>TOTAL</td>
                                 <td>100.00%</td>
                                 <td>R$ ${formatarMoeda(totalValorBruto)}</td>
-                                <td>${(percentualDeducoes * 100).toFixed(1)}%</td>
+                                <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
                                 <td>R$ ${formatarMoeda(totalDeducoes)}</td>
                                 <td>R$ ${formatarMoeda(totalLiquido)}</td>
                                 <td>R$ ${formatarMoeda(totalRecebe)}</td>
@@ -5485,9 +5485,9 @@
                         <div style="padding: 8px; margin: 10px 0; font-size: 0.85em; color: #666;">
                             <p style="margin: 0;">
                                 <strong>📝 Deduções Acessórias:</strong> 
-                                Honorários (${(percentualTotalAdv * 100).toFixed(1)}%) + 
-                                Sindicatos (${(percentualTotalSind * 100).toFixed(1)}%) = 
-                                ${(percentualDeducoes * 100).toFixed(1)}%
+                                Honorários (${(percentualTotalAdv * 100).toFixed(2)}%) + 
+                                Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%) = 
+                                ${(percentualDeducoes * 100).toFixed(2)}%
                             </p>
                             <p style="margin: 5px 0 0 0;">
                                 <strong>* Valor Líquido:</strong> Valor após dedução apenas de honorários e sindicatos (IR e Previdência calculados separadamente).
@@ -6156,7 +6156,7 @@
                     </tr>
                     ${isAcordo && valorDesagio > 0 ? `
                     <tr style="color: #dc3545;">
-                        <th>(-) Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                        <th>(-) Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                         <td>R$ ${formatarMoeda(valorDesagio)}</td>
                     </tr>
                     <tr class="total-row">
@@ -6235,7 +6235,7 @@
                     </tr>
                     ${isAcordo && valorDesagio > 0 ? `
                     <tr style="color: #dc3545;">
-                        <th>(-) Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                        <th>(-) Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                         <td>R$ ${formatarMoeda(valorDesagio)}</td>
                     </tr>
                     <tr class="total-row">
@@ -6337,7 +6337,7 @@
                     </tr>
                     <tr>
                         <th>Alíquota IR:</th>
-                        <td>${(resultados.aliquotaIR * 100).toFixed(1)}%</td>
+                        <td>${(resultados.aliquotaIR * 100).toFixed(2)}%</td>
                     </tr>
                     <tr>
                         <th>Valor IR Mensal:</th>
@@ -6368,7 +6368,7 @@
                 
                 baseComDesagio = `
                 <tr>
-                    <th>Base IR com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                    <th>Base IR com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                     <td>R$ ${formatarMoeda(baseAposDesagio)}</td>
                 </tr>`;
             }
@@ -6466,7 +6466,7 @@
                     </tr>
                     ${isAcordo && primeiroHerdeiro.valorDesagioPrevidencia > 0 ? `
                     <tr class="total-row">
-                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                         <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
                     </tr>` : ''}
                     <tr style="border-top: 1px solid #dee2e6;">
@@ -6534,7 +6534,7 @@
                     </tr>
                     ${isAcordo && primeiroHerdeiro.valorDesagioPrevidencia > 0 ? `
                     <tr class="total-row">
-                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                         <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
                     </tr>` : ''}
                     <tr style="border-top: 1px solid #dee2e6;">
@@ -6575,7 +6575,7 @@
             if (isAcordo && percentualDesagio > 0) {
                 baseComDesagio = `
                 <tr>
-                    <th>Base IR com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                    <th>Base IR com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                     <td>R$ ${formatarMoeda(primeiroHerdeiro.principalComDesagio || primeiroHerdeiro.baseIRSindi)}</td>
                 </tr>`;
             }
@@ -6626,7 +6626,7 @@
                     </tr>
                     <tr>
                         <th>Alíquota IR:</th>
-                        <td>${(primeiroHerdeiro.aliquotaIR * 100).toFixed(1)}%</td>
+                        <td>${(primeiroHerdeiro.aliquotaIR * 100).toFixed(2)}%</td>
                     </tr>
                     <tr>
                         <th>Valor IR Mensal:</th>
@@ -6692,7 +6692,7 @@
                         const valorCessionario = valorPrevidenciaTotal * cessao.percentual;
                         linhas += `
                             <tr>
-                                <th style="padding-left: 20px;">${cessao.cessionario} (Cessionário de ${herdeiro.nome} - ${(cessao.percentual * 100).toFixed(1)}%):</th>
+                                <th style="padding-left: 20px;">${cessao.cessionario} (Cessionário de ${herdeiro.nome} - ${(cessao.percentual * 100).toFixed(2)}%):</th>
                                 <td>R$ ${formatarMoeda(valorCessionario)}</td>
                             </tr>
                         `;
@@ -6721,7 +6721,7 @@
                     </tr>
                     ${isAcordo && primeiroHerdeiro.valorDesagioPrevidencia > 0 ? `
                     <tr class="total-row">
-                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                         <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
                     </tr>` : ''}
                     <tr style="border-top: 1px solid #dee2e6;">
@@ -6782,7 +6782,7 @@
                         const valorCessionario = valorPrevidenciaTotal * cessao.percentual;
                         linhas += `
                             <tr>
-                                <th style="padding-left: 20px;">${cessao.cessionario} (Cessionário de ${herdeiro.nome} - ${(cessao.percentual * 100).toFixed(1)}%):</th>
+                                <th style="padding-left: 20px;">${cessao.cessionario} (Cessionário de ${herdeiro.nome} - ${(cessao.percentual * 100).toFixed(2)}%):</th>
                                 <td>R$ ${formatarMoeda(valorCessionario)}</td>
                             </tr>
                         `;
@@ -6824,7 +6824,7 @@
                     </tr>
                     ${isAcordo && primeiroHerdeiro.valorDesagioPrevidencia > 0 ? `
                     <tr class="total-row">
-                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                         <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
                     </tr>` : ''}
                     <tr style="border-top: 1px solid #dee2e6;">
@@ -6865,7 +6865,7 @@
             if (isAcordo && percentualDesagio > 0) {
                 baseComDesagio = `
                 <tr>
-                    <th>Base IR com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                    <th>Base IR com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                     <td>R$ ${formatarMoeda(primeiroHerdeiro.principalComDesagio || primeiroHerdeiro.baseIRSindi)}</td>
                 </tr>`;
             }
@@ -6903,7 +6903,7 @@
                         const valorCessionario = valorIRTotal * cessao.percentual;
                         linhas += `
                             <tr>
-                                <th style="padding-left: 20px;">${cessao.cessionario} (Cessionário de ${herdeiro.nome} - ${(cessao.percentual * 100).toFixed(1)}%):</th>
+                                <th style="padding-left: 20px;">${cessao.cessionario} (Cessionário de ${herdeiro.nome} - ${(cessao.percentual * 100).toFixed(2)}%):</th>
                                 <td>R$ ${formatarMoeda(valorCessionario)}</td>
                             </tr>
                         `;
@@ -6951,7 +6951,7 @@
                     </tr>
                     <tr>
                         <th>Alíquota IR:</th>
-                        <td>${(primeiroHerdeiro.aliquotaIR * 100).toFixed(1)}%</td>
+                        <td>${(primeiroHerdeiro.aliquotaIR * 100).toFixed(2)}%</td>
                     </tr>
                     <tr>
                         <th>Valor IR Mensal:</th>
@@ -7993,13 +7993,13 @@
             return `
                     <!-- 1ª TABELA: Cálculo do Deságio -->
                     <div class="table-container">
-                        <h3>📊 Cálculo do Deságio ${(percentualDesagio * 100).toFixed(1)}%</h3>
+                        <h3>📊 Cálculo do Deságio ${(percentualDesagio * 100).toFixed(2)}%</h3>
                         <table>
                             <thead>
                                 <tr>
                                     <th>Credor</th>
                                     <th>Valor Devido</th>
-                                    <th>Deságio ${(percentualDesagio * 100).toFixed(1)}%</th>
+                                    <th>Deságio ${(percentualDesagio * 100).toFixed(2)}%</th>
                                     <th>Valor Após Deságio</th>
                                 </tr>
                             </thead>
@@ -8047,7 +8047,7 @@
                         </table>
                         <div style="margin-top: 15px; padding: 10px; background-color: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">
                             <h4>⚖️ Informações do Acordo:</h4>
-                            <p style="margin: 5px 0;"><strong>Deságio aplicado:</strong> ${(percentualDesagio * 100).toFixed(1)}% sobre o valor devido</p>
+                            <p style="margin: 5px 0;"><strong>Deságio aplicado:</strong> ${(percentualDesagio * 100).toFixed(2)}% sobre o valor devido</p>
                             <p style="margin: 5px 0;"><strong>Tributos calculados:</strong> Sobre o valor após deságio</p>
                             <p style="margin: 5px 0;"><strong>Apenas credores que aderiram</strong> ao acordo aparecem nesta tabela</p>
                         </div>
