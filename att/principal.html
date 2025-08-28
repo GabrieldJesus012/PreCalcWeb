@@ -480,7 +480,7 @@
             const rra = document.getElementById('rra').value;
             const descricao = document.getElementById('descricaoPrincipal').value; // Campo de descrição
 
-            if (!anoBase || (!valorPrincipal && !valorJuros && !valorSelic)) {
+            if (!anoBase || (!valorPrincipal && !valorJuros)) {
                 alert('Preencha o ano base e pelo menos um valor (principal, juros ou selic)');
                 return;
             }
@@ -575,8 +575,8 @@
         function limparFormularioPrincipal() {
             document.getElementById('valorPrincipal').value = '';
             document.getElementById('valorJuros').value = '';
-            document.getElementById('valorSelic').value = '';
-            document.getElementById('rra').value = '0';
+            //document.getElementById('valorSelic').value = '';
+            document.getElementById('rra').value = '';
             document.getElementById('descricaoPrincipal').value = ''; 
         }
 
@@ -4363,11 +4363,17 @@
         function gerarDemonstrativoValores(dados, resultados, dataAtual) {
             const indiceTotal = isNaN(resultados.indiceTotal) ? '1' : resultados.indiceTotal.toFixed(6);
     
-            // Calcular valores originais totais com proteção
-            const valorPrincipalOriginal = (dados.valoresPrincipais || []).reduce((sum, item) => 
-                sum + (parseFloat(item.valorPrincipal) || 0), 0);
-            const valorJurosOriginal = (dados.valoresPrincipais || []).reduce((sum, item) => 
-                sum + (parseFloat(item.valorJuros) || 0), 0);
+            //  Calcular valores originais totais - EXCLUINDO valores negativos
+            const valorPrincipalOriginal = (dados.valoresPrincipais || []).reduce((sum, item) => {
+                const valor = parseFloat(item.valorPrincipal) || 0;
+                return sum + (valor > 0 ? valor : 0); // Só soma se for positivo
+            }, 0);
+            
+            const valorJurosOriginal = (dados.valoresPrincipais || []).reduce((sum, item) => {
+                const valor = parseFloat(item.valorJuros) || 0;
+                return sum + (valor > 0 ? valor : 0); // Só soma se for positivo
+            }, 0);
+            
             const valorTotalOriginal = valorPrincipalOriginal + valorJurosOriginal;
 
             return `
