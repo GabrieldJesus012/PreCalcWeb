@@ -1283,6 +1283,12 @@
             DadosFormulario.herdeiros = [];
             DadosFormulario.sindicatos = [];
             DadosFormulario.cessoes = [];
+
+            valoresPrincipais = [];
+            const listaValoresPrincipais = document.getElementById('listaValoresPrincipais');
+            if (listaValoresPrincipais) {
+                listaValoresPrincipais.innerHTML = '';
+            }
             
             FormCache.calculatorForm?.reset();
             
