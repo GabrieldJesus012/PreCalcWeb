@@ -915,6 +915,68 @@ tr.highlight {
     letter-spacing: 0.2px;
 }
 
+#tab2 .checkbox-group {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    background: #F5F1E8;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(197, 165, 114, 0.3);
+    margin-top: 8px;
+}
+
+#tab2 .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+}
+
+#tab2 .checkbox-item input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: #C5A572;
+}
+
+#tab2 .checkbox-item label {
+    margin: 0;
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: 12px;
+    color: #1a2332;
+    font-weight: 500;
+}
+
+#tab2 .btn-add {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    color: white;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 16px rgba(40, 167, 69, 0.3);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 15px 0;
+}
+
+#tab2 .btn-add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(40, 167, 69, 0.4);
+}
+
+
+#tab2 .date-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
 
 /* Responsividade */
 @media (max-width: 768px) {

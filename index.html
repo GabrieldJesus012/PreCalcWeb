@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="print.css" media="print">
-    <link rel="shortcut icon" href="assets/precalc2.ico" type="image/x-icon">
+    <link rel="stylesheet" href="/print.css" media="print">
+    <link rel="shortcut icon" href="/assets/precalc2.ico" type="image/x-icon">
     <meta name="description" content="Cálculos de Precatórios.">
     <title>PreCalc Web</title>
 </head>
@@ -20,11 +20,10 @@
             <div class="tabs-nav">
                 <button class="tab-button active" onclick="showTab('tab1')">📅 Informações Gerais</button>
                 <button class="tab-button" onclick="showTab('tab2')">💰 Informações Financeiras</button>
-                <button class="tab-button" onclick="showTab('tab3')">🏦 Deduções Legais</button>
-                <button class="tab-button" onclick="showTab('tab4')">👩‍💼 Deduções Acessórias</button>
-                <button class="tab-button" onclick="showTab('tab5')">👥 Herdeiros</button>
-                <button class="tab-button" onclick="showTab('tab6')">🔄 Cessões de Crédito</button>
-                <button class="tab-button" id="tabAcordo" onclick="showTab('tab8')" style="display: none;">🤝 Adesão ao Acordo</button>
+                <button class="tab-button" onclick="showTab('tab3')">👩‍💼 Deduções Acessórias</button>
+                <button class="tab-button" onclick="showTab('tab4')">👥 Herdeiros</button>
+                <button class="tab-button" onclick="showTab('tab5')">🔄 Cessões de Crédito</button>
+                <button class="tab-button" id="tabAcordo" onclick="showTab('tab6')" style="display: none;">🤝 Adesão ao Acordo</button>
                 <button class="tab-button" onclick="showTab('tab7')">📊 Resultados</button>
             </div>
 
@@ -96,101 +95,131 @@
                     <div class="form-group">
                         <h3>📅 Datas-base de cálculos</h3>
                         <div class="input-group">
-                            <label>Ano do Orçamento:</label>
+                            <label for="anoOrcamento">Ano do Orçamento:</label>
                             <input type="number" id="anoOrcamento" placeholder="Ano do Orçamento">
                         </div>
-                        <h3>📅 Inf. do Cálculo Homologado</h3>
-                        <div class="input-group">
-                            <label>Mês Base:</label>
-                            <select id="mesBase">
-                                <option value="janeiro">Janeiro</option>
-                                <option value="fevereiro">Fevereiro</option>
-                                <option value="março">Março</option>
-                                <option value="abril">Abril</option>
-                                <option value="maio">Maio</option>
-                                <option value="junho">Junho</option>
-                                <option value="julho">Julho</option>
-                                <option value="agosto">Agosto</option>
-                                <option value="setembro">Setembro</option>
-                                <option value="outubro">Outubro</option>
-                                <option value="novembro">Novembro</option>
-                                <option value="dezembro">Dezembro</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>Ano Base:</label>
-                            <input type="number" id="anoBase" placeholder="Ano Base">
-                        </div>
-                    </div>
-                    <div class="form-group">
                         <h3>💰 Informações Financeiras</h3>
-                        <div class="input-group">
-                            <label>Valor Principal (R$):</label>
-                            <input type="number" id="valorPrincipal" step="0.01" placeholder="0.00">
-                        </div>
-                        <div class="input-group">
-                            <label>Valor dos Juros (R$):</label>
-                            <input type="number" id="valorJuros" step="0.01" placeholder="0.00">
-                        </div>
-                        <div class="input-group">
+                            <div class="input-group">
+                                <label for="descricaoPrincipal">Descrição:</label>
+                                <input type="text" id="descricaoPrincipal" placeholder="Ex: Salários">
+                            </div>
+                            <div class="date-row">
+                                <div class="input-group">
+                                    <label for="mesBase">Mês Base:</label>
+                                    <select id="mesBase">
+                                        <option value="janeiro">Janeiro</option>
+                                        <option value="fevereiro">Fevereiro</option>
+                                        <option value="março">Março</option>
+                                        <option value="abril">Abril</option>
+                                        <option value="maio">Maio</option>
+                                        <option value="junho">Junho</option>
+                                        <option value="julho">Julho</option>
+                                        <option value="agosto">Agosto</option>
+                                        <option value="setembro">Setembro</option>
+                                        <option value="outubro">Outubro</option>
+                                        <option value="novembro">Novembro</option>
+                                        <option value="dezembro">Dezembro</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="anoBase">Ano Base:</label>
+                                    <input type="number" id="anoBase" placeholder="Ano Base">
+                                </div>
+                            </div>
+                            <div class="date-row">
+                                <div class="input-group">
+                                    <label for="valorPrincipal">Valor Principal (R$):</label>
+                                    <input type="number" id="valorPrincipal" step="0.01" placeholder="0.00">
+                                </div>
+                                <div class="input-group">
+                                    <label for="valorJuros">Valor dos Juros (R$):</label>
+                                    <input type="number" id="valorJuros" step="0.01" placeholder="0.00">
+                                </div>
+                            </div>
+                        <!-- <div class="input-group">
                             <label>Valor Selic (R$):</label>
                             <input type="number" id="valorSelic" step="0.01" placeholder="0.00">
                         </div>
+                        -->
                         <div class="input-group">
-                            <label>RRA:</label>
+                            <label for="rra">RRA:</label>
                             <input type="number" id="rra" value="0" min="0">
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab 3: Deduções Legais -->
-            <div id="tab3" class="tab-content">
-                <div class="form-section">
-                    <div class="form-group">
-                        <h3>🏦 Impostos e Contribuições</h3>
-                        <div class="input-group">
-                            <label>Incidência de IR:</label>
-                            <select id="incidenciaIR">
-                                <option value="sim">Sim</option>
-                                <option value="nao">Não</option>
-                            </select>
+                        <label>Índices de Correção:</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="principalCNJ" checked>
+                                <label for="principalCNJ">CNJ</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="principalSELIC" checked>
+                                <label for="principalSELIC">SELIC</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="principalIPCA" checked>
+                                <label for="principalIPCA">IPCA</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="principalJurosMora" checked>
+                                <label for="principalJurosMora">Juros de Mora</label>
+                            </div>
                         </div>
-                        <div class="input-group">
-                            <label>Incidência de Previdência:</label>
-                            <select id="incidenciaPrevidencia">
-                                <option value="sim">Sim</option>
-                                <option value="nao">Não</option>
-                            </select>
+                        <h3>🏦 Impostos e Contribuições</h3>
+                        <div class="date-row">
+                            <div class="input-group">
+                                <label for="incidenciaIR">Incidência de IR:</label>
+                                <select id="incidenciaIR">
+                                    <option value="sim">Sim</option>
+                                    <option value="nao">Não</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="incidenciaPrevidencia">Incidência de Previdência:</label>
+                                <select id="incidenciaPrevidencia">
+                                    <option value="sim">Sim</option>
+                                    <option value="nao">Não</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="input-group" id="tipoPrevidenciaDiv" style="display: none;">
-                            <label>Tipo de Previdência:</label>
+                            <label for="tipoPrevidencia">Tipo de Previdência:</label>
                             <select id="tipoPrevidencia">
                                 <option value="inss">INSS</option>
                                 <option value="fixa">Alíquota Fixa</option>
                             </select>
                         </div>
                         <div class="input-group" id="aliquotaFixaDiv" style="display: none;">
-                            <label>Alíquota Fixa (ex: 0.14 para 14%):</label>
+                            <label for="aliquotaFixa">Alíquota Fixa (ex: 0.14 para 14%):</label>
                             <input type="number" id="aliquotaFixa" step="0.01" min="0" max="1" placeholder="0.00">
+                        </div>
+                        <div style="text-align: center;">
+                            <button class="btn-add" onclick="adicionarValorPrincipal()">
+                                ➕ Adicionar Valor Principal
+                            </button>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <h3>📋 Valores Cadastrados</h3>
+                            <div id="listaValoresPrincipais" class="lista-items">
+                                <!-- Valores serão adicionados aqui -->
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Tab 4: Deduções Acessórias (Honorários) -->
-            <div id="tab4" class="tab-content">
+            <!-- Tab 3: Deduções Acessórias (Honorários) -->
+            <div id="tab3" class="tab-content">
                 <div class="form-section">
                     <div class="form-group">
                         <h3>👩‍💼 Honorários Contratuais</h3>
                         <div class="input-group">
-                            <label>Quantidade de Advogados:</label>
+                            <label for="quantAdvogados">Quantidade de Advogados:</label>
                             <input type="number" id="quantAdvogados" value="0" min="0">
                         </div>
                         <div id="advogadosContainer"></div>
                         <h3>🤝 Sindicatos</h3>
                         <div class="input-group">
-                            <label>Quantidade de Sindicatos:</label>
+                            <label for="quantSindicatos">Quantidade de Sindicatos:</label>
                             <input type="number" id="quantSindicatos" value="0" min="0">
                         </div>
                         <div id="sindicatosContainer"></div>
@@ -199,13 +228,13 @@
                 </div>
             </div>
 
-            <!-- Tab 5: Herdeiros  -->
-            <div id="tab5" class="tab-content">
+            <!-- Tab 4: Herdeiros  -->
+            <div id="tab4" class="tab-content">
                 <div class="form-section">
                     <div class="form-group">
                         <h3>👥 Herdeiros</h3>
                         <div class="input-group">
-                            <label>Quantidade de Herdeiros:</label>
+                            <label for="quantHerdeiros">Quantidade de Herdeiros:</label>
                             <input type="number" id="quantHerdeiros" value="0" min="0">
                         </div>
                         <div id="herdeirosContainer"></div>
@@ -213,13 +242,13 @@
                 </div>
             </div>
 
-            <!-- Tab 6: Cessão  -->
-            <div id="tab6" class="tab-content">
+            <!-- Tab 5: Cessão  -->
+            <div id="tab5" class="tab-content">
                 <div class="form-section">
                     <div class="form-group">
                         <h3>🔄 Cessões</h3>
                         <div class="input-group">
-                            <label>Quantidade de Cessões:</label>
+                            <label for="quantCessoes">Quantidade de Cessões:</label>
                             <input type="number" id="quantCessoes" value="0" min="0">
                         </div>
                         <div id="cessaoContainer"></div>
@@ -227,8 +256,8 @@
                 </div>
             </div>
 
-            <!-- Tab 8: Adesão ao Acordo (Nova Aba) -->
-            <div id="tab8" class="tab-content">
+            <!-- Tab 6: Adesão ao Acordo (Nova Aba) -->
+            <div id="tab6" class="tab-content">
                 <div class="form-section">
                     <div class="form-group">
                         <div class="alerta-didatico">
@@ -244,7 +273,7 @@
                 </div>
             </div>
 
-            <!-- Tab 8: Resultados -->
+            <!-- Tab 7: Resultados -->
             <div id="tab7" class="tab-content">
                 <div id="results" class="results">
                     <div class="section-title">Resultados dos Cálculos</div>
@@ -289,11 +318,11 @@
             
             preencherSindiFaz(dados);
             alert("✅ SindiFaz configurado!");
-            
-        } catch (error) {
-            alert("❌ Erro ao configurar.");
+                
+            } catch (error) {
+                alert("❌ Erro ao configurar.");
+            }
         }
-    }
 
         function preencherSindiFaz(dados) {
             const definir = (id, valor) => {
@@ -368,7 +397,7 @@
                 }
             });
 
-            if (tabId === 'tab8') {
+            if (tabId === 'tab6') {
                 atualizarAdesaoAcordo();
             }
         }
@@ -441,6 +470,126 @@
             toggleAbaAcordo();
         });
 
+        let valoresPrincipais = [];
+
+        function adicionarValorPrincipal() {
+            const mesBase = document.getElementById('mesBase').value;
+            const anoBase = document.getElementById('anoBase').value;
+            const valorPrincipal = document.getElementById('valorPrincipal').value;
+            const valorJuros = document.getElementById('valorJuros').value;
+            const rra = document.getElementById('rra').value;
+            const descricao = document.getElementById('descricaoPrincipal').value; // Campo de descrição
+
+            if (!anoBase || (!valorPrincipal && !valorJuros)) {
+                alert('Preencha o ano base e pelo menos um valor (principal, juros ou selic)');
+                return;
+            }
+
+            const indices = {
+                cnj: document.getElementById('principalCNJ').checked,
+                selic: document.getElementById('principalSELIC').checked,
+                ipca: document.getElementById('principalIPCA').checked,
+                jurosMora: document.getElementById('principalJurosMora').checked
+            };
+
+            const tributacao = {
+                ir: document.getElementById('incidenciaIR').value === 'sim',
+                previdencia: document.getElementById('incidenciaPrevidencia').value === 'sim',
+                tipoPrevidencia: document.getElementById('tipoPrevidencia').value,
+                aliquotaFixa: parseFloat(document.getElementById('aliquotaFixa').value) || 0,
+                rra: parseFloat(rra) || 0
+            };
+
+            const valor = {
+                id: Date.now(),
+                mesBase,
+                anoBase: parseInt(anoBase),
+                valorPrincipal: parseFloat(valorPrincipal) || 0,
+                valorJuros: parseFloat(valorJuros) || 0,
+                indices,
+                tributacao,
+                descricao: descricao || 'Valor Principal'
+            };
+
+            valoresPrincipais.push(valor);
+            renderizarValoresPrincipais();
+            limparFormularioPrincipal();
+
+            alert("✅ Valor cadastrado com sucesso!");
+
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        // Renderizar valores principais
+        function renderizarValoresPrincipais() {
+            const lista = document.getElementById('listaValoresPrincipais');
+            lista.innerHTML = '';
+
+            valoresPrincipais.forEach(valor => {
+                const div = document.createElement('div');
+                div.className = 'item-card';
+                
+                const indicesTexto = Object.entries(valor.indices)
+                    .filter(([key, value]) => value)
+                    .map(([key, value]) => key.toUpperCase())
+                    .join(', ');
+
+                const tributacaoTexto = [];
+                if (valor.tributacao.ir) tributacaoTexto.push('IR');
+                if (valor.tributacao.previdencia) {
+                    if (valor.tributacao.tipoPrevidencia === 'fixa') {
+                        tributacaoTexto.push(`PREV: ${(valor.tributacao.aliquotaFixa * 100).toFixed(2)}%`);
+                    } else {
+                        tributacaoTexto.push('PREV: INSS');
+                    }
+                }
+                if (valor.tributacao.rra > 0) tributacaoTexto.push(`RRA: ${valor.tributacao.rra}`);
+
+                div.innerHTML = `
+                    <div class="item-header">
+                        <strong>${valor.descricao}</strong>
+                        <button class="btn-add" onclick="removerValorPrincipal(${valor.id})">🗑️ Remover</button>
+                    </div>
+                    <div class="item-info">
+                        <span><strong>Base:</strong> ${valor.mesBase}/${valor.anoBase}</span>
+                        <span><strong>Principal:</strong> R$ ${valor.valorPrincipal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                        <span><strong>Juros:</strong> R$ ${valor.valorJuros.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                        <span><strong>Índices:</strong> ${indicesTexto}</span>
+                        <span><strong>Tributação:</strong> ${tributacaoTexto.join(', ') || 'Nenhuma'}</span>
+                    </div>
+                `;
+                lista.appendChild(div);
+            });
+        }
+
+        // Funções para remover itens
+        function removerValorPrincipal(id) {
+            valoresPrincipais = valoresPrincipais.filter(v => v.id !== id);
+            renderizarValoresPrincipais();
+        }
+
+        // Funções para limpar formulários
+        function limparFormularioPrincipal() {
+            document.getElementById('valorPrincipal').value = '';
+            document.getElementById('valorJuros').value = '';
+            //document.getElementById('valorSelic').value = '';
+            document.getElementById('rra').value = '';
+            document.getElementById('descricaoPrincipal').value = ''; 
+        }
+
+        // Definir valores padrão na inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            const anoAtual = new Date().getFullYear();
+            document.getElementById('anoBase').value = anoAtual;
+            document.getElementById('anoOrcamento').value = anoAtual;
+            
+            // Configurar eventos iniciais
+            document.getElementById('incidenciaPrevidencia').dispatchEvent(new Event('change'));
+            document.getElementById('tipoPrevidencia').dispatchEvent(new Event('change'));
+        });
 
         // Armazenar
         const DadosFormulario = {
@@ -1134,6 +1283,12 @@
             DadosFormulario.herdeiros = [];
             DadosFormulario.sindicatos = [];
             DadosFormulario.cessoes = [];
+
+            valoresPrincipais = [];
+            const listaValoresPrincipais = document.getElementById('listaValoresPrincipais');
+            if (listaValoresPrincipais) {
+                listaValoresPrincipais.innerHTML = '';
+            }
             
             FormCache.calculatorForm?.reset();
             
@@ -1180,7 +1335,7 @@
             } else {
                 tabAcordo.style.display = 'none';
                 // Se estava na aba de acordo, voltar para a primeira
-                const abaAcordoAtiva = document.getElementById('tab8');
+                const abaAcordoAtiva = document.getElementById('tab6');
                 if (abaAcordoAtiva && abaAcordoAtiva.classList.contains('active')) {
                     showTab('tab1');
                 }
@@ -2469,17 +2624,8 @@
                     beneficiario: document.getElementById('beneficiario'),
                     tipoBeneficiario: document.getElementById('tipoBeneficiario'),
                     credor: document.getElementById('credor'),
-                    mesBase: document.getElementById('mesBase'),
-                    anoBase: document.getElementById('anoBase'),
-                    valorPrincipal: document.getElementById('valorPrincipal'),
-                    valorJuros: document.getElementById('valorJuros'),
-                    rra: document.getElementById('rra'),
                     natureza: document.getElementById('natureza'),
-                    tipoCalculo: document.getElementById('tipoCalculo'),
-                    incidenciaIR: document.getElementById('incidenciaIR'),
-                    incidenciaPrevidencia: document.getElementById('incidenciaPrevidencia'),
-                    tipoPrevidencia: document.getElementById('tipoPrevidencia'),
-                    aliquotaFixa: document.getElementById('aliquotaFixa'),
+                    tipoCalculo: document.getElementById('tipoCalculo'),                
                     
                     // Quantidades
                     quantAdvogados: document.getElementById('quantAdvogados'),
@@ -2509,6 +2655,11 @@
             if (!ColetaCache.elementos) {
                 ColetaCache.init();
             }
+
+            if (!valoresPrincipais || valoresPrincipais.length === 0) {
+                alert("⚠️ Você precisa adicionar pelo menos um Valor Principal antes de calcular!");
+                return;
+            }
             
             const dados = coletarDados();
             const erros = validarDados(dados);
@@ -2531,17 +2682,21 @@
                 beneficiario: cache.getValue('beneficiario', 'Beneficiario'),
                 tipoBeneficiario: cache.getValue('tipoBeneficiario', 'pf'),
                 credor: cache.getValue('credor', 'Devedor'),
-                mesBase: cache.getValue('mesBase'),
-                anoBase: cache.getValue('anoBase', 0, parseInt),
-                valorPrincipal: cache.getValue('valorPrincipal', 0, parseFloat),
-                valorJuros: cache.getValue('valorJuros', 0, parseFloat),
-                rra: cache.getValue('rra', 0, parseFloat),
                 natureza: cache.getValue('natureza'),
                 tipoCalculo: cache.getValue('tipoCalculo'),
-                incidenciaIR: cache.getValue('incidenciaIR') === 'sim',
-                incidenciaPrevidencia: cache.getValue('incidenciaPrevidencia') === 'sim',
-                tipoPrevidencia: cache.getValue('tipoPrevidencia'),
-                aliquotaFixa: cache.getValue('aliquotaFixa', 0, parseFloat),
+                
+                valoresPrincipais: valoresPrincipais.map(valor => ({
+                    ...valor,
+                    // Garante que valores numéricos estão corretos
+                    valorPrincipal: parseFloat(valor.valorPrincipal) || 0,
+                    valorJuros: parseFloat(valor.valorJuros) || 0,
+                    valorSelic: parseFloat(valor.valorSelic) || 0,
+                    tributacao: {
+                        ...valor.tributacao,
+                        rra: parseFloat(valor.tributacao.rra) || 0,
+                        aliquotaFixa: parseFloat(valor.tributacao.aliquotaFixa) || 0
+                    }
+                })),
                 
                 // Quantidades
                 quantAdvogados: cache.getValue('quantAdvogados', 0, parseInt),
@@ -2659,7 +2814,7 @@
             if (dados.herdeiros.length > 0) {
                 const somaHerdeiros = dados.herdeiros.reduce((sum, h) => sum + h.percentual, 0);
                 if (Math.abs(somaHerdeiros - 1.0) > 0.001) {
-                    erros.push(`A soma dos percentuais dos herdeiros deve ser 100% (atual: ${(somaHerdeiros * 100).toFixed(1)}%)`);
+                    erros.push(`A soma dos percentuais dos herdeiros deve ser 100% (atual: ${(somaHerdeiros * 100).toFixed(2)}%)`);
                 }
             }
 
@@ -2724,40 +2879,192 @@
             ColetaCache.init();
         });
 
-        async function calcularValores(dados) {
-            //datas
-            const dataBase = criarDataBase(dados.mesBase, dados.anoBase);
+        async function calcularItemPrincipal(item, dados) {
             const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
-
-            //indices
-            const indicesCNJ = obterIndiceCNJ(dados.mesBase, dados.anoBase); // CNJ
-            const dadosSelic = await calcularSelic(dataBase, inicioGraca, fimGraca);// SELIC
-            const indiceipca = await calcularIpca(dataBase, inicioGraca, fimGraca); // IPCA
-            const jurosmora = calcularSomaJurosMora(dados.mesBase, dados.anoBase, dados.natureza, inicioGraca, fimGraca)/100;; // Juros de Mora
-
-            // Cálculos básicos
+            
+            // Data base específica do item
+            const dataBase = criarDataBase(item.mesBase, item.anoBase);
+            // Cálculo dos índices condicionais para este item
+            let indicesCNJ = 1;
+            let dadosSelic = { indiceselic: 1 };
+            let indiceipca = 1;
+            let jurosmora = 0;
+            
+            if (item.indices.cnj) {
+                indicesCNJ = obterIndiceCNJ(item.mesBase, item.anoBase);
+            } 
+            
+            if (item.indices.selic) {
+                dadosSelic = await calcularSelic(dataBase, inicioGraca, fimGraca);
+            } 
+            
+            if (item.indices.ipca) {
+                indiceipca = await calcularIpca(dataBase, inicioGraca, fimGraca);
+            } 
+            
+            if (item.indices.jurosMora) {
+                jurosmora = calcularSomaJurosMora(item.mesBase, item.anoBase, dados.natureza, inicioGraca, fimGraca) / 100;
+            } 
+            
+            // Cálculos dos índices compostos
             const indiceprinc = indicesCNJ * dadosSelic.indiceselic * indiceipca;
             const indicejur = dadosSelic.indiceselic * indiceipca;
+            
+            // Cálculo de juros de mora
+            const valorjurosmora = item.valorPrincipal * indicesCNJ * jurosmora;
+            const jurosItem = valorjurosmora + (item.valorJuros * indicesCNJ);
+                        
+            // Valores atualizados
+            const valorPrincipalAtualizado = item.valorPrincipal * indiceprinc;
+            const valorJurosAtualizado = jurosItem * indicejur;
+            const valorTotalItem = valorPrincipalAtualizado + valorJurosAtualizado;
+                        
+            const resultado = {
+                id: item.id,
+                descricao: item.descricao,
+                valorOriginal: {
+                    principal: item.valorPrincipal,
+                    juros: item.valorJuros,
+                    total: item.valorPrincipal + item.valorJuros
+                },
+                valorAtualizado: {
+                    principal: valorPrincipalAtualizado,
+                    juros: valorJurosAtualizado,
+                    total: valorTotalItem
+                },
+                indices: {
+                    cnj: indicesCNJ,
+                    selic: dadosSelic.indiceselic,
+                    ipca: indiceipca,
+                    jurosMora: jurosmora,
+                    indicePrincipal: indiceprinc,
+                    indiceJuros: indicejur
+                },
+                tributacao: item.tributacao,
+                jurosMoraCalculado: valorjurosmora
+            };
+            
+            return resultado;
+        }
 
-            //jurosmora
-            const valorjurosmora = dados.valorPrincipal * indicesCNJ * jurosmora;
-            const juros = valorjurosmora + (dados.valorJuros * indicesCNJ);
+        // Função para totalizar valores por tipo de tributação
+        function totalizarTributacao(itensCalculados) {            
+            const totais = {
+                valorPrincipalTotal: 0,
+                valorJurosTotal: 0,
+                valorGeralTotal: 0,
+                rraTotal: 0,
+                
+                // Tributação IR
+                principalTributadoIR: 0,
+                jurosTributadoIR: 0,
+                isentoIR: 0,
+                
+                // Tributação Previdência
+                principalTributadoPrevidencia: 0,
+                jurosTributadoPrevidencia: 0,
+                isentoPrevidencia: 0
+            };
+            
+            for (const item of itensCalculados) {                
+                // Totais gerais
+                totais.valorPrincipalTotal += item.valorAtualizado.principal;
+                totais.valorJurosTotal += item.valorAtualizado.juros;
+                totais.valorGeralTotal += item.valorAtualizado.total;
+                totais.rraTotal += item.tributacao.rra || 0;
+                
+                // Tributação IR
+                if (item.tributacao.ir) {
+                    totais.principalTributadoIR += item.valorAtualizado.principal;
+                    totais.jurosTributadoIR += item.valorAtualizado.juros;
+                } else {
+                    totais.isentoIR += item.valorAtualizado.total;
+                }
+                
+                // Tributação Previdência
+                if (item.tributacao.previdencia) {
+                    totais.principalTributadoPrevidencia += item.valorAtualizado.principal;
+                    totais.jurosTributadoPrevidencia += item.valorAtualizado.juros;
+                } else {
+                    totais.isentoPrevidencia += item.valorAtualizado.total;
+                }
+            }
+            
+            return totais;
+        }
 
-            //valores atualizaco
-            const valorprincatt = dados.valorPrincipal * indiceprinc;
-            const valorjurosatt = juros * indicejur;
-            const valortotatt = valorprincatt + valorjurosatt;
+        async function calcularValores(dados) {
+            // Validação básica
+            if (!dados.valoresPrincipais || dados.valoresPrincipais.length === 0) {
+                console.error('❌ Erro: Nenhum valor principal encontrado!');
+                return null;
+            }
+            
+            // Array para armazenar cada item calculado
+            const itensCalculados = [];
+            
+            // Calcula cada item individualmente
+            for (let i = 0; i < dados.valoresPrincipais.length; i++) {
+                const item = dados.valoresPrincipais[i];
+                
+                try {
+                    const itemCalculado = await calcularItemPrincipal(item, dados);
+                    itensCalculados.push(itemCalculado);
+                } catch (error) {
+                    console.error(`❌ Erro ao calcular item ${item.descricao}:`, error);
+                    throw error;
+                }
+            }
+            
+            // Totaliza todos os valores
+            const totais = totalizarTributacao(itensCalculados);
+            
+            // Cálculos de percentuais
+            const percentualprinc = totais.valorPrincipalTotal / totais.valorGeralTotal;
+            const percentualjur = totais.valorJurosTotal / totais.valorGeralTotal;
+                        
+            // Valor original total para cálculo do índice total
+            const valorOriginalTotal = itensCalculados.reduce((sum, item) => 
+                sum + item.valorOriginal.total, 0);
+            const indiceTotal = totais.valorGeralTotal / valorOriginalTotal;
+            
 
-            //percentuais
-            const percentualprinc = valorprincatt / valortotatt;
-            const percentualjur = valorjurosatt / valortotatt;
-            const indiceTotal = valortotatt / (dados.valorPrincipal + dados.valorJuros);
+            // Cálculo de percentuais de tributação para exibição
+            const percentualPrincipalTributadoIR = (totais.principalTributadoIR / totais.valorGeralTotal) * 100;
+            const percentualJurosTributadoIR = (totais.jurosTributadoIR / totais.valorGeralTotal) * 100;
+            const percentualIsentoIR = (totais.isentoIR / totais.valorGeralTotal) * 100;
+            
+            // Detalhamento financeiro (usando os totais calculados)
+            const dadosParaDetalhamento = {
+                ...dados,
+                valorPrincipal: totais.valorPrincipalTotal,
+                valorJuros: totais.valorJurosTotal,
+                rra: totais.rraTotal,
 
-            // Detalhamento financeiro
-            const detalhamento = calcularGlobal(dados, valortotatt, percentualprinc, percentualjur);
+                incidenciaIR: dados.valoresPrincipais.some(item => item.tributacao?.ir === true),
+                incidenciaPrevidencia: dados.valoresPrincipais.some(item => item.tributacao?.previdencia === true),
 
-            const herdeiros = calcularHerdeiros(dados, valortotatt, valorprincatt, valorjurosatt, detalhamento);
-
+                tributacaoIR: {
+                    principalTributado: totais.principalTributadoIR,
+                    jurosTributado: totais.jurosTributadoIR,
+                    isento: totais.isentoIR,
+                    percentuais: {
+                        principalTributado: percentualPrincipalTributadoIR,
+                        jurosTributado: percentualJurosTributadoIR,
+                        isento: percentualIsentoIR
+                    }
+                },
+                tributacaoPrevidencia: {
+                    principalTributado: totais.principalTributadoPrevidencia,
+                    jurosTributado: totais.jurosTributadoPrevidencia,
+                    isento: totais.isentoPrevidencia
+                }
+            };
+            
+            const detalhamento = calcularGlobal(dadosParaDetalhamento, totais.valorGeralTotal, percentualprinc, percentualjur);
+            
+            const herdeiros = calcularHerdeiros(dadosParaDetalhamento, totais.valorGeralTotal, totais.valorPrincipalTotal, totais.valorJurosTotal, detalhamento);
+            
             // Resumo dos herdeiros
             const resumoHerdeiros = {
                 valorTotalHerdeiros: herdeiros.reduce((sum, h) => sum + h.valorTotalOriginal, 0),
@@ -2766,32 +3073,57 @@
                 herdeirosComPreferencia: herdeiros.filter(h => h.temPreferencia).length,
                 herdeirosComPreferenciaParcial: herdeiros.filter(h => h.isPreferenciaParcial).length
             };
-
-            return {
-                //atualizacao
-                valorprincatt,
-                valorjurosatt,
-                valortotatt,
-
-                //calculo do beneficiario principal
+            
+            const resultadoFinal = {
+                // Valores atualizados totais (compatibilidade com função original)
+                valorprincatt: totais.valorPrincipalTotal,
+                valorjurosatt: totais.valorJurosTotal,
+                valortotatt: totais.valorGeralTotal,
+                
+                // Separação para tributação IR
+                tributacaoIR: {
+                    principalTributado: totais.principalTributadoIR,
+                    jurosTributado: totais.jurosTributadoIR,
+                    isento: totais.isentoIR,
+                    percentuais: {
+                        principalTributado: percentualPrincipalTributadoIR,
+                        jurosTributado: percentualJurosTributadoIR,
+                        isento: percentualIsentoIR
+                    }
+                },
+                
+                // Separação para tributação Previdência
+                tributacaoPrevidencia: {
+                    principalTributado: totais.principalTributadoPrevidencia,
+                    jurosTributado: totais.jurosTributadoPrevidencia,
+                    isento: totais.isentoPrevidencia
+                },
+                
+                // RRA total
+                rraTotal: totais.rraTotal,
+                
+                // Detalhamento de cada item
+                itensCalculados,
+                
+                // Cálculo do beneficiário principal (compatibilidade)
                 ...detalhamento,
-
-                //herdeiros
+                
+                // Herdeiros (compatibilidade)
                 herdeiros,
                 resumoHerdeiros,
                 temHerdeiros: herdeiros.length > 0,
-
-                // Índices para exibição
-                indicesCNJ,
-                dadosSelic,
-                indiceipca,
+                
+                // Índices e percentuais (compatibilidade)
                 indiceTotal,
-                jurosmora,
-
-                //percentuais
                 percentualprinc,
-                percentualjur
+                percentualjur,
+                
+                // Informações adicionais
+                quantidadeItens: dados.valoresPrincipais.length,
+                valorOriginalTotal
             };
+            
+            return resultadoFinal;
         }
 
         function calcularGlobal(dados, valortotatt, percentualprinc, percentualjur) {
@@ -2803,26 +3135,49 @@
                 valorBase = Math.min(valortotatt, dados.saldoParcial);
             }
 
-            // Composição inicial
-            let principal = valorBase * percentualprinc;
-            const jurosBase = valorBase * percentualjur;
+            // Composição inicial - Para fins de tributação
+            // SEMPRE usar percentual de valores TRIBUTADOS (independente do tipo de cálculo)
+            let principal, jurosBase;
+            
+            if (dados.tributacaoIR && dados.tributacaoPrevidencia) {
+                
+                // Para IR: usar percentual dos valores tributados
+                const percentualPrincipalTributadoIR = dados.tributacaoIR.percentuais?.principalTributado || 0;
+                const percentualJurosTributadoIR = dados.tributacaoIR.percentuais?.jurosTributado || 0;
+                
+                // Principal e juros baseados nos valores tributáveis
+                principal = valorBase * (percentualPrincipalTributadoIR / 100);
+                jurosBase = valorBase * (percentualJurosTributadoIR / 100);
+                                
+            } else {
+                // Fallback para percentuais gerais (caso não tenha dados de tributação)
+                principal = valorBase * percentualprinc;
+                jurosBase = valorBase * percentualjur;
+                
+            }
 
-            // RRA
+
+            // RRA - Agora usando o RRA total consolidado
             let rrapagamento = dados.rra !== 0 ? Math.round((valorBase * dados.rra) / valortotatt) : 0;
+            
 
             // CESSÕES DO BENEFICIÁRIO PRINCIPAL 
             const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
             const isParcial = dados.tipoCalculo === 'parcial';
             
+            
             const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
                 cessao.tipo === 'cessaobenPrincipal'
             ) || [];
+
+
 
             let valorBaseParaHonorarios = valorBase;
             let valorBeneficiarioQueRecebeEfetivamente = valorBase;
 
             //verificar se há cessões do beneficiário
             if (cessoesBeneficiario.length > 0) {
+                
                 // Cessão é sobre o valor TOTAL da dívida
                 const percentualBeneficiarioFinal = 1.0 - cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
                 
@@ -2833,17 +3188,20 @@
                 valorBeneficiarioQueRecebeEfetivamente = isPreferenciasParcial ? 
                     Math.min(direitoBeneficiarioTotal, valorBase) : direitoBeneficiarioTotal;
                 
+                
                 // Base para honorários
                 if (isPreferenciasParcial || isParcial) {
                     valorBaseParaHonorarios = valorBeneficiarioQueRecebeEfetivamente;
                 } else {
                     valorBaseParaHonorarios = valorBase;
                 }
+
             }
 
             // Honorários
             const resultadoHonorarios = calcularHonorarios(dados, valorBaseParaHonorarios, valortotatt);
             const { honorarios, valorHonorarioTotal } = resultadoHonorarios;
+            
 
             // Sindicatos 
             const resultadoSindicatos = calcularSindicatos(dados, valorBaseParaHonorarios, valortotatt);
@@ -2852,10 +3210,17 @@
             const valorSindicatoParaDescontar = isPreferenciasParcial ? 0 : valorSindicatoTotal;
             const valorBeneficiarioBruto = valorBase - valorHonorarioTotal - valorSindicatoParaDescontar;
 
-            // RECÁLCULO PARA PREFERÊNCIA PARCIAL
+
+            // RECÁLCULO PARA PREFERÊNCIA PARCIAL E CESSÕES
             if (isPreferenciasParcial) {
-                const valorPrincipalBeneficiario = valorBeneficiarioQueRecebeEfetivamente * percentualprinc;
-                principal = valorPrincipalBeneficiario;
+                
+                // Para preferência parcial, manter a mesma lógica de percentual tributável
+                if (dados.tributacaoIR) {
+                    const percentualPrincipalTributadoIR = dados.tributacaoIR.percentuais?.principalTributado || 0;
+                    principal = valorBeneficiarioQueRecebeEfetivamente * (percentualPrincipalTributadoIR / 100);
+                } else {
+                    principal = valorBeneficiarioQueRecebeEfetivamente * percentualprinc;
+                }
                 
                 // Para RRA: garantir que seja pelo menos 1 se havia RRA original
                 if (dados.rra !== 0) {
@@ -2864,10 +3229,17 @@
                 } else {
                     rrapagamento = 0;
                 }
-            }else if (cessoesBeneficiario.length > 0 && dados.tipoCalculo !== 'ordem') {
-                // ORDEM COM CESSÕES: Principal baseado no valor que o beneficiário receberá
-                const valorPrincipalBeneficiario = valorBeneficiarioQueRecebeEfetivamente * percentualprinc;
-                principal = valorPrincipalBeneficiario;
+
+                
+            } else if (cessoesBeneficiario.length > 0 && dados.tipoCalculo !== 'ordem') {
+                
+                // CESSÕES: Principal baseado no valor que o beneficiário receberá
+                if (dados.tributacaoIR) {
+                    const percentualPrincipalTributadoIR = dados.tributacaoIR.percentuais?.principalTributado || 0;
+                    principal = valorBeneficiarioQueRecebeEfetivamente * (percentualPrincipalTributadoIR / 100);
+                } else {
+                    principal = valorBeneficiarioQueRecebeEfetivamente * percentualprinc;
+                }
                 
                 // Para RRA
                 if (dados.rra !== 0) {
@@ -2878,12 +3250,15 @@
                 }
             }
 
+            // PREVIDÊNCIA - Usando os dados de tributação consolidados        
             const resultadoPrevidencia = calcularPrevidenciaIsolada(dados, principal, rrapagamento);
             let valorPrevidencia = resultadoPrevidencia.valorPrevidencia;
             let aliquotaEfetiva = resultadoPrevidencia.aliquotaEfetiva;
             let valorDesagioPrevidencia = resultadoPrevidencia.valorDesagioPrevidencia;       
             let percentualDesagioPrevidencia = resultadoPrevidencia.percentualDesagioPrevidencia; 
 
+            
+            // IR - Imposto de Renda
             const resultadoIR = calcularIRIsolado(dados, valortotatt, valorBase, principal, valorPrevidencia, rrapagamento);
             let {
                 valorIR,
@@ -2896,9 +3271,9 @@
                 baseIRPrev,
                 baseIRRRA,
                 valorIRUnitario,
-    
             } = resultadoIR;
 
+            // CESSÕES - Cálculo final das cessões
             const resultadoCessoes = calcularCessoesBeneficiarioPrincipal(dados, valorBase, valortotatt, valorHonorarioTotal, valorSindicatoParaDescontar, valorPrevidencia, valorIR);
             let {
                 valorCessoesBeneficiario,
@@ -3453,15 +3828,34 @@
                 };
             }
             
-            if (dados.incidenciaPrevidencia) {
-                if (dados.tipoPrevidencia === 'fixa') {
-                    valorPrevidencia = principalBase * dados.aliquotaFixa;
-                    aliquotaEfetiva = dados.aliquotaFixa;
+            // Verificar se deve calcular previdência baseado nos itens individuais
+            const deveCalcularPrevidencia = dados.incidenciaPrevidencia || 
+                (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.previdencia));
+            
+            if (deveCalcularPrevidencia) {
+                let tipoPrevidencia = 'inss'; // padrão
+                let aliquotaFixa = 0;
+                
+                if (dados.valoresPrincipais) {
+                    const itemComPrevidencia = dados.valoresPrincipais.find(item => item.tributacao?.previdencia);
+                    if (itemComPrevidencia) {
+                        tipoPrevidencia = itemComPrevidencia.tributacao.tipoPrevidencia || 'inss';
+                        aliquotaFixa = itemComPrevidencia.tributacao.aliquotaFixa || 0;
+                    }
+                } else {
+                    // Fallback para dados globais (compatibilidade)
+                    tipoPrevidencia = dados.tipoPrevidencia || 'inss';
+                    aliquotaFixa = dados.aliquotaFixa || 0;
+                }
+                
+                if (tipoPrevidencia === 'fixa') {
+                    valorPrevidencia = principalBase * aliquotaFixa;
+                    aliquotaEfetiva = aliquotaFixa;
                 } else {
                     const base = rrapagamento === 0 ? principalBase : principalBase / rrapagamento;
                     const resultadoINSS = calcularINSS(base);
                     valorPrevidencia = resultadoINSS * (rrapagamento || 1);
-                    aliquotaEfetiva = resultadoINSS / base;
+                    aliquotaEfetiva = base > 0 ? resultadoINSS / base : 0;
                 }
 
                 if (dados.tipoCalculo === 'acordo') {
@@ -3471,7 +3865,7 @@
                 }
             }
             
-            return { valorPrevidencia, aliquotaEfetiva,valorDesagioPrevidencia,percentualDesagioPrevidencia };
+            return { valorPrevidencia, aliquotaEfetiva, valorDesagioPrevidencia, percentualDesagioPrevidencia };
         }
 
         function calcularINSS(base) {
@@ -3517,9 +3911,9 @@
                 const valorHerdeiroPoscessaoBeneficiario = valorDisponivelParaHerdeiros * percentualHerdeiro;
 
                 // 3. CESSÕES DO PRÓPRIO HERDEIRO
-                const cessoesHerdeiro = dados.cessoes?.filter(cessao => 
+                const cessoesHerdeiro = (dados.cessoes || []).filter(cessao => 
                     cessao.tipo === 'cessaoHerdeiro' && cessao.cedente === herdeiro.nome
-                ) || [];
+                );
 
                 let valorAposCessoesHerdeiro = valorHerdeiroPoscessaoBeneficiario;
                 if (cessoesHerdeiro.length > 0) {
@@ -3534,9 +3928,21 @@
                     valorBaseHerdeiro = Math.min(valorAposCessoesHerdeiro, dados.tetoPreferencia);
                 }
 
-                // 5. COMPOSIÇÃO INICIAL
-                let principalHerdeiroBase = valorBaseHerdeiro * percentualprinc;
-                const jurosBaseHerdeiroFinal = valorBaseHerdeiro * percentualjur;
+                // 5. COMPOSIÇÃO INICIAL - Usar percentuais tributáveis quando disponível
+                let principalHerdeiroBase, jurosBaseHerdeiroFinal;
+                
+                if (dados.tributacaoIR && dados.tributacaoPrevidencia) {
+                    const percentualPrincipalTributado = dados.tributacaoIR.percentuais?.principalTributado || 0;
+                    const percentualJurosTributado = dados.tributacaoIR.percentuais?.jurosTributado || 0;
+                    
+                    principalHerdeiroBase = valorBaseHerdeiro * (percentualPrincipalTributado / 100);
+                    jurosBaseHerdeiroFinal = valorBaseHerdeiro * (percentualJurosTributado / 100);
+                } else {
+                    // Fallback para percentuais gerais
+                    principalHerdeiroBase = valorBaseHerdeiro * percentualprinc;
+                    jurosBaseHerdeiroFinal = valorBaseHerdeiro * percentualjur;
+                }
+                
                 let rrapagamentoHerdeiroBase = dados.rra !== 0 ? Math.round(dados.rra * percentualHerdeiro) : 0;
 
                 // 6. VERIFICAÇÕES
@@ -3555,13 +3961,17 @@
                 const valorSindicatoParaDescontar = isPreferenciaParcial ? 0 : valorSindicatoTotalHerdeiro;
                 const valorBeneficiarioBrutoHerdeiro = valorBaseHerdeiro - valorHonorarioTotalHerdeiro - valorSindicatoParaDescontar;
                 
-                // 9. RECÁLCULO PARA PREFERÊNCIA PARCIAL
+                // 9. RECÁLCULO PARA PREFERÊNCIA PARCIAL - Usar percentuais tributáveis
                 let principalHerdeiroEfetivo = principalHerdeiroBase;
                 let rrapagamentoHerdeiroEfetivo = rrapagamentoHerdeiroBase;
 
-
                 if (isPreferenciaParcial) {
-                    principalHerdeiroEfetivo = valorHerdeiroQueRecebeEfetivamente * percentualprinc;
+                    if (dados.tributacaoIR) {
+                        const percentualPrincipalTributado = dados.tributacaoIR.percentuais?.principalTributado || 0;
+                        principalHerdeiroEfetivo = valorHerdeiroQueRecebeEfetivamente * (percentualPrincipalTributado / 100);
+                    } else {
+                        principalHerdeiroEfetivo = valorHerdeiroQueRecebeEfetivamente * percentualprinc;
+                    }
                     
                     if (dados.rra !== 0) {
                         const rraCalculado = Math.round((valorBaseHerdeiro * rrapagamentoHerdeiro)/ valorTotalHerdeiro);
@@ -3571,7 +3981,12 @@
                     }
 
                 } else if (cessoesHerdeiro.length > 0 && dados.tipoCalculo !== 'ordem') {
-                    principalHerdeiroEfetivo = valorHerdeiroQueRecebeEfetivamente * percentualprinc;
+                    if (dados.tributacaoIR) {
+                        const percentualPrincipalTributado = dados.tributacaoIR.percentuais?.principalTributado || 0;
+                        principalHerdeiroEfetivo = valorHerdeiroQueRecebeEfetivamente * (percentualPrincipalTributado / 100);
+                    } else {
+                        principalHerdeiroEfetivo = valorHerdeiroQueRecebeEfetivamente * percentualprinc;
+                    }
                     
                     if (dados.rra !== 0) {
                         const rraCalculado = Math.round((valorHerdeiroQueRecebeEfetivamente * dados.rra) / valorTotalHerdeiro);
@@ -3910,12 +4325,17 @@
         }
 
         function formatarMoeda(valor) {
-            return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            if (valor === null || valor === undefined || valor === '' || isNaN(valor)) {
+                return '0,00';
+            }
+            
+            const numeroValido = parseFloat(valor) || 0;
+            return `${numeroValido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         }
 
         function gerarCabecalhoProcesso(dados, resultados, dataAtual) {
-            const secaoRRA = dados.rra && resultados.rrapagamento !== 0 
-                ? `<tr><td>Rendimentos Recebidos Acumuladamente Total (RRA):</td><td>${dados.rra} meses</td></tr>`
+            const secaoRRA = resultados.rraTotal && resultados.rraTotal !== 0 
+                ? `<tr><td>Rendimentos Recebidos Acumuladamente Total (RRA):</td><td>${resultados.rraTotal} meses</td></tr>`
                 : '';
 
                 const tipos = {
@@ -3926,6 +4346,32 @@
             };
 
             const tipoCalculo = tipos[dados.tipoCalculo] || "Não definido";
+
+            let secaoDataBase = '';
+            if (dados.valoresPrincipais && dados.valoresPrincipais.length > 0) {
+                // Coletar todas as datas base únicas
+                const datasBase = new Set();
+                dados.valoresPrincipais.forEach(item => {
+                    if (item.mesBase && item.anoBase) {
+                        datasBase.add(`${item.mesBase}/${item.anoBase}`);
+                    }
+                });
+                
+                const datasUnicas = Array.from(datasBase);
+                
+                if (datasUnicas.length === 1) {
+                    // Uma única data base
+                    secaoDataBase = `<tr><td>Data-base do cálculo homologado na execução</td><td>${datasUnicas[0]}</td></tr>`;
+                } else if (datasUnicas.length > 1) {
+                    // Múltiplas datas base - mostrar todas
+                    secaoDataBase = `<tr><td>Datas-base dos cálculos homologados</td><td>${datasUnicas.join(', ')}</td></tr>`;
+                } else {
+                    // Fallback se não houver datas
+                    secaoDataBase = `<tr><td>Data-base do cálculo homologado na execução</td><td>Não informado</td></tr>`;
+                }
+            } else {
+                secaoDataBase = `<tr><td>Data-base do cálculo homologado na execução</td><td>Não informado</td></tr>`;
+            }
             
             return `
                 <div class="table-container">
@@ -3936,7 +4382,7 @@
                         <tr><td>Ano do orçamento do Precatório</td><td>${dados.anoOrcamento || 'Não informado'}</td></tr>
                         <tr><td>Natureza do Processo</td><td>${dados.natureza === 'alimentar' ? '⚖️ Alimentar' : '⚖️ Comum'}</td></tr>
                         ${secaoRRA}
-                        <tr><td>Data-base do cálculo homologado na execução</td><td>${dados.mesBase || 'Não informado'}/${dados.anoBase || 'Não informado'}</td></tr>
+                        ${secaoDataBase}
                         <tr><td>Beneficiário Principal</td><td>${dados.beneficiario || 'Não informado'}</td></tr>
                         <tr><td>Devedor</td><td>${dados.credor || 'Não informado'}</td></tr>
                         <tr><td>Data do Cálculo</td><td>${dataAtual}</td></tr>
@@ -3948,7 +4394,20 @@
 
         function gerarDemonstrativoValores(dados, resultados, dataAtual) {
             const indiceTotal = isNaN(resultados.indiceTotal) ? '1' : resultados.indiceTotal.toFixed(6);
+    
+            //  Calcular valores originais totais - EXCLUINDO valores negativos
+            const valorPrincipalOriginal = (dados.valoresPrincipais || []).reduce((sum, item) => {
+                const valor = parseFloat(item.valorPrincipal) || 0;
+                return sum + (valor > 0 ? valor : 0); // Só soma se for positivo
+            }, 0);
             
+            const valorJurosOriginal = (dados.valoresPrincipais || []).reduce((sum, item) => {
+                const valor = parseFloat(item.valorJuros) || 0;
+                return sum + (valor > 0 ? valor : 0); // Só soma se for positivo
+            }, 0);
+            
+            const valorTotalOriginal = valorPrincipalOriginal + valorJurosOriginal;
+
             return `
                 <div class="table-container">
                     <h3>💰 Demonstrativo de Atualização Monetária</h3>
@@ -3961,19 +4420,19 @@
                         </tr>
                         <tr>
                             <td>Principal</td>
-                            <td>R$ ${formatarMoeda(dados.valorPrincipal)}</td>
+                            <td>R$ ${formatarMoeda(valorPrincipalOriginal)}</td>
                             <td>${indiceTotal}</td>
                             <td>R$ ${formatarMoeda(resultados.valorprincatt)}</td>
                         </tr>
                         <tr>
                             <td>Juros</td>
-                            <td>R$ ${formatarMoeda(dados.valorJuros)}</td>
+                            <td>R$ ${formatarMoeda(valorJurosOriginal)}</td>
                             <td>${indiceTotal}</td>
                             <td>R$ ${formatarMoeda(resultados.valorjurosatt)}</td>
                         </tr>
                         <tr class="highlight">
                             <td><strong>Total Atualizado</strong></td>
-                            <td><strong>R$ ${formatarMoeda(dados.valorTotal)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(valorTotalOriginal)}</strong></td>
                             <td><strong>-</strong></td>
                             <td><strong>R$ ${formatarMoeda(resultados.valortotatt)}</strong></td>
                         </tr>
@@ -4031,53 +4490,145 @@
             const inicioGracaFormatado = formatarData(inicioGraca);
             const fimGracaFormatado = formatarData(fimGraca);
             
-            const jurosOriginaisCNJ = dados.valorJuros * resultados.indicesCNJ;
-            const jurosMora = dados.valorPrincipal * resultados.indicesCNJ * resultados.jurosmora;
-            const totalJuros = jurosOriginaisCNJ + jurosMora;
-            const totalJurosIPCA = totalJuros * resultados.indiceipca;
-
-            return `
-                <div class="table-container">
-                    <h3>🔢 MEMORIAL DE CÁLCULOS</h3>
-                    <h4>💰 Atualização do Principal - Passo a Passo</h4>
-                    <table>
-                        <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
-                        <tr>
-                            <td>1. Valor Original</td>
-                            <td>Principal Homologado</td>
-                            <td>R$ ${formatarMoeda(dados.valorPrincipal)}</td>
-                        </tr>
-                        <tr>
-                            <td>2. Correção CNJ</td>
-                            <td>R$ ${formatarMoeda(dados.valorPrincipal)} × ${resultados.indicesCNJ.toFixed(6)}</td>
-                            <td>R$ ${formatarMoeda(dados.valorPrincipal * resultados.indicesCNJ)}</td>
-                        </tr>
-                        <tr>
-                            <td>3. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
-                            <td>R$ ${formatarMoeda(dados.valorPrincipal * resultados.indicesCNJ)} × ${resultados.indiceipca.toFixed(6)}</td>
-                            <td>R$ ${formatarMoeda(dados.valorPrincipal * resultados.indicesCNJ * resultados.indiceipca)}</td>
-                        </tr>
-                        <tr>
-                            <td>4. Aplicação SELIC (excluido a graça)</td>
-                            <td>R$ ${formatarMoeda(dados.valorPrincipal * resultados.indicesCNJ * resultados.indiceipca)} × ${resultados.dadosSelic.indiceselic.toFixed(6)}</td>
-                            <td><strong>R$ ${formatarMoeda(resultados.valorprincatt)}</strong></td>
-                        </tr>
-                        </table>
-                        <h4>⚖️ Atualização dos Juros - Passo a Passo</h4>
-                        <table>
-                            <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
-                            <tr><td>1. Juros Originais</td><td>Juros Homologado</td><td>R$ ${formatarMoeda(dados.valorJuros)}</td></tr>
-                            <tr><td>2. Correção CNJ</td><td>R$ ${formatarMoeda(dados.valorJuros)} × ${resultados.indicesCNJ.toFixed(6)}</td><td>R$ ${formatarMoeda(jurosOriginaisCNJ)}</td></tr>
-                            <tr><td>3. Juros de Mora</td><td>Principal CNJ × ${(resultados.jurosmora * 100).toFixed(4)}%*</td><td>R$ ${formatarMoeda(jurosMora)}</td></tr>
-                            <tr><td>4. Total Juros (CNJ + Mora)</td><td>R$ ${formatarMoeda(jurosOriginaisCNJ)} + R$ ${formatarMoeda(jurosMora)}</td><td>R$ ${formatarMoeda(totalJuros)}</td></tr>
-                            <tr><td>5. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td><td>R$ ${formatarMoeda(totalJuros)} × ${resultados.indiceipca.toFixed(6)}</td><td>R$ ${formatarMoeda(totalJurosIPCA)}</td></tr>
-                            <tr><td>6. Aplicação SELIC (excluido a graça)</td><td>R$ ${formatarMoeda(totalJurosIPCA)} × ${resultados.dadosSelic.indiceselic.toFixed(6)}</td><td><strong>R$ ${formatarMoeda(resultados.valorjurosatt)}</strong></td></tr>
-                        </table>
-                        <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
-                            *Juros calculados de forma simples, conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ e SV nº 17 do STF.
-                        </div>
-                    </div>
+            let memoriaisCalculos = '';
+            
+            // Para cada item, gerar memorial de cálculo individual
+            if (dados.valoresPrincipais && dados.valoresPrincipais.length > 0) {
+                const isSingleItem = dados.valoresPrincipais.length === 1;
+                
+                dados.valoresPrincipais.forEach((item, index) => {
+                    const itemCalculado = resultados.itensCalculados?.find(calc => calc.id === item.id) || {};
                     
+                    // Pegar os índices específicos deste item
+                    const indicesCNJ = itemCalculado.indices?.cnj || 1;
+                    const indiceSelic = itemCalculado.indices?.selic || 1;
+                    const indiceIpca = itemCalculado.indices?.ipca || 1;
+                    const jurosMora = itemCalculado.indices?.jurosMora || 0;
+                    
+                    // Cálculos passo a passo para este item
+                    const principalCNJ = item.valorPrincipal * indicesCNJ;
+                    const principalIPCA = principalCNJ * indiceIpca;
+                    const principalFinal = itemCalculado.valorAtualizado?.principal || 0;
+                    
+                    const jurosOriginaisCNJ = item.valorJuros * indicesCNJ;
+                    const valorJurosMora = itemCalculado.jurosMoraCalculado || 0;
+                    const totalJuros = jurosOriginaisCNJ + valorJurosMora;
+                    const totalJurosIPCA = totalJuros * indiceIpca;
+                    const jurosFinal = itemCalculado.valorAtualizado?.juros || 0;
+                    
+                    // Título e detalhes condicionais
+                    const titulo = isSingleItem ? 
+                        '🔢 MEMORIAL DE CÁLCULOS' : 
+                        `🔢 MEMORIAL DE CÁLCULOS - ${item.descricao || `Item ${index + 1}`}`;
+                    
+                    const detalhesItem = isSingleItem ? '' : `
+                        <div style="background: #f0f0f0; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
+                            <strong>Base:</strong> ${item.mesBase}/${item.anoBase} | 
+                            <strong>Índices aplicados:</strong> ${Object.entries(item.indices || {})
+                                .filter(([key, value]) => value)
+                                .map(([key]) => key.toUpperCase())
+                                .join(', ')}
+                        </div>
+                    `;
+                    
+                    const totalDoItem = isSingleItem ? '' : `
+                        <div class="highlight" style="margin-top: 10px; padding: 10px; background: #e8f4fd; border-radius: 5px;">
+                            <strong>TOTAL DESTE ITEM:</strong> R$ ${formatarMoeda(principalFinal)} + R$ ${formatarMoeda(jurosFinal)} = <strong>R$ ${formatarMoeda((principalFinal || 0) + (jurosFinal || 0))}</strong>
+                        </div>
+                    `;
+                    
+                    memoriaisCalculos += `
+                        <div class="table-container" style="margin-top: 20px;">
+                            <h3>${titulo}</h3>
+                            ${detalhesItem}
+                            
+                            <h4>💰 Atualização do Principal - Passo a Passo</h4>
+                            <table>
+                                <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
+                                <tr>
+                                    <td>1. Valor Original</td>
+                                    <td>Principal Homologado</td>
+                                    <td>R$ ${formatarMoeda(item.valorPrincipal)}</td>
+                                </tr>
+                                ${item.indices.cnj ? `
+                                <tr>
+                                    <td>2. Correção CNJ</td>
+                                    <td>R$ ${formatarMoeda(item.valorPrincipal)} × ${indicesCNJ.toFixed(6)}</td>
+                                    <td>R$ ${formatarMoeda(principalCNJ)}</td>
+                                </tr>` : ''}
+                                ${item.indices.ipca ? `
+                                <tr>
+                                    <td>3. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
+                                    <td>R$ ${formatarMoeda(principalCNJ)} × ${indiceIpca.toFixed(6)}</td>
+                                    <td>R$ ${formatarMoeda(principalIPCA)}</td>
+                                </tr>` : ''}
+                                ${item.indices.selic ? `
+                                <tr>
+                                    <td>4. Aplicação SELIC (excluído a graça)</td>
+                                    <td>R$ ${formatarMoeda(principalIPCA)} × ${indiceSelic.toFixed(6)}</td>
+                                    <td><strong>R$ ${formatarMoeda(principalFinal)}</strong></td>
+                                </tr>` : `
+                                <tr>
+                                    <td>Final</td>
+                                    <td>Valor Final do Principal</td>
+                                    <td><strong>R$ ${formatarMoeda(principalFinal)}</strong></td>
+                                </tr>`}
+                            </table>
+                            
+                            <h4>⚖️ Atualização dos Juros - Passo a Passo</h4>
+                            <table>
+                                <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
+                                <tr>
+                                    <td>1. Juros Originais</td>
+                                    <td>Juros Homologado</td>
+                                    <td>R$ ${formatarMoeda(item.valorJuros)}</td>
+                                </tr>
+                                ${item.indices.cnj ? `
+                                <tr>
+                                    <td>2. Correção CNJ</td>
+                                    <td>R$ ${formatarMoeda(item.valorJuros)} × ${indicesCNJ.toFixed(6)}</td>
+                                    <td>R$ ${formatarMoeda(jurosOriginaisCNJ)}</td>
+                                </tr>` : ''}
+                                ${item.indices.jurosMora && valorJurosMora > 0 ? `
+                                <tr>
+                                    <td>3. Juros de Mora</td>
+                                    <td>Principal CNJ × ${(jurosMora * 100).toFixed(4)}%*</td>
+                                    <td>R$ ${formatarMoeda(valorJurosMora)}</td>
+                                </tr>
+                                <tr>
+                                    <td>4. Total Juros (CNJ + Mora)</td>
+                                    <td>R$ ${formatarMoeda(jurosOriginaisCNJ)} + R$ ${formatarMoeda(valorJurosMora)}</td>
+                                    <td>R$ ${formatarMoeda(totalJuros)}</td>
+                                </tr>` : ''}
+                                ${item.indices.ipca ? `
+                                <tr>
+                                    <td>${item.indices.jurosMora ? '5' : '3'}. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
+                                    <td>R$ ${formatarMoeda(totalJuros)} × ${indiceIpca.toFixed(6)}</td>
+                                    <td>R$ ${formatarMoeda(totalJurosIPCA)}</td>
+                                </tr>` : ''}
+                                ${item.indices.selic ? `
+                                <tr>
+                                    <td>${item.indices.jurosMora && item.indices.ipca ? '6' : item.indices.ipca ? '4' : '3'}. Aplicação SELIC (excluído a graça)</td>
+                                    <td>R$ ${formatarMoeda(totalJurosIPCA)} × ${indiceSelic.toFixed(6)}</td>
+                                    <td><strong>R$ ${formatarMoeda(jurosFinal)}</strong></td>
+                                </tr>` : `
+                                <tr>
+                                    <td>Final</td>
+                                    <td>Valor Final dos Juros</td>
+                                    <td><strong>R$ ${formatarMoeda(jurosFinal)}</strong></td>
+                                </tr>`}
+                            </table>
+                            
+                            ${totalDoItem}
+                        </div>
+                    `;
+                });
+            }
+            
+            return `
+                ${memoriaisCalculos}
+                <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
+                    *Juros calculados de forma simples, conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ e SV nº 17 do STF.
                 </div>
             `;
         }
@@ -4515,7 +5066,7 @@
             }
             
             const listaCessionarios = resultados.cessoesBeneficiarioCalculadas.map(cessao => 
-                `${cessao.cessionario} (${(cessao.percentual * 100).toFixed(1)}%)`
+                `${cessao.cessionario} (${(cessao.percentual * 100).toFixed(2)}%)`
             ).join(', ');
             
             const totalCedido = resultados.cessoesBeneficiarioCalculadas.reduce((total, cessao) => 
@@ -4535,7 +5086,7 @@
                     <td>${cessao.cessionario}</td>
                     <td>${(cessao.percentual * 100).toFixed(2)}%</td>
                     <td>R$ ${formatarMoeda(valorBrutoCessionario)}</td>
-                    <td>${(percentualDeducoes * 100).toFixed(1)}%</td>
+                    <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
                     <td>R$ ${formatarMoeda(deducoesCessionario)}</td>
                     <td>R$ ${formatarMoeda(parteCessionario)}</td>
                     <td>R$ ${formatarMoeda(cessionarioRecebe)}</td>
@@ -4588,7 +5139,7 @@
                             <h4>Cessão do Beneficiário: ${dados.beneficiario}</h4>
                             <p><strong>Tipo de Cálculo:</strong> ${dados.tipoCalculo} ${dados.tipoCalculo === 'preferencia' ? '(preferencial)' : '(ordem comum)'}</p>
                             <p><strong>Dívida Total:</strong> R$ ${formatarMoeda(dividaTotalAtualizada)}</p>
-                            <p><strong>Total Cedido:</strong> ${(totalCedido * 100).toFixed(1)}% para: ${listaCessionarios}</p>
+                            <p><strong>Total Cedido:</strong> ${(totalCedido * 100).toFixed(2)}% para: ${listaCessionarios}</p>
                             ${temHerdeiros ? `
                             <div style="background-color: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
                                 <p style="color: #004085; margin: 0;">
@@ -4617,7 +5168,7 @@
                                     <td>${dados.beneficiario}${temHerdeiros ? ' †' : ''}</td>
                                     <td>${(resultados.percentualBeneficiarioFinal * 100).toFixed(2)}%</td>
                                     <td>R$ ${formatarMoeda(valorBrutoBeneficiario)}</td>
-                                    <td>${(percentualDeducoes * 100).toFixed(1)}%</td>
+                                    <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
                                     <td>R$ ${formatarMoeda(deducoesBeneficiario)}</td>
                                     <td>R$ ${formatarMoeda(parteBeneficiario)}</td>
                                     <td>R$ ${formatarMoeda(beneficiarioRecebe)}</td>
@@ -4640,7 +5191,7 @@
                                     <td>TOTAL</td>
                                     <td>100.00%</td>
                                     <td>R$ ${formatarMoeda(totalValorBruto)}</td>
-                                    <td>${(percentualDeducoes * 100).toFixed(1)}%</td>
+                                    <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
                                     <td>R$ ${formatarMoeda(totalDeducoes)}</td>
                                     <td>R$ ${formatarMoeda(totalLiquido)}</td>
                                     <td>R$ ${formatarMoeda(totalRecebe)}</td>
@@ -4650,9 +5201,9 @@
                             <div style="padding: 8px; margin: 10px 0; font-size: 0.85em; color: #666;">
                                 <p style="margin: 0;">
                                     <strong>📝 Deduções Acessórias:</strong> 
-                                    Honorários (${(percentualTotalAdv * 100).toFixed(1)}%) + 
-                                    Sindicatos (${(percentualTotalSind * 100).toFixed(1)}%) = 
-                                    ${(percentualDeducoes * 100).toFixed(1)}%
+                                    Honorários (${(percentualTotalAdv * 100).toFixed(2)}%) + 
+                                    Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%) = 
+                                    ${(percentualDeducoes * 100).toFixed(2)}%
                                 </p>
                                 <p style="margin: 5px 0 0 0;">
                                     <strong>* Valor Líquido:</strong> Valor após dedução de honorários e sindicatos. 
@@ -4698,7 +5249,7 @@
                 return `
                     <tr>
                         <td>${h.nome}</td>
-                        <td>${(h.percentual * 100).toFixed(1)}%</td>
+                        <td>${(h.percentual * 100).toFixed(2)}%</td>
                         <td>R$ ${formatarMoeda(valorBrutoHerdeiro)}</td>
                         <td>R$ ${formatarMoeda(honorarioTotalReal)}</td>
                         <td>R$ ${formatarMoeda(sindicatoTotalReal)}</td>
@@ -4731,7 +5282,7 @@
             // Verificar se houve cessão do beneficiário
             const houveCessaoBeneficiario = resultados.percentualBeneficiarioFinal && resultados.percentualBeneficiarioFinal < 1;
             const percentualCedido = houveCessaoBeneficiario ? 
-                ((1 - resultados.percentualBeneficiarioFinal) * 100).toFixed(1) : 0;
+                ((1 - resultados.percentualBeneficiarioFinal) * 100).toFixed(2) : 0;
             
             // HTML com informações sobre cessão se houver
             let htmlCessaoInfo = '';
@@ -4809,7 +5360,7 @@
                 
                 // Lista de cessionários
                 const listaCessionarios = herdeiro.cessoesHerdeiro.map(cessao => 
-                    `${cessao.cessionario} (${(cessao.percentual * 100).toFixed(1)}%)`
+                    `${cessao.cessionario} (${(cessao.percentual * 100).toFixed(2)}%)`
                 ).join(', ');
                 
                 const totalCedido = herdeiro.cessoesHerdeiro.reduce((total, cessao) => 
@@ -4845,7 +5396,7 @@
                             <td>${cessao.cessionario}</td>
                             <td>${(cessao.percentual * 100).toFixed(2)}%</td>
                             <td>R$ ${formatarMoeda(valorBrutoCessionario)}</td>
-                            <td>${(percentualDeducoes * 100).toFixed(1)}%</td>
+                            <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
                             <td>R$ ${formatarMoeda(deducoesCessionario)}</td>
                             <td>R$ ${formatarMoeda(valorLiquidoCessionario)}</td>
                             <td>R$ ${formatarMoeda(cessionarioRecebe)}</td>
@@ -4892,7 +5443,7 @@
                     <div style="margin-bottom: 30px;">
                         <h4>Cessão do Herdeiro: ${herdeiro.nome}</h4>
                         <p><strong>Valor Original do Herdeiro:</strong> R$ ${formatarMoeda(valorTotalHerdeiro)}</p>
-                        <p><strong>Total Cedido:</strong> ${(totalCedido * 100).toFixed(1)}% para: ${listaCessionarios}</p>
+                        <p><strong>Total Cedido:</strong> ${(totalCedido * 100).toFixed(2)}% para: ${listaCessionarios}</p>
                         
                         <table>
                             <tr>
@@ -4912,7 +5463,7 @@
                                 <td>${herdeiro.nome}</td>
                                 <td>${((1 - totalCedido) * 100).toFixed(2)}%</td>
                                 <td>R$ ${formatarMoeda(valorBrutoHerdeiroAposCessoes)}</td>
-                                <td>${(percentualDeducoes * 100).toFixed(1)}%</td>
+                                <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
                                 <td>R$ ${formatarMoeda(deducoesHerdeiro)}</td>
                                 <td>R$ ${formatarMoeda(valorLiquidoHerdeiro)}</td>
                                 <td>R$ ${formatarMoeda(herdeiroRecebeAgora)}</td>
@@ -4923,7 +5474,7 @@
                                 <td>TOTAL</td>
                                 <td>100.00%</td>
                                 <td>R$ ${formatarMoeda(totalValorBruto)}</td>
-                                <td>${(percentualDeducoes * 100).toFixed(1)}%</td>
+                                <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
                                 <td>R$ ${formatarMoeda(totalDeducoes)}</td>
                                 <td>R$ ${formatarMoeda(totalLiquido)}</td>
                                 <td>R$ ${formatarMoeda(totalRecebe)}</td>
@@ -4934,9 +5485,9 @@
                         <div style="padding: 8px; margin: 10px 0; font-size: 0.85em; color: #666;">
                             <p style="margin: 0;">
                                 <strong>📝 Deduções Acessórias:</strong> 
-                                Honorários (${(percentualTotalAdv * 100).toFixed(1)}%) + 
-                                Sindicatos (${(percentualTotalSind * 100).toFixed(1)}%) = 
-                                ${(percentualDeducoes * 100).toFixed(1)}%
+                                Honorários (${(percentualTotalAdv * 100).toFixed(2)}%) + 
+                                Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%) = 
+                                ${(percentualDeducoes * 100).toFixed(2)}%
                             </p>
                             <p style="margin: 5px 0 0 0;">
                                 <strong>* Valor Líquido:</strong> Valor após dedução apenas de honorários e sindicatos (IR e Previdência calculados separadamente).
@@ -5271,8 +5822,13 @@
         }
 
         function gerarSecaoDeducoes(resultados, dados) {
-            const temPrevidencia = dados.incidenciaPrevidencia;
-            const temIR = dados.incidenciaIR && (dados.tipoBeneficiario === 'pj' || resultados.rrapagamento !== 0);
+            const temPrevidencia = dados.incidenciaPrevidencia || 
+                (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.previdencia === true));
+            
+            const temIR = (dados.incidenciaIR || 
+                (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.ir === true))) 
+                && (dados.tipoBeneficiario === 'pj' || resultados.rrapagamento !== 0);
+            
             const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
 
             if (!temPrevidencia && !temIR) return '';
@@ -5600,7 +6156,7 @@
                     </tr>
                     ${isAcordo && valorDesagio > 0 ? `
                     <tr style="color: #dc3545;">
-                        <th>(-) Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                        <th>(-) Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                         <td>R$ ${formatarMoeda(valorDesagio)}</td>
                     </tr>
                     <tr class="total-row">
@@ -5679,7 +6235,7 @@
                     </tr>
                     ${isAcordo && valorDesagio > 0 ? `
                     <tr style="color: #dc3545;">
-                        <th>(-) Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                        <th>(-) Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                         <td>R$ ${formatarMoeda(valorDesagio)}</td>
                     </tr>
                     <tr class="total-row">
@@ -5781,7 +6337,7 @@
                     </tr>
                     <tr>
                         <th>Alíquota IR:</th>
-                        <td>${(resultados.aliquotaIR * 100).toFixed(1)}%</td>
+                        <td>${(resultados.aliquotaIR * 100).toFixed(2)}%</td>
                     </tr>
                     <tr>
                         <th>Valor IR Mensal:</th>
@@ -5812,7 +6368,7 @@
                 
                 baseComDesagio = `
                 <tr>
-                    <th>Base IR com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                    <th>Base IR com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                     <td>R$ ${formatarMoeda(baseAposDesagio)}</td>
                 </tr>`;
             }
@@ -5910,7 +6466,7 @@
                     </tr>
                     ${isAcordo && primeiroHerdeiro.valorDesagioPrevidencia > 0 ? `
                     <tr class="total-row">
-                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                         <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
                     </tr>` : ''}
                     <tr style="border-top: 1px solid #dee2e6;">
@@ -5978,7 +6534,7 @@
                     </tr>
                     ${isAcordo && primeiroHerdeiro.valorDesagioPrevidencia > 0 ? `
                     <tr class="total-row">
-                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                         <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
                     </tr>` : ''}
                     <tr style="border-top: 1px solid #dee2e6;">
@@ -6019,7 +6575,7 @@
             if (isAcordo && percentualDesagio > 0) {
                 baseComDesagio = `
                 <tr>
-                    <th>Base IR com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                    <th>Base IR com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                     <td>R$ ${formatarMoeda(primeiroHerdeiro.principalComDesagio || primeiroHerdeiro.baseIRSindi)}</td>
                 </tr>`;
             }
@@ -6070,7 +6626,7 @@
                     </tr>
                     <tr>
                         <th>Alíquota IR:</th>
-                        <td>${(primeiroHerdeiro.aliquotaIR * 100).toFixed(1)}%</td>
+                        <td>${(primeiroHerdeiro.aliquotaIR * 100).toFixed(2)}%</td>
                     </tr>
                     <tr>
                         <th>Valor IR Mensal:</th>
@@ -6136,7 +6692,7 @@
                         const valorCessionario = valorPrevidenciaTotal * cessao.percentual;
                         linhas += `
                             <tr>
-                                <th style="padding-left: 20px;">${cessao.cessionario} (Cessionário de ${herdeiro.nome} - ${(cessao.percentual * 100).toFixed(1)}%):</th>
+                                <th style="padding-left: 20px;">${cessao.cessionario} (Cessionário de ${herdeiro.nome} - ${(cessao.percentual * 100).toFixed(2)}%):</th>
                                 <td>R$ ${formatarMoeda(valorCessionario)}</td>
                             </tr>
                         `;
@@ -6165,7 +6721,7 @@
                     </tr>
                     ${isAcordo && primeiroHerdeiro.valorDesagioPrevidencia > 0 ? `
                     <tr class="total-row">
-                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                         <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
                     </tr>` : ''}
                     <tr style="border-top: 1px solid #dee2e6;">
@@ -6226,7 +6782,7 @@
                         const valorCessionario = valorPrevidenciaTotal * cessao.percentual;
                         linhas += `
                             <tr>
-                                <th style="padding-left: 20px;">${cessao.cessionario} (Cessionário de ${herdeiro.nome} - ${(cessao.percentual * 100).toFixed(1)}%):</th>
+                                <th style="padding-left: 20px;">${cessao.cessionario} (Cessionário de ${herdeiro.nome} - ${(cessao.percentual * 100).toFixed(2)}%):</th>
                                 <td>R$ ${formatarMoeda(valorCessionario)}</td>
                             </tr>
                         `;
@@ -6268,7 +6824,7 @@
                     </tr>
                     ${isAcordo && primeiroHerdeiro.valorDesagioPrevidencia > 0 ? `
                     <tr class="total-row">
-                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                        <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                         <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
                     </tr>` : ''}
                     <tr style="border-top: 1px solid #dee2e6;">
@@ -6309,7 +6865,7 @@
             if (isAcordo && percentualDesagio > 0) {
                 baseComDesagio = `
                 <tr>
-                    <th>Base IR com Deságio ${(percentualDesagio * 100).toFixed(1)}%:</th>
+                    <th>Base IR com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                     <td>R$ ${formatarMoeda(primeiroHerdeiro.principalComDesagio || primeiroHerdeiro.baseIRSindi)}</td>
                 </tr>`;
             }
@@ -6347,7 +6903,7 @@
                         const valorCessionario = valorIRTotal * cessao.percentual;
                         linhas += `
                             <tr>
-                                <th style="padding-left: 20px;">${cessao.cessionario} (Cessionário de ${herdeiro.nome} - ${(cessao.percentual * 100).toFixed(1)}%):</th>
+                                <th style="padding-left: 20px;">${cessao.cessionario} (Cessionário de ${herdeiro.nome} - ${(cessao.percentual * 100).toFixed(2)}%):</th>
                                 <td>R$ ${formatarMoeda(valorCessionario)}</td>
                             </tr>
                         `;
@@ -6395,7 +6951,7 @@
                     </tr>
                     <tr>
                         <th>Alíquota IR:</th>
-                        <td>${(primeiroHerdeiro.aliquotaIR * 100).toFixed(1)}%</td>
+                        <td>${(primeiroHerdeiro.aliquotaIR * 100).toFixed(2)}%</td>
                     </tr>
                     <tr>
                         <th>Valor IR Mensal:</th>
@@ -7437,13 +7993,13 @@
             return `
                     <!-- 1ª TABELA: Cálculo do Deságio -->
                     <div class="table-container">
-                        <h3>📊 Cálculo do Deságio ${(percentualDesagio * 100).toFixed(1)}%</h3>
+                        <h3>📊 Cálculo do Deságio ${(percentualDesagio * 100).toFixed(2)}%</h3>
                         <table>
                             <thead>
                                 <tr>
                                     <th>Credor</th>
                                     <th>Valor Devido</th>
-                                    <th>Deságio ${(percentualDesagio * 100).toFixed(1)}%</th>
+                                    <th>Deságio ${(percentualDesagio * 100).toFixed(2)}%</th>
                                     <th>Valor Após Deságio</th>
                                 </tr>
                             </thead>
@@ -7491,7 +8047,7 @@
                         </table>
                         <div style="margin-top: 15px; padding: 10px; background-color: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">
                             <h4>⚖️ Informações do Acordo:</h4>
-                            <p style="margin: 5px 0;"><strong>Deságio aplicado:</strong> ${(percentualDesagio * 100).toFixed(1)}% sobre o valor devido</p>
+                            <p style="margin: 5px 0;"><strong>Deságio aplicado:</strong> ${(percentualDesagio * 100).toFixed(2)}% sobre o valor devido</p>
                             <p style="margin: 5px 0;"><strong>Tributos calculados:</strong> Sobre o valor após deságio</p>
                             <p style="margin: 5px 0;"><strong>Apenas credores que aderiram</strong> ao acordo aparecem nesta tabela</p>
                         </div>
