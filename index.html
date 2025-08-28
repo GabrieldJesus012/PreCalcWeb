@@ -4515,6 +4515,10 @@
                     const totalJuros = jurosOriginaisCNJ + valorJurosMora;
                     const totalJurosIPCA = totalJuros * indiceIpca;
                     const jurosFinal = itemCalculado.valorAtualizado?.juros || 0;
+
+                    const temJurosIniciais = item.valorJuros && parseFloat(item.valorJuros) > 0;
+                    const temJurosMora = item.indices.jurosMora && valorJurosMora > 0;
+                    const temAlgumJuros = temJurosIniciais || temJurosMora;
                     
                     // Título e detalhes condicionais
                     const titulo = isSingleItem ? 
@@ -4536,6 +4540,52 @@
                             <strong>TOTAL DESTE ITEM:</strong> R$ ${formatarMoeda(principalFinal)} + R$ ${formatarMoeda(jurosFinal)} = <strong>R$ ${formatarMoeda((principalFinal || 0) + (jurosFinal || 0))}</strong>
                         </div>
                     `;
+
+                    const secaoJuros = temAlgumJuros ? `
+                        <h4>⚖️ Atualização dos Juros - Passo a Passo</h4>
+                        <table>
+                            <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
+                            <tr>
+                                <td>1. Juros Originais</td>
+                                <td>Juros Homologado</td>
+                                <td>R$ ${formatarMoeda(item.valorJuros)}</td>
+                            </tr>
+                            ${item.indices.cnj ? `
+                            <tr>
+                                <td>2. Correção CNJ</td>
+                                <td>R$ ${formatarMoeda(item.valorJuros)} × ${indicesCNJ.toFixed(6)}</td>
+                                <td>R$ ${formatarMoeda(jurosOriginaisCNJ)}</td>
+                            </tr>` : ''}
+                            ${item.indices.jurosMora && valorJurosMora > 0 ? `
+                            <tr>
+                                <td>3. Juros de Mora</td>
+                                <td>Principal CNJ × ${(jurosMora * 100).toFixed(4)}%*</td>
+                                <td>R$ ${formatarMoeda(valorJurosMora)}</td>
+                            </tr>
+                            <tr>
+                                <td>4. Total Juros (CNJ + Mora)</td>
+                                <td>R$ ${formatarMoeda(jurosOriginaisCNJ)} + R$ ${formatarMoeda(valorJurosMora)}</td>
+                                <td>R$ ${formatarMoeda(totalJuros)}</td>
+                            </tr>` : ''}
+                            ${item.indices.ipca ? `
+                            <tr>
+                                <td>${item.indices.jurosMora ? '5' : '3'}. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
+                                <td>R$ ${formatarMoeda(totalJuros)} × ${indiceIpca.toFixed(6)}</td>
+                                <td>R$ ${formatarMoeda(totalJurosIPCA)}</td>
+                            </tr>` : ''}
+                            ${item.indices.selic ? `
+                            <tr>
+                                <td>${item.indices.jurosMora && item.indices.ipca ? '6' : item.indices.ipca ? '4' : '3'}. Aplicação SELIC (excluído a graça)</td>
+                                <td>R$ ${formatarMoeda(totalJurosIPCA)} × ${indiceSelic.toFixed(6)}</td>
+                                <td><strong>R$ ${formatarMoeda(jurosFinal)}</strong></td>
+                            </tr>` : `
+                            <tr>
+                                <td>Final</td>
+                                <td>Valor Final dos Juros</td>
+                                <td><strong>R$ ${formatarMoeda(jurosFinal)}</strong></td>
+                            </tr>`}
+                        </table>
+                    ` : '';
                     
                     memoriaisCalculos += `
                         <div class="table-container" style="margin-top: 20px;">
@@ -4575,49 +4625,7 @@
                                 </tr>`}
                             </table>
                             
-                            <h4>⚖️ Atualização dos Juros - Passo a Passo</h4>
-                            <table>
-                                <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
-                                <tr>
-                                    <td>1. Juros Originais</td>
-                                    <td>Juros Homologado</td>
-                                    <td>R$ ${formatarMoeda(item.valorJuros)}</td>
-                                </tr>
-                                ${item.indices.cnj ? `
-                                <tr>
-                                    <td>2. Correção CNJ</td>
-                                    <td>R$ ${formatarMoeda(item.valorJuros)} × ${indicesCNJ.toFixed(6)}</td>
-                                    <td>R$ ${formatarMoeda(jurosOriginaisCNJ)}</td>
-                                </tr>` : ''}
-                                ${item.indices.jurosMora && valorJurosMora > 0 ? `
-                                <tr>
-                                    <td>3. Juros de Mora</td>
-                                    <td>Principal CNJ × ${(jurosMora * 100).toFixed(4)}%*</td>
-                                    <td>R$ ${formatarMoeda(valorJurosMora)}</td>
-                                </tr>
-                                <tr>
-                                    <td>4. Total Juros (CNJ + Mora)</td>
-                                    <td>R$ ${formatarMoeda(jurosOriginaisCNJ)} + R$ ${formatarMoeda(valorJurosMora)}</td>
-                                    <td>R$ ${formatarMoeda(totalJuros)}</td>
-                                </tr>` : ''}
-                                ${item.indices.ipca ? `
-                                <tr>
-                                    <td>${item.indices.jurosMora ? '5' : '3'}. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
-                                    <td>R$ ${formatarMoeda(totalJuros)} × ${indiceIpca.toFixed(6)}</td>
-                                    <td>R$ ${formatarMoeda(totalJurosIPCA)}</td>
-                                </tr>` : ''}
-                                ${item.indices.selic ? `
-                                <tr>
-                                    <td>${item.indices.jurosMora && item.indices.ipca ? '6' : item.indices.ipca ? '4' : '3'}. Aplicação SELIC (excluído a graça)</td>
-                                    <td>R$ ${formatarMoeda(totalJurosIPCA)} × ${indiceSelic.toFixed(6)}</td>
-                                    <td><strong>R$ ${formatarMoeda(jurosFinal)}</strong></td>
-                                </tr>` : `
-                                <tr>
-                                    <td>Final</td>
-                                    <td>Valor Final dos Juros</td>
-                                    <td><strong>R$ ${formatarMoeda(jurosFinal)}</strong></td>
-                                </tr>`}
-                            </table>
+                            ${secaoJuros}
                             
                             ${totalDoItem}
                         </div>
