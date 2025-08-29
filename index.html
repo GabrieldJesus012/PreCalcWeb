@@ -7743,7 +7743,36 @@
             
             // Cessionários de Advogados
             const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt;
-            if (!isPreferenciaParcial) {
+            const isParcial = dados.tipoCalculo === 'parcial';
+
+            if (isParcial) {
+                resultados.honorarios.forEach(adv => {
+                    if (adv.cessionarios && adv.cessionarios.length > 0) {
+                        adv.cessionarios.forEach(cessionario => {
+                            // Valor do honorário parcial do advogado
+                            const honorarioParcial = resultados.valorBase * adv.percentual;
+                            const valorDevido = honorarioParcial * cessionario.percentual;
+                            
+                            let irCorreto = 0;
+                            if (adv.tipo === 'PF') {
+                                irCorreto = calcularIR(valorDevido); 
+                            } else {
+                                irCorreto = valorDevido * 0.015; // PJ: 1,5%
+                            }
+                            
+                            const valorLiquido = valorDevido - irCorreto;
+                            
+                            pagamentos.push({
+                                credor: `${cessionario.nome} (Cessionário de ${adv.nome})`,
+                                valorDevido: valorDevido,
+                                previdencia: 0,
+                                ir: irCorreto,
+                                valorLiquido: valorLiquido
+                            });
+                        });
+                    }
+                });
+            } else if (!isPreferenciaParcial) {
                 resultados.honorarios.forEach(adv => {
                     if (adv.cessionarios && adv.cessionarios.length > 0) {
                         adv.cessionarios.forEach(cessionario => {
