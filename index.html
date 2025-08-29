@@ -3555,7 +3555,7 @@
                 const valorLiquidoCessionario = valorBrutoCessionario - irCessionarioAdv;
 
                 const cessionarios = cessaoAdv.map(cessao => {
-                    const valorBrutoCessao = valorBase * adv.percentual * cessao.percentual;
+                    const valorBrutoCessao = valorBase * cessao.percentual;
                     let valorParaIRCessao = valorBrutoCessao;
                     
                     if (isAcordo) {
