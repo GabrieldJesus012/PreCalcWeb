@@ -420,7 +420,6 @@
                 tipoBeneficiarioGroup.classList.add('show');
             } else {
                 tipoBeneficiarioGroup.classList.remove('show');
-                // Reset para PF quando não for comum
                 document.getElementById('tipoBeneficiario').value = 'pf';
             }
         }
@@ -568,13 +567,11 @@
             });
         }
 
-        // Funções para remover itens
         function removerValorPrincipal(id) {
             valoresPrincipais = valoresPrincipais.filter(v => v.id !== id);
             renderizarValoresPrincipais();
         }
 
-        // Funções para limpar formulários
         function limparFormularioPrincipal() {
             document.getElementById('valorPrincipal').value = '';
             document.getElementById('valorJuros').value = '';
@@ -867,7 +864,6 @@
             
             // NÃO recriar cessões, apenas atualizar opções
             if (cessoes > 0) {
-                // Salvar estado atual das cessões
                 DadosFormulario.salvarCessoes();
                 
                 requestAnimationFrame(() => {
@@ -1143,7 +1139,6 @@
             const herdDiv = document.createElement('div');
             herdDiv.className = 'advogado-item';
             
-            // SEMPRE criar o campo de preferência, apenas ocultá-lo se necessário
             let htmlHerdeiro = `
                 <div class="advogado-header">Herdeiro ${index + 1}</div>
                 <div class="advogado-row">
@@ -1230,18 +1225,13 @@
                 criarCessoes(quant);
             });
 
-            // Tipo de cálculo - MODIFICADO para NÃO recriar herdeiros
             FormCache.tipoCalculo?.addEventListener('change', function() {
                 // Salvar dados dos herdeiros ANTES
                 DadosFormulario.salvarHerdeiros();
                 
                 // Apenas atualizar visibilidade dos campos de preferência
                 atualizarVisibilidadePreferencia();
-                
-                // NÃO disparar evento de change no quantHerdeiros
-                // Isso evita a recriação dos elementos
             });
-
             // Beneficiário
             FormCache.beneficiario?.addEventListener('change', atualizarOpcoesCessao);
         }
@@ -1266,7 +1256,6 @@
             }
         }
 
-        // Função herdeirTemPreferencia OTIMIZADA
         function herdeirTemPreferencia(nomeHerdeiro) {
             const quantHerdeiros = parseInt(FormCache.quantHerdeiros?.value) || 0;
             
@@ -1345,7 +1334,6 @@
             }
         }
 
-        // Função para atualizar opções de adesão ao acordo
         function atualizarAdesaoAcordo() {
             const container = document.getElementById('acordoContainer');
             if (!container) return;
@@ -1434,7 +1422,6 @@
             container.innerHTML = html;
         }
 
-        // Função auxiliar para calcular percentual cedido por uma pessoa/entidade
         function calcularPercentualCedido(tipoCedente, nomeCedente) {
             let totalCedido = 0;
             const quantCessoes = parseInt(document.getElementById('quantCessoes')?.value) || 0;
@@ -1444,7 +1431,6 @@
                 const percentualCessao = parseFloat(DadosFormulario.cessoes[i]?.percentual || '0');
                 const tipoCessao = DadosFormulario.cessoes[i]?.tipo;
                 
-                // Verificar se é cessão desta pessoa/entidade
                 let isCedenteCorreto = false;
                 
                 switch(tipoCedente) {
@@ -1470,7 +1456,6 @@
             return totalCedido;
         }
 
-        // Função para criar item de adesão ao acordo
         function criarItemAcordo(id, nome, tipo, detalhes) {
             return `
                 <div class="acordo-item" id="acordo_${id}">
@@ -1483,7 +1468,6 @@
             `;
         }
 
-        // Função para alternar seleção de item do acordo
         function toggleAcordoItem(id) {
             const checkbox = document.getElementById(`check_${id}`);
             const item = document.getElementById(`acordo_${id}`);
@@ -1497,7 +1481,6 @@
             }
         }
 
-        // Função para obter quem aderiu ao acordo
         function obterAdesaoAcordo() {
             const adesoes = {
                 beneficiario: false,
@@ -1552,7 +1535,6 @@
             return adesoes;
         }
         
-        // Configurações e dados simulados
         const meses = {
             "janeiro": 1, "fevereiro": 2, "março": 3, "abril": 4,
             "maio": 5, "junho": 6, "julho": 7, "agosto": 8,
