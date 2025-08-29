@@ -3136,7 +3136,6 @@
             }
 
             // Composição inicial - Para fins de tributação
-            // SEMPRE usar percentual de valores TRIBUTADOS (independente do tipo de cálculo)
             let principal, jurosBase;
             
             if (dados.tributacaoIR && dados.tributacaoPrevidencia) {
@@ -3153,24 +3152,18 @@
                 // Fallback para percentuais gerais (caso não tenha dados de tributação)
                 principal = valorBase * percentualprinc;
                 jurosBase = valorBase * percentualjur;
-                
             }
-
 
             // RRA - Agora usando o RRA total consolidado
             let rrapagamento = dados.rra !== 0 ? Math.round((valorBase * dados.rra) / valortotatt) : 0;
             
-
             // CESSÕES DO BENEFICIÁRIO PRINCIPAL 
             const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
             const isParcial = dados.tipoCalculo === 'parcial';
             
-            
             const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
                 cessao.tipo === 'cessaobenPrincipal'
             ) || [];
-
-
 
             let valorBaseParaHonorarios = valorBase;
             let valorBeneficiarioQueRecebeEfetivamente = valorBase;
@@ -3187,12 +3180,14 @@
                 // O que o beneficiário recebe efetivamente (limitado pelo teto se for preferência)
                 valorBeneficiarioQueRecebeEfetivamente = isPreferenciasParcial ? 
                     Math.min(direitoBeneficiarioTotal, valorBase) : direitoBeneficiarioTotal;
-                
-                
+                //parcial fazer igual --
+
                 // Base para honorários
-                if (isPreferenciasParcial || isParcial) {
+                if (isPreferenciasParcial) {
                     valorBaseParaHonorarios = valorBeneficiarioQueRecebeEfetivamente;
-                } else {
+                }else if (isParcial) {
+                    valorBaseParaHonorarios = valorBase; 
+                }else {
                     valorBaseParaHonorarios = valorBase;
                 }
 
@@ -3202,7 +3197,6 @@
             const resultadoHonorarios = calcularHonorarios(dados, valorBaseParaHonorarios, valortotatt);
             const { honorarios, valorHonorarioTotal } = resultadoHonorarios;
             
-
             // Sindicatos 
             const resultadoSindicatos = calcularSindicatos(dados, valorBaseParaHonorarios, valortotatt);
             const { sindicatos, valorSindicatoTotal } = resultadoSindicatos;
@@ -3210,10 +3204,8 @@
             const valorSindicatoParaDescontar = isPreferenciasParcial ? 0 : valorSindicatoTotal;
             const valorBeneficiarioBruto = valorBase - valorHonorarioTotal - valorSindicatoParaDescontar;
 
-
             // RECÁLCULO PARA PREFERÊNCIA PARCIAL E CESSÕES
             if (isPreferenciasParcial) {
-                
                 // Para preferência parcial, manter a mesma lógica de percentual tributável
                 if (dados.tributacaoIR) {
                     const percentualPrincipalTributadoIR = dados.tributacaoIR.percentuais?.principalTributado || 0;
@@ -3229,10 +3221,23 @@
                 } else {
                     rrapagamento = 0;
                 }
-
+            } else if (isParcial) {
+                // PAGAMENTO PARCIAL
+                if (dados.tributacaoIR) {
+                    const percentualPrincipalTributadoIR = dados.tributacaoIR.percentuais?.principalTributado || 0;
+                    principal = valorBase * (percentualPrincipalTributadoIR / 100);
+                } else {
+                    principal = valorBase * percentualprinc;
+                }
                 
+                // Para RRA
+                if (dados.rra !== 0) {
+                    const rraCalculado = Math.round((valorBase * dados.rra) / valortotatt);
+                    rrapagamento = Math.max(1, rraCalculado); 
+                } else {
+                    rrapagamento = 0;
+                }
             } else if (cessoesBeneficiario.length > 0 && dados.tipoCalculo !== 'ordem') {
-                
                 // CESSÕES: Principal baseado no valor que o beneficiário receberá
                 if (dados.tributacaoIR) {
                     const percentualPrincipalTributadoIR = dados.tributacaoIR.percentuais?.principalTributado || 0;
@@ -3328,12 +3333,24 @@
         }
 
         function calcularCessoesBeneficiarioPrincipal(dados, valorBase, valortotatt, valorHonorarioTotal, valorSindicatoParaDescontar, valorPrevidencia, valorIR) {
+
+            console.log('=== DEBUG CESSOES BENEFICIARIO ===');
+    console.log('valorBase:', valorBase);
+    console.log('valorHonorarioTotal:', valorHonorarioTotal);
+    console.log('valorSindicatoParaDescontar:', valorSindicatoParaDescontar);
+    console.log('valorPrevidencia:', valorPrevidencia);
+    console.log('valorIR:', valorIR);
+    console.log('dados.tipoCalculo:', dados.tipoCalculo);
+
             const valorBeneficiarioBruto = valorBase - valorHonorarioTotal - valorSindicatoParaDescontar;
             const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
                 cessao.tipo === 'cessaobenPrincipal'
             ) || [];
 
             const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
+            const isParcial = dados.tipoCalculo === 'parcial';
+            console.log('isPreferenciasParcial:', isPreferenciasParcial);
+            console.log('isParcial:', isParcial);
             
             // Valores padrão (casos sem cessões)
             let valorCessoesBeneficiario = 0;
@@ -3346,6 +3363,7 @@
             let cessoesBeneficiarioFinais = [];
 
             if (cessoesBeneficiario.length === 0) {
+                console.log('Nenhuma cessão encontrada, retornando valores padrão');
                 return {
                     valorBeneficiarioBruto,
                     valorCessoesBeneficiario,
@@ -3404,7 +3422,61 @@
                 valorPrevidenciaBeneficiario = valorPrevidencia;
                 valorIRBeneficiario = valorIR;
                 valorBeneficiarioFinal = maxQueBeneficiarioPodeReceber - valorPrevidenciaBeneficiario - valorIRBeneficiario;
+            } else if (isParcial) {
+                console.log('Entrando na lógica de PAGAMENTO PARCIAL');
+                // PAGAMENTO PARCIAL
+                valorCessoesBeneficiario = 0;
                 
+                cessoesBeneficiarioCalculadas = [];
+                cessoesBeneficiarioFinais = [];
+                
+                for (const cessao of cessoesBeneficiario) {
+                    console.log('Processando cessao:', cessao);
+                    // Para pagamento parcial, calcular sobre o valor líquido do beneficiário (já com honorários descontados)
+                    const valorBrutoCessao = valorBeneficiarioBruto * cessao.percentual;
+                    valorCessoesBeneficiario += valorBrutoCessao;
+
+                    console.log('valorBrutoCessao calculado:', valorBrutoCessao);
+                    console.log('cessao.percentual:', cessao.percentual);
+                    
+                    const cessaoCalculada = {
+                        tipo: cessao.tipo,
+                        cedente: cessao.cedente,
+                        cessionario: cessao.cessionario,
+                        percentual: cessao.percentual,
+                        valorBruto: valorBrutoCessao
+                    };
+                    
+                    const previdenciaCessao = valorPrevidencia * cessao.percentual;
+                    const irCessao = valorIR* cessao.percentual;
+                    const valorLiquidoCessao = valorBrutoCessao - previdenciaCessao - irCessao;
+
+                    console.log('previdenciaCessao:', previdenciaCessao);
+            console.log('irCessao:', irCessao);
+            console.log('valorLiquidoCessao:', valorLiquidoCessao);
+                    
+                    const cessaoFinal = {
+                        ...cessaoCalculada,
+                        previdenciaCessao,
+                        irCessao,
+                        valorLiquido: valorLiquidoCessao
+                    };
+                    
+                    cessoesBeneficiarioCalculadas.push(cessaoCalculada);
+                    cessoesBeneficiarioFinais.push(cessaoFinal);
+                }
+                
+                valorBeneficiarioAposCessoes = valorBeneficiarioBruto * percentualBeneficiarioFinal;
+                valorPrevidenciaBeneficiario = valorPrevidencia * percentualBeneficiarioFinal;
+                valorIRBeneficiario = valorIR * percentualBeneficiarioFinal;
+                valorBeneficiarioFinal = valorBeneficiarioAposCessoes - valorPrevidenciaBeneficiario - valorIRBeneficiario;
+
+                console.log('=== RESULTADOS FINAIS PAGAMENTO PARCIAL ===');
+        console.log('valorBeneficiarioAposCessoes:', valorBeneficiarioAposCessoes);
+        console.log('valorPrevidenciaBeneficiario:', valorPrevidenciaBeneficiario);
+        console.log('valorIRBeneficiario:', valorIRBeneficiario);
+        console.log('valorBeneficiarioFinal:', valorBeneficiarioFinal);
+        console.log('cessoesBeneficiarioFinais:', cessoesBeneficiarioFinais);
             } else {
                 // PREFERÊNCIA TOTAL OU OUTROS TIPOS 
                 const valorPrevidenciaPorPercentual = valorPrevidencia; 
@@ -5046,6 +5118,8 @@
             const percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
             const percentualDeducoes = percentualTotalAdv + percentualTotalSind;
             const dividaSemHonorarios = dividaTotalAtualizada * (1 - percentualDeducoes);
+
+            const isParcial = dados.tipoCalculo === 'parcial';
             
             // Calcular valores para o beneficiário
             const valorBrutoBeneficiario = dividaTotalAtualizada * resultados.percentualBeneficiarioFinal;
@@ -5126,6 +5200,12 @@
                     • <strong>Pagamento imediato:</strong> R$ ${formatarMoeda(temHerdeiros ? 0 : beneficiarioRecebe)} ${temHerdeiros ? '(beneficiário falecido - valor vai para herdeiros)' : '(só para o beneficiário)'}<br>
                     • <strong>Saldo devedor total:</strong> R$ ${formatarMoeda(totalAguarda)}
                 </div>
+            ` : isParcial ? `
+            <div class="warning-box" style="margin-top: 10px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
+                <strong>⚠️ Pagamento Parcial:</strong><br>
+                • <strong>Dívida total:</strong> R$ ${formatarMoeda(dividaTotalAtualizada)}<br>
+                • <strong>Valor do pagamento parcial:</strong> R$ ${formatarMoeda(resultados.valorBase)}<br>
+            </div>
             ` : temHerdeiros ? `
                 <div class="warning-box" style="margin-top: 10px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
                     <strong>⚠️ Beneficiário Falecido:</strong><br>
@@ -5215,6 +5295,7 @@
                                 </p>
                                 <p style="margin: 5px 0 0 0;">
                                     <strong>* Valor Líquido:</strong> Valor após dedução de honorários e sindicatos. 
+                                    ${isParcial ? 'Valores calculados sobre o pagamento parcial.' : ''}
                                     ${temHerdeiros ? 'Para o beneficiário falecido, este valor será distribuído entre os herdeiros.' : ''}
                                 </p>
                             </div>
