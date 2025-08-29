@@ -2672,7 +2672,6 @@
                 
                 valoresPrincipais: valoresPrincipais.map(valor => ({
                     ...valor,
-                    // Garante que valores numéricos estão corretos
                     valorPrincipal: parseFloat(valor.valorPrincipal) || 0,
                     valorJuros: parseFloat(valor.valorJuros) || 0,
                     valorSelic: parseFloat(valor.valorSelic) || 0,
@@ -2898,12 +2897,12 @@
             // Cálculo de juros de mora
             const valorjurosmora = item.valorPrincipal * indicesCNJ * jurosmora;
             const jurosItem = valorjurosmora + (item.valorJuros * indicesCNJ);
-                        
+            
             // Valores atualizados
             const valorPrincipalAtualizado = item.valorPrincipal * indiceprinc;
             const valorJurosAtualizado = jurosItem * indicejur;
             const valorTotalItem = valorPrincipalAtualizado + valorJurosAtualizado;
-                        
+            
             const resultado = {
                 id: item.id,
                 descricao: item.descricao,
@@ -3007,7 +3006,7 @@
             // Cálculos de percentuais
             const percentualprinc = totais.valorPrincipalTotal / totais.valorGeralTotal;
             const percentualjur = totais.valorJurosTotal / totais.valorGeralTotal;
-                        
+            
             // Valor original total para cálculo do índice total
             const valorOriginalTotal = itensCalculados.reduce((sum, item) => 
                 sum + item.valorOriginal.total, 0);
