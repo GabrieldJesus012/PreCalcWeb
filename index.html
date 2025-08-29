@@ -5085,87 +5085,124 @@
 
         function gerarSecaoCessoesBeneficiario(resultados, dados) {
             if (!resultados.cessoesBeneficiarioCalculadas || resultados.cessoesBeneficiarioCalculadas.length === 0) return '';
-            
-            const dividaTotalAtualizada = resultados.valortotatt;
-            const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
-            const percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
+
+            const dividaTotalAtualizada = resultados.valortotatt || 0;
+            const valorPago = resultados.valorBase || 0; // pagamento efetivo (parcial)
+            const percentualTotalAdv = (dados.advogados || []).reduce((sum, adv) => sum + (adv.percentual || 0), 0);
+            const percentualTotalSind = (dados.sindicatos || []).reduce((sum, sind) => sum + (sind.percentual || 0), 0);
             const percentualDeducoes = percentualTotalAdv + percentualTotalSind;
             const dividaSemHonorarios = dividaTotalAtualizada * (1 - percentualDeducoes);
 
             const isParcial = dados.tipoCalculo === 'parcial';
-            
-            // Calcular valores para o beneficiário
-            const valorBrutoBeneficiario = dividaTotalAtualizada * resultados.percentualBeneficiarioFinal;
+            const isPreferenciasParcial = !!resultados.isPreferenciasParcial; 
+
+            // Beneficiário bruto/liquido
+            const valorBrutoBeneficiario = dividaTotalAtualizada * (resultados.percentualBeneficiarioFinal || 0);
             const deducoesBeneficiario = valorBrutoBeneficiario * percentualDeducoes;
             const parteBeneficiario = valorBrutoBeneficiario - deducoesBeneficiario;
-            
-            // Verificar se tem herdeiros (movido para antes dos cálculos)
-            const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
-            
-            // Se tem herdeiros e é preferência, beneficiário não recebe nada (faleceu)
+
+            const temHerdeiros = resultados.temHerdeiros && Array.isArray(resultados.herdeiros) && resultados.herdeiros.length > 0;
+
+            // percentual pago sobre a dívida 
+            const percentualPagoSobreDivida = dividaTotalAtualizada > 0 ? Math.min(1, valorPago / dividaTotalAtualizada) : 0;
+
+            // calcula quanto o beneficiário recebe/agura dependendo do caso
             let beneficiarioRecebe = 0;
             let beneficiarioAguarda = 0;
-            
+
             if (temHerdeiros && dados.tipoCalculo === 'preferencia') {
-                // Beneficiário faleceu, não recebe preferência
-                beneficiarioRecebe = 0;
-                beneficiarioAguarda = parteBeneficiario; // Todo valor vai para aguardar (será dos herdeiros)
-            } else if (temHerdeiros) {
-                // Beneficiário faleceu mas não é preferência (ordem cronológica)
+                // beneficiário faleceu e há preferência: beneficiário recebe 0, tudo vai para aguardar (herdeiros)
                 beneficiarioRecebe = 0;
                 beneficiarioAguarda = parteBeneficiario;
+            } else if (temHerdeiros) {
+                // beneficiário faleceu (sem preferência)
+                beneficiarioRecebe = 0;
+                beneficiarioAguarda = parteBeneficiario;
+            } else if (isParcial) {
+                // pagamento parcial
+                beneficiarioRecebe = parteBeneficiario * percentualPagoSobreDivida;
+                beneficiarioAguarda = Math.max(0, parteBeneficiario - beneficiarioRecebe);
             } else {
-                // Beneficiário vivo
-                beneficiarioRecebe = resultados.valorBeneficiarioAposCessoes;
+                // pagamento integral / padrão
+                beneficiarioRecebe = (resultados.valorBeneficiarioAposCessoes != null) ? resultados.valorBeneficiarioAposCessoes : parteBeneficiario;
                 beneficiarioAguarda = Math.max(0, parteBeneficiario - beneficiarioRecebe);
             }
-            
-            const listaCessionarios = resultados.cessoesBeneficiarioCalculadas.map(cessao => 
-                `${cessao.cessionario} (${(cessao.percentual * 100).toFixed(2)}%)`
+
+            // lista de cessionários e cálculo de linhas
+            const listaCessionarios = resultados.cessoesBeneficiarioCalculadas.map(cessao =>
+                `${cessao.cessionario} (${((cessao.percentual || 0) * 100).toFixed(2)}%)`
             ).join(', ');
-            
-            const totalCedido = resultados.cessoesBeneficiarioCalculadas.reduce((total, cessao) => 
-                total + cessao.percentual, 0
+
+            const totalCedido = resultados.cessoesBeneficiarioCalculadas.reduce((total, cessao) =>
+                total + (cessao.percentual || 0), 0
             );
-            
-            // Linhas dos cessionários
+
             const linhasCessionarios = resultados.cessoesBeneficiarioCalculadas.map(cessao => {
-                const valorBrutoCessionario = dividaTotalAtualizada * cessao.percentual;
+                const valorBrutoCessionario = dividaTotalAtualizada * (cessao.percentual || 0);
                 const deducoesCessionario = valorBrutoCessionario * percentualDeducoes;
                 const parteCessionario = valorBrutoCessionario - deducoesCessionario;
-                const cessionarioRecebe = resultados.isPreferenciasParcial ? 0 : cessao.valorBruto;
-                const cessionarioAguarda = resultados.isPreferenciasParcial ? parteCessionario : 0;
-                
+
+                let cessionarioRecebe = 0;
+                let cessionarioAguarda = 0;
+
+                if (isPreferenciasParcial) {
+                    // preferência parcial: cessionários não recebem agora 
+                    cessionarioRecebe = 0;
+                    cessionarioAguarda = parteCessionario;
+                } else if (isParcial) {
+                    // pagamento parcial: cessionário recebe proporcionalmente sobre sua parte líquida
+                    cessionarioRecebe = parteCessionario * percentualPagoSobreDivida;
+                    cessionarioAguarda = Math.max(0, parteCessionario - cessionarioRecebe);
+                } else {
+                    cessionarioRecebe = (cessao.valorBruto != null) ? (cessao.valorBruto) : parteCessionario;
+                    
+                    cessionarioAguarda = 0;
+                }
+
                 return `
-                <tr>
-                    <td>${cessao.cessionario}</td>
-                    <td>${(cessao.percentual * 100).toFixed(2)}%</td>
-                    <td>R$ ${formatarMoeda(valorBrutoCessionario)}</td>
-                    <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
-                    <td>R$ ${formatarMoeda(deducoesCessionario)}</td>
-                    <td>R$ ${formatarMoeda(parteCessionario)}</td>
-                    <td>R$ ${formatarMoeda(cessionarioRecebe)}</td>
-                    <td>R$ ${formatarMoeda(cessionarioAguarda)}</td>
-                </tr>
+                    <tr>
+                        <td>${cessao.cessionario}</td>
+                        <td>${((cessao.percentual || 0) * 100).toFixed(2)}%</td>
+                        <td>R$ ${formatarMoeda(valorBrutoCessionario)}</td>
+                        <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
+                        <td>R$ ${formatarMoeda(deducoesCessionario)}</td>
+                        <td>R$ ${formatarMoeda(parteCessionario)}</td>
+                        <td>R$ ${formatarMoeda(cessionarioRecebe)}</td>
+                        <td>R$ ${formatarMoeda(cessionarioAguarda)}</td>
+                    </tr>
                 `;
             }).join('');
-            
-            // Totais
+
+            // Totais: soma recebidos e aguardados (usa mesma lógica aplicada nas linhas)
             const totalValorBruto = dividaTotalAtualizada;
             const totalDeducoes = dividaTotalAtualizada * percentualDeducoes;
             const totalLiquido = dividaSemHonorarios;
-            const totalRecebe = beneficiarioRecebe + resultados.cessoesBeneficiarioCalculadas.reduce((total, cessao) => {
-                const cessionarioRecebe = resultados.isPreferenciasParcial ? 0 : cessao.valorBruto;
-                return total + cessionarioRecebe;
-            }, 0);
-            const totalAguarda = beneficiarioAguarda + resultados.cessoesBeneficiarioCalculadas.reduce((total, cessao) => {
-                const valorBrutoCessionario = dividaTotalAtualizada * cessao.percentual;
+
+            const somaRecebeCessionarios = resultados.cessoesBeneficiarioCalculadas.reduce((total, cessao) => {
+                const valorBrutoCessionario = dividaTotalAtualizada * (cessao.percentual || 0);
                 const deducoesCessionario = valorBrutoCessionario * percentualDeducoes;
                 const parteCessionario = valorBrutoCessionario - deducoesCessionario;
-                const cessionarioAguarda = resultados.isPreferenciasParcial ? parteCessionario : 0;
-                return total + cessionarioAguarda;
+
+                if (isPreferenciasParcial) return total + 0;
+                if (isParcial) return total + (parteCessionario * percentualPagoSobreDivida);
+                // integral
+                return total + ((cessao.valorBruto != null) ? cessao.valorBruto : parteCessionario);
             }, 0);
-            
+
+            const somaAguardaCessionarios = resultados.cessoesBeneficiarioCalculadas.reduce((total, cessao) => {
+                const valorBrutoCessionario = dividaTotalAtualizada * (cessao.percentual || 0);
+                const deducoesCessionario = valorBrutoCessionario * percentualDeducoes;
+                const parteCessionario = valorBrutoCessionario - deducoesCessionario;
+
+                if (isPreferenciasParcial) return total + parteCessionario;
+                if (isParcial) return total + (parteCessionario * (1 - percentualPagoSobreDivida));
+                return total + 0;
+            }, 0);
+
+            const totalRecebe = beneficiarioRecebe + somaRecebeCessionarios;
+            const totalAguarda = beneficiarioAguarda + somaAguardaCessionarios;
+
+            // alertBox 
             const alertBox = resultados.isPreferenciasParcial ? `
                 <div class="warning-box" style="margin-top: 10px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
                     <strong>ℹ️ Preferência Parcial:</strong><br>
@@ -5174,11 +5211,11 @@
                     • <strong>Saldo devedor total:</strong> R$ ${formatarMoeda(totalAguarda)}
                 </div>
             ` : isParcial ? `
-            <div class="warning-box" style="margin-top: 10px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
-                <strong>⚠️ Pagamento Parcial:</strong><br>
-                • <strong>Dívida total:</strong> R$ ${formatarMoeda(dividaTotalAtualizada)}<br>
-                • <strong>Valor do pagamento parcial:</strong> R$ ${formatarMoeda(resultados.valorBase)}<br>
-            </div>
+                <div class="warning-box" style="margin-top: 10px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
+                    <strong>⚠️ Pagamento Parcial:</strong><br>
+                    • <strong>Dívida total:</strong> R$ ${formatarMoeda(dividaTotalAtualizada)}<br>
+                    • <strong>Valor do pagamento:</strong> R$ ${formatarMoeda(resultados.valorBase)}<br>
+                </div>
             ` : temHerdeiros ? `
                 <div class="warning-box" style="margin-top: 10px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
                     <strong>⚠️ Beneficiário Falecido:</strong><br>
@@ -5190,8 +5227,7 @@
                     <strong>✅ Pagamento Integral:</strong> Todos os beneficiários recebem integralmente.
                 </div>
             `;
-            
-            
+
             return `
                 <div class="cessoes-beneficiario">
                     <div class="table-container">
