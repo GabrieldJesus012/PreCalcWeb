@@ -3222,18 +3222,23 @@
                     rrapagamento = 0;
                 }
             } else if (isParcial) {
-                // PAGAMENTO PARCIAL
                 if (dados.tributacaoIR) {
-                    const percentualPrincipalTributadoIR = dados.tributacaoIR.percentuais?.principalTributado || 0;
-                    principal = valorBase * (percentualPrincipalTributadoIR / 100);
+                    const principalTributadoTotal = dados.tributacaoIR.principalTributado;
+                    const proporcaoParcial = valorBase / valortotatt;
+                    principal = principalTributadoTotal * proporcaoParcial;
+                    
+                    // Ajustar juros também
+                    const jurosTributadoTotal = dados.tributacaoIR.jurosTributado;
+                    jurosBase = jurosTributadoTotal * proporcaoParcial;
                 } else {
                     principal = valorBase * percentualprinc;
+                    jurosBase = valorBase * percentualjur;
                 }
                 
-                // Para RRA
+                // Para RRA - também proporcional
                 if (dados.rra !== 0) {
-                    const rraCalculado = Math.round((valorBase * dados.rra) / valortotatt);
-                    rrapagamento = Math.max(1, rraCalculado); 
+                    const proporcaoParcial = valorBase / valortotatt;
+                    rrapagamento = dados.rra !== 0 ? Math.round((valorBase * dados.rra) / valortotatt) : 0;
                 } else {
                     rrapagamento = 0;
                 }
