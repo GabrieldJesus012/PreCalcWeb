@@ -2920,7 +2920,7 @@
             
             // Data base específica do item
             const dataBase = criarDataBase(item.mesBase, item.anoBase);
-            // Cálculo dos índices condicionais para este item
+            
             let indicesCNJ = 1;
             let dadosSelic = { indiceselic: 1 };
             let indiceipca = 1;
@@ -2983,7 +2983,6 @@
             return resultado;
         }
 
-        // Função para totalizar valores por tipo de tributação
         function totalizarTributacao(itensCalculados) {            
             const totais = {
                 valorPrincipalTotal: 0,
@@ -3030,16 +3029,13 @@
         }
 
         async function calcularValores(dados) {
-            // Validação básica
             if (!dados.valoresPrincipais || dados.valoresPrincipais.length === 0) {
                 console.error('❌ Erro: Nenhum valor principal encontrado!');
                 return null;
             }
             
-            // Array para armazenar cada item calculado
             const itensCalculados = [];
             
-            // Calcula cada item individualmente
             for (let i = 0; i < dados.valoresPrincipais.length; i++) {
                 const item = dados.valoresPrincipais[i];
                 
@@ -3052,24 +3048,19 @@
                 }
             }
             
-            // Totaliza todos os valores
             const totais = totalizarTributacao(itensCalculados);
             
-            // Cálculos de percentuais
             const percentualprinc = totais.valorPrincipalTotal / totais.valorGeralTotal;
             const percentualjur = totais.valorJurosTotal / totais.valorGeralTotal;
             
-            // Valor original total para cálculo do índice total
             const valorOriginalTotal = itensCalculados.reduce((sum, item) => 
                 sum + item.valorOriginal.total, 0);
             const indiceTotal = totais.valorGeralTotal / valorOriginalTotal;
             
-            // Cálculo de percentuais de tributação para exibição
             const percentualPrincipalTributadoIR = (totais.principalTributadoIR / totais.valorGeralTotal) * 100;
             const percentualJurosTributadoIR = (totais.jurosTributadoIR / totais.valorGeralTotal) * 100;
             const percentualIsentoIR = (totais.isentoIR / totais.valorGeralTotal) * 100;
             
-            // Detalhamento financeiro (usando os totais calculados)
             const dadosParaDetalhamento = {
                 ...dados,
                 valorPrincipal: totais.valorPrincipalTotal,
@@ -3100,7 +3091,6 @@
             
             const herdeiros = calcularHerdeiros(dadosParaDetalhamento, totais.valorGeralTotal, totais.valorPrincipalTotal, totais.valorJurosTotal, detalhamento);
             
-            // Resumo dos herdeiros
             const resumoHerdeiros = {
                 valorTotalHerdeiros: herdeiros.reduce((sum, h) => sum + h.valorTotalOriginal, 0),
                 valorLiquidoTotalHerdeiros: herdeiros.reduce((sum, h) => sum + h.valorLiquido, 0),
@@ -3110,12 +3100,10 @@
             };
             
             const resultadoFinal = {
-                // Valores atualizados totais (compatibilidade com função original)
                 valorprincatt: totais.valorPrincipalTotal,
                 valorjurosatt: totais.valorJurosTotal,
                 valortotatt: totais.valorGeralTotal,
                 
-                // Separação para tributação IR
                 tributacaoIR: {
                     principalTributado: totais.principalTributadoIR,
                     jurosTributado: totais.jurosTributadoIR,
@@ -3127,33 +3115,26 @@
                     }
                 },
                 
-                // Separação para tributação Previdência
                 tributacaoPrevidencia: {
                     principalTributado: totais.principalTributadoPrevidencia,
                     jurosTributado: totais.jurosTributadoPrevidencia,
                     isento: totais.isentoPrevidencia
                 },
                 
-                // RRA total
                 rraTotal: totais.rraTotal,
                 
-                // Detalhamento de cada item
                 itensCalculados,
                 
-                // Cálculo do beneficiário principal (compatibilidade)
                 ...detalhamento,
                 
-                // Herdeiros (compatibilidade)
                 herdeiros,
                 resumoHerdeiros,
                 temHerdeiros: herdeiros.length > 0,
                 
-                // Índices e percentuais (compatibilidade)
                 indiceTotal,
                 percentualprinc,
                 percentualjur,
                 
-                // Informações adicionais
                 quantidadeItens: dados.valoresPrincipais.length,
                 valorOriginalTotal
             };
@@ -3182,14 +3163,13 @@
                 // Principal e juros baseados nos valores tributáveis
                 principal = valorBase * (percentualPrincipalTributadoIR / 100);
                 jurosBase = valorBase * (percentualJurosTributadoIR / 100);
-                                
+                
             } else {
-                // Fallback para percentuais gerais (caso não tenha dados de tributação)
+                // caso não tenha dados de tributação
                 principal = valorBase * percentualprinc;
                 jurosBase = valorBase * percentualjur;
             }
 
-            // RRA - Agora usando o RRA total consolidado
             let rrapagamento = dados.rra !== 0 ? Math.round((valorBase * dados.rra) / valortotatt) : 0;
             
             // CESSÕES DO BENEFICIÁRIO PRINCIPAL 
@@ -3225,7 +3205,6 @@
                 }else {
                     valorBaseParaHonorarios = valorBase;
                 }
-
             }
 
             // Honorários
@@ -3295,15 +3274,14 @@
                 }
             }
 
-            // PREVIDÊNCIA - Usando os dados de tributação consolidados        
+            // PREVIDÊNCIA      
             const resultadoPrevidencia = calcularPrevidenciaIsolada(dados, principal, rrapagamento);
             let valorPrevidencia = resultadoPrevidencia.valorPrevidencia;
             let aliquotaEfetiva = resultadoPrevidencia.aliquotaEfetiva;
             let valorDesagioPrevidencia = resultadoPrevidencia.valorDesagioPrevidencia;       
             let percentualDesagioPrevidencia = resultadoPrevidencia.percentualDesagioPrevidencia; 
 
-            
-            // IR - Imposto de Renda
+            //Imposto de Renda
             const resultadoIR = calcularIRIsolado(dados, valortotatt, valorBase, principal, valorPrevidencia, rrapagamento);
             let {
                 valorIR,
@@ -3849,7 +3827,7 @@
                         principalComDesagio = baseIRSindi - valorDesagioIR;
                     }
 
-                     // Recalcular RRA baseado no deságio
+                    // Recalcular RRA baseado no deságio
                     percentualDesagioIR = dados.percentualAcordo || 0;
                     const proporcaoSemDesagio = 1 - percentualDesagioIR;
                     rraComDesagio = dados.rra !== 0 ? 
@@ -3913,12 +3891,12 @@
                 };
             }
             
-            // Verificar se deve calcular previdência baseado nos itens individuais
+            // Verificar se deve calcular previdência
             const deveCalcularPrevidencia = dados.incidenciaPrevidencia || 
                 (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.previdencia));
             
             if (deveCalcularPrevidencia) {
-                let tipoPrevidencia = 'inss'; // padrão
+                let tipoPrevidencia = 'inss'; 
                 let aliquotaFixa = 0;
                 
                 if (dados.valoresPrincipais) {
@@ -3928,7 +3906,6 @@
                         aliquotaFixa = itemComPrevidencia.tributacao.aliquotaFixa || 0;
                     }
                 } else {
-                    // Fallback para dados globais (compatibilidade)
                     tipoPrevidencia = dados.tipoPrevidencia || 'inss';
                     aliquotaFixa = dados.aliquotaFixa || 0;
                 }
@@ -4090,7 +4067,7 @@
                     percentualDesagioPrevidencia: percentualDesagioPrevidenciaHerdeiro
                 } = resultadoPrevidencia;
 
-                // 11. IR (calcularIRIsolado vai aplicar o deságio no RRA internamente)
+                // 11. IR 
                 const resultadoIR = calcularIRIsolado(
                     dados, 
                     valorTotalHerdeiro,
