@@ -553,7 +553,8 @@
                 div.innerHTML = `
                     <div class="item-header">
                         <strong>${valor.descricao}</strong>
-                        <button class="btn-add" onclick="removerValorPrincipal(${valor.id})">🗑️ Remover</button>
+                        <button class="btn-editar" onclick="editarValorPrincipal(${valor.id})">✏️ Editar</button>
+                        <button class="btn-remover" onclick="removerValorPrincipal(${valor.id})">🗑️ Remover</button>
                     </div>
                     <div class="item-info">
                         <span><strong>Base:</strong> ${valor.mesBase}/${valor.anoBase}</span>
@@ -564,6 +565,57 @@
                     </div>
                 `;
                 lista.appendChild(div);
+            });
+        }
+
+        function editarValorPrincipal(id) {
+            // Encontrar o valor principal pelo ID
+            const valorParaEditar = valoresPrincipais.find(v => v.id === id);
+            
+            if (!valorParaEditar) {
+                alert('Valor não encontrado!');
+                return;
+            }
+
+            // Preencher os campos do formulário com os dados existentes
+            document.getElementById('mesBase').value = valorParaEditar.mesBase || '';
+            document.getElementById('anoBase').value = valorParaEditar.anoBase || '';
+            document.getElementById('valorPrincipal').value = valorParaEditar.valorPrincipal || '';
+            document.getElementById('valorJuros').value = valorParaEditar.valorJuros || '';
+            document.getElementById('rra').value = valorParaEditar.tributacao.rra || '';
+            document.getElementById('descricaoPrincipal').value = valorParaEditar.descricao || '';
+
+            // Preencher os checkboxes dos índices
+            document.getElementById('principalCNJ').checked = valorParaEditar.indices.cnj || false;
+            document.getElementById('principalSELIC').checked = valorParaEditar.indices.selic || false;
+            document.getElementById('principalIPCA').checked = valorParaEditar.indices.ipca || false;
+            document.getElementById('principalJurosMora').checked = valorParaEditar.indices.jurosMora || false;
+
+            // Preencher os campos de tributação
+            document.getElementById('incidenciaIR').value = valorParaEditar.tributacao.ir ? 'sim' : 'nao';
+            document.getElementById('incidenciaPrevidencia').value = valorParaEditar.tributacao.previdencia ? 'sim' : 'nao';
+            
+            if (valorParaEditar.tributacao.previdencia) {
+                document.getElementById('tipoPrevidencia').value = valorParaEditar.tributacao.tipoPrevidencia || 'inss';
+                if (valorParaEditar.tributacao.tipoPrevidencia === 'fixa') {
+                    document.getElementById('aliquotaFixa').value = valorParaEditar.tributacao.aliquotaFixa || '';
+                }
+            }
+
+            const eventIncidenciaPrevidencia = new Event('change');
+            document.getElementById('incidenciaPrevidencia').dispatchEvent(eventIncidenciaPrevidencia);
+
+            const eventTipoPrevidencia = new Event('change');
+            document.getElementById('tipoPrevidencia').dispatchEvent(eventTipoPrevidencia);
+
+            // Remover o valor original da lista
+            valoresPrincipais = valoresPrincipais.filter(v => v.id !== id);
+            renderizarValoresPrincipais();
+
+            // Rolar para o formulário
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
             });
         }
 
@@ -4676,6 +4728,11 @@
 
         function gerarResumoCalculos(resultados, dados) {
             const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
+
+            const temTributacaoMista = resultados.tributacaoIR && 
+                resultados.tributacaoIR.isento > 0 && 
+                resultados.tributacaoIR.principalTributado > 0;
+
             let basesPagamento = '';
 
             if (temHerdeiros && dados.tipoCalculo === 'preferencia') {
@@ -4706,21 +4763,32 @@
                 `;
             }
 
+            let linhasPrincipais = `
+                <tr>
+                    <td>Valor Principal Atualizado</td>
+                    <td>R$ ${formatarMoeda(resultados.valorprincatt)}</td>
+                    <td>${(resultados.percentualprinc * 100).toFixed(4)}%</td>
+                </tr>
+                ${temTributacaoMista ? `
+                <tr style="color: #666;font-size: 0.92em;">
+                    <td style="padding-left: 20px;">↳ Principal Tributável</td>
+                    <td>↳ R$ ${formatarMoeda(resultados.tributacaoIR.principalTributado)} (${((resultados.tributacaoIR.principalTributado / resultados.valortotatt) * 100).toFixed(4)}%)</td>
+                    <td>-</td>
+                </tr>
+                ` : ''}
+                <tr>
+                    <td>Valor Juros Atualizado</td>
+                    <td>R$ ${formatarMoeda(resultados.valorjurosatt)}</td>
+                    <td>${(resultados.percentualjur * 100).toFixed(4)}%</td>
+                </tr>
+            `;
+
             return `
                 <div class="table-container">
                     <h3>📈 Resumo dos Cálculos</h3>
                     <table>
                         <tr><th>Descrição</th><th>Valor</th><th>%</th></tr>
-                        <tr>
-                            <td>Valor Principal Atualizado</td>
-                            <td>R$ ${formatarMoeda(resultados.valorprincatt)}</td>
-                            <td>${(resultados.percentualprinc * 100).toFixed(4)}%</td>
-                        </tr>
-                        <tr>
-                            <td>Valor Juros Atualizado</td>
-                            <td>R$ ${formatarMoeda(resultados.valorjurosatt)}</td>
-                            <td>${(resultados.percentualjur * 100).toFixed(4)}%</td>
-                        </tr>
+                        ${linhasPrincipais}
                         <tr>
                             <td><strong>Total Atualizado</strong></td>
                             <td><strong>R$ ${formatarMoeda(resultados.valortotatt)}</strong></td>

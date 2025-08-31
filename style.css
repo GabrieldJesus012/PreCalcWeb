@@ -970,6 +970,50 @@ tr.highlight {
     box-shadow: 0 8px 24px rgba(40, 167, 69, 0.4);
 }
 
+#tab2 .btn-editar {
+    background: linear-gradient(135deg, #ffc107b6, #ffca2c91);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    color: #212529;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 16px rgba(255, 193, 7, 0.3);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 8px 0 0;
+}
+
+#tab2 .btn-editar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(255, 193, 7, 0.4);
+}
+
+/* Botão remover - vermelho */
+#tab2 .btn-remover {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    color: white;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 16px rgba(220, 53, 69, 0.3);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#tab2 .btn-remover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(220, 53, 69, 0.4);
+}
+
 
 #tab2 .date-row {
     display: grid;
