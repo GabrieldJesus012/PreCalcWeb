@@ -3829,9 +3829,9 @@
 
                     // Recalcular RRA baseado no deságio
                     percentualDesagioIR = dados.percentualAcordo || 0;
-                    const proporcaoSemDesagio = 1 - percentualDesagioIR;
+                    //const proporcaoSemDesagio = 1 - percentualDesagioIR; sem desagio no rra.
                     rraComDesagio = dados.rra !== 0 ? 
-                        Math.max(1, arredondarRRA(rrapagamentoRecalculado * proporcaoSemDesagio)) : 0;
+                        Math.max(1, rrapagamentoRecalculado) : 0;
                     
                     // Base 4: Sem previdência
                     baseIRPrev = principalComDesagio - valorPrevidencia;
