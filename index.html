@@ -4529,13 +4529,31 @@
             
             const valorTotalOriginal = valorPrincipalOriginal + valorJurosOriginal;
 
+            let textoDataBase = 'Não informado';
+            if (dados.valoresPrincipais && dados.valoresPrincipais.length > 0) {
+                const datasBase = new Set();
+                dados.valoresPrincipais.forEach(item => {
+                    if (item.mesBase && item.anoBase) {
+                        datasBase.add(`${item.mesBase}/${item.anoBase}`);
+                    }
+                });
+                
+                const datasUnicas = Array.from(datasBase);
+                
+                if (datasUnicas.length === 1) {
+                    textoDataBase = datasUnicas[0];
+                } else if (datasUnicas.length > 1) {
+                    textoDataBase = datasUnicas.join(', ');
+                }
+            }
+
             return `
                 <div class="table-container">
                     <h3>💰 Demonstrativo de Atualização Monetária</h3>
                     <table>
                         <tr>
                             <th>Componente</th>
-                            <th>Valor Histórico (${dados.mesBase || 'Não informado'}/${dados.anoBase || 'Não informado'})</th>
+                            <th>Valor Histórico (${textoDataBase})</th>
                             <th>Correção Aplicada*</th>
                             <th>Valor Atualizado (${dataAtual})</th>
                         </tr>
