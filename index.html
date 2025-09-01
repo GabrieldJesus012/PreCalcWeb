@@ -4924,7 +4924,7 @@
             // Só não recebe na preferência parcial (se for preferência total, recebe)
             if (!resultados.sindicatos) return '';
             const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
-            // SE TEM HERDEIROS: verifica tipo de cálculo
+            // HERDEIROS: verifica tipo de cálculo
             if (temHerdeiros) {
                 const isPreferencia = dados.tipoCalculo === 'preferencia';
                 
@@ -4976,7 +4976,7 @@
                     `;
                 }
                 
-                // SE FOR PREFERÊNCIA: agrupa por valor base (só herdeiros que recebem completo)
+                // HERDEIROS PREFERÊNCIA
                 else {
                     // Só considera herdeiros que TÊM preferência E recebem completo E têm sindicato
                     const herdeirosQueRecebemCompleto = resultados.herdeiros.filter(h => 
@@ -5070,7 +5070,7 @@
                     `;
                 }
             }
-            // SE NÃO TEM HERDEIROS: lógica original (sem preferência parcial)
+            // SEM HERDEIROS
             else {
                 if (ehPreferenciaParcial) return '';
                 const sindicatosComCessao = resultados.sindicatos.filter(sind => 
@@ -5206,7 +5206,6 @@
                 `;
             }).join('');
 
-            // Totais: soma recebidos e aguardados (usa mesma lógica aplicada nas linhas)
             const totalValorBruto = dividaTotalAtualizada;
             const totalDeducoes = dividaTotalAtualizada * percentualDeducoes;
             const totalLiquido = dividaSemHonorarios;
@@ -5235,7 +5234,6 @@
             const totalRecebe = beneficiarioRecebe + somaRecebeCessionarios;
             const totalAguarda = beneficiarioAguarda + somaAguardaCessionarios;
 
-            // alertBox 
             const alertBox = resultados.isPreferenciasParcial ? `
                 <div class="warning-box" style="margin-top: 10px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
                     <strong>ℹ️ Preferência Parcial:</strong><br>
@@ -5415,7 +5413,6 @@
             const percentualCedido = houveCessaoBeneficiario ? 
                 ((1 - resultados.percentualBeneficiarioFinal) * 100).toFixed(2) : 0;
             
-            // HTML com informações sobre cessão se houver
             let htmlCessaoInfo = '';
             if (houveCessaoBeneficiario) {
                 htmlCessaoInfo = `
@@ -5486,7 +5483,6 @@
             const secoesHerdeiros = herdeirosComCessoes.map(herdeiro => {
                 const valorTotalHerdeiro = herdeiro.valorTotalOriginal;
                 
-                // SEMPRE USAR VALOR ORIGINAL do herdeiro para as cessões (não o valor limitado pela preferência)
                 const valorBrutoSemCessoes = valorTotalHerdeiro; // Usar sempre o valor original
                 
                 // Lista de cessionários
@@ -5648,12 +5644,12 @@
         function gerarSecaoCessoesAdvogados(resultados, dados) {
             const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
             
-            // SE TEM HERDEIROS: verifica tipo de cálculo
+            // HERDEIROS
             if (temHerdeiros) {
                 const isPreferencia = dados.tipoCalculo === 'preferencia';
                 const isParcial = dados.tipoCalculo === 'parcial';
                 
-                // SE FOR ORDEM OU PARCIAL: trata como beneficiário principal único (sem agrupar)
+                // ORDEM OU PARCIAL
                 if (!isPreferencia) {
                     const advogadosComCessao = resultados.honorarios.filter(adv => 
                         adv.cessoesAdv && adv.cessoesAdv.length > 0
@@ -5662,11 +5658,11 @@
                     if (advogadosComCessao.length === 0) return '';
                     
                     const secoesCessoes = advogadosComCessao.map(adv => {
-                        // CORREÇÃO: No pagamento parcial, calcular valores proporcionais
+                        // No pagamento parcial, calcular valores proporcionais
                         let valorHonorario, valorAdvogado;
                         
                         if (isParcial) {
-                            // Calcular sobre o valor base parcial (que já está no valorBase dos resultados)
+                            // Calcular sobre o valor base parcial
                             valorHonorario = resultados.valorBase * adv.percentual;
                             valorAdvogado = resultados.valorBase * adv.percentualAdvogado;
                         } else {
@@ -5674,7 +5670,7 @@
                             valorAdvogado = adv.valorBrutoAdvogado;
                         }
                         
-                        // CORREÇÃO: Cessionários também recebem proporcionalmente no pagamento parcial
+                        // Cessionários também recebem proporcionalmente no pagamento parcial
                         let cessionarios = '';
                         if (adv.cessionarios && adv.cessionarios.length > 0) {
                             cessionarios = adv.cessionarios.map(cessionario => {
@@ -5730,12 +5726,11 @@
                     `;
                 }
                 
-                // SE FOR PREFERÊNCIA: agrupa por valor base dos herdeiros
+                //PREFERÊNCIA HERDEIRO
                 else {
-                    // ... resto do código de preferência permanece igual
                     const isPreferenciaParcial = isPreferencia && resultados.valorBase < resultados.valortotatt;
                     
-                    // Filtra herdeiros conforme o tipo de cálculo
+                    // herdeiros conforme o tipo de cálculo
                     const herdeirosFiltrados = resultados.herdeiros.filter(h => h.temPreferencia || h.isPreferenciaParcial);
                     
                     // Agrupa herdeiros por valor base
@@ -5746,7 +5741,6 @@
                         baseGroups.get(baseKey).push(h);
                     });
                     
-                    // Para cada grupo, verifica se há cessões e gera a seção
                     const secoesPorBase = [];
                     
                     baseGroups.forEach((herdeiros, base) => {
@@ -5764,7 +5758,6 @@
                         if (advogadosComCessao.length === 0) return; // Não há cessões neste grupo
                         
                         const secoesCessoes = advogadosComCessao.map(adv => {
-                            // Valor do honorário deste advogado neste grupo
                             const valorHonorarioAdvogado = valorBase * adv.percentual;
                             const valorAdvogadoAposCessao = valorBase * adv.percentualAdvogado;
                             
@@ -5856,7 +5849,7 @@
                 }
             }
             
-            // SEM HERDEIROS
+            // BENEFICIARIO PRINCIPAL
             else {
                 const advogadosComCessao = resultados.honorarios.filter(adv => 
                     adv.cessoesAdv && adv.cessoesAdv.length > 0
@@ -5869,19 +5862,18 @@
                 const isPreferenciaParcial = isPreferencia && resultados.valorBase < resultados.valortotatt;
                 
                 const secoesCessoes = advogadosComCessao.map(adv => {
-                    // CORREÇÃO: Calcular valores corretamente para pagamento parcial
                     let valorHonorario, valorAdvogado;
                     
                     if (isParcial) {
-                        // Pagamento parcial: calcular sobre valor base parcial
+                        // Pagamento parcial
                         valorHonorario = resultados.valorBase * adv.percentual;
                         valorAdvogado = resultados.valorBase * adv.percentualAdvogado;
                     } else if (isPreferenciaParcial) {
-                        // Preferência parcial: usar valores proporcionais
+                        // Preferência parcial
                         valorHonorario = adv.valorBruto;
                         valorAdvogado = adv.valorBrutoAdvogado;
                     } else if (isPreferencia) {
-                        // Preferência total: calcular sobre valor total
+                        // Preferência total
                         valorHonorario = resultados.valortotatt * adv.percentual;
                         valorAdvogado = resultados.valortotatt * adv.percentualAdvogado;
                     } else {
@@ -5901,7 +5893,7 @@
                             </tr>
                         `).join('') : '';
                     } else if (isParcial) {
-                        // CORREÇÃO: Pagamento parcial: cessionários recebem proporcionalmente
+                        // Pagamento parcial: cessionários recebem proporcionalmente
                         cessionarios = adv.cessionarios ? adv.cessionarios.map(cessionario => {
                             
                             const valorCessionario = valorHonorario * cessionario.percentual;
@@ -5994,7 +5986,6 @@
             if (dados.tipoCalculo === 'acordo') {
                 const adesoes = obterAdesaoAcordo();
                 
-                // Verificar se beneficiário ou herdeiros aderiram
                 const beneficiarioOuHerdeirosAderiram = adesoes.beneficiario || adesoes.herdeiros.length > 0;
                 
                 let cessionarioRelevante = false;
@@ -6022,19 +6013,18 @@
             if (temHerdeiros) {
                 const isPreferencia = dados.tipoCalculo === 'preferencia';
                 
-                // FILTRAR HERDEIROS POR ADESÃO AO ACORDO
                 let herdeirosFiltrados = resultados.herdeiros;
                 
                 if (dados.tipoCalculo === 'acordo') {
                     const adesoes = obterAdesaoAcordo();
                     
-                    // Filtrar só herdeiros que aderiram ao acordo
+                    // só herdeiros que aderiram ao acordo
                     herdeirosFiltrados = resultados.herdeiros.filter((h, index) => 
                         adesoes.herdeiros.includes(index)  
                     );
                 }
                 
-                // ORDEM: discrimina por beneficiário + agrupa herdeiros por valor
+                // ORDEM
                 if (!isPreferencia) {
                     const secoes = [];
                     
@@ -6139,11 +6129,10 @@
                         // Se é acordo: usar herdeiros já filtrados por adesão
                         herdeirosFiltradosPreferencia = herdeirosFiltrados.filter(h => h.temPreferencia || h.isPreferenciaParcial);
                     } else {
-                        // Se não é acordo: filtrar só por preferência
+                        // Se não é acordo
                         herdeirosFiltradosPreferencia = resultados.herdeiros.filter(h => h.temPreferencia || h.isPreferenciaParcial);
                     }
                     
-                    // Agrupa herdeiros por valor base
                     const baseGroups = new Map();
                     herdeirosFiltradosPreferencia.forEach(h => {
                         const baseKey = h.valorTotal.toFixed(2);
@@ -6263,13 +6252,11 @@
             const isAcordo = dados.tipoCalculo === 'acordo';
             const percentualDesagio = dados.percentualAcordo || 0;
             
-            // Calcular valores para exibição
             let valorSemDesagio = resultados.valorPrevidencia;
             let valorDesagio = 0;
             let valorComDesagio = resultados.valorPrevidencia;
             
             if (isAcordo && resultados.valorDesagioPrevidencia) {
-                // valorPrevidencia já vem COM deságio aplicado
                 valorComDesagio = resultados.valorPrevidencia; // valor final (já com deságio)
                 valorDesagio = resultados.valorDesagioPrevidencia; // valor do desconto
                 valorSemDesagio = resultados.valorPrevidencia + resultados.valorDesagioPrevidencia; // valor original
@@ -6329,13 +6316,11 @@
             const percentualDesagio = dados.percentualAcordo || 0;
             const base = resultados.rrapagamento === 0 ? resultados.principal : resultados.principal / resultados.rrapagamento;
             
-            // Calcular valores para exibição
             let valorSemDesagio = resultados.valorPrevidencia;
             let valorDesagio = 0;
             let valorComDesagio = resultados.valorPrevidencia;
             
             if (isAcordo && resultados.valorDesagioPrevidencia) {
-                // valorPrevidencia já vem COM deságio aplicado
                 valorComDesagio = resultados.valorPrevidencia; // valor final (já com deságio)
                 valorDesagio = resultados.valorDesagioPrevidencia; // valor do desconto
                 valorSemDesagio = resultados.valorPrevidencia + resultados.valorDesagioPrevidencia; // valor original
@@ -6425,7 +6410,6 @@
                 percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
             }
 
-            // Mostrar base com deságio se for acordo
             let baseComDesagio = '';
             if (isAcordo && resultados.percentualDesagioIR > 0) {
                 baseComDesagio = `
@@ -6586,7 +6570,6 @@
             const isAcordo = dados.tipoCalculo === 'acordo';
             const percentualDesagio = dados.percentualAcordo || 0;
             
-            // Calcular valores para exibição
             let valorSemDesagio = primeiroHerdeiro.valorPrevidencia;
             let valorComDesagio = primeiroHerdeiro.valorPrevidencia;
             
@@ -6595,7 +6578,7 @@
                 valorSemDesagio = primeiroHerdeiro.valorPrevidencia + primeiroHerdeiro.valorDesagioPrevidencia; 
             }
             
-            // Distribuição por herdeiros (SEM cessões)
+            // Distribuição por herdeiros
             const distribuicaoHerdeiros = herdeiros.map(herdeiro => `
                 <tr>
                     <th>${herdeiro.nome}:</th>
@@ -6640,17 +6623,14 @@
             
             const base = primeiroHerdeiro.rrapagamento === 0 ? primeiroHerdeiro.principal : primeiroHerdeiro.principal / primeiroHerdeiro.rrapagamento;
             
-            // Calcular valores para exibição
             let valorSemDesagio = primeiroHerdeiro.valorPrevidencia;
             let valorComDesagio = primeiroHerdeiro.valorPrevidencia;
             
             if (isAcordo && primeiroHerdeiro.valorDesagioPrevidencia) {
-                // valorPrevidencia já vem COM deságio aplicado
                 valorComDesagio = primeiroHerdeiro.valorPrevidencia; // valor final (já com deságio)
                 valorSemDesagio = primeiroHerdeiro.valorPrevidencia + primeiroHerdeiro.valorDesagioPrevidencia; // valor original
             }
-            
-            // Distribuição por herdeiros (SEM cessões)
+
             const distribuicaoHerdeiros = herdeiros.map(herdeiro => `
                 <tr>
                     <th>${herdeiro.nome}:</th>
@@ -6706,7 +6686,7 @@
             const isAcordo = dados.tipoCalculo === 'acordo';
             const percentualDesagio = dados.percentualAcordo || 0;
             
-            // Calcula percentuais (usando primeiro herdeiro como referência)
+            // Calcula percentuais 
             let percentualTotalAdv = 0;
             let percentualTotalSind = 0;
 
@@ -6721,12 +6701,12 @@
                 }, 0);
                 percentualTotalSind = 0; // Sindicatos não recebem na preferência
             } else {
-                // ORDEM CRONOLÓGICA ou PREFERÊNCIA TOTAL: usa todos os percentuais
+                // ORDEM CRONOLÓGICA ou PREFERÊNCIA TOTAL
                 percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
                 percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
             }
             
-            // Mostrar base com deságio se for acordo
+            //acordo
             let baseComDesagio = '';
             if (isAcordo && percentualDesagio > 0) {
                 baseComDesagio = `
@@ -6736,7 +6716,6 @@
                 </tr>`;
             }
             
-            // Distribuição por herdeiros (SEM cessões)
             const distribuicaoHerdeiros = herdeiros.map(herdeiro => `
                 <tr>
                     <th>${herdeiro.nome}:</th>
@@ -6805,22 +6784,18 @@
             const isAcordo = dados.tipoCalculo === 'acordo';
             const percentualDesagio = dados.percentualAcordo || 0;
             
-            // Calcular valores para exibição
             let valorSemDesagio = primeiroHerdeiro.valorPrevidencia;
             let valorComDesagio = primeiroHerdeiro.valorPrevidencia;
             
             if (isAcordo && primeiroHerdeiro.valorDesagioPrevidencia) {
-                // valorPrevidencia já vem COM deságio aplicado
                 valorComDesagio = primeiroHerdeiro.valorPrevidencia; // valor final (já com deságio)
                 valorSemDesagio = primeiroHerdeiro.valorPrevidencia + primeiroHerdeiro.valorDesagioPrevidencia; // valor original
             }
             
-            // Distribuição por herdeiros e suas cessões
             const distribuicaoHerdeiros = herdeiros.map(herdeiro => {
                 const temCessoes = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
                 
                 if (!temCessoes) {
-                    // Sem cessões - só o herdeiro
                     return `
                         <tr>
                             <th>${herdeiro.nome}:</th>
@@ -6833,7 +6808,6 @@
                     const cessoesTotais = herdeiro.cessoesHerdeiro.reduce((total, cessao) => total + cessao.percentual, 0);
                     const percentualHerdeiro = 1.0 - cessoesTotais;
                     
-                    // Valor do herdeiro após cessões
                     const valorHerdeiro = valorPrevidenciaTotal * percentualHerdeiro;
                     
                     let linhas = `
@@ -6843,7 +6817,6 @@
                         </tr>
                     `;
                     
-                    // Valores dos cessionários
                     herdeiro.cessoesHerdeiro.forEach(cessao => {
                         const valorCessionario = valorPrevidenciaTotal * cessao.percentual;
                         linhas += `
@@ -6895,22 +6868,18 @@
             
             const base = primeiroHerdeiro.rrapagamento === 0 ? primeiroHerdeiro.principal : primeiroHerdeiro.principal / primeiroHerdeiro.rrapagamento;
             
-            // Calcular valores para exibição
             let valorSemDesagio = primeiroHerdeiro.valorPrevidencia;
             let valorComDesagio = primeiroHerdeiro.valorPrevidencia;
             
             if (isAcordo && primeiroHerdeiro.valorDesagioPrevidencia) {
-                // valorPrevidencia já vem COM deságio aplicado
                 valorComDesagio = primeiroHerdeiro.valorPrevidencia; // valor final (já com deságio)
                 valorSemDesagio = primeiroHerdeiro.valorPrevidencia + primeiroHerdeiro.valorDesagioPrevidencia; // valor original
             }
             
-            // Distribuição por herdeiros e suas cessões
             const distribuicaoHerdeiros = herdeiros.map(herdeiro => {
                 const temCessoes = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
                 
                 if (!temCessoes) {
-                    // Sem cessões - só o herdeiro
                     return `
                         <tr>
                             <th>${herdeiro.nome}:</th>
@@ -6918,12 +6887,10 @@
                         </tr>
                     `;
                 } else {
-                    // Com cessões - distribui proporcionalmente
                     const valorPrevidenciaTotal = herdeiro.valorPrevidencia;
                     const cessoesTotais = herdeiro.cessoesHerdeiro.reduce((total, cessao) => total + cessao.percentual, 0);
                     const percentualHerdeiro = 1.0 - cessoesTotais;
                     
-                    // Valor do herdeiro após cessões
                     const valorHerdeiro = valorPrevidenciaTotal * percentualHerdeiro;
                     
                     let linhas = `
@@ -6933,7 +6900,6 @@
                         </tr>
                     `;
                     
-                    // Valores dos cessionários
                     herdeiro.cessoesHerdeiro.forEach(cessao => {
                         const valorCessionario = valorPrevidenciaTotal * cessao.percentual;
                         linhas += `
@@ -6996,7 +6962,6 @@
             const isAcordo = dados.tipoCalculo === 'acordo';
             const percentualDesagio = dados.percentualAcordo || 0;
             
-            // Calcula percentuais (usando primeiro herdeiro como referência)
             let percentualTotalAdv = 0;
             let percentualTotalSind = 0;
 
@@ -7011,12 +6976,11 @@
                 }, 0);
                 percentualTotalSind = 0; // Sindicatos não recebem na preferência
             } else {
-                // ORDEM CRONOLÓGICA ou PREFERÊNCIA TOTAL: usa todos os percentuais
+                // ORDEM CRONOLÓGICA ou PREFERÊNCIA TOTAL
                 percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
                 percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
             }
             
-            // Mostrar base com deságio se for acordo
             let baseComDesagio = '';
             if (isAcordo && percentualDesagio > 0) {
                 baseComDesagio = `
@@ -7026,12 +6990,10 @@
                 </tr>`;
             }
             
-            // Distribuição por herdeiros e suas cessões
             const distribuicaoHerdeiros = herdeiros.map(herdeiro => {
                 const temCessoes = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
                 
                 if (!temCessoes) {
-                    // Sem cessões - só o herdeiro
                     return `
                         <tr>
                             <th>${herdeiro.nome}:</th>
@@ -7039,12 +7001,10 @@
                         </tr>
                     `;
                 } else {
-                    // Com cessões - distribui proporcionalmente
                     const valorIRTotal = herdeiro.valorIR;
                     const cessoesTotais = herdeiro.cessoesHerdeiro.reduce((total, cessao) => total + cessao.percentual, 0);
                     const percentualHerdeiro = 1.0 - cessoesTotais;
                     
-                    // Valor do herdeiro após cessões
                     const valorHerdeiro = valorIRTotal * percentualHerdeiro;
                     
                     let linhas = `
@@ -7054,7 +7014,6 @@
                         </tr>
                     `;
                     
-                    // Valores dos cessionários
                     herdeiro.cessoesHerdeiro.forEach(cessao => {
                         const valorCessionario = valorIRTotal * cessao.percentual;
                         linhas += `
@@ -7148,7 +7107,6 @@
         function gerarPagamentosComHerdeiros(resultados, dados) {
             const isPreferencia = dados.tipoCalculo === 'preferencia';
             
-            // Filtra herdeiros conforme o tipo de cálculo
             const herdeirosParaPagar = isPreferencia 
                 ? resultados.herdeiros.filter(h => h.temPreferencia || h.isPreferenciaParcial)
                 : resultados.herdeiros;
@@ -7157,7 +7115,6 @@
             
             if (herdeirosComPagamentos.length === 0) return '';
             
-            // Gera seção para cessionários do beneficiário (se houver)
             let secaoCessionariosBeneficiario = '';
             if (resultados.cessoesBeneficiarioFinais && resultados.cessoesBeneficiarioFinais.length > 0) {
                 const cessionariosBeneficiario = resultados.cessoesBeneficiarioFinais.filter(cessao => cessao.valorLiquido > 0);
@@ -7215,12 +7172,10 @@
                 }
             }
             
-            // Gera uma tabela para cada herdeiro
             const secoesHerdeiros = herdeirosComPagamentos.map(herdeiro => 
                 gerarTabelaHerdeiro(herdeiro, dados, isPreferencia, herdeirosComPagamentos.length)
             ).join('');
             
-            // Calcula totais gerais
             const todosPagamentos = coletarTodosPagamentos(resultados, dados);
             const totaisGerais = {
                 totalDevido: calcularTotalDevido(todosPagamentos),
@@ -7358,7 +7313,7 @@
                         // Na preferência, só se o herdeiro recebe completo (não parcial)
                         devePagarSindicato = herdeiro.temPreferencia && !herdeiro.isPreferenciaParcial;
                     } else {
-                        // Na ordem, todos pagam sindicato
+                        // Na ordem
                         devePagarSindicato = true;
                     }
                     
@@ -7367,7 +7322,6 @@
                         const temCessionarios = sind.cessionarios && sind.cessionarios.length > 0;
                         
                         if (!temCessionarios && sind.valorBrutoSindicato > 0) {
-                            // Sindicato sem cessão - mostra o sindicato
                             pagamentosHerdeiro.push({
                                 credor: `${sind.nome} (Sindicato)`,
                                 valorDevido: sind.valorBrutoSindicato,
@@ -7376,7 +7330,6 @@
                                 valorLiquido: sind.valorLiquidoSindicato
                             });
                         } else if (temCessionarios) {
-                            // Sindicato com cessão - só mostra se ainda tem valor próprio
                             if (sind.valorBrutoSindicato > 0) {
                                 pagamentosHerdeiro.push({
                                     credor: `${sind.nome} (Sindicato)`,
@@ -7387,7 +7340,6 @@
                                 });
                             }
                             
-                            // Sempre mostra os cessionários se existem
                             sind.cessionarios.forEach(cessionario => {
                                 if (cessionario.valorBruto > 0) {
                                     pagamentosHerdeiro.push({
@@ -7404,7 +7356,7 @@
                 });
             }
             
-            // Gerar tabela para este herdeiro
+            // Tabela para este herdeiro
             const linhas = pagamentosHerdeiro.map(pagamento => {
                 const valorDevidoArredondado = arredondarParaDuasCasas(pagamento.valorDevido);
                 const previdenciaArredondada = arredondarParaDuasCasas(pagamento.previdencia);
@@ -7422,7 +7374,6 @@
                 `;
             }).join('');
             
-            // Calcular totais para este herdeiro
             const totaisHerdeiro = {
                 totalDevido: pagamentosHerdeiro.reduce((total, p) => total + arredondarParaDuasCasas(p.valorDevido), 0),
                 totalPrevidencia: pagamentosHerdeiro.reduce((total, p) => total + arredondarParaDuasCasas(p.previdencia), 0),
@@ -7439,7 +7390,6 @@
                 (herdeiro.isPreferenciaParcial ? ' (Preferência Parcial)' : ' (Preferência Total)') : 
                 ' (Ordem Cronológica)';
             
-            // Se há apenas 1 herdeiro, não mostrar o total individual, só a tabela simples
             const mostrarTotalHerdeiro = true;
             
             return `
@@ -7652,11 +7602,11 @@
                             herdeiro.sindicatos.forEach(sind => {
                                 let devePagar = isPreferencia ? (herdeiro.temPreferencia && !herdeiro.isPreferenciaParcial) : true;
                                 if (devePagar) {
-                                    // Se sindicato tem cessionários, só mostra o sindicato se ele ainda tem valor próprio
+                                    // Se sindicato tem cessionários
                                     const temCessionarios = sind.cessionarios && sind.cessionarios.length > 0;
                                     
                                     if (!temCessionarios && sind.valorBrutoSindicato > 0) {
-                                        // Sindicato sem cessão - mostra o sindicato
+                                        // Sindicato sem cessão 
                                         pagamentos.push({
                                             credor: `${sind.nome} (Sindicato)`,
                                             valorDevido: sind.valorBrutoSindicato,
@@ -7665,7 +7615,7 @@
                                             valorLiquido: sind.valorLiquidoSindicato
                                         });
                                     } else if (temCessionarios) {
-                                        // Sindicato com cessão - só mostra se ainda tem valor próprio
+                                        // Sindicato com cessão
                                         if (sind.valorBrutoSindicato > 0) {
                                             pagamentos.push({
                                                 credor: `${sind.nome} (Sindicato)`,
@@ -7676,7 +7626,6 @@
                                             });
                                         }
                                         
-                                        // Sempre mostra os cessionários se existem
                                         sind.cessionarios.forEach(cessionario => {
                                             if (cessionario.valorBruto > 0) {
                                                 pagamentos.push({
@@ -8015,7 +7964,6 @@
                     if (cessao.tipo === 'cessaoAdv') {
                         let cessionarioEncontrado = false;
                         
-                        // Verificar nos advogados do beneficiário
                         if (resultados.honorarios) {
                             const advogado = resultados.honorarios.find(adv => adv.nome === cessao.cedente);
                             if (advogado && advogado.cessionarios) {
@@ -8255,7 +8203,6 @@
             return textarea ? textarea.value.trim() : '';
         }
 
-        // Função para preparar o textarea para impressão
         function prepararTextareaParaImpressao() {
             // Primeiro, remove qualquer elemento anterior
             const elementoAnterior = document.getElementById('notasParaImpressao');
@@ -8265,7 +8212,7 @@
             
             const textarea = document.getElementById('notasExplicativas');
             if (textarea && textarea.value.trim()) {
-                // Na impressão, criar um div com o conteúdo
+                // Na impressão
                 const notasDiv = document.createElement('div');
                 notasDiv.id = 'notasParaImpressao';
                 notasDiv.style.display = 'none';
