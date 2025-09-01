@@ -3170,7 +3170,7 @@
                 jurosBase = valorBase * percentualjur;
             }
 
-            let rrapagamento = dados.rra !== 0 ? Math.round((valorBase * dados.rra) / valortotatt) : 0;
+            let rrapagamento = dados.rra !== 0 ? arredondarRRA((valorBase * dados.rra) / valortotatt) : 0;
             
             // CESSÕES DO BENEFICIÁRIO PRINCIPAL 
             const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
@@ -3230,7 +3230,7 @@
                 
                 // Para RRA: garantir que seja pelo menos 1 se havia RRA original
                 if (dados.rra !== 0) {
-                    const rraCalculado = Math.round((valorBeneficiarioQueRecebeEfetivamente * dados.rra) / valortotatt);
+                    const rraCalculado = arredondarRRA((valorBeneficiarioQueRecebeEfetivamente * dados.rra) / valortotatt);
                     rrapagamento = Math.max(1, rraCalculado); 
                 } else {
                     rrapagamento = 0;
@@ -3252,7 +3252,7 @@
                 // Para RRA - também proporcional
                 if (dados.rra !== 0) {
                     const proporcaoParcial = valorBase / valortotatt;
-                    rrapagamento = dados.rra !== 0 ? Math.round((valorBase * dados.rra) / valortotatt) : 0;
+                    rrapagamento = dados.rra !== 0 ? arredondarRRA((valorBase * dados.rra) / valortotatt) : 0;
                 } else {
                     rrapagamento = 0;
                 }
@@ -3267,7 +3267,7 @@
                 
                 // Para RRA
                 if (dados.rra !== 0) {
-                    const rraCalculado = Math.round((valorBeneficiarioQueRecebeEfetivamente * dados.rra) / valortotatt);
+                    const rraCalculado = arredondarRRA((valorBeneficiarioQueRecebeEfetivamente * dados.rra) / valortotatt);
                     rrapagamento = Math.max(1, rraCalculado); 
                 } else {
                     rrapagamento = 0;
@@ -3831,7 +3831,7 @@
                     percentualDesagioIR = dados.percentualAcordo || 0;
                     const proporcaoSemDesagio = 1 - percentualDesagioIR;
                     rraComDesagio = dados.rra !== 0 ? 
-                        Math.max(1, Math.round(rrapagamentoRecalculado * proporcaoSemDesagio)) : 0;
+                        Math.max(1, arredondarRRA(rrapagamentoRecalculado * proporcaoSemDesagio)) : 0;
                     
                     // Base 4: Sem previdência
                     baseIRPrev = principalComDesagio - valorPrevidencia;
@@ -3874,6 +3874,65 @@
             else if (valorBruto <= 3751.05) return 0.15;
             else if (valorBruto <= 4664.68) return 0.225;
             else return 0.275;
+        }
+
+        /**
+         * Arredondamento específico para RRA conforme legislação
+         * Regras:
+         * - < 5: mantém a 1ª casa decimal
+         * - > 5: adiciona 1 à 1ª casa decimal  
+         * - = 5: analisa a 3ª casa decimal:
+         *   - 3ª casa entre 0-4: mantém a 1ª casa decimal
+         *   - 3ª casa entre 5-9: adiciona 1 à 1ª casa decimal
+         */
+        function arredondarRRA(valor) {
+            
+            if (typeof valor !== 'number' || isNaN(valor)) {
+                return 0;
+            }
+
+            // Converter para string para analisar dígito por dígito
+            const valorStr = valor.toFixed(3); // Garantir 3 casas decimais
+            const partes = valorStr.split('.');
+            
+            if (partes.length !== 2) {
+                return Math.round(valor * 10) / 10; // Fallback para arredondamento normal
+            }
+            
+            const parteInteira = partes[0];
+            const parteDecimal = partes[1].padEnd(3, '0'); // Garantir 3 dígitos decimais
+            
+            const primeiraDecimal = parseInt(parteDecimal[0]);
+            const segundaDecimal = parseInt(parteDecimal[1]);
+            const terceiraDecimal = parseInt(parteDecimal[2]);
+            
+            let novaParteDecimal = primeiraDecimal;
+            
+            if (segundaDecimal < 5) {
+                // Regra I: menor que 5, mantém a 1ª casa decimal
+                novaParteDecimal = primeiraDecimal;
+            } else if (segundaDecimal > 5) {
+                // Regra II: maior que 5, adiciona 1 à 1ª casa decimal
+                novaParteDecimal = primeiraDecimal + 1;
+            } else if (segundaDecimal === 5) {
+                // Regra III: igual a 5, analisar a 3ª casa decimal
+                if (terceiraDecimal >= 0 && terceiraDecimal <= 4) {
+                    // III.a: 3ª casa entre 0-4, mantém a 1ª casa decimal
+                    novaParteDecimal = primeiraDecimal;
+                } else if (terceiraDecimal >= 5 && terceiraDecimal <= 9) {
+                    // III.b: 3ª casa entre 5-9, adiciona 1 à 1ª casa decimal
+                    novaParteDecimal = primeiraDecimal + 1;
+                }
+            }
+            
+            // Tratar caso onde a soma ultrapassa 9
+            if (novaParteDecimal >= 10) {
+                const novaParteInteira = parseInt(parteInteira) + 1;
+                novaParteDecimal = novaParteDecimal - 10;
+                return parseFloat(`${novaParteInteira}.${novaParteDecimal}`);
+            }
+            
+            return parseFloat(`${parteInteira}.${novaParteDecimal}`);
         }
 
         function calcularPrevidenciaIsolada(dados, principalBase, rrapagamento) {
@@ -3965,7 +4024,7 @@
                 const valorTotalHerdeiro = valortotatt * percentualHerdeiro;
                 const principalHerdeiro = valorprincatt * percentualHerdeiro;
                 const jurosBaseHerdeiro = valorjurosatt * percentualHerdeiro;
-                const rrapagamentoHerdeiro = dados.rra !== 0 ? Math.round(dados.rra * percentualHerdeiro) : 0;
+                const rrapagamentoHerdeiro = dados.rra !== 0 ? arredondarRRA(dados.rra * percentualHerdeiro) : 0;
 
                 // 2. CESSÕES DO BENEFICIÁRIO PRINCIPAL
                 const percentualBeneficiarioFinal = detalhamentoTotal.percentualBeneficiarioFinal;
@@ -4005,7 +4064,7 @@
                     jurosBaseHerdeiroFinal = valorBaseHerdeiro * percentualjur;
                 }
                 
-                let rrapagamentoHerdeiroBase = dados.rra !== 0 ? Math.round(dados.rra * percentualHerdeiro) : 0;
+                let rrapagamentoHerdeiroBase = dados.rra !== 0 ? arredondarRRA(dados.rra * percentualHerdeiro) : 0;
 
                 // 6. VERIFICAÇÕES
                 const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && valorBaseHerdeiro < valorTotalHerdeiro;
@@ -4036,7 +4095,7 @@
                     }
                     
                     if (dados.rra !== 0) {
-                        const rraCalculado = Math.round((valorBaseHerdeiro * rrapagamentoHerdeiro)/ valorTotalHerdeiro);
+                        const rraCalculado = arredondarRRA((valorBaseHerdeiro * rrapagamentoHerdeiro)/ valorTotalHerdeiro);
                         rrapagamentoHerdeiroEfetivo = Math.max(1, rraCalculado);
                     } else {
                         rrapagamentoHerdeiroEfetivo = 0;
@@ -4051,7 +4110,7 @@
                     }
                     
                     if (dados.rra !== 0) {
-                        const rraCalculado = Math.round((valorHerdeiroQueRecebeEfetivamente * dados.rra) / valorTotalHerdeiro);
+                        const rraCalculado = arredondarRRA((valorHerdeiroQueRecebeEfetivamente * dados.rra) / valorTotalHerdeiro);
                         rrapagamentoHerdeiroEfetivo = Math.max(1, rraCalculado);
                     } else {
                         rrapagamentoHerdeiroEfetivo = 0;
@@ -5373,7 +5432,7 @@
                 
                 // Calcular RRA proporcional ao valor real
                 const rraReal = dados.rra !== 0 ? 
-                    Math.round((valorBrutoHerdeiro * dados.rra) / resultados.valortotatt) : 0;
+                    arredondarRRA((valorBrutoHerdeiro * dados.rra) / resultados.valortotatt) : 0;
                 
                 return `
                     <tr>
@@ -5406,7 +5465,7 @@
             
             const totalLiquido = totalRealHerdeiros - totalHonorarios - totalSindicatos;
             const totalRRA = dados.rra !== 0 ? 
-                Math.round((totalRealHerdeiros * dados.rra) / resultados.valortotatt) : 0;
+            arredondarRRA((totalRealHerdeiros * dados.rra) / resultados.valortotatt) : 0;
             
             // Verificar se houve cessão do beneficiário
             const houveCessaoBeneficiario = resultados.percentualBeneficiarioFinal && resultados.percentualBeneficiarioFinal < 1;
