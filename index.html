@@ -502,6 +502,26 @@
                 rra: parseFloat(rra) || 0
             };
 
+            if (tributacao.previdencia) {
+                const temAliquotaFixaExistente = valoresPrincipais.some(item => 
+                    item.tributacao.previdencia && item.tributacao.tipoPrevidencia === 'fixa'
+                );
+                
+                const temINSSExistente = valoresPrincipais.some(item => 
+                    item.tributacao.previdencia && item.tributacao.tipoPrevidencia === 'inss'
+                );
+
+                if (temAliquotaFixaExistente && tributacao.tipoPrevidencia === 'inss') {
+                    alert('❌ Erro: Já existe item com alíquota fixa de previdência. Todos os itens devem seguir o mesmo padrão (fixa ou sem incidência).');
+                    return;
+                }
+
+                if (temINSSExistente && tributacao.tipoPrevidencia === 'fixa') {
+                    alert('❌ Erro: Já existe item com INSS. Para usar alíquota fixa, todos os itens devem seguir o mesmo padrão.');
+                    return;
+                }
+            }
+
             const valor = {
                 id: Date.now(),
                 mesBase,
