@@ -6053,12 +6053,12 @@
             const temIR = (dados.incidenciaIR || 
                 (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.ir === true))) 
                 && (dados.tipoBeneficiario === 'pj' || resultados.rrapagamento !== 0);
+
+            const tipoPrevidencia = dados.valoresPrincipais?.find(item => item.tributacao?.tipoPrevidencia)?.tributacao.tipoPrevidencia || null;
             
             const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
 
             if (!temPrevidencia && !temIR) return '';
-
-            
 
             if (dados.tipoCalculo === 'acordo') {
                 const adesoes = obterAdesaoAcordo();
@@ -6110,7 +6110,7 @@
                     if (temCessoesBeneficiario) {
                         let secaoPrevidencia = '';
                         if (temPrevidencia) {
-                            if (dados.tipoPrevidencia === 'fixa') {
+                            if (tipoPrevidencia === 'fixa') {
                                 secaoPrevidencia = gerarDetalhePrevidenciaFixa(resultados, dados, temCessoesBeneficiario);
                             } else {
                                 secaoPrevidencia = gerarDetalhePrevidenciaINSS(resultados, dados, temCessoesBeneficiario);
@@ -6152,7 +6152,7 @@
                             
                             let secaoPrevidencia = '';
                             if (temPrevidencia) {
-                                if (dados.tipoPrevidencia === 'fixa') {
+                                if (tipoPrevidencia === 'fixa') {
                                     secaoPrevidencia = gerarDetalhePrevidenciaFixaHerdeiros(herdeiros, dados, valorBase);
                                 } else {
                                     secaoPrevidencia = gerarDetalhePrevidenciaINSSHerdeiros(herdeiros, dados, valorBase);
@@ -6229,7 +6229,7 @@
                         
                         let secaoPrevidencia = '';
                         if (temPrevidencia) {
-                            if (dados.tipoPrevidencia === 'fixa') {
+                            if (tipoPrevidencia === 'fixa') {
                                 secaoPrevidencia = gerarDetalhePrevidenciaFixaHerdeirosSemCessao(herdeiros, dados, valorBase);
                             } else {
                                 secaoPrevidencia = gerarDetalhePrevidenciaINSSHerdeirosSemCessao(herdeiros, dados, valorBase);
@@ -6289,10 +6289,12 @@
         function gerarDeducoesSimples(resultados, dados, temPrevidencia, temIR) {
             const temCessoes = resultados.cessoesBeneficiarioCalculadas && resultados.cessoesBeneficiarioCalculadas.length > 0;
             const isPJ = dados.natureza === 'comum' && dados.tipoBeneficiario === 'pj';
+
+            const tipoPrevidencia = dados.valoresPrincipais?.find(item => item.tributacao?.tipoPrevidencia)?.tributacao.tipoPrevidencia || null;
             
             let secaoPrevidencia = '';
             if (temPrevidencia && !isPJ) { // PJ não tem previdência
-                if (dados.tipoPrevidencia === 'fixa') {
+                if (tipoPrevidencia === 'fixa') {
                     secaoPrevidencia = gerarDetalhePrevidenciaFixa(resultados, dados, temCessoes);
                 } else {
                     secaoPrevidencia = gerarDetalhePrevidenciaINSS(resultados, dados, temCessoes);
@@ -6339,6 +6341,8 @@
                 valorSemDesagio = resultados.valorPrevidencia + resultados.valorDesagioPrevidencia; // valor original
             }
 
+            const aliquotaFixa = dados.valoresPrincipais?.find(item => item.tributacao?.aliquotaFixa)?.tributacao.aliquotaFixa || 0;
+
             const distribuicaoCessoes = temCessoes ? `
                 <tr style="border-top: 1px solid #dee2e6;">
                     <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
@@ -6368,7 +6372,7 @@
                     </tr>
                     <tr>
                         <th>Alíquota Fixa:</th>
-                        <td>${(dados.aliquotaFixa * 100).toFixed(2)}%</td>
+                        <td>${(aliquotaFixa * 100).toFixed(2)}%</td>
                     </tr>
                     <tr ${!isAcordo ? 'class="total-row"' : ''}>
                         <th>Valor Previdência ${isAcordo ? 'sem Deságio' : ''}:</th>
@@ -6662,6 +6666,8 @@
                     <td>R$ ${formatarMoeda(herdeiro.valorPrevidencia)}</td>
                 </tr>
             `).join('');
+
+            const aliquotaFixa = dados.valoresPrincipais?.find(item => item.tributacao?.aliquotaFixa)?.tributacao.aliquotaFixa || 0;
             
             return `
                 <table class="ir-table" style="margin-bottom: 15px;">
@@ -6674,7 +6680,7 @@
                     </tr>
                     <tr>
                         <th>Alíquota Fixa:</th>
-                        <td>${(dados.aliquotaFixa * 100).toFixed(2)}%</td>
+                        <td>${(aliquotaFixa * 100).toFixed(2)}%</td>
                     </tr>
                     <tr ${!isAcordo ? 'class="total-row"' : ''}>
                         <th>Valor Previdência ${isAcordo ? 'sem Deságio' : 'por Herdeiro'}:</th>
@@ -6868,6 +6874,8 @@
                 valorComDesagio = primeiroHerdeiro.valorPrevidencia; // valor final (já com deságio)
                 valorSemDesagio = primeiroHerdeiro.valorPrevidencia + primeiroHerdeiro.valorDesagioPrevidencia; // valor original
             }
+
+            const aliquotaFixa = dados.valoresPrincipais?.find(item => item.tributacao?.aliquotaFixa)?.tributacao.aliquotaFixa || 0;
             
             const distribuicaoHerdeiros = herdeiros.map(herdeiro => {
                 const temCessoes = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
@@ -6919,7 +6927,7 @@
                     </tr>
                     <tr>
                         <th>Alíquota Fixa:</th>
-                        <td>${(dados.aliquotaFixa * 100).toFixed(2)}%</td>
+                        <td>${(aliquotaFixa * 100).toFixed(2)}%</td>
                     </tr>
                     <tr ${!isAcordo ? 'class="total-row"' : ''}>
                         <th>Valor Previdência ${isAcordo ? 'sem Deságio' : 'por Herdeiro'}:</th>
