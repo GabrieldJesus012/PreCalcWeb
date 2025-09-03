@@ -1022,6 +1022,43 @@ tr.highlight {
     margin-bottom: 15px;
 }
 
+#tab8 .sucumbencial-controle-cenario {
+    background: #e3f2fd !important;
+    border: 2px solid #2196f3 !important;
+    border-radius: 10px !important;
+    padding: 20px !important;
+    margin: 0 0 25px 0 !important;
+    border-left: 5px solid #1976d2 !important;
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2) !important;
+    position: relative !important;
+}
+
+#tab8 input#somenteHonorarioSucumbencial {
+    width: 20px !important;
+    height: 20px !important;
+    margin: 0 !important;
+    margin-right: 12px !important;
+    cursor: pointer !important;
+    accent-color: #2196f3 !important;
+    flex-shrink: 0 !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+}
+
+/* FORÇAR o label especificamente */
+#tab8 label[for="somenteHonorarioSucumbencial"] {
+    margin: 0 !important;
+    font-weight: 600 !important;
+    color: #333 !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    font-size: 15px !important;
+    cursor: pointer !important;
+    line-height: 1.4 !important;
+    flex: 1 !important;
+    display: inline-block !important;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
     .header h1 {
