@@ -683,11 +683,20 @@
 
         // Definir valores padrão na inicialização
         document.addEventListener('DOMContentLoaded', function() {
+            // 1. Configurações iniciais
             const anoAtual = new Date().getFullYear();
             document.getElementById('anoBase').value = anoAtual;
             document.getElementById('anoOrcamento').value = anoAtual;
             
-            // Configurar eventos iniciais
+            // 2. Inicializar todos os caches
+            FormCache.init();
+            CessaoCache.init();
+            ColetaCache.init();
+            
+            // 3. Configurar event listeners
+            initializeFormEventListeners();
+            
+            // 4. Disparar eventos iniciais
             document.getElementById('incidenciaPrevidencia').dispatchEvent(new Event('change'));
             document.getElementById('tipoPrevidencia').dispatchEvent(new Event('change'));
         });
@@ -740,14 +749,20 @@
                 this.advogadosSucumbenciais = [];
                 const quantidade = parseInt(document.getElementById('quantAdvogadosSucumbenciais')?.value) || 0;
                 for (let i = 0; i < quantidade; i++) {
-                    this.advogadosSucumbenciais.push({
+                    const dadosAdv = {
                         nome: document.getElementById(`advSucNome${i}`)?.value || '',
                         tipo: document.getElementById(`advSucTipo${i}`)?.value || 'PF',
                         incidenciaIR: document.getElementById(`advSucIncidenciaIR${i}`)?.value || 'nao',
                         tipoHonorario: document.getElementById(`advSucTipoHonorario${i}`)?.value || 'percentual',
-                        percentual: document.getElementById(`advSucPercentual${i}`)?.value || '',
                         preferencia: document.getElementById(`advSucTemPreferencia${i}`)?.value || 'nao'
-                    });
+                    };
+                    
+                    if (dadosAdv.tipoHonorario === 'percentual') {
+                        dadosAdv.percentual = document.getElementById(`advSucPercentual${i}`)?.value || '';
+                    }
+                    // Se for valorPrincipal, não precisa salvar nada extra (é 100% dele)
+                    
+                    this.advogadosSucumbenciais.push(dadosAdv);
                 }
             },
             
@@ -830,7 +845,8 @@
                         tipoHonorario.value = dados.tipoHonorario;
                         toggleCamposSucumbencial(i); 
                     }
-                    if (percentual) percentual.value = dados.percentual;
+                    // Só restaura percentual se tiver (tipo percentual)
+                    if (percentual && dados.percentual) percentual.value = dados.percentual;
                     if (preferencia) preferencia.value = dados.preferencia;
                 }
             },
@@ -889,255 +905,6 @@
                 }
             }
         };
-
-        const CessaoCache = {
-            container: null,
-            beneficiario: null,
-            quantAdvogados: null,
-            quantAdvogadosSucumbenciais: null,
-            quantHerdeiros: null,
-            quantSindicatos: null,
-            quantCessoes: null,
-            
-            init() {
-                this.container = document.getElementById('cessaoContainer');
-                this.beneficiario = document.getElementById('beneficiario');
-                this.quantAdvogados = document.getElementById('quantAdvogados');
-                this.quantAdvogadosSucumbenciais = document.getElementById('quantAdvogadosSucumbenciais');
-                this.quantHerdeiros = document.getElementById('quantHerdeiros');  
-                this.quantSindicatos = document.getElementById('quantSindicatos');
-                this.quantCessoes = document.getElementById('quantCessoes');
-            },
-            
-            getQuantidades() {
-                return {
-                    advogados: parseInt(this.quantAdvogados?.value) || 0,
-                    advogadosSucumbenciais: parseInt(this.quantAdvogadosSucumbenciais?.value) || 0,
-                    herdeiros: parseInt(this.quantHerdeiros?.value) || 0,
-                    sindicatos: parseInt(this.quantSindicatos?.value) || 0,
-                    cessoes: parseInt(this.quantCessoes?.value) || 0,
-                };
-            }
-        };
-
-        function criarCessoes(quant) {
-            if (!CessaoCache.container) CessaoCache.init();
-            
-            // SEMPRE salvar cessões antes de recriar
-            DadosFormulario.salvarCessoes();
-            
-            CessaoCache.container.innerHTML = '';
-            
-            const { advogados,advogadosSucumbenciais, herdeiros, sindicatos } = CessaoCache.getQuantidades();
-            const opcoesTipo = criarOpcoesTipoCessao(advogados,advogadosSucumbenciais, herdeiros, sindicatos);
-            const temUnicaOpcao = opcoesTipo.split('<option').length === 3;
-            
-            const fragment = document.createDocumentFragment();
-            
-            for (let i = 0; i < quant; i++) {
-                const cessaoDiv = criarElementoCessao(i, opcoesTipo);
-                fragment.appendChild(cessaoDiv);
-            }
-            
-            CessaoCache.container.appendChild(fragment);
-            
-            // Restaurar dados salvos ou configurar novas cessões
-            setTimeout(() => {
-                // Primeiro restaurar dados existentes
-                if (DadosFormulario.cessoes.length > 0) {
-                    DadosFormulario.restaurarCessoes();
-                }
-                
-                // Para TODAS as cessões, verificar se precisam atualização
-                for (let i = 0; i < quant; i++) {
-                    const cessaoTipo = document.getElementById(`cessaoTipo${i}`);
-                    const cedenteSelect = document.getElementById(`cedenteNome${i}`);
-                    
-                    // Se é uma nova cessão (sem dados salvos)
-                    if (i >= DadosFormulario.cessoes.length) {
-                        if (temUnicaOpcao && cessaoTipo) {
-                            cessaoTipo.value = 'cessaobenPrincipal';
-                            atualizarCedentes(i);
-                        }
-                    } 
-                    // Se já tem tipo mas cedente está vazio ou inválido
-                    else if (cessaoTipo?.value && cedenteSelect) {
-                        // Verificar se o select de cedente está vazio ou com mensagem padrão
-                        if (!cedenteSelect.value || cedenteSelect.value === '' || 
-                            cedenteSelect.options[cedenteSelect.selectedIndex]?.text.includes('Selecione')) {
-                            atualizarCedentes(i);
-                        }
-                    }
-                }
-            }, 20);
-        }
-
-        function criarElementoCessao(index, opcoesTipo) {
-            const cessaoDiv = document.createElement('div');
-            cessaoDiv.className = 'advogado-item';
-            
-            cessaoDiv.innerHTML = `
-                <div class="advogado-header">Cessionário ${index + 1}</div>
-                <div class="advogado-row">
-                    <div class="input-group">
-                        <label>Tipo de Cessão:</label>
-                        <select id="cessaoTipo${index}" onchange="atualizarCedentes(${index})">
-                            ${opcoesTipo}
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>Cedente ${index + 1}:</label>
-                        <select id="cedenteNome${index}">
-                            <option value="">Selecione primeiro o tipo de cessão</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>Cessionário ${index + 1}:</label>
-                        <input type="text" id="cessionarioNome${index}" placeholder="Nome do Cessionário">
-                    </div>
-                    <div class="input-group">
-                        <label>Percentual Cedido (ex: 0.1 para 10%):</label>
-                        <input type="number" id="cessaoPercentual${index}" step="0.01" min="0" max="1" placeholder="0.00">
-                    </div>
-                </div>
-            `;
-            
-            return cessaoDiv;
-        }
-
-        function atualizarOpcoesCessao() {
-            if (!CessaoCache.container) CessaoCache.init();
-            
-            const { cessoes } = CessaoCache.getQuantidades();
-            
-            // NÃO recriar cessões, apenas atualizar opções
-            if (cessoes > 0) {
-                DadosFormulario.salvarCessoes();
-                
-                requestAnimationFrame(() => {
-                    for (let i = 0; i < cessoes; i++) {
-                        const cessaoTipo = document.getElementById(`cessaoTipo${i}`);
-                        if (cessaoTipo?.value) {
-                            const cedenteAtual = document.getElementById(`cedenteNome${i}`)?.value;
-                            atualizarCedentes(i);
-                            
-                            // Restaurar cedente se ainda existir
-                            setTimeout(() => {
-                                const cedenteSelect = document.getElementById(`cedenteNome${i}`);
-                                if (cedenteSelect && cedenteAtual) {
-                                    const opcoes = Array.from(cedenteSelect.options);
-                                    const opcaoExiste = opcoes.some(opt => opt.value === cedenteAtual);
-                                    if (opcaoExiste) {
-                                        cedenteSelect.value = cedenteAtual;
-                                    }
-                                }
-                            }, 10);
-                        }
-                    }
-                });
-            }
-        }
-
-        function criarOpcoesTipoCessao(quantAdvogados,quantAdvogadosSucumbenciais, quantHerdeiros, quantSindicatos) {
-            if (quantAdvogados === undefined) {
-                const quantidades = CessaoCache.getQuantidades();
-                quantAdvogados = quantidades.advogados;
-                quantAdvogadosSucumbenciais = quantidades.advogadosSucumbenciais;
-                quantHerdeiros = quantidades.herdeiros;
-                quantSindicatos = quantidades.sindicatos;
-            }
-            
-            const opcoes = ['<option value="cessaobenPrincipal">Do Beneficiário Principal</option>'];
-            
-            if (quantAdvogados > 0) {
-                opcoes.push('<option value="cessaoAdv">Do Advogado</option>');
-            }
-            if (quantAdvogadosSucumbenciais > 0) {
-                opcoes.push('<option value="cessaoAdvSuc">Do Advogado Sucumbencial</option>'); // <<< NOVO
-            }
-            if (quantHerdeiros > 0) {
-                opcoes.push('<option value="cessaoherdeiro">Do Herdeiro</option>');
-            }
-            if (quantSindicatos > 0) {
-                opcoes.push('<option value="cessaoSindicato">Do Sindicato</option>');
-            }
-            
-            return opcoes.join('');
-        }
-
-        function criarOpcoesCedente(tipoCessao, index) {
-            const campobeneficiario = document.getElementById('beneficiario')?.value.trim();
-            const beneficiarioPrincipal = campobeneficiario || 'Beneficiário Principal';
-            const { advogados,advogadosSucumbenciais ,herdeiros, sindicatos } = CessaoCache.getQuantidades();
-            const opcoes = ['<option value="">Selecione o cedente</option>'];
-            
-            switch(tipoCessao) {
-                case 'cessaobenPrincipal':
-                    opcoes.push(`<option value="${beneficiarioPrincipal}">${beneficiarioPrincipal}</option>`);
-                    break;
-                    
-                case 'cessaoAdv':
-                    for (let i = 0; i < advogados; i++) {
-                        const nomeAdv = document.getElementById(`advNome${i}`)?.value.trim() || `Advogado ${i + 1}`;
-                        opcoes.push(`<option value="${nomeAdv}">${nomeAdv}</option>`);
-                    }
-                    break;
-                case 'cessaoAdvSucumb':
-                    for (let i = 0; i < advogadosSucumbenciais; i++) {
-                        const nomeAdvSuc = document.getElementById(`advSucNome${i}`)?.value.trim() || `Adv. Sucumbencial ${i + 1}`;
-                        opcoes.push(`<option value="${nomeAdvSuc}">${nomeAdvSuc}</option>`);
-                    }
-                    break;
-                case 'cessaoherdeiro':
-                    if (herdeiros > 0) {
-                        for (let i = 0; i < herdeiros; i++) {
-                            const nomeHerd = document.getElementById(`herdNome${i}`)?.value.trim() || `Herdeiro ${i + 1}`;
-                            opcoes.push(`<option value="${nomeHerd}">${nomeHerd}</option>`);
-                        }
-                    } else {
-                        opcoes.push(`<option value="${beneficiarioPrincipal}">${beneficiarioPrincipal}</option>`);
-                    }
-                    break;
-                case 'cessaoSindicato':
-                    for (let i = 0; i < sindicatos; i++) {
-                        const nomeSind = document.getElementById(`sindNome${i}`)?.value.trim() || `Sindicato ${i + 1}`;
-                        opcoes.push(`<option value="${nomeSind}">${nomeSind}</option>`);
-                    }
-                    break;
-            }
-            
-            return opcoes.join('');
-        }
-
-        function atualizarCedentes(index) {
-            const tipoCessao = document.getElementById(`cessaoTipo${index}`)?.value;
-            const cedenteSelect = document.getElementById(`cedenteNome${index}`);
-            
-            if (tipoCessao && cedenteSelect) {
-                const novasOpcoes = criarOpcoesCedente(tipoCessao, index);
-                cedenteSelect.innerHTML = novasOpcoes;
-                
-                const opcoes = cedenteSelect.querySelectorAll('option');
-                if (opcoes.length === 2) { // 1 vazia + 1 válida
-                    cedenteSelect.selectedIndex = 1; 
-                }
-            }
-        }
-
-        function atualizarTodosCedentes() {
-            const { cessoes } = CessaoCache.getQuantidades();
-            
-            for (let i = 0; i < cessoes; i++) {
-                const cessaoTipoElement = document.getElementById(`cessaoTipo${i}`);
-                if (cessaoTipoElement?.value) {
-                    atualizarCedentes(i);
-                }
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            CessaoCache.init();
-        });
         
         const FormCache = {
             advogadosContainer: null,
@@ -1286,7 +1053,7 @@
             // Adicionar evento para atualizar cessões quando nome mudar
             const nomeInput = advDiv.querySelector(`#advSucNome${index}`);
             if (nomeInput) {
-                nomeInput.addEventListener('change',atualizarOpcoesCessao());
+                nomeInput.addEventListener('change',atualizarOpcoesCessao);
             }
             
             return advDiv;
@@ -1583,11 +1350,253 @@
             toggleAbaAcordo();
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            FormCache.init();
-            initializeFormEventListeners();
-        });
+        //CESSAO
+        const CessaoCache = {
+            container: null,
+            beneficiario: null,
+            quantAdvogados: null,
+            quantAdvogadosSucumbenciais: null,
+            quantHerdeiros: null,
+            quantSindicatos: null,
+            quantCessoes: null,
+            
+            init() {
+                this.container = document.getElementById('cessaoContainer');
+                this.beneficiario = document.getElementById('beneficiario');
+                this.quantAdvogados = document.getElementById('quantAdvogados');
+                this.quantAdvogadosSucumbenciais = document.getElementById('quantAdvogadosSucumbenciais');
+                this.quantHerdeiros = document.getElementById('quantHerdeiros');  
+                this.quantSindicatos = document.getElementById('quantSindicatos');
+                this.quantCessoes = document.getElementById('quantCessoes');
+            },
+            
+            getQuantidades() {
+                return {
+                    advogados: parseInt(this.quantAdvogados?.value) || 0,
+                    advogadosSucumbenciais: parseInt(this.quantAdvogadosSucumbenciais?.value) || 0,
+                    herdeiros: parseInt(this.quantHerdeiros?.value) || 0,
+                    sindicatos: parseInt(this.quantSindicatos?.value) || 0,
+                    cessoes: parseInt(this.quantCessoes?.value) || 0,
+                };
+            }
+        };
 
+        function criarCessoes(quant) {
+            if (!CessaoCache.container) CessaoCache.init();
+            
+            // SEMPRE salvar cessões antes de recriar
+            DadosFormulario.salvarCessoes();
+            
+            CessaoCache.container.innerHTML = '';
+            
+            const { advogados,advogadosSucumbenciais, herdeiros, sindicatos } = CessaoCache.getQuantidades();
+            const opcoesTipo = criarOpcoesTipoCessao(advogados,advogadosSucumbenciais, herdeiros, sindicatos);
+            const temUnicaOpcao = opcoesTipo.split('<option').length === 3;
+            
+            const fragment = document.createDocumentFragment();
+            
+            for (let i = 0; i < quant; i++) {
+                const cessaoDiv = criarElementoCessao(i, opcoesTipo);
+                fragment.appendChild(cessaoDiv);
+            }
+            
+            CessaoCache.container.appendChild(fragment);
+            
+            // Restaurar dados salvos ou configurar novas cessões
+            setTimeout(() => {
+                // Primeiro restaurar dados existentes
+                if (DadosFormulario.cessoes.length > 0) {
+                    DadosFormulario.restaurarCessoes();
+                }
+                
+                // Para TODAS as cessões, verificar se precisam atualização
+                for (let i = 0; i < quant; i++) {
+                    const cessaoTipo = document.getElementById(`cessaoTipo${i}`);
+                    const cedenteSelect = document.getElementById(`cedenteNome${i}`);
+                    
+                    // Se é uma nova cessão (sem dados salvos)
+                    if (i >= DadosFormulario.cessoes.length) {
+                        if (temUnicaOpcao && cessaoTipo) {
+                            cessaoTipo.value = 'cessaobenPrincipal';
+                            atualizarCedentes(i);
+                        }
+                    } 
+                    // Se já tem tipo mas cedente está vazio ou inválido
+                    else if (cessaoTipo?.value && cedenteSelect) {
+                        // Verificar se o select de cedente está vazio ou com mensagem padrão
+                        if (!cedenteSelect.value || cedenteSelect.value === '' || 
+                            cedenteSelect.options[cedenteSelect.selectedIndex]?.text.includes('Selecione')) {
+                            atualizarCedentes(i);
+                        }
+                    }
+                }
+            }, 20);
+        }
+
+        function criarElementoCessao(index, opcoesTipo) {
+            const cessaoDiv = document.createElement('div');
+            cessaoDiv.className = 'advogado-item';
+            
+            cessaoDiv.innerHTML = `
+                <div class="advogado-header">Cessionário ${index + 1}</div>
+                <div class="advogado-row">
+                    <div class="input-group">
+                        <label>Tipo de Cessão:</label>
+                        <select id="cessaoTipo${index}" onchange="atualizarCedentes(${index})">
+                            ${opcoesTipo}
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Cedente ${index + 1}:</label>
+                        <select id="cedenteNome${index}">
+                            <option value="">Selecione primeiro o tipo de cessão</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Cessionário ${index + 1}:</label>
+                        <input type="text" id="cessionarioNome${index}" placeholder="Nome do Cessionário">
+                    </div>
+                    <div class="input-group">
+                        <label>Percentual Cedido (ex: 0.1 para 10%):</label>
+                        <input type="number" id="cessaoPercentual${index}" step="0.01" min="0" max="1" placeholder="0.00">
+                    </div>
+                </div>
+            `;
+            
+            return cessaoDiv;
+        }
+
+        function atualizarOpcoesCessao() {
+            if (!CessaoCache.container) CessaoCache.init();
+            
+            const { cessoes } = CessaoCache.getQuantidades();
+            
+            // NÃO recriar cessões, apenas atualizar opções
+            if (cessoes > 0) {
+                DadosFormulario.salvarCessoes();
+                
+                requestAnimationFrame(() => {
+                    for (let i = 0; i < cessoes; i++) {
+                        const cessaoTipo = document.getElementById(`cessaoTipo${i}`);
+                        if (cessaoTipo?.value) {
+                            const cedenteAtual = document.getElementById(`cedenteNome${i}`)?.value;
+                            atualizarCedentes(i);
+                            
+                            // Restaurar cedente se ainda existir
+                            setTimeout(() => {
+                                const cedenteSelect = document.getElementById(`cedenteNome${i}`);
+                                if (cedenteSelect && cedenteAtual) {
+                                    const opcoes = Array.from(cedenteSelect.options);
+                                    const opcaoExiste = opcoes.some(opt => opt.value === cedenteAtual);
+                                    if (opcaoExiste) {
+                                        cedenteSelect.value = cedenteAtual;
+                                    }
+                                }
+                            }, 10);
+                        }
+                    }
+                });
+            }
+        }
+
+        function criarOpcoesTipoCessao(quantAdvogados,quantAdvogadosSucumbenciais, quantHerdeiros, quantSindicatos) {
+            if (quantAdvogados === undefined) {
+                const quantidades = CessaoCache.getQuantidades();
+                quantAdvogados = quantidades.advogados;
+                quantAdvogadosSucumbenciais = quantidades.advogadosSucumbenciais;
+                quantHerdeiros = quantidades.herdeiros;
+                quantSindicatos = quantidades.sindicatos;
+            }
+            
+            const opcoes = ['<option value="cessaobenPrincipal">Do Beneficiário Principal</option>'];
+            
+            if (quantAdvogados > 0) {
+                opcoes.push('<option value="cessaoAdv">Do Advogado</option>');
+            }
+            if (quantAdvogadosSucumbenciais > 0) {
+                opcoes.push('<option value="cessaoAdvSuc">Do Advogado Sucumbencial</option>'); // <<< NOVO
+            }
+            if (quantHerdeiros > 0) {
+                opcoes.push('<option value="cessaoherdeiro">Do Herdeiro</option>');
+            }
+            if (quantSindicatos > 0) {
+                opcoes.push('<option value="cessaoSindicato">Do Sindicato</option>');
+            }
+            
+            return opcoes.join('');
+        }
+
+        function criarOpcoesCedente(tipoCessao, index) {
+            const campobeneficiario = document.getElementById('beneficiario')?.value.trim();
+            const beneficiarioPrincipal = campobeneficiario || 'Beneficiário Principal';
+            const { advogados,advogadosSucumbenciais ,herdeiros, sindicatos } = CessaoCache.getQuantidades();
+            const opcoes = ['<option value="">Selecione o cedente</option>'];
+            
+            switch(tipoCessao) {
+                case 'cessaobenPrincipal':
+                    opcoes.push(`<option value="${beneficiarioPrincipal}">${beneficiarioPrincipal}</option>`);
+                    break;
+                    
+                case 'cessaoAdv':
+                    for (let i = 0; i < advogados; i++) {
+                        const nomeAdv = document.getElementById(`advNome${i}`)?.value.trim() || `Advogado ${i + 1}`;
+                        opcoes.push(`<option value="${nomeAdv}">${nomeAdv}</option>`);
+                    }
+                    break;
+                case 'cessaoAdvSuc':
+                    for (let i = 0; i < advogadosSucumbenciais; i++) {
+                        const nomeAdvSuc = document.getElementById(`advSucNome${i}`)?.value.trim() || `Adv. Sucumbencial ${i + 1}`;
+                        opcoes.push(`<option value="${nomeAdvSuc}">${nomeAdvSuc}</option>`);
+                    }
+                    break;
+                case 'cessaoherdeiro':
+                    if (herdeiros > 0) {
+                        for (let i = 0; i < herdeiros; i++) {
+                            const nomeHerd = document.getElementById(`herdNome${i}`)?.value.trim() || `Herdeiro ${i + 1}`;
+                            opcoes.push(`<option value="${nomeHerd}">${nomeHerd}</option>`);
+                        }
+                    } else {
+                        opcoes.push(`<option value="${beneficiarioPrincipal}">${beneficiarioPrincipal}</option>`);
+                    }
+                    break;
+                case 'cessaoSindicato':
+                    for (let i = 0; i < sindicatos; i++) {
+                        const nomeSind = document.getElementById(`sindNome${i}`)?.value.trim() || `Sindicato ${i + 1}`;
+                        opcoes.push(`<option value="${nomeSind}">${nomeSind}</option>`);
+                    }
+                    break;
+            }
+            
+            return opcoes.join('');
+        }
+
+        function atualizarCedentes(index) {
+            const tipoCessao = document.getElementById(`cessaoTipo${index}`)?.value;
+            const cedenteSelect = document.getElementById(`cedenteNome${index}`);
+            
+            if (tipoCessao && cedenteSelect) {
+                const novasOpcoes = criarOpcoesCedente(tipoCessao, index);
+                cedenteSelect.innerHTML = novasOpcoes;
+                
+                const opcoes = cedenteSelect.querySelectorAll('option');
+                if (opcoes.length === 2) { // 1 vazia + 1 válida
+                    cedenteSelect.selectedIndex = 1; 
+                }
+            }
+        }
+
+        function atualizarTodosCedentes() {
+            const { cessoes } = CessaoCache.getQuantidades();
+            
+            for (let i = 0; i < cessoes; i++) {
+                const cessaoTipoElement = document.getElementById(`cessaoTipo${i}`);
+                if (cessaoTipoElement?.value) {
+                    atualizarCedentes(i);
+                }
+            }
+        }
+
+        //acordo
         function toggleAbaAcordo() {
             const tipoCalculo = document.getElementById('tipoCalculo').value;
             const tabAcordo = document.getElementById('tabAcordo');
@@ -1643,6 +1652,31 @@
                 
                 if (percentualLiquido > 0) {
                     html += criarItemAcordo(`advogado_${i}`, nome, 'Advogado', `${percentualLiquido.toFixed(2)}% dos honorários`);
+                }
+            }
+
+            //sucumbenciais
+            const quantAdvogadosSucumbenciais = parseInt(document.getElementById('quantAdvogadosSucumbenciais')?.value) || 0;
+            for (let i = 0; i < quantAdvogadosSucumbenciais; i++) {
+                const nome = DadosFormulario.advogadosSucumbenciais[i]?.nome || `Adv. Sucumbencial ${i + 1}`;
+                const tipoHonorario = DadosFormulario.advogadosSucumbenciais[i]?.tipoHonorario || 'percentual';
+                const percentualCedido = calcularPercentualCedido('advogadoSucumbencial', nome);
+                
+                let descricaoHonorario = '';
+                let percentualLiquido = 0;
+                
+                if (tipoHonorario === 'percentual') {
+                    const percentualOriginal = parseFloat(DadosFormulario.advogadosSucumbenciais[i]?.percentual || '0');
+                    percentualLiquido = (percentualOriginal * 100) - percentualCedido;
+                    descricaoHonorario = `${percentualLiquido.toFixed(2)}% do precatório`;
+                } else if (tipoHonorario === 'valorPrincipal') {
+                    // Mesmo sendo valor principal, pode ter cessão
+                    percentualLiquido = 100 - percentualCedido; // 100% MENOS o que foi cedido
+                    descricaoHonorario = `${percentualLiquido.toFixed(2)}% do valor principal`;
+                }
+                
+                if (percentualLiquido > 0) {
+                    html += criarItemAcordo(`advogadoSucumbencial_${i}`, nome, 'Adv. Sucumbencial', descricaoHonorario);
                 }
             }
 
@@ -1716,6 +1750,9 @@
                     case 'advogado':
                         isCedenteCorreto = (tipoCessao === 'cessaoAdv' && cedente === nomeCedente);
                         break;
+                    case 'advogadoSucumbencial':
+                        isCedenteCorreto = (tipoCessao === 'cessaoAdvSuc' && cedente === nomeCedente);
+                        break;
                     case 'herdeiro':
                         isCedenteCorreto = (tipoCessao === 'cessaoherdeiro' && cedente === nomeCedente);
                         break;
@@ -1761,6 +1798,7 @@
             const adesoes = {
                 beneficiario: false,
                 advogados: [],
+                advogadosSucumbenciais: [],
                 herdeiros: [],
                 sindicatos: [],
                 cessionarios: []
@@ -1778,6 +1816,15 @@
                 const check = document.getElementById(`check_advogado_${i}`);
                 if (check?.checked) {
                     adesoes.advogados.push(i);
+                }
+            }
+
+            //Verificar advogados sucumb
+            const quantAdvogadosSucumbenciais = parseInt(document.getElementById('quantAdvogadosSucumbenciais')?.value) || 0;
+            for (let i = 0; i < quantAdvogadosSucumbenciais; i++) {
+                const check = document.getElementById(`check_advogadoSucumbencial_${i}`);
+                if (check?.checked) {
+                    adesoes.advogados.push(i); // Adiciona ao array existente de advogados
                 }
             }
 
@@ -3134,10 +3181,6 @@
                 }
             });
         }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            ColetaCache.init();
-        });
 
         async function calcularItemPrincipal(item, dados) {
             const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
