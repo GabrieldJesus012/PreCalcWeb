@@ -1536,7 +1536,7 @@
                 opcoes.push('<option value="cessaoAdv">Do Advogado</option>');
             }
             if (quantAdvogadosSucumbenciais > 0) {
-                opcoes.push('<option value="cessaoAdvSuc">Do Advogado Sucumbencial</option>'); // <<< NOVO
+                opcoes.push('<option value="cessaoAdvSuc">Do Advogado Sucumbencial</option>');
             }
             if (quantHerdeiros > 0) {
                 opcoes.push('<option value="cessaoherdeiro">Do Herdeiro</option>');
@@ -1690,11 +1690,11 @@
                 if (tipoHonorario === 'percentual') {
                     const percentualOriginal = parseFloat(DadosFormulario.advogadosSucumbenciais[i]?.percentual || '0');
                     percentualLiquido = (percentualOriginal * 100) - percentualCedido;
-                    descricaoHonorario = `${percentualLiquido.toFixed(2)}% do precatório`;
+                    descricaoHonorario = `${percentualLiquido.toFixed(2)}% dos honorários sucumbenciais`;
                 } else if (tipoHonorario === 'valorPrincipal') {
                     // Mesmo sendo valor principal, pode ter cessão
                     percentualLiquido = 100 - percentualCedido; // 100% MENOS o que foi cedido
-                    descricaoHonorario = `${percentualLiquido.toFixed(2)}% do valor principal`;
+                    descricaoHonorario = `${percentualLiquido.toFixed(2)}% dos honorários sucumbenciais`;
                 }
                 
                 if (percentualLiquido > 0) {
@@ -1737,6 +1737,7 @@
                 switch(tipo) {
                     case 'cessaobenPrincipal': tipoTexto = 'do Beneficiário'; break;
                     case 'cessaoAdv': tipoTexto = 'do Advogado'; break;
+                    case 'cessaoAdvSuc': tipoTexto = 'do Advogado Sucumbencial'; break;
                     case 'cessaoherdeiro': tipoTexto = 'do Herdeiro'; break;
                     case 'cessaoSindicato': tipoTexto = 'do Sindicato'; break;
                     default: tipoTexto = 'Cessão';
@@ -8701,7 +8702,7 @@
                 });
             }
 
-            // 2.5. ADVOGADOS QUE ADERIRAM
+            //3. ADVOGADOS CONTRATUAIS QUE ADERIRAM
             if (adesoes.advogados.length > 0 && resultados.honorarios) {
                 resultados.honorarios.forEach((advogado, index) => {
                     if (adesoes.advogados.includes(index) && advogado.valorBrutoAdvogado > 0) {
@@ -8725,8 +8726,34 @@
                     }
                 });
             }
+
+            if (adesoes.advogadosSucumbenciais && adesoes.advogadosSucumbenciais.length > 0 && 
+                resultados.honorariosSucumbenciais?.temHonorariosSucumbenciais) {
+                
+                resultados.honorariosSucumbenciais.honorarios.forEach((advogado, index) => {
+                    if (adesoes.advogadosSucumbenciais.includes(index) && advogado.valorBrutoAdvogado > 0) {
+                        const valorDevido = arredondarParaDuasCasas(advogado.valorBrutoAdvogado);
+                        const valorDesagio = arredondarParaDuasCasas(valorDevido * percentualDesagio);
+                        const valorAposDesagio = arredondarParaDuasCasas(valorDevido - valorDesagio);
+                        const previdencia = 0;
+                        const ir = arredondarParaDuasCasas(advogado.irAdvogado || 0);
+                        const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
+                        
+                        pagamentosAcordo.push({
+                            credor: `${advogado.nome} (Adv. Sucumb. ${advogado.tipo})`,
+                            valorDevido: valorDevido,
+                            valorDesagio: valorDesagio,
+                            valorAposDesagio: valorAposDesagio,
+                            previdencia: previdencia,
+                            ir: ir,
+                            valorLiquido: valorLiquido,
+                            rra: '-'
+                        });
+                    }
+                });
+            }
             
-            // 2.6. SINDICATOS QUE ADERIRAM
+            // 5. SINDICATOS QUE ADERIRAM
             if (adesoes.sindicatos.length > 0 && resultados.sindicatos) {
                 resultados.sindicatos.forEach((sindicato, index) => {
                     if (adesoes.sindicatos.includes(index) && sindicato.valorBrutoSindicato > 0) {
@@ -8751,7 +8778,7 @@
                 });
             }
             
-            // 3. CESSIONÁRIOS QUE ADERIRAM
+            //6. CESSIONÁRIOS QUE ADERIRAM
             if (adesoes.cessionarios.length > 0) {
                 adesoes.cessionarios.forEach(cessaoIndex => {
                     const cessao = dados.cessoes[cessaoIndex];
@@ -8808,7 +8835,7 @@
                         }
                     }
                     
-                    // Cessionários de advogados
+                    // Cessionários de advogados contratuais
                     if (cessao.tipo === 'cessaoAdv') {
                         let cessionarioEncontrado = false;
                         
@@ -8868,6 +8895,35 @@
                                     }
                                 }
                             });
+                        }
+                    }
+
+                    //Cessao de adv sucumbencial
+                    if (cessao.tipo === 'cessaoAdvSuc') {
+                        if (resultados.honorariosSucumbenciais?.honorarios) {
+                            const advogado = resultados.honorariosSucumbenciais.honorarios.find(adv => adv.nome === cessao.cedente);
+                            if (advogado && advogado.cessionarios) {
+                                const cessionarioData = advogado.cessionarios.find(c => c.nome === cessao.cessionario);
+                                if (cessionarioData && cessionarioData.valorLiquido > 0) {
+                                    const valorDevido = arredondarParaDuasCasas(cessionarioData.valorBruto);
+                                    const valorDesagio = arredondarParaDuasCasas(valorDevido * percentualDesagio);
+                                    const valorAposDesagio = arredondarParaDuasCasas(valorDevido - valorDesagio);
+                                    const previdencia = 0;
+                                    const ir = arredondarParaDuasCasas(cessionarioData.ir);
+                                    const valorLiquido = arredondarParaDuasCasas(valorAposDesagio - previdencia - ir);
+                                    
+                                    pagamentosAcordo.push({
+                                        credor: `${cessao.cessionario} (Cess. Adv. Sucumb. ${cessao.cedente})`,
+                                        valorDevido: valorDevido,
+                                        valorDesagio: valorDesagio,
+                                        valorAposDesagio: valorAposDesagio,
+                                        previdencia: previdencia,
+                                        ir: ir,
+                                        valorLiquido: valorLiquido,
+                                        rra: '-'
+                                    });
+                                }
+                            }
                         }
                     }
                     
