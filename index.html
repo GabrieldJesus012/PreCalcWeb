@@ -7759,9 +7759,7 @@
         }
 
         function gerarSecoesPagamentos(resultados, dados) {
-
             if (dados.tipoCalculo === 'acordo') {
-                
                 return gerarTabelaPagamentosAcordo(resultados, dados);
             }
 
@@ -7847,18 +7845,24 @@
             ).join('');
             
             const todosPagamentos = coletarTodosPagamentos(resultados, dados);
+
             const totaisGerais = {
                 totalDevido: calcularTotalDevido(todosPagamentos),
                 totalPrevidencia: calcularTotalPrevidencia(todosPagamentos),
                 totalIR: calcularTotalIR(todosPagamentos),
                 totalLiquido: calcularTotalLiquido(todosPagamentos)
             };
+
+            const tabelaHonorariosSucumbenciais = gerarTabelaHonorariosSucumbenciais(resultados, dados);
             
-            const mostrarResumoGeral = herdeirosComPagamentos.length > 1;
+            const temHonorariosSucumbenciais = resultados.honorariosSucumbenciais?.honorarios?.some(adv => adv.temPreferencia) || false;
+
+            const mostrarResumoGeral = herdeirosComPagamentos.length > 1 || temHonorariosSucumbenciais;
 
             return `
                 ${secaoCessionariosBeneficiario}
                 ${secoesHerdeiros}
+                ${tabelaHonorariosSucumbenciais}
                 ${mostrarResumoGeral ? `
                 <div class="pagamentos-finais" style="margin-top: 30px;">
                     <div class="table-container">
@@ -8103,6 +8107,118 @@
             `;
         }
 
+        function gerarTabelaHonorariosSucumbenciais(resultados, dados) {
+            // Verificar se tem honorários sucumbenciais
+            if (!resultados.honorariosSucumbenciais?.temHonorariosSucumbenciais || 
+                !resultados.honorariosSucumbenciais?.honorarios?.length) {
+                return '';
+            }
+
+            const honorarios = resultados.honorariosSucumbenciais.honorarios;
+            const isPreferencia = dados.tipoCalculo === 'preferencia';
+            const pagamentos = [];
+            
+            honorarios.forEach(adv => {
+                // ADVOGADO SUCUMBENCIAL
+                let deveReceberAdvogado = true;
+                let valorAdvogadoPagamento = adv.valorBrutoAdvogado;
+                
+                if (isPreferencia && !adv.temPreferencia) {
+                    deveReceberAdvogado = false;
+                }
+                
+                if (deveReceberAdvogado && valorAdvogadoPagamento > 0) {
+                    pagamentos.push({
+                        credor: `${adv.nome} (Adv. Sucumbencial ${adv.tipo})`,
+                        valorDevido: valorAdvogadoPagamento,
+                        previdencia: 0,
+                        ir: adv.irAdvogado || 0,
+                        valorLiquido: adv.valorLiquidoAdvogado || 0
+                    });
+                }
+                
+                // CESSIONÁRIOS DO ADVOGADO SUCUMBENCIAL
+                if (isPreferencia) {
+                    // Na preferência: cessionários só recebem se não foi limitado
+                    if (adv.temPreferencia && !adv.foiLimitadoPorPreferencia && adv.cessionarios?.length > 0) {
+                        adv.cessionarios.forEach(cessionario => {
+                            if (cessionario.valorLiquido > 0) {
+                                pagamentos.push({
+                                    credor: `${cessionario.nome} (Cess. Adv. Sucumb. ${adv.nome})`,
+                                    valorDevido: cessionario.valorBruto,
+                                    previdencia: 0,
+                                    ir: cessionario.ir || 0,
+                                    valorLiquido: cessionario.valorLiquido
+                                });
+                            }
+                        });
+                    }
+                } else {
+                    // Ordem/Parcial: cessionários sempre recebem
+                    if (adv.cessionarios?.length > 0) {
+                        adv.cessionarios.forEach(cessionario => {
+                            if (cessionario.valorLiquido > 0) {
+                                pagamentos.push({
+                                    credor: `${cessionario.nome} (Cess. Adv. Sucumb. ${adv.nome})`,
+                                    valorDevido: cessionario.valorBruto,
+                                    previdencia: 0,
+                                    ir: cessionario.ir || 0,
+                                    valorLiquido: cessionario.valorLiquido
+                                });
+                            }
+                        });
+                    }
+                }
+            });
+            
+            if (pagamentos.length === 0) return '';
+            
+            // Calcular totais
+            const totalDevido = pagamentos.reduce((sum, p) => sum + p.valorDevido, 0);
+            const totalPrevidencia = pagamentos.reduce((sum, p) => sum + p.previdencia, 0);
+            const totalIR = pagamentos.reduce((sum, p) => sum + p.ir, 0);
+            const totalLiquido = pagamentos.reduce((sum, p) => sum + p.valorLiquido, 0);
+            
+            return `
+                <div class="pagamentos-finais" style="margin-bottom: 20px;">
+                    <div class="table-container">
+                        <h3>💼 Pagamentos - Honorários Sucumbenciais</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Credor</th>
+                                    <th>Valor Devido</th>
+                                    <th>Previdência</th>
+                                    <th>Imposto de Renda</th>
+                                    <th>Valor Líquido</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${pagamentos.map(pagamento => `
+                                    <tr>
+                                        <td>${pagamento.credor}</td>
+                                        <td>R$ ${formatarMoeda(pagamento.valorDevido)}</td>
+                                        <td>R$ ${formatarMoeda(pagamento.previdencia)}</td>
+                                        <td>R$ ${formatarMoeda(pagamento.ir)}</td>
+                                        <td>R$ ${formatarMoeda(pagamento.valorLiquido)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                            <tfoot>
+                                <tr class="highlight">
+                                    <td><strong>Total Honorários Sucumbenciais</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totalDevido)}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totalPrevidencia)}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totalIR)}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totalLiquido)}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                `;
+        }
+
         function gerarPagamentosSemHerdeiros(resultados, dados) {
             const todosPagamentos = coletarTodosPagamentosSemHerdeiros(resultados, dados);
 
@@ -8311,8 +8427,20 @@
                             });
                         }
                     });
-            }
-            
+                    if (resultados.honorariosSucumbenciais?.temHonorariosSucumbenciais) {
+                        resultados.honorariosSucumbenciais.honorarios.forEach(adv => {
+                            if (adv.valorBrutoAdvogado > 0) {
+                                pagamentos.push({
+                                    credor: `${adv.nome} (Adv. Sucumbencial ${adv.tipo})`,
+                                    valorDevido: adv.valorBrutoAdvogado,
+                                    previdencia: 0,
+                                    ir: adv.irAdvogado || 0,
+                                    valorLiquido: adv.valorLiquidoAdvogado || 0
+                                });
+                            }
+                        });
+                    }
+                }
             return pagamentos;
         }
 
@@ -8438,7 +8566,58 @@
                     }
                 });
             }
-            
+
+            if (resultados.honorariosSucumbenciais?.temHonorariosSucumbenciais && 
+                resultados.honorariosSucumbenciais?.honorarios?.length > 0) {
+                
+                const isPreferencia = dados.tipoCalculo === 'preferencia';
+                const isParcial = dados.tipoCalculo === 'parcial';
+                
+                resultados.honorariosSucumbenciais.honorarios.forEach(adv => {
+                    // ADVOGADO SUCUMBENCIAL
+                    let deveReceberAdvogado = true;
+                    let valorAdvogadoPagamento = adv.valorBrutoAdvogado;
+                    
+                    if (isPreferencia && !adv.temPreferencia) {
+                        deveReceberAdvogado = false;
+                    }
+                    
+                    if (deveReceberAdvogado && valorAdvogadoPagamento > 0) {
+                        pagamentos.push({
+                            credor: `${adv.nome} (Adv. Sucumbencial ${adv.tipo})`,
+                            valorDevido: valorAdvogadoPagamento,
+                            previdencia: 0,
+                            ir: adv.irAdvogado || 0,
+                            valorLiquido: adv.valorLiquidoAdvogado || 0
+                        });
+                    }
+                    
+                    let deveReceberCessionarios = true;
+                    
+                    if (isPreferencia) {
+                        if (!adv.temPreferencia) {
+                            deveReceberCessionarios = false;
+                        } else if (adv.foiLimitadoPorPreferencia) {
+                            deveReceberCessionarios = false;
+                        }
+                    }
+                    
+                    if (deveReceberCessionarios && adv.cessionarios && adv.cessionarios.length > 0) {
+                        adv.cessionarios.forEach(cessionario => {
+                            if (cessionario.valorLiquido > 0) {
+                                pagamentos.push({
+                                    credor: `${cessionario.nome} (Cessionário Adv. Sucumb. ${adv.nome})`,
+                                    valorDevido: cessionario.valorBruto,
+                                    previdencia: 0,
+                                    ir: cessionario.ir || 0,
+                                    valorLiquido: cessionario.valorLiquido
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+
             return pagamentos;
         }
 
