@@ -146,6 +146,15 @@
                             <label for="rra">RRA:</label>
                             <input type="number" id="rra" value="0" min="0">
                         </div>
+                        <div class="input-group">
+                            <label for="tipoUsoHonorario">Tipo de Uso para Honorários:</label>
+                            <select id="tipoUsoHonorario">
+                                <option value="ambos" selected>Ambos (contratual e sucumbencial)</option>
+                                <option value="contratual">Honorário contratual apenas</option>
+                                <option value="sucumbencial">Honorário sucumbencial apenas</option>
+                                <option value="nenhum">Não usado para honorários</option>
+                            </select>
+                        </div>
                         <label>Índices de Correção:</label>
                         <div class="checkbox-group">
                             <div class="checkbox-item">
@@ -509,7 +518,8 @@
             const valorPrincipal = document.getElementById('valorPrincipal').value;
             const valorJuros = document.getElementById('valorJuros').value;
             const rra = document.getElementById('rra').value;
-            const descricao = document.getElementById('descricaoPrincipal').value; // Campo de descrição
+            const descricao = document.getElementById('descricaoPrincipal').value; 
+            const tipoUsoHonorario = document.getElementById('tipoUsoHonorario')?.value || 'ambos';
 
             if (!anoBase || (!valorPrincipal && !valorJuros)) {
                 alert('Preencha o ano base e pelo menos um valor (principal, juros)');
@@ -559,7 +569,8 @@
                 valorJuros: parseFloat(valorJuros) || 0,
                 indices,
                 tributacao,
-                descricao: descricao || 'Valor Principal'
+                descricao: descricao || 'Valor Principal',
+                tipoUsoHonorario: tipoUsoHonorario
             };
 
             valoresPrincipais.push(valor);
@@ -599,6 +610,13 @@
                 }
                 if (valor.tributacao.rra > 0) tributacaoTexto.push(`RRA: ${valor.tributacao.rra}`);
 
+                const tipoUsoTexto = {
+                    'ambos': 'Ambos honorários',
+                    'contratual': 'Só contratual', 
+                    'sucumbencial': 'Só sucumbencial',
+                    'nenhum': 'Sem honorários'
+                }[valor.tipoUsoHonorario] || 'Ambos honorários';
+
                 div.innerHTML = `
                     <div class="item-header">
                         <strong>${valor.descricao}</strong>
@@ -611,6 +629,7 @@
                         <span><strong>Juros:</strong> R$ ${valor.valorJuros.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                         <span><strong>Índices:</strong> ${indicesTexto}</span>
                         <span><strong>Tributação:</strong> ${tributacaoTexto.join(', ') || 'Nenhuma'}</span>
+                        <span><strong>Uso:</strong> ${tipoUsoTexto}</span>
                     </div>
                 `;
                 lista.appendChild(div);
@@ -657,6 +676,8 @@
             const eventTipoPrevidencia = new Event('change');
             document.getElementById('tipoPrevidencia').dispatchEvent(eventTipoPrevidencia);
 
+            document.getElementById('tipoUsoHonorario').value = valorParaEditar.tipoUsoHonorario || 'ambos';
+
             // Remover o valor original da lista
             valoresPrincipais = valoresPrincipais.filter(v => v.id !== id);
             renderizarValoresPrincipais();
@@ -679,6 +700,7 @@
             //document.getElementById('valorSelic').value = '';
             document.getElementById('rra').value = '';
             document.getElementById('descricaoPrincipal').value = ''; 
+            document.getElementById('tipoUsoHonorario').value = 'ambos';
         }
 
         // Definir valores padrão na inicialização
@@ -752,7 +774,7 @@
                     const dadosAdv = {
                         nome: document.getElementById(`advSucNome${i}`)?.value || '',
                         tipo: document.getElementById(`advSucTipo${i}`)?.value || 'PF',
-                        incidenciaIR: document.getElementById(`advSucIncidenciaIR${i}`)?.value || 'nao',
+                        incidenciaIR: document.getElementById(`advSucIncidenciaIR${i}`)?.value || 'sim',
                         tipoHonorario: document.getElementById(`advSucTipoHonorario${i}`)?.value || 'percentual',
                         preferencia: document.getElementById(`advSucTemPreferencia${i}`)?.value || 'nao'
                     };
@@ -1019,7 +1041,7 @@
                     <div class="input-group">
                         <label>Incidência de IR:</label>
                         <select id="advSucIncidenciaIR${index}">
-                            <option value="sim">Sim</option>
+                            <option value="sim" selected>Sim</option>
                             <option value="nao">Não</option>
                         </select>
                     </div>
@@ -1824,7 +1846,7 @@
             for (let i = 0; i < quantAdvogadosSucumbenciais; i++) {
                 const check = document.getElementById(`check_advogadoSucumbencial_${i}`);
                 if (check?.checked) {
-                    adesoes.advogados.push(i); // Adiciona ao array existente de advogados
+                    adesoes.advogadosSucumbenciais.push(i); 
                 }
             }
 
@@ -2937,6 +2959,7 @@
                     
                     // Quantidades
                     quantAdvogados: document.getElementById('quantAdvogados'),
+                    quantAdvogadosSucumbenciais: document.getElementById('quantAdvogadosSucumbenciais'),
                     quantHerdeiros: document.getElementById('quantHerdeiros'),
                     quantSindicatos: document.getElementById('quantSindicatos'),
                     quantCessoes: document.getElementById('quantCessoes'),
@@ -2944,7 +2967,8 @@
                     // Campos condicionais
                     tetoPreferenciaPrincipal: document.getElementById('tetoPreferenciaPrincipal'),
                     percentualAcordoValor: document.getElementById('percentualAcordoValor'),
-                    saldoParcialValor: document.getElementById('saldoParcialValor')
+                    saldoParcialValor: document.getElementById('saldoParcialValor'),
+                    somenteHonorarioSucumbencial: document.getElementById('somenteHonorarioSucumbencial') 
                 };
             },
             
@@ -3007,6 +3031,7 @@
                 
                 // Quantidades
                 quantAdvogados: cache.getValue('quantAdvogados', 0, parseInt),
+                quantAdvogadosSucumbenciais: cache.getValue('quantAdvogadosSucumbenciais', 0, parseInt), 
                 quantHerdeiros: cache.getValue('quantHerdeiros', 0, parseInt),
                 quantSindicatos: cache.getValue('quantSindicatos', 0, parseInt),
                 quantCessoes: cache.getValue('quantCessoes', 0, parseInt),
@@ -3030,6 +3055,7 @@
             }
             
             coletarAdvogados(dados);
+            coletarHonorarioSucumbencial(dados);
             coletarHerdeiros(dados);
             coletarSindicatos(dados);
             coletarCessoes(dados);
@@ -3044,6 +3070,42 @@
                 const percentual = parseFloat(document.getElementById(`advPercentual${i}`)?.value) || 0;
                 
                 dados.advogados.push({ nome, tipo, percentual });
+            }
+        }
+
+        function coletarHonorarioSucumbencial(dados) {
+            const quantAdvogados = parseInt(document.getElementById('quantAdvogadosSucumbenciais')?.value) || 0;
+            const somenteHonorarioSucumbencial = document.getElementById('somenteHonorarioSucumbencial')?.checked || false;
+            
+            dados.honorarioSucumbencial = {
+                somenteHonorarioSucumbencial: somenteHonorarioSucumbencial,
+                advogados: []
+            };
+            
+            for (let i = 0; i < quantAdvogados; i++) {
+                const nomeElement = document.getElementById(`advSucNome${i}`);
+                const tipoElement = document.getElementById(`advSucTipo${i}`);
+                const incidenciaIRElement = document.getElementById(`advSucIncidenciaIR${i}`);
+                const tipoHonorarioElement = document.getElementById(`advSucTipoHonorario${i}`);
+                const percentualElement = document.getElementById(`advSucPercentual${i}`);
+                const preferenciaElement = document.getElementById(`advSucTemPreferencia${i}`);
+                
+                if (!nomeElement || !tipoElement || !tipoHonorarioElement) continue;
+                
+                const advogado = {
+                    nome: nomeElement.value || `Advogado Sucumbencial ${i + 1}`,
+                    tipo: tipoElement.value || 'PF',
+                    incidenciaIR: incidenciaIRElement?.value === 'sim',
+                    tipoHonorario: tipoHonorarioElement.value || 'percentual',
+                    preferencia: preferenciaElement?.value === 'sim'
+                };
+                
+                // Adicionar campo específico baseado no tipo
+                if (advogado.tipoHonorario === 'percentual') {
+                    advogado.percentual = parseFloat(percentualElement?.value) || 0;
+                }
+                
+                dados.honorarioSucumbencial.advogados.push(advogado);
             }
         }
 
@@ -3131,6 +3193,7 @@
                 // Verificar se pelo menos alguém aderiu
                 const temAdesao = adesoes.beneficiario || 
                                 adesoes.advogados.length > 0 || 
+                                adesoes.advogadosSucumbenciais.length > 0 || 
                                 adesoes.herdeiros.length > 0 || 
                                 adesoes.sindicatos.length > 0 || 
                                 adesoes.cessionarios.length > 0;
@@ -3147,6 +3210,7 @@
 
         function validarCessoes(dados, erros) {
             const advogadosMap = new Map(dados.advogados.map(adv => [adv.nome, true]));
+            const advogadosSucumbenciaisMap = new Map(dados.honorarioSucumbencial?.advogados.map(adv => [adv.nome, true]) || []); 
             const herdeirosMap = new Map(dados.herdeiros.map(h => [h.nome, true]));
             const sindicatosMap = new Map(dados.sindicatos.map(s => [s.nome, true]));
             
@@ -3167,7 +3231,9 @@
                     case 'cessaoAdv':
                         cedenteExiste = advogadosMap.has(cessao.cedente);
                         break;
-                    case 'cessaoHerdeiro':
+                    case 'cessaoAdvSuc':
+                        cedenteExiste = advogadosSucumbenciaisMap.has(cessao.cedente);
+                        break;
                     case 'cessaoherdeiro':
                         cedenteExiste = herdeirosMap.has(cessao.cedente);
                         break;
@@ -3300,11 +3366,23 @@
                 console.error('❌ Erro: Nenhum valor principal encontrado!');
                 return null;
             }
+
+            let valoresParaProcessar = dados.valoresPrincipais;
+
+            if (dados.calculandoHonorarioSucumbencial) {
+                valoresParaProcessar = dados.valoresPrincipais.filter(item => 
+                    item.tipoUsoHonorario === 'sucumbencial' || item.tipoUsoHonorario === 'ambos'
+                );
+                
+                if (valoresParaProcessar.length === 0) {
+                    return null;
+                }
+            }
             
             const itensCalculados = [];
             
-            for (let i = 0; i < dados.valoresPrincipais.length; i++) {
-                const item = dados.valoresPrincipais[i];
+            for (let i = 0; i < valoresParaProcessar.length; i++) {
+                const item =valoresParaProcessar[i];
                 
                 try {
                     const itemCalculado = await calcularItemPrincipal(item, dados);
@@ -3356,6 +3434,8 @@
             
             const detalhamento = calcularGlobal(dadosParaDetalhamento, totais.valorGeralTotal, percentualprinc, percentualjur);
             
+            const honorariosSucumbenciais = calcularHonorariosSucumbenciais(dadosParaDetalhamento, totais.valorGeralTotal);
+
             const herdeiros = calcularHerdeiros(dadosParaDetalhamento, totais.valorGeralTotal, totais.valorPrincipalTotal, totais.valorJurosTotal, detalhamento);
             
             const resumoHerdeiros = {
@@ -3397,6 +3477,8 @@
                 herdeiros,
                 resumoHerdeiros,
                 temHerdeiros: herdeiros.length > 0,
+
+                honorariosSucumbenciais,
                 
                 indiceTotal,
                 percentualprinc,
@@ -3478,6 +3560,8 @@
             // Honorários
             const resultadoHonorarios = calcularHonorarios(dados, valorBaseParaHonorarios, valortotatt);
             const { honorarios, valorHonorarioTotal } = resultadoHonorarios;
+
+            //sucumbencia
             
             // Sindicatos 
             const resultadoSindicatos = calcularSindicatos(dados, valorBaseParaHonorarios, valortotatt);
@@ -3903,6 +3987,198 @@
             });
 
             return { honorarios, valorHonorarioTotal };
+        }
+
+        function calcularValorBaseSucumbencial(dados, valortotatt) {
+            // Se não tem advogados sucumbenciais, retorna 0
+            if (!dados.honorarioSucumbencial?.advogados?.length) {
+                return 0;
+            }
+            
+            // Filtrar apenas valores para sucumbencial
+            const valoresFiltrados = dados.valoresPrincipais?.filter(item => 
+                item.tipoUsoHonorario === 'sucumbencial' || item.tipoUsoHonorario === 'ambos'
+            ) || [];
+            
+            if (valoresFiltrados.length === 0) {
+                return 0;
+            }
+            
+            // Calcular proporção dos valores sucumbenciais
+            const valorOriginalSucumbencial = valoresFiltrados.reduce((sum, v) => 
+                sum + v.valorPrincipal + v.valorJuros, 0
+            );
+            
+            const valorOriginalTotal = dados.valoresPrincipais.reduce((sum, v) => 
+                sum + v.valorPrincipal + v.valorJuros, 0
+            );
+            
+            // Aplicar mesma proporção de correção monetária
+            const proporcao = valorOriginalSucumbencial / valorOriginalTotal;
+            const valorBaseSucumbencial = valortotatt * proporcao;
+            return valorBaseSucumbencial;
+        }
+
+        function calcularHonorariosSucumbenciais(dados, valorTotalDivida) {
+            // Verificar se há advogados sucumbenciais
+            if (!dados.honorarioSucumbencial || !dados.honorarioSucumbencial.advogados || dados.honorarioSucumbencial.advogados.length === 0) {
+                return { 
+                    honorarios: [], 
+                    valorHonorarioTotal: 0,
+                    valorBaseSucumbencial: 0,
+                    temHonorariosSucumbenciais: false
+                };
+            }
+            
+            // Calcular valor base específico para sucumbencial
+            const valorBaseSucumbencial = calcularValorBaseSucumbencial(dados, valorTotalDivida);
+            
+            if (valorBaseSucumbencial <= 0) {
+                return { 
+                    honorarios: [], 
+                    valorHonorarioTotal: 0,
+                    valorBaseSucumbencial: 0,
+                    temHonorariosSucumbenciais: false
+                };
+            }
+            
+            // === INÍCIO DO CÁLCULO DETALHADO ===
+            const sucumbencial = dados.honorarioSucumbencial;
+                        
+            const isAcordo = dados.tipoCalculo === 'acordo';
+            const isPreferencia = dados.tipoCalculo === 'preferencia';
+            const tetoPreferencia = dados.tetoPreferencia || 0;
+            const percentualDesagio = dados.percentualAcordo || 0;
+            let valorHonorarioTotal = 0;
+                       
+            const honorarios = sucumbencial.advogados.map((adv, index) => {
+                
+                // 1. CALCULAR HONORÁRIO BRUTO INICIAL
+                let valorBrutoTotal = 0;
+                if (adv.tipoHonorario === 'percentual') {
+                    valorBrutoTotal = valorBaseSucumbencial * adv.percentual;
+                } else if (adv.tipoHonorario === 'valorPrincipal') {
+                    valorBrutoTotal = valorBaseSucumbencial;
+                }
+                
+                // 2. CALCULAR CESSÕES PRIMEIRO
+                const cessaoAdv = dados.cessoes?.filter(cessao => 
+                    cessao.tipo === 'cessaoAdvSuc' && cessao.cedente === adv.nome
+                ) || [];
+                
+                let percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
+                const percentualAdvogado = Math.max(0, 1 - percentualCessionarioAdv);
+                
+                // Valor que o advogado tem direito após cessões
+                const valorAdvogadoAposCessoes = valorBrutoTotal * percentualAdvogado;
+                const valorCessionariosTotal = valorBrutoTotal * percentualCessionarioAdv;
+                                
+                // 3. APLICAR PREFERÊNCIA SOBRE O VALOR QUE O ADVOGADO REALMENTE TEM
+                let valorFinalAdvogado = valorAdvogadoAposCessoes;
+                let valorFinalCessionarios = valorCessionariosTotal;
+                let valorFinalHonorario = valorBrutoTotal;
+                
+                if (isPreferencia && adv.preferencia) {
+                    // Na preferência: se não pagar o honorário completo, cessionários recebem ZERO
+                    const honorarioCompletoNecessario = valorAdvogadoAposCessoes + valorCessionariosTotal;
+                    
+                    if (tetoPreferencia >= honorarioCompletoNecessario) {
+                        // PREFERÊNCIA PAGA TUDO: advogado e cessionários recebem
+                        valorFinalAdvogado = valorAdvogadoAposCessoes;
+                        valorFinalCessionarios = valorCessionariosTotal;
+                    } else {
+                        // PREFERÊNCIA PARCIAL: só o advogado recebe (limitado ao teto), cessionários = ZERO
+                        valorFinalAdvogado = Math.min(valorAdvogadoAposCessoes, tetoPreferencia);
+                        valorFinalCessionarios = 0; // Cessionários aguardam ordem cronológica
+                    }
+                    
+                    valorFinalHonorario = valorFinalAdvogado + valorFinalCessionarios;
+                } else {
+                    // Se não é preferência, mantém os valores originais
+                    valorFinalHonorario = valorFinalAdvogado + valorFinalCessionarios;
+                }
+                
+                // 4. INICIALIZAR VARIÁVEIS COM OS VALORES FINAIS (SEMPRE)
+                let valorAdvogadoAposDesagio = valorFinalAdvogado;
+                let valorCessionariosAposDesagio = valorFinalCessionarios;
+                
+                // 5. APLICAR DESÁGIO SE FOR ACORDO (antes do IR)
+                if (isAcordo) {
+                    valorAdvogadoAposDesagio = valorFinalAdvogado * (1 - percentualDesagio);
+                    valorCessionariosAposDesagio = valorFinalCessionarios * (1 - percentualDesagio);
+                }
+                
+                // 6. CALCULAR IR DO ADVOGADO
+                let irAdvogado = 0;
+                if (adv.incidenciaIR) {
+                    irAdvogado = adv.tipo === 'PF' ? calcularIR(valorAdvogadoAposDesagio) : valorAdvogadoAposDesagio * 0.015;
+                }
+                
+                // 7. CALCULAR IR DOS CESSIONÁRIOS
+                let irCessionarioAdv = 0;
+                if (adv.incidenciaIR && percentualCessionarioAdv > 0) {
+                    irCessionarioAdv = adv.tipo === 'PF' ? calcularIR(valorCessionariosAposDesagio) : valorCessionariosAposDesagio * 0.015;
+                }
+                
+                // 8. DETALHAR CADA CESSIONÁRIO
+                const cessionarios = cessaoAdv.map(cessao => {
+                    // Valor proporcional do cessionário no valor final
+                    const valorBrutoCessao = valorFinalHonorario * cessao.percentual;
+                    
+                    // Aplicar deságio se for acordo
+                    const valorAposDesagio = isAcordo ? 
+                        valorBrutoCessao * (1 - percentualDesagio) : valorBrutoCessao;
+                    
+                    // Calcular IR
+                    const irCessao = adv.incidenciaIR ? 
+                        (adv.tipo === 'PF' ? calcularIR(valorAposDesagio) : valorAposDesagio * 0.015) : 0;
+                    
+                    return {
+                        nome: cessao.cessionario,
+                        percentual: cessao.percentual,
+                        valorBruto: valorBrutoCessao,
+                        valorAposDesagio: valorAposDesagio,
+                        ir: irCessao,
+                        valorLiquido: valorAposDesagio - irCessao
+                    };
+                });
+                
+                const valorLiquidoAdvogado = valorAdvogadoAposDesagio - irAdvogado;
+                const valorLiquidoCessionario = valorCessionariosAposDesagio - irCessionarioAdv;
+                                
+                valorHonorarioTotal += valorFinalHonorario;
+                
+                return {
+                    ...adv,
+                    valorBruto: valorFinalHonorario,
+                    ir: irAdvogado + irCessionarioAdv,
+                    valorLiquido: valorLiquidoAdvogado + valorLiquidoCessionario,
+                    // Dados do advogado
+                    percentualAdvogado,
+                    valorBrutoAdvogado: valorFinalAdvogado,
+                    valorAdvogadoAposDesagio,
+                    irAdvogado,
+                    valorLiquidoAdvogado,
+                    // Dados dos cessionários
+                    percentualCessionarioAdv,
+                    valorBrutoCessionario: valorFinalCessionarios,
+                    valorCessionarioAposDesagio: valorCessionariosAposDesagio,
+                    irCessionarioAdv,
+                    valorLiquidoCessionario,
+                    cessionarios,
+                    cessoesAdv: cessaoAdv,
+                    temPreferencia: isPreferencia && adv.preferencia,
+                    foiLimitadoPorPreferencia: isPreferencia && adv.preferencia && (tetoPreferencia < (valorAdvogadoAposCessoes + valorCessionariosTotal)),
+                    temCessoes: cessaoAdv.length > 0
+                };
+            });
+            
+            return { 
+                honorarios, 
+                valorHonorarioTotal,
+                valorBaseSucumbencial,
+                temHonorariosSucumbenciais: true
+            };
         }
 
         function calcularSindicatos(dados, valorBase, valortotatt) {
@@ -4662,6 +4938,9 @@
 
                 ${gerarResumoCalculos(resultados,dados)}
 
+                ${gerarSecaoHonorariosSucumbenciais(resultados, dados)}
+                ${gerarSecaoCessoesHonorariosSucumbenciais(resultados, dados)}
+
                 ${gerarSecaoDeducoesAcessorias(resultados, dados)}
                 ${gerarSecaoCessoesSindicatos(resultados, dados)}
                 ${gerarSecaoCessoesAdvogados(resultados, dados)}
@@ -5110,6 +5389,155 @@
                         </tr>
                         ${basesPagamento}
                     </table>
+                </div>
+            `;
+        }
+
+        function gerarSecaoHonorariosSucumbenciais(resultados, dados) {
+            if (!resultados.honorariosSucumbenciais?.temHonorariosSucumbenciais || 
+                !resultados.honorariosSucumbenciais?.honorarios?.length) {
+                return '';
+            }
+
+            const honorarios = resultados.honorariosSucumbenciais.honorarios;
+            const valorBaseSucumbencial = resultados.honorariosSucumbenciais.valorBaseSucumbencial;
+
+            let linhasAdvogados = '';
+            let totalHonorariosBrutos = 0;
+            
+            honorarios.forEach((adv, index) => {
+                const percentualExibicao = adv.tipoHonorario === 'percentual' 
+                    ? `${(adv.percentual * 100).toFixed(2)}%`
+                    : '100,00%';
+                    
+                // Calcular valor bruto original (antes da preferência)
+                let valorBrutoOriginal = 0;
+                if (adv.tipoHonorario === 'percentual') {
+                    valorBrutoOriginal = valorBaseSucumbencial * adv.percentual;
+                } else if (adv.tipoHonorario === 'valorPrincipal') {
+                    valorBrutoOriginal = valorBaseSucumbencial;
+                }
+                
+                totalHonorariosBrutos += valorBrutoOriginal;
+                
+                linhasAdvogados += `
+                    <tr>
+                        <td>${adv.nome}</td>
+                        <td>R$ ${formatarMoeda(valorBaseSucumbencial)}</td>
+                        <td>${percentualExibicao}</td>
+                        <td>R$ ${formatarMoeda(valorBrutoOriginal)}</td>
+                    </tr>
+                `;
+            });
+
+            return `
+                <div class="table-container">
+                    <h3>💼 Honorários Sucumbenciais</h3>
+                    
+                    <table>
+                        <tr>
+                            <th>Advogado</th>
+                            <th>Base de Cálculo</th>
+                            <th>Percentual</th>
+                            <th>Valor Bruto</th>
+                        </tr>
+                        ${linhasAdvogados}
+                        <tr class="highlight">
+                            <td colspan="3"><strong>Total dos Honorários Sucumbenciais</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totalHonorariosBrutos)}</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            `;
+        }
+
+        function gerarSecaoCessoesHonorariosSucumbenciais(resultados, dados) {
+            // Verificar se tem honorários sucumbenciais
+            if (!resultados.honorariosSucumbenciais?.temHonorariosSucumbenciais || 
+                !resultados.honorariosSucumbenciais?.honorarios?.length) {
+                return '';
+            }
+
+            const honorarios = resultados.honorariosSucumbenciais.honorarios;
+            const valorBaseSucumbencial = resultados.honorariosSucumbenciais.valorBaseSucumbencial;
+            
+            // Filtrar apenas advogados que têm cessões
+            const advogadosComCessoes = honorarios.filter(adv => adv.temCessoes && adv.cessionarios?.length > 0);
+            
+            if (advogadosComCessoes.length === 0) {
+                return '';
+            }
+
+            let secoesCessoes = '';
+
+            advogadosComCessoes.forEach(adv => {
+                // Calcular valor bruto original do honorário
+                let valorHonorarioTotal = 0;
+                if (adv.tipoHonorario === 'percentual') {
+                    valorHonorarioTotal = valorBaseSucumbencial * adv.percentual;
+                } else if (adv.tipoHonorario === 'valorPrincipal') {
+                    valorHonorarioTotal = valorBaseSucumbencial;
+                }
+
+                // Calcular total cedido
+                const totalCedido = adv.percentualCessionarioAdv || 0;
+                const listaCessionarios = adv.cessionarios?.map(c => c.nome).join(', ') || '';
+
+                // Gerar linhas dos recebedores
+                let linhasRecebedores = '';
+                
+                // Advogado (o que sobra após cessões)
+                const percentualAdvogado = adv.percentualAdvogado || (1 - totalCedido);
+                const valorAdvogado = valorHonorarioTotal * percentualAdvogado;
+                
+                linhasRecebedores += `
+                    <tr>
+                        <td>${adv.nome}</td>
+                        <td>${(percentualAdvogado * 100).toFixed(2)}%</td>
+                        <td>R$ ${formatarMoeda(valorAdvogado)}</td>
+                    </tr>
+                `;
+
+                // Cessionários
+                if (adv.cessionarios && adv.cessionarios.length > 0) {
+                    adv.cessionarios.forEach(cessionario => {
+                        const valorCessionario = valorHonorarioTotal * cessionario.percentual;
+                        linhasRecebedores += `
+                            <tr>
+                                <td>${cessionario.nome} (Cessionário)</td>
+                                <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
+                                <td>R$ ${formatarMoeda(valorCessionario)}</td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                secoesCessoes += `
+                    <div style="margin-bottom: 30px;">
+                        <h4>Cessão do Advogado Sucumbencial: ${adv.nome}</h4>
+                        <p><strong>Valor do Honorário:</strong> R$ ${formatarMoeda(valorHonorarioTotal)}</p>
+                        <p><strong>Cedido:</strong> ${(totalCedido * 100).toFixed(2)}% para: ${listaCessionarios}</p>
+                        
+                        <table>
+                            <tr>
+                                <th>Recebedor</th>
+                                <th>Percentual</th>
+                                <th>Valor do Direito</th>
+                            </tr>
+                            ${linhasRecebedores}
+                            <tr class="highlight">
+                                <td colspan="2"><strong>Total</strong></td>
+                                <td><strong>R$ ${formatarMoeda(valorHonorarioTotal)}</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                `;
+            });
+
+            return `
+                <div class="table-container">
+                    <h3>🔄 Cessões de Honorários Sucumbenciais</h3>
+                    ${secoesCessoes}
                 </div>
             `;
         }
