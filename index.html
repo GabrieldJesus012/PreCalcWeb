@@ -6171,236 +6171,270 @@
                 (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.ir === true))) 
                 && (dados.tipoBeneficiario === 'pj' || resultados.rrapagamento !== 0);
 
-            const tipoPrevidencia = dados.valoresPrincipais?.find(item => item.tributacao?.tipoPrevidencia)?.tributacao.tipoPrevidencia || null;
-            
-            const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
-
             if (!temPrevidencia && !temIR) return '';
 
             if (dados.tipoCalculo === 'acordo') {
-                const adesoes = obterAdesaoAcordo();
-                
-                const beneficiarioOuHerdeirosAderiram = adesoes.beneficiario || adesoes.herdeiros.length > 0;
-                
-                let cessionarioRelevante = false;
-                if (adesoes.cessionarios.length > 0) {
-                    for (let i = 0; i < adesoes.cessionarios.length; i++) {
-                        const cessaoIndex = adesoes.cessionarios[i];
-                        const cessao = dados.cessoes[cessaoIndex];
-                        if (cessao && (cessao.tipo === 'cessaobenPrincipal' || cessao.tipo === 'cessaoherdeiro')) {
-                            cessionarioRelevante = true;
-                            break;
-                        }
-                    }
-                }
-                
-                if (!beneficiarioOuHerdeirosAderiram && !cessionarioRelevante) {
-                    return '';
-                }
+                if (!validarAdesaoParaAcordo(dados)) return '';
             }
 
+            const config = {
+                temPrevidencia,
+                temIR,
+                tipoPrevidencia: dados.valoresPrincipais?.find(item => item.tributacao?.tipoPrevidencia)?.tributacao.tipoPrevidencia || null,
+                temHerdeiros: resultados.temHerdeiros && resultados.herdeiros.length > 0
+            };
+
             if (dados.natureza === 'comum') {
-                return gerarDeducoesSimples(resultados, dados, temPrevidencia, temIR);
+                return gerarDeducoesSimples(resultados, dados, config.temPrevidencia, config.temIR);
             }
             
-            //HERDEIROS
-            if (temHerdeiros) {
-                const isPreferencia = dados.tipoCalculo === 'preferencia';
-                
-                let herdeirosFiltrados = resultados.herdeiros;
-                
-                if (dados.tipoCalculo === 'acordo') {
-                    const adesoes = obterAdesaoAcordo();
-                    
-                    // só herdeiros que aderiram ao acordo
-                    herdeirosFiltrados = resultados.herdeiros.filter((h, index) => 
-                        adesoes.herdeiros.includes(index)  
-                    );
-                }
-                
-                // ORDEM
-                if (!isPreferencia) {
-                    const secoes = [];
-                    
-                    // 1. BENEFICIÁRIO PRINCIPAL (se tiver cessões)
-                    const temCessoesBeneficiario = resultados.cessoesBeneficiarioCalculadas && resultados.cessoesBeneficiarioCalculadas.length > 0;
-                    if (temCessoesBeneficiario) {
-                        let secaoPrevidencia = '';
-                        if (temPrevidencia) {
-                            if (tipoPrevidencia === 'fixa') {
-                                secaoPrevidencia = gerarDetalhePrevidenciaFixa(resultados, dados, temCessoesBeneficiario);
-                            } else {
-                                secaoPrevidencia = gerarDetalhePrevidenciaINSS(resultados, dados, temCessoesBeneficiario);
-                            }
-                        }
-                        
-                        let secaoIR = '';
-                        if (temIR) {
-                            secaoIR = gerarDetalheIR(resultados, dados, temPrevidencia, temCessoesBeneficiario);
-                        }
-                        
-                        if (secaoPrevidencia || secaoIR) {
-                            secoes.push(`
-                                <div style="margin-bottom: 30px; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px;">
-                                    <p style="color: #155724; font-style: italic; margin-bottom: 15px;">
-                                        <strong>Deduções do Beneficiário Principal:</strong> ${dados.beneficiario}
-                                        <span style="color: #856404;"> - R$ ${formatarMoeda(resultados.valorBase)}</span>
-                                    </p>
-                                    ${secaoPrevidencia}
-                                    ${secaoIR}
-                                </div>
-                            `);
-                        }
+            if (!config.temHerdeiros) {
+                return gerarDeducoesSimples(resultados, dados, config.temPrevidencia, config.temIR);
+            }
+            
+            if (dados.tipoCalculo === 'preferencia') {
+                return gerarDeducoesPreferencia(resultados, dados, config);
+            } else {
+                return gerarDeducoesOrdem(resultados, dados, config);
+            }
+        }
+
+        function validarAdesaoParaAcordo(dados) {
+            const adesoes = obterAdesaoAcordo();
+            const beneficiarioOuHerdeirosAderiram = adesoes.beneficiario || adesoes.herdeiros.length > 0;
+            
+            let cessionarioRelevante = false;
+            if (adesoes.cessionarios.length > 0) {
+                for (let i = 0; i < adesoes.cessionarios.length; i++) {
+                    const cessaoIndex = adesoes.cessionarios[i];
+                    const cessao = dados.cessoes[cessaoIndex];
+                    if (cessao && (cessao.tipo === 'cessaobenPrincipal' || cessao.tipo === 'cessaoherdeiro')) {
+                        cessionarioRelevante = true;
+                        break;
                     }
-                    
-                    // 2. HERDEIROS AGRUPADOS POR VALOR (FILTRADOS)
-                    if (herdeirosFiltrados.length > 0) {
-                        const baseGroups = new Map();
-                        herdeirosFiltrados.forEach(h => {
-                            const baseKey = h.valorTotal.toFixed(2);
-                            if (!baseGroups.has(baseKey)) baseGroups.set(baseKey, []);
-                            baseGroups.get(baseKey).push(h);
-                        });
-                        
-                        baseGroups.forEach((herdeiros, base) => {
-                            const valorBase = parseFloat(base);
-                            const herdeirosNomes = herdeiros.map(h => h.nome).join(', ');
-                            const primeiroHerdeiro = herdeiros[0]; // Referência para cálculos base
-                            
-                            let secaoPrevidencia = '';
-                            if (temPrevidencia) {
-                                if (tipoPrevidencia === 'fixa') {
-                                    secaoPrevidencia = gerarDetalhePrevidenciaFixaHerdeiros(herdeiros, dados, valorBase);
-                                } else {
-                                    secaoPrevidencia = gerarDetalhePrevidenciaINSSHerdeiros(herdeiros, dados, valorBase);
-                                }
-                            }
-                            
-                            let secaoIR = '';
-                            if (temIR && primeiroHerdeiro.rrapagamento !== 0) {
-                                secaoIR = gerarDetalheIRHerdeiros(herdeiros, dados, valorBase, temPrevidencia, false);
-                            }
-                            
-                            if (secaoPrevidencia || secaoIR) {
-                                secoes.push(`
-                                    <div style="margin-bottom: 30px; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px;">
-                                        <p style="color: #155724; font-style: italic; margin-bottom: 15px;">
-                                            <strong>Deduções de:</strong> ${herdeirosNomes}
-                                            <span style="color: #856404;"> - R$ ${formatarMoeda(valorBase)}</span>
-                                        </p>
-                                        ${secaoPrevidencia}
-                                        ${secaoIR}
-                                    </div>
-                                `);
-                            }
-                        });
-                    }
-                    
-                    if (secoes.length === 0) return '';
-                    
-                    return `
-                        <div class="deducoes-legais">
-                            <div class="table-container">
-                                <h3>🏦 Deduções Legais</h3>
-                                ${secoes.join('')}
-                                <div style="margin-top: 10px; padding: 12px; background-color: #f8f9fa; border-left: 4px solid #007bff; font-size: 0.9em;">
-                                    <strong>💡 Explicação:</strong><br>
-                                    • <strong>Beneficiário principal:</strong> Discrimina cessões quando aplicável<br>
-                                    • <strong>Herdeiros agrupados:</strong> Por valor igual, com cessões individuais<br>
-                                    • <strong>Cálculos específicos</strong> para cada situação
-                                </div>
-                            </div>
-                        </div>
-                    `;
                 }
+            }
+            
+            return beneficiarioOuHerdeirosAderiram || cessionarioRelevante;
+        }
+
+        function gerarDeducoesOrdem(resultados, dados, config) {
+            const { temPrevidencia, temIR, tipoPrevidencia } = config;
+            
+            let herdeirosFiltrados = resultados.herdeiros;
+            if (dados.tipoCalculo === 'acordo') {
+                const adesoes = obterAdesaoAcordo();
+                herdeirosFiltrados = resultados.herdeiros.filter((h, index) => 
+                    adesoes.herdeiros.includes(index)
+                );
+            }
+            
+            const secoes = [];
+            
+            const secaoBeneficiario = gerarSecaoBeneficiarioPrincipal(resultados, dados, temPrevidencia, temIR, tipoPrevidencia);
+            if (secaoBeneficiario) {
+                secoes.push(secaoBeneficiario);
+            }
+            
+            const secoesHerdeiros = gerarSecoesHerdeirosAgrupados(herdeirosFiltrados, dados, temPrevidencia, temIR, tipoPrevidencia);
+            secoes.push(...secoesHerdeiros);
+            
+            if (secoes.length === 0) return '';
+            
+            return montarResultadoFinal(secoes, 'ordem');
+        }
+
+        function gerarDeducoesPreferencia(resultados, dados, config) {
+            const { temPrevidencia, temIR, tipoPrevidencia } = config;
+            
+            let herdeirosFiltrados;
+            if (dados.tipoCalculo === 'acordo') {
+                const adesoes = obterAdesaoAcordo();
+                const herdeirosPorAdesao = resultados.herdeiros.filter((h, index) => 
+                    adesoes.herdeiros.includes(index)
+                );
+                herdeirosFiltrados = herdeirosPorAdesao.filter(h => h.temPreferencia || h.isPreferenciaParcial);
+            } else {
+                herdeirosFiltrados = resultados.herdeiros.filter(h => h.temPreferencia || h.isPreferenciaParcial);
+            }
+            
+            if (herdeirosFiltrados.length === 0) return '';
+            
+            const secoesPorBase = gerarSecoesPreferenciaPorBase(herdeirosFiltrados, dados, temPrevidencia, temIR, tipoPrevidencia);
+            
+            if (secoesPorBase.length === 0) return '';
+            
+            const isPreferenciaParcial = resultados.valorBase < resultados.valortotatt;
+            const tipoTitulo = isPreferenciaParcial ? 'preferencia_parcial' : 'preferencia_total';
+            
+            return montarResultadoFinal(secoesPorBase, tipoTitulo);
+        }
+
+        function gerarSecaoBeneficiarioPrincipal(resultados, dados, temPrevidencia, temIR, tipoPrevidencia) {
+            const temCessoesBeneficiario = resultados.cessoesBeneficiarioCalculadas && resultados.cessoesBeneficiarioCalculadas.length > 0;
+            if (!temCessoesBeneficiario) return null;
+            
+            let secaoPrevidencia = '';
+            if (temPrevidencia) {
+                if (tipoPrevidencia === 'fixa') {
+                    secaoPrevidencia = gerarDetalhePrevidenciaFixa(resultados, dados, temCessoesBeneficiario);
+                } else {
+                    secaoPrevidencia = gerarDetalhePrevidenciaINSS(resultados, dados, temCessoesBeneficiario);
+                }
+            }
+            
+            let secaoIR = '';
+            if (temIR) {
+                secaoIR = gerarDetalheIR(resultados, dados, temPrevidencia, temCessoesBeneficiario);
+            }
+            
+            if (!secaoPrevidencia && !secaoIR) return null;
+            
+            return `
+                <div style="margin-bottom: 30px; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px;">
+                    <p style="color: #155724; font-style: italic; margin-bottom: 15px;">
+                        <strong>Deduções do Beneficiário Principal:</strong> ${dados.beneficiario}
+                        <span style="color: #856404;"> - R$ ${formatarMoeda(resultados.valorBase)}</span>
+                    </p>
+                    ${secaoPrevidencia}
+                    ${secaoIR}
+                </div>
+            `;
+        }
+
+        function gerarSecoesHerdeirosAgrupados(herdeirosFiltrados, dados, temPrevidencia, temIR, tipoPrevidencia) {
+            if (herdeirosFiltrados.length === 0) return [];
+            
+            const baseGroups = new Map();
+            herdeirosFiltrados.forEach(h => {
+                const baseKey = h.valorTotal.toFixed(2);
+                if (!baseGroups.has(baseKey)) baseGroups.set(baseKey, []);
+                baseGroups.get(baseKey).push(h);
+            });
+            
+            const secoes = [];
+            
+            baseGroups.forEach((herdeiros, base) => {
+                const valorBase = parseFloat(base);
+                const herdeirosNomes = herdeiros.map(h => h.nome).join(', ');
+                const primeiroHerdeiro = herdeiros[0];
                 
-                // PREFERÊNCIA
-                else {
-                    // Filtra herdeiros conforme preferência E adesão ao acordo
-                    let herdeirosFiltradosPreferencia;
-                    
-                    if (dados.tipoCalculo === 'acordo') {
-                        // Se é acordo: usar herdeiros já filtrados por adesão
-                        herdeirosFiltradosPreferencia = herdeirosFiltrados.filter(h => h.temPreferencia || h.isPreferenciaParcial);
+                let secaoPrevidencia = '';
+                if (temPrevidencia) {
+                    if (tipoPrevidencia === 'fixa') {
+                        secaoPrevidencia = gerarDetalhePrevidenciaFixaHerdeiros(herdeiros, dados, valorBase);
                     } else {
-                        // Se não é acordo
-                        herdeirosFiltradosPreferencia = resultados.herdeiros.filter(h => h.temPreferencia || h.isPreferenciaParcial);
+                        secaoPrevidencia = gerarDetalhePrevidenciaINSSHerdeiros(herdeiros, dados, valorBase);
                     }
-                    
-                    const baseGroups = new Map();
-                    herdeirosFiltradosPreferencia.forEach(h => {
-                        const baseKey = h.valorTotal.toFixed(2);
-                        if (!baseGroups.has(baseKey)) baseGroups.set(baseKey, []);
-                        baseGroups.get(baseKey).push(h);
-                    });
-                    
-                    if (baseGroups.size === 0) return '';
-                    
-                    const secoesPorBase = [];
-                    
-                    baseGroups.forEach((herdeiros, base) => {
-                        const valorBase = parseFloat(base);
-                        const herdeirosNomes = herdeiros.map(h => h.nome).join(', ');
-                        const primeiroHerdeiro = herdeiros[0]; // Referência para cálculos base
-                        const temAlgumParcial = herdeiros.some(h => h.isPreferenciaParcial);
-                        
-                        let secaoPrevidencia = '';
-                        if (temPrevidencia) {
-                            if (tipoPrevidencia === 'fixa') {
-                                secaoPrevidencia = gerarDetalhePrevidenciaFixaHerdeirosSemCessao(herdeiros, dados, valorBase);
-                            } else {
-                                secaoPrevidencia = gerarDetalhePrevidenciaINSSHerdeirosSemCessao(herdeiros, dados, valorBase);
-                            }
-                        }
-                        
-                        let secaoIR = '';
-                        if (temIR && primeiroHerdeiro.rrapagamento !== 0) {
-                            secaoIR = gerarDetalheIRHerdeirosSemCessao(herdeiros, dados, valorBase, temPrevidencia, temAlgumParcial);
-                        }
-                        
-                        if (secaoPrevidencia || secaoIR) {
-                            secoesPorBase.push(`
-                                <div style="margin-bottom: 30px; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px;">
-                                    <p style="color: #155724; font-style: italic; margin-bottom: 15px;">
-                                        <strong>Deduções de:</strong> ${herdeirosNomes}
-                                        <span style="color: #856404;"> - R$ ${formatarMoeda(valorBase)}</span>
-                                        ${temAlgumParcial ? ' <em>(Preferência Parcial)</em>' : ' <em>(Preferência Total)</em>'}
-                                    </p>
-                                    ${secaoPrevidencia}
-                                    ${secaoIR}
-                                </div>
-                            `);
-                        }
-                    });
-                    
-                    if (secoesPorBase.length === 0) return '';
-                    
-                    const isPreferenciaParcial = resultados.valorBase < resultados.valortotatt;
-                    const titulo = isPreferenciaParcial 
-                        ? '🏦 Deduções Legais - Preferência (Parcial/Total)'
-                        : '🏦 Deduções Legais - Preferência Total';
-                    
-                    return `
-                        <div class="deducoes-legais">
-                            <div class="table-container">
-                                <h3>${titulo}</h3>
-                                ${secoesPorBase.join('')}
-                                <div style="margin-top: 10px; padding: 12px; background-color: #f8f9fa; border-left: 4px solid #007bff; font-size: 0.9em;">
-                                    <strong>💡 Explicação:</strong><br>
-                                    • <strong>Herdeiros agrupados</strong> por valor igual, com cálculos específicos<br>
-                                    • <strong>Previdência e IR</strong> individuais por herdeiro<br>
-                                    • <strong>Cessões não aplicáveis</strong> na preferência (cessionários aguardam ordem cronológica)
-                                </div>
-                            </div>
-                        </div>
-                    `;
                 }
-            }
+                
+                let secaoIR = '';
+                if (temIR && primeiroHerdeiro.rrapagamento !== 0) {
+                    secaoIR = gerarDetalheIRHerdeiros(herdeiros, dados, valorBase, temPrevidencia, false);
+                }
+                
+                if (secaoPrevidencia || secaoIR) {
+                    secoes.push(`
+                        <div style="margin-bottom: 30px; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px;">
+                            <p style="color: #155724; font-style: italic; margin-bottom: 15px;">
+                                <strong>Deduções de:</strong> ${herdeirosNomes}
+                                <span style="color: #856404;"> - R$ ${formatarMoeda(valorBase)}</span>
+                            </p>
+                            ${secaoPrevidencia}
+                            ${secaoIR}
+                        </div>
+                    `);
+                }
+            });
             
-            // BEN. Principal
-            else {
-                return gerarDeducoesSimples(resultados, dados, temPrevidencia, temIR);
-            }
+            return secoes;
+        }
+
+        function gerarSecoesPreferenciaPorBase(herdeirosFiltrados, dados, temPrevidencia, temIR, tipoPrevidencia) {
+            const baseGroups = new Map();
+            herdeirosFiltrados.forEach(h => {
+                const baseKey = h.valorTotal.toFixed(2);
+                if (!baseGroups.has(baseKey)) baseGroups.set(baseKey, []);
+                baseGroups.get(baseKey).push(h);
+            });
+            
+            const secoesPorBase = [];
+            
+            baseGroups.forEach((herdeiros, base) => {
+                const valorBase = parseFloat(base);
+                const herdeirosNomes = herdeiros.map(h => h.nome).join(', ');
+                const primeiroHerdeiro = herdeiros[0];
+                const temAlgumParcial = herdeiros.some(h => h.isPreferenciaParcial);
+                
+                let secaoPrevidencia = '';
+                if (temPrevidencia) {
+                    if (tipoPrevidencia === 'fixa') {
+                        secaoPrevidencia = gerarDetalhePrevidenciaFixaHerdeirosSemCessao(herdeiros, dados, valorBase);
+                    } else {
+                        secaoPrevidencia = gerarDetalhePrevidenciaINSSHerdeirosSemCessao(herdeiros, dados, valorBase);
+                    }
+                }
+                
+                let secaoIR = '';
+                if (temIR && primeiroHerdeiro.rrapagamento !== 0) {
+                    secaoIR = gerarDetalheIRHerdeirosSemCessao(herdeiros, dados, valorBase, temPrevidencia, temAlgumParcial);
+                }
+                
+                if (secaoPrevidencia || secaoIR) {
+                    secoesPorBase.push(`
+                        <div style="margin-bottom: 30px; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px;">
+                            <p style="color: #155724; font-style: italic; margin-bottom: 15px;">
+                                <strong>Deduções de:</strong> ${herdeirosNomes}
+                                <span style="color: #856404;"> - R$ ${formatarMoeda(valorBase)}</span>
+                                ${temAlgumParcial ? ' <em>(Preferência Parcial)</em>' : ' <em>(Preferência Total)</em>'}
+                            </p>
+                            ${secaoPrevidencia}
+                            ${secaoIR}
+                        </div>
+                    `);
+                }
+            });
+            
+            return secoesPorBase;
+        }
+
+        function montarResultadoFinal(secoes, tipo) {
+            const titulos = {
+                'ordem': '🏦 Deduções Legais',
+                'preferencia_total': '🏦 Deduções Legais - Preferência Total',
+                'preferencia_parcial': '🏦 Deduções Legais - Preferência (Parcial/Total)'
+            };
+            
+            const explicacoes = {
+                'ordem': `
+                    • <strong>Beneficiário principal:</strong> Discrimina cessões quando aplicável<br>
+                    • <strong>Herdeiros agrupados:</strong> Por valor igual, com cessões individuais<br>
+                    • <strong>Cálculos específicos</strong> para cada situação
+                `,
+                'preferencia_total': `
+                    • <strong>Herdeiros agrupados</strong> por valor igual, com cálculos específicos<br>
+                    • <strong>Previdência e IR</strong> individuais por herdeiro<br>
+                    • <strong>Cessões não aplicáveis</strong> na preferência (cessionários aguardam ordem cronológica)
+                `,
+                'preferencia_parcial': `
+                    • <strong>Herdeiros agrupados</strong> por valor igual, com cálculos específicos<br>
+                    • <strong>Previdência e IR</strong> individuais por herdeiro<br>
+                    • <strong>Cessões não aplicáveis</strong> na preferência (cessionários aguardam ordem cronológica)
+                `
+            };
+            
+            return `
+                <div class="deducoes-legais">
+                    <div class="table-container">
+                        <h3>${titulos[tipo]}</h3>
+                        ${secoes.join('')}
+                        <div style="margin-top: 10px; padding: 12px; background-color: #f8f9fa; border-left: 4px solid #007bff; font-size: 0.9em;">
+                            <strong>💡 Explicação:</strong><br>
+                            ${explicacoes[tipo]}
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         function gerarDeducoesSimples(resultados, dados, temPrevidencia, temIR) {
@@ -7283,877 +7317,6 @@
             }
         }
 
-        function gerarPagamentosComHerdeiros(resultados, dados) {
-            const isPreferencia = dados.tipoCalculo === 'preferencia';
-            
-            const herdeirosParaPagar = isPreferencia 
-                ? resultados.herdeiros.filter(h => h.temPreferencia || h.isPreferenciaParcial)
-                : resultados.herdeiros;
-            
-            const herdeirosComPagamentos = herdeirosParaPagar.filter(h => h.valorLiquido > 0);
-            
-            if (herdeirosComPagamentos.length === 0) return '';
-            
-            let secaoCessionariosBeneficiario = '';
-            if (resultados.cessoesBeneficiarioFinais && resultados.cessoesBeneficiarioFinais.length > 0) {
-                const cessionariosBeneficiario = resultados.cessoesBeneficiarioFinais.filter(cessao => cessao.valorLiquido > 0);
-                
-                if (cessionariosBeneficiario.length > 0) {
-                    const linhasCessionarios = cessionariosBeneficiario.map(cessao => {
-                        const valorDevidoArredondado = arredondarParaDuasCasas(cessao.valorBruto);
-                        const previdenciaArredondada = arredondarParaDuasCasas(cessao.previdenciaCessao);
-                        const irArredondado = arredondarParaDuasCasas(cessao.irCessao);
-                        const valorLiquidoCalculado = arredondarParaDuasCasas(valorDevidoArredondado - previdenciaArredondada - irArredondado);
-                        
-                        return `
-                            <tr>
-                                <td>${cessao.cessionario} (Cessionário de ${dados.beneficiario})</td>
-                                <td>R$ ${formatarMoeda(valorDevidoArredondado)}</td>
-                                <td>R$ ${formatarMoeda(previdenciaArredondada)}</td>
-                                <td>R$ ${formatarMoeda(irArredondado)}</td>
-                                <td>R$ ${formatarMoeda(valorLiquidoCalculado)}</td>
-                            </tr>
-                        `;
-                    }).join('');
-                    
-                    const totalCessionarios = calcularTotalCessionariosBeneficiario(cessionariosBeneficiario);
-                    
-                    secaoCessionariosBeneficiario = `
-                        <div class="pagamentos-finais" style="margin-bottom: 20px;">
-                            <div class="table-container">
-                                <h3>📊 Cessionários do Beneficiário Principal</h3>
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Credor</th>
-                                            <th>Valor Devido</th>
-                                            <th>Previdência</th>
-                                            <th>Imposto de Renda</th>
-                                            <th>Valor Líquido</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${linhasCessionarios}
-                                    </tbody>
-                                    <tfoot>
-                                        <tr class="highlight">
-                                            <td><strong>TOTAL CESSIONÁRIOS</strong></td>
-                                            <td><strong>R$ ${formatarMoeda(totalCessionarios.totalDevido)}</strong></td>
-                                            <td><strong>R$ ${formatarMoeda(totalCessionarios.totalPrevidencia)}</strong></td>
-                                            <td><strong>R$ ${formatarMoeda(totalCessionarios.totalIR)}</strong></td>
-                                            <td><strong>R$ ${formatarMoeda(totalCessionarios.totalLiquido)}</strong></td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                        </div>
-                    `;
-                }
-            }
-            
-            const secoesHerdeiros = herdeirosComPagamentos.map(herdeiro => 
-                gerarTabelaHerdeiro(herdeiro, dados, isPreferencia, herdeirosComPagamentos.length)
-            ).join('');
-            
-            const todosPagamentos = coletarTodosPagamentos(resultados, dados);
-
-            const totaisGerais = {
-                totalDevido: calcularTotalDevido(todosPagamentos),
-                totalPrevidencia: calcularTotalPrevidencia(todosPagamentos),
-                totalIR: calcularTotalIR(todosPagamentos),
-                totalLiquido: calcularTotalLiquido(todosPagamentos)
-            };
-
-            const tabelaHonorariosSucumbenciais = gerarTabelaHonorariosSucumbenciais(resultados, dados);
-            
-            const temHonorariosSucumbenciais = resultados.honorariosSucumbenciais?.honorarios?.some(adv => adv.temPreferencia) || false;
-
-            const mostrarResumoGeral = herdeirosComPagamentos.length > 1 || temHonorariosSucumbenciais;
-
-            return `
-                ${secaoCessionariosBeneficiario}
-                ${secoesHerdeiros}
-                ${tabelaHonorariosSucumbenciais}
-                ${mostrarResumoGeral ? `
-                <div class="pagamentos-finais" style="margin-top: 30px;">
-                    <div class="table-container">
-                        <h3>🎯 RESUMO GERAL DE TODOS OS PAGAMENTOS</h3>
-                        <table style="background-color: #f8f9fa;">
-                            <thead>
-                                <tr style="background-color: #e9ecef;">
-                                    <th>Total Geral</th>
-                                    <th>Valor Devido</th>
-                                    <th>Previdência</th>
-                                    <th>Imposto de Renda</th>
-                                    <th>Valor Líquido</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr class="highlight" style="font-weight: bold; font-size: 1.1em;">
-                                    <td><strong>TOTAL FINAL</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(totaisGerais.totalDevido)}</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(totaisGerais.totalPrevidencia)}</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(totaisGerais.totalIR)}</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(totaisGerais.totalLiquido)}</strong></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        
-                        <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
-                            <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 MP Nª 1.294, de 11 de Abril de 2025</p>
-                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
-                            <p style="margin: 5px 0;"><strong>Sindicatos:</strong> Tributação conforme Art. 27, da Lei nº 10.833/03 ou alíquota fixa quando aplicável</p>
-                        </div>
-                    </div>
-                </div>
-                ` : ''}
-            `;
-        }
-
-        function gerarTabelaHerdeiro(herdeiro, dados, isPreferencia, totalHerdeiros) {
-            const pagamentosHerdeiro = [];
-            
-            // 1. O próprio herdeiro
-            const temCessoesHerdeiro = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
-            const valorDevido = temCessoesHerdeiro ? herdeiro.valorFinalAposCessoes : herdeiro.valorBruto;
-            const previdencia = temCessoesHerdeiro ? herdeiro.valorPrevidenciaFinal : herdeiro.valorPrevidencia;
-            const ir = temCessoesHerdeiro ? herdeiro.valorIRFinal : herdeiro.valorIR;
-            
-            pagamentosHerdeiro.push({
-                credor: `${herdeiro.nome} (Herdeiro)`,
-                valorDevido: valorDevido,
-                previdencia: previdencia,
-                ir: ir,
-                valorLiquido: herdeiro.valorLiquido
-            });
-            
-            // 2. Cessionários do herdeiro (só ordem cronológica)
-            if (!isPreferencia && herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0) {
-                herdeiro.cessoesHerdeiro
-                    .filter(cessao => cessao.valorLiquido && cessao.valorLiquido > 0)
-                    .forEach(cessao => {
-                        pagamentosHerdeiro.push({
-                            credor: `${cessao.cessionario} (Cessionário de ${herdeiro.nome})`,
-                            valorDevido: cessao.valorBruto,
-                            previdencia: cessao.previdenciaCessao,
-                            ir: cessao.irCessao,
-                            valorLiquido: cessao.valorLiquido
-                        });
-                    });
-            }
-            
-            // 3. Advogados deste herdeiro
-            if (herdeiro.honorarios && herdeiro.honorarios.length > 0) {
-                herdeiro.honorarios.forEach(adv => {
-                    let devePagarAdvogado = false;
-                    
-                    if (isPreferencia) {
-                        devePagarAdvogado = herdeiro.temPreferencia || herdeiro.isPreferenciaParcial;
-                    } else {
-                        devePagarAdvogado = true;
-                    }
-                    
-                    if (devePagarAdvogado && adv.valorBrutoAdvogado > 0) {
-                        pagamentosHerdeiro.push({
-                            credor: `${adv.nome} (Advogado ${adv.tipo})`,
-                            valorDevido: adv.valorBrutoAdvogado,
-                            previdencia: 0,
-                            ir: adv.irAdvogado || 0,
-                            valorLiquido: adv.valorLiquidoAdvogado
-                        });
-                        
-                        // Cessionários do advogado
-                        if (adv.cessionarios && adv.cessionarios.length > 0) {
-                            let cessionariosDevemReceber = false;
-                            
-                            if (isPreferencia) {
-                                cessionariosDevemReceber = herdeiro.temPreferencia && !herdeiro.isPreferenciaParcial;
-                            } else {
-                                cessionariosDevemReceber = true;
-                            }
-                            
-                            if (cessionariosDevemReceber) {
-                                adv.cessionarios.forEach(cessionario => {
-                                    pagamentosHerdeiro.push({
-                                        credor: `${cessionario.nome} (Cessionário de ${adv.nome})`,
-                                        valorDevido: cessionario.valorBruto,
-                                        previdencia: 0,
-                                        ir: cessionario.ir || 0,
-                                        valorLiquido: cessionario.valorLiquido
-                                    });
-                                });
-                            }
-                        }
-                    }
-                });
-            }
-            
-            // 4. Sindicatos deste herdeiro
-            if (herdeiro.sindicatos && herdeiro.sindicatos.length > 0) {
-                herdeiro.sindicatos.forEach(sind => {
-                    let devePagarSindicato = false;
-                    
-                    if (isPreferencia) {
-                        devePagarSindicato = false;
-                    } else {
-                        // Na ordem
-                        devePagarSindicato = true;
-                    }
-                    
-                    if (devePagarSindicato) {
-                        // Se sindicato tem cessionários, só mostra o sindicato se ele ainda tem valor próprio
-                        const temCessionarios = sind.cessionarios && sind.cessionarios.length > 0;
-                        
-                        if (!temCessionarios && sind.valorBrutoSindicato > 0) {
-                            pagamentosHerdeiro.push({
-                                credor: `${sind.nome} (Sindicato)`,
-                                valorDevido: sind.valorBrutoSindicato,
-                                previdencia: 0,
-                                ir: sind.irSindicato || 0,
-                                valorLiquido: sind.valorLiquidoSindicato
-                            });
-                        } else if (temCessionarios) {
-                            if (sind.valorBrutoSindicato > 0) {
-                                pagamentosHerdeiro.push({
-                                    credor: `${sind.nome} (Sindicato)`,
-                                    valorDevido: sind.valorBrutoSindicato,
-                                    previdencia: 0,
-                                    ir: sind.irSindicato || 0,
-                                    valorLiquido: sind.valorLiquidoSindicato
-                                });
-                            }
-                            
-                            sind.cessionarios.forEach(cessionario => {
-                                if (cessionario.valorBruto > 0) {
-                                    pagamentosHerdeiro.push({
-                                        credor: `${cessionario.nome} (Cessionário de ${sind.nome})`,
-                                        valorDevido: cessionario.valorBruto,
-                                        previdencia: 0,
-                                        ir: cessionario.ir || 0,
-                                        valorLiquido: cessionario.valorLiquido
-                                    });
-                                }
-                            });
-                        }
-                    }
-                });
-            }
-            
-            // Tabela para este herdeiro
-            const linhas = pagamentosHerdeiro.map(pagamento => {
-                const valorDevidoArredondado = arredondarParaDuasCasas(pagamento.valorDevido);
-                const previdenciaArredondada = arredondarParaDuasCasas(pagamento.previdencia);
-                const irArredondado = arredondarParaDuasCasas(pagamento.ir);
-                const valorLiquidoCalculado = arredondarParaDuasCasas(valorDevidoArredondado - previdenciaArredondada - irArredondado);
-                
-                return `
-                    <tr>
-                        <td>${pagamento.credor}</td>
-                        <td>R$ ${formatarMoeda(valorDevidoArredondado)}</td>
-                        <td>R$ ${formatarMoeda(previdenciaArredondada)}</td>
-                        <td>R$ ${formatarMoeda(irArredondado)}</td>
-                        <td>R$ ${formatarMoeda(valorLiquidoCalculado)}</td>
-                    </tr>
-                `;
-            }).join('');
-            
-            const totaisHerdeiro = {
-                totalDevido: pagamentosHerdeiro.reduce((total, p) => total + arredondarParaDuasCasas(p.valorDevido), 0),
-                totalPrevidencia: pagamentosHerdeiro.reduce((total, p) => total + arredondarParaDuasCasas(p.previdencia), 0),
-                totalIR: pagamentosHerdeiro.reduce((total, p) => total + arredondarParaDuasCasas(p.ir), 0),
-                totalLiquido: pagamentosHerdeiro.reduce((total, p) => {
-                    const valorDevidoArr = arredondarParaDuasCasas(p.valorDevido);
-                    const previdenciaArr = arredondarParaDuasCasas(p.previdencia);
-                    const irArr = arredondarParaDuasCasas(p.ir);
-                    return total + arredondarParaDuasCasas(valorDevidoArr - previdenciaArr - irArr);
-                }, 0)
-            };
-            
-            const statusHerdeiro = isPreferencia ? 
-                (herdeiro.isPreferenciaParcial ? ' (Preferência Parcial)' : ' (Preferência Total)') : 
-                ' (Ordem Cronológica)';
-            
-            const mostrarTotalHerdeiro = true;
-            
-            return `
-                <div class="pagamentos-finais" style="margin-bottom: 20px;">
-                    <div class="table-container">
-                        <h3>📊 Pagamentos - ${herdeiro.nome}${statusHerdeiro}</h3>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Credor</th>
-                                    <th>Valor Devido</th>
-                                    <th>Previdência</th>
-                                    <th>Imposto de Renda</th>
-                                    <th>Valor Líquido</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${linhas}
-                            </tbody>
-                            ${mostrarTotalHerdeiro ? `
-                            <tfoot>
-                                <tr class="highlight">
-                                    <td><strong>TOTAL</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(totaisHerdeiro.totalDevido)}</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(totaisHerdeiro.totalPrevidencia)}</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(totaisHerdeiro.totalIR)}</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(totaisHerdeiro.totalLiquido)}</strong></td>
-                                </tr>
-                            </tfoot>
-                            ` : ''}
-                        </table>
-                        ${totalHerdeiros === 1 ? `
-                        <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
-                            <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 MP Nª 1.294, de 11 de Abril de 2025</p>
-                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
-                            <p style="margin: 5px 0;"><strong>Sindicatos:</strong> Tributação conforme Art. 27, da Lei nº 10.833/03 ou alíquota fixa quando aplicável</p>
-                        </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-        }
-
-        function gerarTabelaHonorariosSucumbenciais(resultados, dados) {
-            // Verificar se tem honorários sucumbenciais
-            if (!resultados.honorariosSucumbenciais?.temHonorariosSucumbenciais || 
-                !resultados.honorariosSucumbenciais?.honorarios?.length) {
-                return '';
-            }
-
-            const honorarios = resultados.honorariosSucumbenciais.honorarios;
-            const isPreferencia = dados.tipoCalculo === 'preferencia';
-            const pagamentos = [];
-            
-            honorarios.forEach(adv => {
-                // ADVOGADO SUCUMBENCIAL
-                let deveReceberAdvogado = true;
-                let valorAdvogadoPagamento = adv.valorBrutoAdvogado;
-                
-                if (isPreferencia && !adv.temPreferencia) {
-                    deveReceberAdvogado = false;
-                }
-                
-                if (deveReceberAdvogado && valorAdvogadoPagamento > 0) {
-                    pagamentos.push({
-                        credor: `${adv.nome} (Adv. Sucumbencial ${adv.tipo})`,
-                        valorDevido: valorAdvogadoPagamento,
-                        previdencia: 0,
-                        ir: adv.irAdvogado || 0,
-                        valorLiquido: adv.valorLiquidoAdvogado || 0
-                    });
-                }
-                
-                // CESSIONÁRIOS DO ADVOGADO SUCUMBENCIAL
-                if (isPreferencia) {
-                    // Na preferência: cessionários só recebem se não foi limitado
-                    if (adv.temPreferencia && !adv.foiLimitadoPorPreferencia && adv.cessionarios?.length > 0) {
-                        adv.cessionarios.forEach(cessionario => {
-                            if (cessionario.valorLiquido > 0) {
-                                pagamentos.push({
-                                    credor: `${cessionario.nome} (Cess. Adv. Sucumb. ${adv.nome})`,
-                                    valorDevido: cessionario.valorBruto,
-                                    previdencia: 0,
-                                    ir: cessionario.ir || 0,
-                                    valorLiquido: cessionario.valorLiquido
-                                });
-                            }
-                        });
-                    }
-                } else {
-                    // Ordem/Parcial: cessionários sempre recebem
-                    if (adv.cessionarios?.length > 0) {
-                        adv.cessionarios.forEach(cessionario => {
-                            if (cessionario.valorLiquido > 0) {
-                                pagamentos.push({
-                                    credor: `${cessionario.nome} (Cess. Adv. Sucumb. ${adv.nome})`,
-                                    valorDevido: cessionario.valorBruto,
-                                    previdencia: 0,
-                                    ir: cessionario.ir || 0,
-                                    valorLiquido: cessionario.valorLiquido
-                                });
-                            }
-                        });
-                    }
-                }
-            });
-            
-            if (pagamentos.length === 0) return '';
-            
-            // Calcular totais
-            const totalDevido = pagamentos.reduce((sum, p) => sum + p.valorDevido, 0);
-            const totalPrevidencia = pagamentos.reduce((sum, p) => sum + p.previdencia, 0);
-            const totalIR = pagamentos.reduce((sum, p) => sum + p.ir, 0);
-            const totalLiquido = pagamentos.reduce((sum, p) => sum + p.valorLiquido, 0);
-            
-            return `
-                <div class="pagamentos-finais" style="margin-bottom: 20px;">
-                    <div class="table-container">
-                        <h3>💼 Pagamentos - Honorários Sucumbenciais</h3>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Credor</th>
-                                    <th>Valor Devido</th>
-                                    <th>Previdência</th>
-                                    <th>Imposto de Renda</th>
-                                    <th>Valor Líquido</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${pagamentos.map(pagamento => `
-                                    <tr>
-                                        <td>${pagamento.credor}</td>
-                                        <td>R$ ${formatarMoeda(pagamento.valorDevido)}</td>
-                                        <td>R$ ${formatarMoeda(pagamento.previdencia)}</td>
-                                        <td>R$ ${formatarMoeda(pagamento.ir)}</td>
-                                        <td>R$ ${formatarMoeda(pagamento.valorLiquido)}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                            <tfoot>
-                                <tr class="highlight">
-                                    <td><strong>Total Honorários Sucumbenciais</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(totalDevido)}</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(totalPrevidencia)}</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(totalIR)}</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(totalLiquido)}</strong></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-                `;
-        }
-
-        function gerarPagamentosSemHerdeiros(resultados, dados) {
-            const todosPagamentos = coletarTodosPagamentosSemHerdeiros(resultados, dados);
-
-            if (todosPagamentos.length === 0) return '';
-
-            return `
-                <div class="pagamentos-finais">
-                    <div class="table-container">
-                        <h3>💰 Resumo de Pagamentos</h3>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Credor</th>
-                                    <th>Valor Devido</th>
-                                    <th>Previdência</th>
-                                    <th>Imposto de Renda</th>
-                                    <th>Valor Líquido</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${todosPagamentos.map(pagamento => {
-                                    const valorDevidoArredondado = arredondarParaDuasCasas(pagamento.valorDevido);
-                                    const previdenciaArredondada = arredondarParaDuasCasas(pagamento.previdencia);
-                                    const irArredondado = arredondarParaDuasCasas(pagamento.ir);
-                                    const valorLiquidoCalculado = arredondarParaDuasCasas(valorDevidoArredondado - previdenciaArredondada - irArredondado);
-                                    
-                                    return `
-                                        <tr>
-                                            <td>${pagamento.credor}</td>
-                                            <td>R$ ${formatarMoeda(valorDevidoArredondado)}</td>
-                                            <td>R$ ${formatarMoeda(previdenciaArredondada)}</td>
-                                            <td>R$ ${formatarMoeda(irArredondado)}</td>
-                                            <td>R$ ${formatarMoeda(valorLiquidoCalculado)}</td>
-                                        </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                            <tfoot>
-                                <tr class="highlight">
-                                    <td><strong>TOTAL</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(calcularTotalDevido(todosPagamentos))}</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(calcularTotalPrevidencia(todosPagamentos))}</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(calcularTotalIR(todosPagamentos))}</strong></td>
-                                    <td><strong>R$ ${formatarMoeda(calcularTotalLiquido(todosPagamentos))}</strong></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                        
-                        <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
-                            <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 MP Nª 1.294, de 11 de Abril de 2025</p>
-                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
-                            <p style="margin: 5px 0;"><strong>Sindicatos:</strong> Tributação conforme Art. 27, da Lei nº 10.833/03 ou alíquota fixa quando aplicável</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function calcularTotalCessionariosBeneficiario(cessionarios) {
-            return {
-                totalDevido: cessionarios.reduce((total, c) => total + arredondarParaDuasCasas(c.valorBruto), 0),
-                totalPrevidencia: cessionarios.reduce((total, c) => total + arredondarParaDuasCasas(c.previdenciaCessao), 0),
-                totalIR: cessionarios.reduce((total, c) => total + arredondarParaDuasCasas(c.irCessao), 0),
-                totalLiquido: cessionarios.reduce((total, c) => {
-                    const valorDevidoArr = arredondarParaDuasCasas(c.valorBruto);
-                    const previdenciaArr = arredondarParaDuasCasas(c.previdenciaCessao);
-                    const irArr = arredondarParaDuasCasas(c.irCessao);
-                    return total + arredondarParaDuasCasas(valorDevidoArr - previdenciaArr - irArr);
-                }, 0)
-            };
-        }
-
-        function coletarTodosPagamentos(resultados, dados) {
-            const pagamentos = [];
-            const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
-            
-            if (temHerdeiros) {
-                const isPreferencia = dados.tipoCalculo === 'preferencia';
-                
-                // Cessionários do Beneficiário
-                if (resultados.cessoesBeneficiarioFinais) {
-                    resultados.cessoesBeneficiarioFinais
-                        .filter(cessao => cessao.valorLiquido && cessao.valorLiquido > 0)
-                        .forEach(cessao => {
-                            pagamentos.push({
-                                credor: `${cessao.cessionario} (Cessionário de ${dados.beneficiario})`,
-                                valorDevido: cessao.valorBruto,
-                                previdencia: cessao.previdenciaCessao,
-                                ir: cessao.irCessao,
-                                valorLiquido: cessao.valorLiquido
-                            });
-                        });
-                }
-                
-                // Herdeiros
-                const herdeirosParaPagar = isPreferencia 
-                    ? resultados.herdeiros.filter(h => h.temPreferencia || h.isPreferenciaParcial)
-                    : resultados.herdeiros;
-                    
-                herdeirosParaPagar
-                    .filter(h => h.valorLiquido > 0)
-                    .forEach(herdeiro => {
-                        const temCessoesHerdeiro = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
-                        const valorDevido = temCessoesHerdeiro ? herdeiro.valorFinalAposCessoes : herdeiro.valorBruto;
-                        const previdencia = temCessoesHerdeiro ? herdeiro.valorPrevidenciaFinal : herdeiro.valorPrevidencia;
-                        const ir = temCessoesHerdeiro ? herdeiro.valorIRFinal : herdeiro.valorIR;
-                        
-                        pagamentos.push({
-                            credor: `${herdeiro.nome} (Herdeiro)`,
-                            valorDevido: valorDevido,
-                            previdencia: previdencia,
-                            ir: ir,
-                            valorLiquido: herdeiro.valorLiquido
-                        });
-                        
-                        // Cessionários dos herdeiros (só ordem)
-                        if (!isPreferencia && herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0) {
-                            herdeiro.cessoesHerdeiro
-                                .filter(cessao => cessao.valorLiquido && cessao.valorLiquido > 0)
-                                .forEach(cessao => {
-                                    pagamentos.push({
-                                        credor: `${cessao.cessionario} (Cessionário de ${herdeiro.nome})`,
-                                        valorDevido: cessao.valorBruto,
-                                        previdencia: cessao.previdenciaCessao,
-                                        ir: cessao.irCessao,
-                                        valorLiquido: cessao.valorLiquido
-                                    });
-                                });
-                        }
-                        
-                        // Advogados e cessionários
-                        if (herdeiro.honorarios) {
-                            herdeiro.honorarios.forEach(adv => {
-                                let devePagar = isPreferencia ? (herdeiro.temPreferencia || herdeiro.isPreferenciaParcial) : true;
-                                if (devePagar && adv.valorBrutoAdvogado > 0) {
-                                    pagamentos.push({
-                                        credor: `${adv.nome} (Advogado ${adv.tipo})`,
-                                        valorDevido: adv.valorBrutoAdvogado,
-                                        previdencia: 0,
-                                        ir: adv.irAdvogado || 0,
-                                        valorLiquido: adv.valorLiquidoAdvogado
-                                    });
-                                    
-                                    // Cessionários do advogado
-                                    if (adv.cessionarios && adv.cessionarios.length > 0) {
-                                        let cessionariosRecebem = isPreferencia ? (herdeiro.temPreferencia && !herdeiro.isPreferenciaParcial) : true;
-                                        if (cessionariosRecebem) {
-                                            adv.cessionarios.forEach(cessionario => {
-                                                pagamentos.push({
-                                                    credor: `${cessionario.nome} (Cessionário de ${adv.nome})`,
-                                                    valorDevido: cessionario.valorBruto,
-                                                    previdencia: 0,
-                                                    ir: cessionario.ir || 0,
-                                                    valorLiquido: cessionario.valorLiquido
-                                                });
-                                            });
-                                        }
-                                    }
-                                }
-                            });
-                        }
-                        
-                        // Sindicatos e cessionários
-                        if (herdeiro.sindicatos) {
-                            herdeiro.sindicatos.forEach(sind => {
-                                let devePagar = isPreferencia ? (herdeiro.temPreferencia) : true;
-                                if (devePagar) {
-                                    // Se sindicato tem cessionários
-                                    const temCessionarios = sind.cessionarios && sind.cessionarios.length > 0;
-                                    
-                                    if (!temCessionarios && sind.valorBrutoSindicato > 0) {
-                                        // Sindicato sem cessão 
-                                        pagamentos.push({
-                                            credor: `${sind.nome} (Sindicato)`,
-                                            valorDevido: sind.valorBrutoSindicato,
-                                            previdencia: 0,
-                                            ir: sind.irSindicato || 0,
-                                            valorLiquido: sind.valorLiquidoSindicato
-                                        });
-                                    } else if (temCessionarios) {
-                                        // Sindicato com cessão
-                                        if (sind.valorBrutoSindicato > 0) {
-                                            pagamentos.push({
-                                                credor: `${sind.nome} (Sindicato)`,
-                                                valorDevido: sind.valorBrutoSindicato,
-                                                previdencia: 0,
-                                                ir: sind.irSindicato || 0,
-                                                valorLiquido: sind.valorLiquidoSindicato
-                                            });
-                                        }
-                                        
-                                        sind.cessionarios.forEach(cessionario => {
-                                            if (cessionario.valorBruto > 0) {
-                                                pagamentos.push({
-                                                    credor: `${cessionario.nome} (Cessionário de ${sind.nome})`,
-                                                    valorDevido: cessionario.valorBruto,
-                                                    previdencia: 0,
-                                                    ir: cessionario.ir || 0,
-                                                    valorLiquido: cessionario.valorLiquido
-                                                });
-                                            }
-                                        });
-                                    }
-                                }
-                            });
-                        }
-                    });
-                    if (resultados.honorariosSucumbenciais?.temHonorariosSucumbenciais) {
-                        resultados.honorariosSucumbenciais.honorarios.forEach(adv => {
-                            if (adv.valorBrutoAdvogado > 0) {
-                                pagamentos.push({
-                                    credor: `${adv.nome} (Adv. Sucumbencial ${adv.tipo})`,
-                                    valorDevido: adv.valorBrutoAdvogado,
-                                    previdencia: 0,
-                                    ir: adv.irAdvogado || 0,
-                                    valorLiquido: adv.valorLiquidoAdvogado || 0
-                                });
-                            }
-                        });
-                    }
-                }
-            return pagamentos;
-        }
-
-        function coletarTodosPagamentosSemHerdeiros(resultados, dados) {
-            const pagamentos = [];
-            
-            // Beneficiário
-            if (resultados.valorBeneficiarioFinal > 0) {
-                pagamentos.push({
-                    credor: `${dados.beneficiario} (Beneficiário)`,
-                    valorDevido: resultados.valorBeneficiarioAposCessoes,
-                    previdencia: resultados.valorPrevidenciaBeneficiario,
-                    ir: resultados.valorIRBeneficiario,
-                    valorLiquido: resultados.valorBeneficiarioFinal
-                });
-            }
-            
-            // Cessionários do Beneficiário
-            if (resultados.cessoesBeneficiarioFinais) {
-                resultados.cessoesBeneficiarioFinais
-                    .filter(cessao => cessao.valorLiquido && cessao.valorLiquido > 0)
-                    .forEach(cessao => {
-                        pagamentos.push({
-                            credor: `${cessao.cessionario} (Cessionário de ${dados.beneficiario})`,
-                            valorDevido: cessao.valorBruto,
-                            previdencia: cessao.previdenciaCessao,
-                            ir: cessao.irCessao,
-                            valorLiquido: cessao.valorLiquido
-                        });
-                    });
-            }
-            
-            // Sindicatos
-            if (resultados.sindicatos) {
-                resultados.sindicatos
-                    .filter(sind => sind.podeReceber && sind.percentualSindicato > 0 && sind.valorBrutoSindicato > 0)
-                    .forEach(sind => {
-                        pagamentos.push({
-                            credor: `${sind.nome} (Sindicato)`,
-                            valorDevido: sind.valorBrutoSindicato,
-                            previdencia: 0,
-                            ir: sind.irSindicato,
-                            valorLiquido: sind.valorLiquidoSindicato
-                        });
-                    });
-            }
-            
-            // Cessionários de Sindicatos
-            if (resultados.sindicatos) {
-                resultados.sindicatos.forEach(sind => {
-                    if (sind.cessionarios && sind.cessionarios.length > 0 && sind.podeReceber) {
-                        sind.cessionarios.forEach(cessionario => {
-                            pagamentos.push({
-                                credor: `${cessionario.nome} (Cessionário de ${sind.nome})`,
-                                valorDevido: cessionario.valorBruto,
-                                previdencia: 0,
-                                ir: cessionario.ir,
-                                valorLiquido: cessionario.valorLiquido
-                            });
-                        });
-                    }
-                });
-            }
-            
-            // Advogados
-            const advogadosParaPagar = resultados.honorarios.filter(adv => 
-                adv.percentualAdvogado > 0 && adv.valorBrutoAdvogado > 0
-            );
-            
-            advogadosParaPagar.forEach(adv => {
-                pagamentos.push({
-                    credor: `${adv.nome} (Advogado ${adv.tipo})`,
-                    valorDevido: adv.valorBrutoAdvogado,
-                    previdencia: 0,
-                    ir: adv.irAdvogado,
-                    valorLiquido: adv.valorLiquidoAdvogado
-                });
-            });
-            
-            // Cessionários de Advogados
-            const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt;
-            const isParcial = dados.tipoCalculo === 'parcial';
-
-            if (isParcial) {
-                resultados.honorarios.forEach(adv => {
-                    if (adv.cessionarios && adv.cessionarios.length > 0) {
-                        adv.cessionarios.forEach(cessionario => {
-                            // Valor do honorário parcial do advogado
-                            const honorarioParcial = resultados.valorBase * adv.percentual;
-                            const valorDevido = honorarioParcial * cessionario.percentual;
-                            
-                            let irCorreto = 0;
-                            if (adv.tipo === 'PF') {
-                                irCorreto = calcularIR(valorDevido); 
-                            } else {
-                                irCorreto = valorDevido * 0.015; // PJ: 1,5%
-                            }
-                            
-                            const valorLiquido = valorDevido - irCorreto;
-                            
-                            pagamentos.push({
-                                credor: `${cessionario.nome} (Cessionário de ${adv.nome})`,
-                                valorDevido: valorDevido,
-                                previdencia: 0,
-                                ir: irCorreto,
-                                valorLiquido: valorLiquido
-                            });
-                        });
-                    }
-                });
-            } else if (!isPreferenciaParcial) {
-                resultados.honorarios.forEach(adv => {
-                    if (adv.cessionarios && adv.cessionarios.length > 0) {
-                        adv.cessionarios.forEach(cessionario => {
-                            pagamentos.push({
-                                credor: `${cessionario.nome} (Cessionário de ${adv.nome})`,
-                                valorDevido: cessionario.valorBruto,
-                                previdencia: 0,
-                                ir: cessionario.ir,
-                                valorLiquido: cessionario.valorLiquido
-                            });
-                        });
-                    }
-                });
-            }
-
-            if (resultados.honorariosSucumbenciais?.temHonorariosSucumbenciais && 
-                resultados.honorariosSucumbenciais?.honorarios?.length > 0) {
-                
-                const isPreferencia = dados.tipoCalculo === 'preferencia';
-                const isParcial = dados.tipoCalculo === 'parcial';
-                
-                resultados.honorariosSucumbenciais.honorarios.forEach(adv => {
-                    // ADVOGADO SUCUMBENCIAL
-                    let deveReceberAdvogado = true;
-                    let valorAdvogadoPagamento = adv.valorBrutoAdvogado;
-                    
-                    if (isPreferencia && !adv.temPreferencia) {
-                        deveReceberAdvogado = false;
-                    }
-                    
-                    if (deveReceberAdvogado && valorAdvogadoPagamento > 0) {
-                        pagamentos.push({
-                            credor: `${adv.nome} (Adv. Sucumbencial ${adv.tipo})`,
-                            valorDevido: valorAdvogadoPagamento,
-                            previdencia: 0,
-                            ir: adv.irAdvogado || 0,
-                            valorLiquido: adv.valorLiquidoAdvogado || 0
-                        });
-                    }
-                    
-                    let deveReceberCessionarios = true;
-                    
-                    if (isPreferencia) {
-                        if (!adv.temPreferencia) {
-                            deveReceberCessionarios = false;
-                        } else if (adv.foiLimitadoPorPreferencia) {
-                            deveReceberCessionarios = false;
-                        }
-                    }
-                    
-                    if (deveReceberCessionarios && adv.cessionarios && adv.cessionarios.length > 0) {
-                        adv.cessionarios.forEach(cessionario => {
-                            if (cessionario.valorLiquido > 0) {
-                                pagamentos.push({
-                                    credor: `${cessionario.nome} (Cessionário Adv. Sucumb. ${adv.nome})`,
-                                    valorDevido: cessionario.valorBruto,
-                                    previdencia: 0,
-                                    ir: cessionario.ir || 0,
-                                    valorLiquido: cessionario.valorLiquido
-                                });
-                            }
-                        });
-                    }
-                });
-            }
-
-            return pagamentos;
-        }
-
-        function calcularTotalDevido(pagamentos) {
-            return pagamentos.reduce((total, p) => total + arredondarParaDuasCasas(p.valorDevido), 0);
-        }
-
-        function calcularTotalPrevidencia(pagamentos) {
-            return pagamentos.reduce((total, p) => total + arredondarParaDuasCasas(p.previdencia), 0);
-        }
-
-        function calcularTotalIR(pagamentos) {
-            return pagamentos.reduce((total, p) => total + arredondarParaDuasCasas(p.ir), 0);
-        }
-
-        function calcularTotalLiquido(pagamentos) {
-            return pagamentos.reduce((total, p) => {
-                const valorDevidoArredondado = arredondarParaDuasCasas(p.valorDevido);
-                const previdenciaArredondada = arredondarParaDuasCasas(p.previdencia);
-                const irArredondado = arredondarParaDuasCasas(p.ir);
-                const valorLiquidoCalculado = arredondarParaDuasCasas(valorDevidoArredondado - previdenciaArredondada - irArredondado);
-                return total + valorLiquidoCalculado;
-            }, 0);
-        }
-
         function gerarTabelaPagamentosAcordo(resultados, dados) {
             if (dados.tipoCalculo !== 'acordo') return '';
             
@@ -8603,6 +7766,877 @@
             `;
         }
 
+        function gerarPagamentosComHerdeiros(resultados, dados) {
+            const isPreferencia = dados.tipoCalculo === 'preferencia';
+            
+            const herdeirosParaPagar = isPreferencia 
+                ? resultados.herdeiros.filter(h => h.temPreferencia || h.isPreferenciaParcial)
+                : resultados.herdeiros;
+            
+            const herdeirosComPagamentos = herdeirosParaPagar.filter(h => h.valorLiquido > 0);
+            
+            if (herdeirosComPagamentos.length === 0) return '';
+            
+            let secaoCessionariosBeneficiario = '';
+            if (resultados.cessoesBeneficiarioFinais && resultados.cessoesBeneficiarioFinais.length > 0) {
+                const cessionariosBeneficiario = resultados.cessoesBeneficiarioFinais.filter(cessao => cessao.valorLiquido > 0);
+                
+                if (cessionariosBeneficiario.length > 0) {
+                    const linhasCessionarios = cessionariosBeneficiario.map(cessao => {
+                        const valorDevidoArredondado = arredondarParaDuasCasas(cessao.valorBruto);
+                        const previdenciaArredondada = arredondarParaDuasCasas(cessao.previdenciaCessao);
+                        const irArredondado = arredondarParaDuasCasas(cessao.irCessao);
+                        const valorLiquidoCalculado = arredondarParaDuasCasas(valorDevidoArredondado - previdenciaArredondada - irArredondado);
+                        
+                        return `
+                            <tr>
+                                <td>${cessao.cessionario} (Cessionário de ${dados.beneficiario})</td>
+                                <td>R$ ${formatarMoeda(valorDevidoArredondado)}</td>
+                                <td>R$ ${formatarMoeda(previdenciaArredondada)}</td>
+                                <td>R$ ${formatarMoeda(irArredondado)}</td>
+                                <td>R$ ${formatarMoeda(valorLiquidoCalculado)}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                    
+                    const totalCessionarios = calcularTotalCessionariosBeneficiario(cessionariosBeneficiario);
+                    
+                    secaoCessionariosBeneficiario = `
+                        <div class="pagamentos-finais" style="margin-bottom: 20px;">
+                            <div class="table-container">
+                                <h3>📊 Cessionários do Beneficiário Principal</h3>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Credor</th>
+                                            <th>Valor Devido</th>
+                                            <th>Previdência</th>
+                                            <th>Imposto de Renda</th>
+                                            <th>Valor Líquido</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${linhasCessionarios}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="highlight">
+                                            <td><strong>TOTAL CESSIONÁRIOS</strong></td>
+                                            <td><strong>R$ ${formatarMoeda(totalCessionarios.totalDevido)}</strong></td>
+                                            <td><strong>R$ ${formatarMoeda(totalCessionarios.totalPrevidencia)}</strong></td>
+                                            <td><strong>R$ ${formatarMoeda(totalCessionarios.totalIR)}</strong></td>
+                                            <td><strong>R$ ${formatarMoeda(totalCessionarios.totalLiquido)}</strong></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            const secoesHerdeiros = herdeirosComPagamentos.map(herdeiro => 
+                gerarTabelaHerdeiro(herdeiro, dados, isPreferencia, herdeirosComPagamentos.length)
+            ).join('');
+            
+            const todosPagamentos = coletarTodosPagamentos(resultados, dados);
+
+            const totaisGerais = {
+                totalDevido: calcularTotalDevido(todosPagamentos),
+                totalPrevidencia: calcularTotalPrevidencia(todosPagamentos),
+                totalIR: calcularTotalIR(todosPagamentos),
+                totalLiquido: calcularTotalLiquido(todosPagamentos)
+            };
+
+            const tabelaHonorariosSucumbenciais = gerarTabelaHonorariosSucumbenciais(resultados, dados);
+            
+            const temHonorariosSucumbenciais = resultados.honorariosSucumbenciais?.honorarios?.some(adv => adv.temPreferencia) || false;
+
+            const mostrarResumoGeral = herdeirosComPagamentos.length > 1 || temHonorariosSucumbenciais;
+
+            return `
+                ${secaoCessionariosBeneficiario}
+                ${secoesHerdeiros}
+                ${tabelaHonorariosSucumbenciais}
+                ${mostrarResumoGeral ? `
+                <div class="pagamentos-finais" style="margin-top: 30px;">
+                    <div class="table-container">
+                        <h3>🎯 RESUMO GERAL DE TODOS OS PAGAMENTOS</h3>
+                        <table style="background-color: #f8f9fa;">
+                            <thead>
+                                <tr style="background-color: #e9ecef;">
+                                    <th>Total Geral</th>
+                                    <th>Valor Devido</th>
+                                    <th>Previdência</th>
+                                    <th>Imposto de Renda</th>
+                                    <th>Valor Líquido</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="highlight" style="font-weight: bold; font-size: 1.1em;">
+                                    <td><strong>TOTAL FINAL</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totaisGerais.totalDevido)}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totaisGerais.totalPrevidencia)}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totaisGerais.totalIR)}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totaisGerais.totalLiquido)}</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        
+                        <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
+                            <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
+                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 MP Nª 1.294, de 11 de Abril de 2025</p>
+                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
+                            <p style="margin: 5px 0;"><strong>Sindicatos:</strong> Tributação conforme Art. 27, da Lei nº 10.833/03 ou alíquota fixa quando aplicável</p>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+            `;
+        }
+
+        function gerarTabelaHerdeiro(herdeiro, dados, isPreferencia, totalHerdeiros) {
+            const pagamentosHerdeiro = [];
+            
+            // 1. O próprio herdeiro
+            const temCessoesHerdeiro = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
+            const valorDevido = temCessoesHerdeiro ? herdeiro.valorFinalAposCessoes : herdeiro.valorBruto;
+            const previdencia = temCessoesHerdeiro ? herdeiro.valorPrevidenciaFinal : herdeiro.valorPrevidencia;
+            const ir = temCessoesHerdeiro ? herdeiro.valorIRFinal : herdeiro.valorIR;
+            
+            pagamentosHerdeiro.push({
+                credor: `${herdeiro.nome} (Herdeiro)`,
+                valorDevido: valorDevido,
+                previdencia: previdencia,
+                ir: ir,
+                valorLiquido: herdeiro.valorLiquido
+            });
+            
+            // 2. Cessionários do herdeiro (só ordem cronológica)
+            if (!isPreferencia && herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0) {
+                herdeiro.cessoesHerdeiro
+                    .filter(cessao => cessao.valorLiquido && cessao.valorLiquido > 0)
+                    .forEach(cessao => {
+                        pagamentosHerdeiro.push({
+                            credor: `${cessao.cessionario} (Cessionário de ${herdeiro.nome})`,
+                            valorDevido: cessao.valorBruto,
+                            previdencia: cessao.previdenciaCessao,
+                            ir: cessao.irCessao,
+                            valorLiquido: cessao.valorLiquido
+                        });
+                    });
+            }
+            
+            // 3. Advogados deste herdeiro
+            if (herdeiro.honorarios && herdeiro.honorarios.length > 0) {
+                herdeiro.honorarios.forEach(adv => {
+                    let devePagarAdvogado = false;
+                    
+                    if (isPreferencia) {
+                        devePagarAdvogado = herdeiro.temPreferencia || herdeiro.isPreferenciaParcial;
+                    } else {
+                        devePagarAdvogado = true;
+                    }
+                    
+                    if (devePagarAdvogado && adv.valorBrutoAdvogado > 0) {
+                        pagamentosHerdeiro.push({
+                            credor: `${adv.nome} (Advogado ${adv.tipo})`,
+                            valorDevido: adv.valorBrutoAdvogado,
+                            previdencia: 0,
+                            ir: adv.irAdvogado || 0,
+                            valorLiquido: adv.valorLiquidoAdvogado
+                        });
+                        
+                        // Cessionários do advogado
+                        if (adv.cessionarios && adv.cessionarios.length > 0) {
+                            let cessionariosDevemReceber = false;
+                            
+                            if (isPreferencia) {
+                                cessionariosDevemReceber = herdeiro.temPreferencia && !herdeiro.isPreferenciaParcial;
+                            } else {
+                                cessionariosDevemReceber = true;
+                            }
+                            
+                            if (cessionariosDevemReceber) {
+                                adv.cessionarios.forEach(cessionario => {
+                                    pagamentosHerdeiro.push({
+                                        credor: `${cessionario.nome} (Cessionário de ${adv.nome})`,
+                                        valorDevido: cessionario.valorBruto,
+                                        previdencia: 0,
+                                        ir: cessionario.ir || 0,
+                                        valorLiquido: cessionario.valorLiquido
+                                    });
+                                });
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // 4. Sindicatos deste herdeiro
+            if (herdeiro.sindicatos && herdeiro.sindicatos.length > 0) {
+                herdeiro.sindicatos.forEach(sind => {
+                    let devePagarSindicato = false;
+                    
+                    if (isPreferencia) {
+                        devePagarSindicato = false;
+                    } else {
+                        // Na ordem
+                        devePagarSindicato = true;
+                    }
+                    
+                    if (devePagarSindicato) {
+                        // Se sindicato tem cessionários, só mostra o sindicato se ele ainda tem valor próprio
+                        const temCessionarios = sind.cessionarios && sind.cessionarios.length > 0;
+                        
+                        if (!temCessionarios && sind.valorBrutoSindicato > 0) {
+                            pagamentosHerdeiro.push({
+                                credor: `${sind.nome} (Sindicato)`,
+                                valorDevido: sind.valorBrutoSindicato,
+                                previdencia: 0,
+                                ir: sind.irSindicato || 0,
+                                valorLiquido: sind.valorLiquidoSindicato
+                            });
+                        } else if (temCessionarios) {
+                            if (sind.valorBrutoSindicato > 0) {
+                                pagamentosHerdeiro.push({
+                                    credor: `${sind.nome} (Sindicato)`,
+                                    valorDevido: sind.valorBrutoSindicato,
+                                    previdencia: 0,
+                                    ir: sind.irSindicato || 0,
+                                    valorLiquido: sind.valorLiquidoSindicato
+                                });
+                            }
+                            
+                            sind.cessionarios.forEach(cessionario => {
+                                if (cessionario.valorBruto > 0) {
+                                    pagamentosHerdeiro.push({
+                                        credor: `${cessionario.nome} (Cessionário de ${sind.nome})`,
+                                        valorDevido: cessionario.valorBruto,
+                                        previdencia: 0,
+                                        ir: cessionario.ir || 0,
+                                        valorLiquido: cessionario.valorLiquido
+                                    });
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+            
+            // Tabela para este herdeiro
+            const linhas = pagamentosHerdeiro.map(pagamento => {
+                const valorDevidoArredondado = arredondarParaDuasCasas(pagamento.valorDevido);
+                const previdenciaArredondada = arredondarParaDuasCasas(pagamento.previdencia);
+                const irArredondado = arredondarParaDuasCasas(pagamento.ir);
+                const valorLiquidoCalculado = arredondarParaDuasCasas(valorDevidoArredondado - previdenciaArredondada - irArredondado);
+                
+                return `
+                    <tr>
+                        <td>${pagamento.credor}</td>
+                        <td>R$ ${formatarMoeda(valorDevidoArredondado)}</td>
+                        <td>R$ ${formatarMoeda(previdenciaArredondada)}</td>
+                        <td>R$ ${formatarMoeda(irArredondado)}</td>
+                        <td>R$ ${formatarMoeda(valorLiquidoCalculado)}</td>
+                    </tr>
+                `;
+            }).join('');
+            
+            const totaisHerdeiro = {
+                totalDevido: pagamentosHerdeiro.reduce((total, p) => total + arredondarParaDuasCasas(p.valorDevido), 0),
+                totalPrevidencia: pagamentosHerdeiro.reduce((total, p) => total + arredondarParaDuasCasas(p.previdencia), 0),
+                totalIR: pagamentosHerdeiro.reduce((total, p) => total + arredondarParaDuasCasas(p.ir), 0),
+                totalLiquido: pagamentosHerdeiro.reduce((total, p) => {
+                    const valorDevidoArr = arredondarParaDuasCasas(p.valorDevido);
+                    const previdenciaArr = arredondarParaDuasCasas(p.previdencia);
+                    const irArr = arredondarParaDuasCasas(p.ir);
+                    return total + arredondarParaDuasCasas(valorDevidoArr - previdenciaArr - irArr);
+                }, 0)
+            };
+            
+            const statusHerdeiro = isPreferencia ? 
+                (herdeiro.isPreferenciaParcial ? ' (Preferência Parcial)' : ' (Preferência Total)') : 
+                ' (Ordem Cronológica)';
+            
+            const mostrarTotalHerdeiro = true;
+            
+            return `
+                <div class="pagamentos-finais" style="margin-bottom: 20px;">
+                    <div class="table-container">
+                        <h3>📊 Pagamentos - ${herdeiro.nome}${statusHerdeiro}</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Credor</th>
+                                    <th>Valor Devido</th>
+                                    <th>Previdência</th>
+                                    <th>Imposto de Renda</th>
+                                    <th>Valor Líquido</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${linhas}
+                            </tbody>
+                            ${mostrarTotalHerdeiro ? `
+                            <tfoot>
+                                <tr class="highlight">
+                                    <td><strong>TOTAL</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totaisHerdeiro.totalDevido)}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totaisHerdeiro.totalPrevidencia)}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totaisHerdeiro.totalIR)}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totaisHerdeiro.totalLiquido)}</strong></td>
+                                </tr>
+                            </tfoot>
+                            ` : ''}
+                        </table>
+                        ${totalHerdeiros === 1 ? `
+                        <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
+                            <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
+                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 MP Nª 1.294, de 11 de Abril de 2025</p>
+                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
+                            <p style="margin: 5px 0;"><strong>Sindicatos:</strong> Tributação conforme Art. 27, da Lei nº 10.833/03 ou alíquota fixa quando aplicável</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function gerarTabelaHonorariosSucumbenciais(resultados, dados) {
+            // Verificar se tem honorários sucumbenciais
+            if (!resultados.honorariosSucumbenciais?.temHonorariosSucumbenciais || 
+                !resultados.honorariosSucumbenciais?.honorarios?.length) {
+                return '';
+            }
+
+            const honorarios = resultados.honorariosSucumbenciais.honorarios;
+            const isPreferencia = dados.tipoCalculo === 'preferencia';
+            const pagamentos = [];
+            
+            honorarios.forEach(adv => {
+                // ADVOGADO SUCUMBENCIAL
+                let deveReceberAdvogado = true;
+                let valorAdvogadoPagamento = adv.valorBrutoAdvogado;
+                
+                if (isPreferencia && !adv.temPreferencia) {
+                    deveReceberAdvogado = false;
+                }
+                
+                if (deveReceberAdvogado && valorAdvogadoPagamento > 0) {
+                    pagamentos.push({
+                        credor: `${adv.nome} (Adv. Sucumbencial ${adv.tipo})`,
+                        valorDevido: valorAdvogadoPagamento,
+                        previdencia: 0,
+                        ir: adv.irAdvogado || 0,
+                        valorLiquido: adv.valorLiquidoAdvogado || 0
+                    });
+                }
+                
+                // CESSIONÁRIOS DO ADVOGADO SUCUMBENCIAL
+                if (isPreferencia) {
+                    // Na preferência: cessionários só recebem se não foi limitado
+                    if (adv.temPreferencia && !adv.foiLimitadoPorPreferencia && adv.cessionarios?.length > 0) {
+                        adv.cessionarios.forEach(cessionario => {
+                            if (cessionario.valorLiquido > 0) {
+                                pagamentos.push({
+                                    credor: `${cessionario.nome} (Cess. Adv. Sucumb. ${adv.nome})`,
+                                    valorDevido: cessionario.valorBruto,
+                                    previdencia: 0,
+                                    ir: cessionario.ir || 0,
+                                    valorLiquido: cessionario.valorLiquido
+                                });
+                            }
+                        });
+                    }
+                } else {
+                    // Ordem/Parcial: cessionários sempre recebem
+                    if (adv.cessionarios?.length > 0) {
+                        adv.cessionarios.forEach(cessionario => {
+                            if (cessionario.valorLiquido > 0) {
+                                pagamentos.push({
+                                    credor: `${cessionario.nome} (Cess. Adv. Sucumb. ${adv.nome})`,
+                                    valorDevido: cessionario.valorBruto,
+                                    previdencia: 0,
+                                    ir: cessionario.ir || 0,
+                                    valorLiquido: cessionario.valorLiquido
+                                });
+                            }
+                        });
+                    }
+                }
+            });
+            
+            if (pagamentos.length === 0) return '';
+            
+            // Calcular totais
+            const totalDevido = pagamentos.reduce((sum, p) => sum + p.valorDevido, 0);
+            const totalPrevidencia = pagamentos.reduce((sum, p) => sum + p.previdencia, 0);
+            const totalIR = pagamentos.reduce((sum, p) => sum + p.ir, 0);
+            const totalLiquido = pagamentos.reduce((sum, p) => sum + p.valorLiquido, 0);
+            
+            return `
+                <div class="pagamentos-finais" style="margin-bottom: 20px;">
+                    <div class="table-container">
+                        <h3>💼 Pagamentos - Honorários Sucumbenciais</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Credor</th>
+                                    <th>Valor Devido</th>
+                                    <th>Previdência</th>
+                                    <th>Imposto de Renda</th>
+                                    <th>Valor Líquido</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${pagamentos.map(pagamento => `
+                                    <tr>
+                                        <td>${pagamento.credor}</td>
+                                        <td>R$ ${formatarMoeda(pagamento.valorDevido)}</td>
+                                        <td>R$ ${formatarMoeda(pagamento.previdencia)}</td>
+                                        <td>R$ ${formatarMoeda(pagamento.ir)}</td>
+                                        <td>R$ ${formatarMoeda(pagamento.valorLiquido)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                            <tfoot>
+                                <tr class="highlight">
+                                    <td><strong>Total Honorários Sucumbenciais</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totalDevido)}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totalPrevidencia)}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totalIR)}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(totalLiquido)}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                `;
+        }
+
+        function coletarTodosPagamentos(resultados, dados) {
+            const pagamentos = [];
+            const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
+            
+            if (temHerdeiros) {
+                const isPreferencia = dados.tipoCalculo === 'preferencia';
+                
+                // Cessionários do Beneficiário
+                if (resultados.cessoesBeneficiarioFinais) {
+                    resultados.cessoesBeneficiarioFinais
+                        .filter(cessao => cessao.valorLiquido && cessao.valorLiquido > 0)
+                        .forEach(cessao => {
+                            pagamentos.push({
+                                credor: `${cessao.cessionario} (Cessionário de ${dados.beneficiario})`,
+                                valorDevido: cessao.valorBruto,
+                                previdencia: cessao.previdenciaCessao,
+                                ir: cessao.irCessao,
+                                valorLiquido: cessao.valorLiquido
+                            });
+                        });
+                }
+                
+                // Herdeiros
+                const herdeirosParaPagar = isPreferencia 
+                    ? resultados.herdeiros.filter(h => h.temPreferencia || h.isPreferenciaParcial)
+                    : resultados.herdeiros;
+                    
+                herdeirosParaPagar
+                    .filter(h => h.valorLiquido > 0)
+                    .forEach(herdeiro => {
+                        const temCessoesHerdeiro = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
+                        const valorDevido = temCessoesHerdeiro ? herdeiro.valorFinalAposCessoes : herdeiro.valorBruto;
+                        const previdencia = temCessoesHerdeiro ? herdeiro.valorPrevidenciaFinal : herdeiro.valorPrevidencia;
+                        const ir = temCessoesHerdeiro ? herdeiro.valorIRFinal : herdeiro.valorIR;
+                        
+                        pagamentos.push({
+                            credor: `${herdeiro.nome} (Herdeiro)`,
+                            valorDevido: valorDevido,
+                            previdencia: previdencia,
+                            ir: ir,
+                            valorLiquido: herdeiro.valorLiquido
+                        });
+                        
+                        // Cessionários dos herdeiros (só ordem)
+                        if (!isPreferencia && herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0) {
+                            herdeiro.cessoesHerdeiro
+                                .filter(cessao => cessao.valorLiquido && cessao.valorLiquido > 0)
+                                .forEach(cessao => {
+                                    pagamentos.push({
+                                        credor: `${cessao.cessionario} (Cessionário de ${herdeiro.nome})`,
+                                        valorDevido: cessao.valorBruto,
+                                        previdencia: cessao.previdenciaCessao,
+                                        ir: cessao.irCessao,
+                                        valorLiquido: cessao.valorLiquido
+                                    });
+                                });
+                        }
+                        
+                        // Advogados e cessionários
+                        if (herdeiro.honorarios) {
+                            herdeiro.honorarios.forEach(adv => {
+                                let devePagar = isPreferencia ? (herdeiro.temPreferencia || herdeiro.isPreferenciaParcial) : true;
+                                if (devePagar && adv.valorBrutoAdvogado > 0) {
+                                    pagamentos.push({
+                                        credor: `${adv.nome} (Advogado ${adv.tipo})`,
+                                        valorDevido: adv.valorBrutoAdvogado,
+                                        previdencia: 0,
+                                        ir: adv.irAdvogado || 0,
+                                        valorLiquido: adv.valorLiquidoAdvogado
+                                    });
+                                    
+                                    // Cessionários do advogado
+                                    if (adv.cessionarios && adv.cessionarios.length > 0) {
+                                        let cessionariosRecebem = isPreferencia ? (herdeiro.temPreferencia && !herdeiro.isPreferenciaParcial) : true;
+                                        if (cessionariosRecebem) {
+                                            adv.cessionarios.forEach(cessionario => {
+                                                pagamentos.push({
+                                                    credor: `${cessionario.nome} (Cessionário de ${adv.nome})`,
+                                                    valorDevido: cessionario.valorBruto,
+                                                    previdencia: 0,
+                                                    ir: cessionario.ir || 0,
+                                                    valorLiquido: cessionario.valorLiquido
+                                                });
+                                            });
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                        
+                        // Sindicatos e cessionários
+                        if (herdeiro.sindicatos) {
+                            herdeiro.sindicatos.forEach(sind => {
+                                let devePagar = isPreferencia ? (herdeiro.temPreferencia) : true;
+                                if (devePagar) {
+                                    // Se sindicato tem cessionários
+                                    const temCessionarios = sind.cessionarios && sind.cessionarios.length > 0;
+                                    
+                                    if (!temCessionarios && sind.valorBrutoSindicato > 0) {
+                                        // Sindicato sem cessão 
+                                        pagamentos.push({
+                                            credor: `${sind.nome} (Sindicato)`,
+                                            valorDevido: sind.valorBrutoSindicato,
+                                            previdencia: 0,
+                                            ir: sind.irSindicato || 0,
+                                            valorLiquido: sind.valorLiquidoSindicato
+                                        });
+                                    } else if (temCessionarios) {
+                                        // Sindicato com cessão
+                                        if (sind.valorBrutoSindicato > 0) {
+                                            pagamentos.push({
+                                                credor: `${sind.nome} (Sindicato)`,
+                                                valorDevido: sind.valorBrutoSindicato,
+                                                previdencia: 0,
+                                                ir: sind.irSindicato || 0,
+                                                valorLiquido: sind.valorLiquidoSindicato
+                                            });
+                                        }
+                                        
+                                        sind.cessionarios.forEach(cessionario => {
+                                            if (cessionario.valorBruto > 0) {
+                                                pagamentos.push({
+                                                    credor: `${cessionario.nome} (Cessionário de ${sind.nome})`,
+                                                    valorDevido: cessionario.valorBruto,
+                                                    previdencia: 0,
+                                                    ir: cessionario.ir || 0,
+                                                    valorLiquido: cessionario.valorLiquido
+                                                });
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    });
+                    if (resultados.honorariosSucumbenciais?.temHonorariosSucumbenciais) {
+                        resultados.honorariosSucumbenciais.honorarios.forEach(adv => {
+                            if (adv.valorBrutoAdvogado > 0) {
+                                pagamentos.push({
+                                    credor: `${adv.nome} (Adv. Sucumbencial ${adv.tipo})`,
+                                    valorDevido: adv.valorBrutoAdvogado,
+                                    previdencia: 0,
+                                    ir: adv.irAdvogado || 0,
+                                    valorLiquido: adv.valorLiquidoAdvogado || 0
+                                });
+                            }
+                        });
+                    }
+                }
+            return pagamentos;
+        }
+
+        function gerarPagamentosSemHerdeiros(resultados, dados) {
+            const todosPagamentos = coletarTodosPagamentosSemHerdeiros(resultados, dados);
+
+            if (todosPagamentos.length === 0) return '';
+
+            return `
+                <div class="pagamentos-finais">
+                    <div class="table-container">
+                        <h3>💰 Resumo de Pagamentos</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Credor</th>
+                                    <th>Valor Devido</th>
+                                    <th>Previdência</th>
+                                    <th>Imposto de Renda</th>
+                                    <th>Valor Líquido</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${todosPagamentos.map(pagamento => {
+                                    const valorDevidoArredondado = arredondarParaDuasCasas(pagamento.valorDevido);
+                                    const previdenciaArredondada = arredondarParaDuasCasas(pagamento.previdencia);
+                                    const irArredondado = arredondarParaDuasCasas(pagamento.ir);
+                                    const valorLiquidoCalculado = arredondarParaDuasCasas(valorDevidoArredondado - previdenciaArredondada - irArredondado);
+                                    
+                                    return `
+                                        <tr>
+                                            <td>${pagamento.credor}</td>
+                                            <td>R$ ${formatarMoeda(valorDevidoArredondado)}</td>
+                                            <td>R$ ${formatarMoeda(previdenciaArredondada)}</td>
+                                            <td>R$ ${formatarMoeda(irArredondado)}</td>
+                                            <td>R$ ${formatarMoeda(valorLiquidoCalculado)}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                            <tfoot>
+                                <tr class="highlight">
+                                    <td><strong>TOTAL</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(calcularTotalDevido(todosPagamentos))}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(calcularTotalPrevidencia(todosPagamentos))}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(calcularTotalIR(todosPagamentos))}</strong></td>
+                                    <td><strong>R$ ${formatarMoeda(calcularTotalLiquido(todosPagamentos))}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        
+                        <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
+                            <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
+                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 MP Nª 1.294, de 11 de Abril de 2025</p>
+                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
+                            <p style="margin: 5px 0;"><strong>Sindicatos:</strong> Tributação conforme Art. 27, da Lei nº 10.833/03 ou alíquota fixa quando aplicável</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function calcularTotalCessionariosBeneficiario(cessionarios) {
+            return {
+                totalDevido: cessionarios.reduce((total, c) => total + arredondarParaDuasCasas(c.valorBruto), 0),
+                totalPrevidencia: cessionarios.reduce((total, c) => total + arredondarParaDuasCasas(c.previdenciaCessao), 0),
+                totalIR: cessionarios.reduce((total, c) => total + arredondarParaDuasCasas(c.irCessao), 0),
+                totalLiquido: cessionarios.reduce((total, c) => {
+                    const valorDevidoArr = arredondarParaDuasCasas(c.valorBruto);
+                    const previdenciaArr = arredondarParaDuasCasas(c.previdenciaCessao);
+                    const irArr = arredondarParaDuasCasas(c.irCessao);
+                    return total + arredondarParaDuasCasas(valorDevidoArr - previdenciaArr - irArr);
+                }, 0)
+            };
+        }
+
+        function coletarTodosPagamentosSemHerdeiros(resultados, dados) {
+            const pagamentos = [];
+            
+            // Beneficiário
+            if (resultados.valorBeneficiarioFinal > 0) {
+                pagamentos.push({
+                    credor: `${dados.beneficiario} (Beneficiário)`,
+                    valorDevido: resultados.valorBeneficiarioAposCessoes,
+                    previdencia: resultados.valorPrevidenciaBeneficiario,
+                    ir: resultados.valorIRBeneficiario,
+                    valorLiquido: resultados.valorBeneficiarioFinal
+                });
+            }
+            
+            // Cessionários do Beneficiário
+            if (resultados.cessoesBeneficiarioFinais) {
+                resultados.cessoesBeneficiarioFinais
+                    .filter(cessao => cessao.valorLiquido && cessao.valorLiquido > 0)
+                    .forEach(cessao => {
+                        pagamentos.push({
+                            credor: `${cessao.cessionario} (Cessionário de ${dados.beneficiario})`,
+                            valorDevido: cessao.valorBruto,
+                            previdencia: cessao.previdenciaCessao,
+                            ir: cessao.irCessao,
+                            valorLiquido: cessao.valorLiquido
+                        });
+                    });
+            }
+            
+            // Sindicatos
+            if (resultados.sindicatos) {
+                resultados.sindicatos
+                    .filter(sind => sind.podeReceber && sind.percentualSindicato > 0 && sind.valorBrutoSindicato > 0)
+                    .forEach(sind => {
+                        pagamentos.push({
+                            credor: `${sind.nome} (Sindicato)`,
+                            valorDevido: sind.valorBrutoSindicato,
+                            previdencia: 0,
+                            ir: sind.irSindicato,
+                            valorLiquido: sind.valorLiquidoSindicato
+                        });
+                    });
+            }
+            
+            // Cessionários de Sindicatos
+            if (resultados.sindicatos) {
+                resultados.sindicatos.forEach(sind => {
+                    if (sind.cessionarios && sind.cessionarios.length > 0 && sind.podeReceber) {
+                        sind.cessionarios.forEach(cessionario => {
+                            pagamentos.push({
+                                credor: `${cessionario.nome} (Cessionário de ${sind.nome})`,
+                                valorDevido: cessionario.valorBruto,
+                                previdencia: 0,
+                                ir: cessionario.ir,
+                                valorLiquido: cessionario.valorLiquido
+                            });
+                        });
+                    }
+                });
+            }
+            
+            // Advogados
+            const advogadosParaPagar = resultados.honorarios.filter(adv => 
+                adv.percentualAdvogado > 0 && adv.valorBrutoAdvogado > 0
+            );
+            
+            advogadosParaPagar.forEach(adv => {
+                pagamentos.push({
+                    credor: `${adv.nome} (Advogado ${adv.tipo})`,
+                    valorDevido: adv.valorBrutoAdvogado,
+                    previdencia: 0,
+                    ir: adv.irAdvogado,
+                    valorLiquido: adv.valorLiquidoAdvogado
+                });
+            });
+            
+            // Cessionários de Advogados
+            const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && resultados.valorBase < resultados.valortotatt;
+            const isParcial = dados.tipoCalculo === 'parcial';
+
+            if (isParcial) {
+                resultados.honorarios.forEach(adv => {
+                    if (adv.cessionarios && adv.cessionarios.length > 0) {
+                        adv.cessionarios.forEach(cessionario => {
+                            // Valor do honorário parcial do advogado
+                            const honorarioParcial = resultados.valorBase * adv.percentual;
+                            const valorDevido = honorarioParcial * cessionario.percentual;
+                            
+                            let irCorreto = 0;
+                            if (adv.tipo === 'PF') {
+                                irCorreto = calcularIR(valorDevido); 
+                            } else {
+                                irCorreto = valorDevido * 0.015; // PJ: 1,5%
+                            }
+                            
+                            const valorLiquido = valorDevido - irCorreto;
+                            
+                            pagamentos.push({
+                                credor: `${cessionario.nome} (Cessionário de ${adv.nome})`,
+                                valorDevido: valorDevido,
+                                previdencia: 0,
+                                ir: irCorreto,
+                                valorLiquido: valorLiquido
+                            });
+                        });
+                    }
+                });
+            } else if (!isPreferenciaParcial) {
+                resultados.honorarios.forEach(adv => {
+                    if (adv.cessionarios && adv.cessionarios.length > 0) {
+                        adv.cessionarios.forEach(cessionario => {
+                            pagamentos.push({
+                                credor: `${cessionario.nome} (Cessionário de ${adv.nome})`,
+                                valorDevido: cessionario.valorBruto,
+                                previdencia: 0,
+                                ir: cessionario.ir,
+                                valorLiquido: cessionario.valorLiquido
+                            });
+                        });
+                    }
+                });
+            }
+
+            if (resultados.honorariosSucumbenciais?.temHonorariosSucumbenciais && 
+                resultados.honorariosSucumbenciais?.honorarios?.length > 0) {
+                
+                const isPreferencia = dados.tipoCalculo === 'preferencia';
+                const isParcial = dados.tipoCalculo === 'parcial';
+                
+                resultados.honorariosSucumbenciais.honorarios.forEach(adv => {
+                    // ADVOGADO SUCUMBENCIAL
+                    let deveReceberAdvogado = true;
+                    let valorAdvogadoPagamento = adv.valorBrutoAdvogado;
+                    
+                    if (isPreferencia && !adv.temPreferencia) {
+                        deveReceberAdvogado = false;
+                    }
+                    
+                    if (deveReceberAdvogado && valorAdvogadoPagamento > 0) {
+                        pagamentos.push({
+                            credor: `${adv.nome} (Adv. Sucumbencial ${adv.tipo})`,
+                            valorDevido: valorAdvogadoPagamento,
+                            previdencia: 0,
+                            ir: adv.irAdvogado || 0,
+                            valorLiquido: adv.valorLiquidoAdvogado || 0
+                        });
+                    }
+                    
+                    let deveReceberCessionarios = true;
+                    
+                    if (isPreferencia) {
+                        if (!adv.temPreferencia) {
+                            deveReceberCessionarios = false;
+                        } else if (adv.foiLimitadoPorPreferencia) {
+                            deveReceberCessionarios = false;
+                        }
+                    }
+                    
+                    if (deveReceberCessionarios && adv.cessionarios && adv.cessionarios.length > 0) {
+                        adv.cessionarios.forEach(cessionario => {
+                            if (cessionario.valorLiquido > 0) {
+                                pagamentos.push({
+                                    credor: `${cessionario.nome} (Cessionário Adv. Sucumb. ${adv.nome})`,
+                                    valorDevido: cessionario.valorBruto,
+                                    previdencia: 0,
+                                    ir: cessionario.ir || 0,
+                                    valorLiquido: cessionario.valorLiquido
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+
+            return pagamentos;
+        }
+
+        function calcularTotalDevido(pagamentos) {
+            return pagamentos.reduce((total, p) => total + arredondarParaDuasCasas(p.valorDevido), 0);
+        }
+
+        function calcularTotalPrevidencia(pagamentos) {
+            return pagamentos.reduce((total, p) => total + arredondarParaDuasCasas(p.previdencia), 0);
+        }
+
+        function calcularTotalIR(pagamentos) {
+            return pagamentos.reduce((total, p) => total + arredondarParaDuasCasas(p.ir), 0);
+        }
+
+        function calcularTotalLiquido(pagamentos) {
+            return pagamentos.reduce((total, p) => {
+                const valorDevidoArredondado = arredondarParaDuasCasas(p.valorDevido);
+                const previdenciaArredondada = arredondarParaDuasCasas(p.previdencia);
+                const irArredondado = arredondarParaDuasCasas(p.ir);
+                const valorLiquidoCalculado = arredondarParaDuasCasas(valorDevidoArredondado - previdenciaArredondada - irArredondado);
+                return total + valorLiquidoCalculado;
+            }, 0);
+        }
+
         function gerarSecaoNotasExplicativas() {
             return `
                 <div class="notas-explicativas">
@@ -8685,7 +8719,7 @@
             <div class="divider"></div>
             
             <div class="footer-meta">
-                2025 • PreCalc v1.5
+                2025 • PreCalc v2.0
             </div>
         </div>
     </footer>
