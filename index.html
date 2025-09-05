@@ -528,6 +528,16 @@
             toggleAbaAcordo();
         });
 
+        document.getElementById('somenteHonorarioSucumbencial').addEventListener('change', function() {
+            const quantAdvSuc = parseInt(document.getElementById('quantAdvogadosSucumbenciais')?.value) || 0;
+            
+            if (this.checked && quantAdvSuc === 0) {
+                alert('⚠️ Para marcar "Somente Honorário Sucumbencial", você precisa ter pelo menos 1 Advogado Sucumbencial cadastrado.');
+                this.checked = false;
+                return;
+            }
+        });
+
         function initializeFormEventListeners() {
             // Advogados
             FormCache.quantAdvogados?.addEventListener('change', function() {
@@ -2532,6 +2542,8 @@
                 credor: cache.getValue('credor', 'Devedor'),
                 natureza: cache.getValue('natureza'),
                 tipoCalculo: cache.getValue('tipoCalculo'),
+
+                somenteHonorarioSucumbencial: cache.getValue('somenteHonorarioSucumbencial', false, (value) => value === 'on'),
                 
                 valoresPrincipais: valoresPrincipais.map(valor => ({
                     ...valor,
@@ -4440,33 +4452,51 @@
             const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
 
             const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
-            
-            const html = `
+            const somenteHonorarioSucumbencial = dados.somenteHonorarioSucumbencial;
+
+            let html = `
                 ${gerarCabecalhoProcesso(dados, resultados, dataAtual)}
                 ${gerarDemonstrativoValores(dados, resultados, dataAtual)}
-                
                 ${gerarCalculos(dados, resultados, inicioGraca, fimGraca)}
-
                 ${gerarResumoCalculos(resultados,dados)}
+            `;
 
-                ${gerarSecaoHonorariosSucumbenciais(resultados, dados)}
-                ${gerarSecaoCessoesHonorariosSucumbenciais(resultados, dados)}
+            if (somenteHonorarioSucumbencial) {
+                // Exibição específica para sucumbencial
+                html += `
+                    ${gerarSecaoHonorariosSucumbenciais(resultados, dados)}
+                    ${gerarSecaoCessoesHonorariosSucumbenciais(resultados, dados)}
+                    ${gerarTabelaHonorariosSucumbenciais(resultados, dados)}
+                    <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
+                        <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
+                        <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 MP Nª 1.294, de 11 de Abril de 2025</p>
+                        <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
+                    </div>
+                `;
+            } else {
+                // Exibição normal (beneficiário, herdeiros, etc.)
+                html += `
+                    ${gerarSecaoHonorariosSucumbenciais(resultados, dados)}
+                    ${gerarSecaoCessoesHonorariosSucumbenciais(resultados, dados)}
 
-                ${gerarSecaoDeducoesAcessorias(resultados, dados)}
-                ${gerarSecaoCessoesSindicatos(resultados, dados)}
-                ${gerarSecaoCessoesAdvogados(resultados, dados)}
+                    ${gerarSecaoDeducoesAcessorias(resultados, dados)}
+                    ${gerarSecaoCessoesSindicatos(resultados, dados)}
+                    ${gerarSecaoCessoesAdvogados(resultados, dados)}
 
-                ${gerarSecaoCessoesBeneficiario(resultados, dados)}
-                ${temHerdeiros ? gerarSecaoHerdeiros(resultados, dados) : ''}
-                ${gerarSecaoCessoesHerdeiros(resultados, dados)} 
-                
-                ${gerarSecaoDeducoes(resultados, dados)}
-                ${gerarSecoesPagamentos(resultados, dados)}
+                    ${gerarSecaoCessoesBeneficiario(resultados, dados)}
+                    ${temHerdeiros ? gerarSecaoHerdeiros(resultados, dados) : ''}
+                    ${gerarSecaoCessoesHerdeiros(resultados, dados)} 
+                    
+                    ${gerarSecaoDeducoes(resultados, dados)}
+                    ${gerarSecoesPagamentos(resultados, dados)}
+                `;
+            }
 
+            html += `
                 ${gerarSecaoNotasExplicativas()}
-                
                 ${gerarBotaoImprimir()}
             `;
+            
             container.innerHTML = html;
             showTab('tab7');
 
