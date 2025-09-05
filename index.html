@@ -1388,6 +1388,13 @@
             if (resultadosContent) {
                 resultadosContent.innerHTML = '<p class="loading">Execute o cálculo para ver os resultados aqui...</p>';
             }
+
+            document.getElementById('somenteHonorarioSucumbencial').checked = false;
+
+            // Limpar cache se necessário
+            if (ColetaCache.elementos) {
+                ColetaCache.elementos.somenteHonorarioSucumbencial.checked = false;
+            }
             
             limparNotasExplicativas();
 
@@ -2543,7 +2550,7 @@
                 natureza: cache.getValue('natureza'),
                 tipoCalculo: cache.getValue('tipoCalculo'),
 
-                somenteHonorarioSucumbencial: cache.getValue('somenteHonorarioSucumbencial', false, (value) => value === 'on'),
+                somenteHonorarioSucumbencial: document.getElementById('somenteHonorarioSucumbencial')?.checked || false,
                 
                 valoresPrincipais: valoresPrincipais.map(valor => ({
                     ...valor,
@@ -3103,8 +3110,6 @@
             // Honorários
             const resultadoHonorarios = calcularHonorarios(dados, valorBaseParaHonorarios, valortotatt);
             const { honorarios, valorHonorarioTotal } = resultadoHonorarios;
-
-            //sucumbencia
             
             // Sindicatos 
             const resultadoSindicatos = calcularSindicatos(dados, valorBaseParaHonorarios, valortotatt);
@@ -3614,7 +3619,7 @@
                 if (isPreferencia && adv.preferencia) {
                     const honorarioCompletoNecessario = valorAdvogadoAposCessoes + valorCessionariosTotal;
                     
-                    if (tetoPreferencia >= honorarioCompletoNecessario) {m
+                    if (tetoPreferencia >= honorarioCompletoNecessario) {
                         valorFinalAdvogado = valorAdvogadoAposCessoes;
                         valorFinalCessionarios = valorCessionariosTotal;
                     } else {
