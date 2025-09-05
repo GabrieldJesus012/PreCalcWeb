@@ -3830,236 +3830,6 @@
             };
         }
 
-        function calcularIRIsolado(dados, valortotatt, valorBase, principalBase, valorPrevidencia, rrapagamentoRecalculado) {
-            let valorIR = 0;
-            let aliquotaIR = 0;
-            let baseIRHonora = 0;
-            let baseIRSindi = 0;
-            let baseIRPrev = 0;
-            let baseIRRRA = 0;
-            let valorIRUnitario = 0;
-            let principalComDesagio =0;
-            let valorDesagioIR = 0;
-            let percentualDesagioIR = 0;
-            let rraComDesagio = 0;
-
-            if (dados.incidenciaIR && (dados.tipoBeneficiario === 'pj' || rrapagamentoRecalculado !== 0)) {
-                let percentualTotalAdv = 0;
-                let percentualTotalSind = 0;
-                
-                if (dados.tipoCalculo === 'preferencia') {
-                    // PREFERÊNCIA: Só desconta honorários que são pagos (advogados)
-                    percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
-                    percentualTotalSind = 0;
-                } else {
-                    // ORDEM /PArcial e outros: Desconta todos os honorários
-                    percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
-                    percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
-                }
-                
-                if (dados.natureza === 'comum' && dados.tipoBeneficiario === 'pj') {
-                    // PESSOA JURÍDICA: Base diferente e alíquota fixa de 3%
-                    const baseIRPJ = valortotatt - (valortotatt * percentualTotalAdv) - (valortotatt * percentualTotalSind);
-                    valorIR = baseIRPJ * 0.03;
-                    aliquotaIR = 0.03;
-                    valorIRUnitario = valorIR; // Para PJ não divide por RRA
-                    
-                    // Aplicar deságio se for acordo
-                    if (dados.tipoCalculo === 'acordo') {
-                        percentualDesagioIR = dados.percentualAcordo || 0;
-                        const valorDesagioIR = valorIR * percentualDesagioIR;
-                        valorIR = valorIR - valorDesagioIR;
-                        valorIRUnitario = valorIR;
-                    }
-                    
-                    // Para PJ, as bases são simbólicas (valor 1)
-                    baseIRHonora = baseIRSindi = baseIRPrev = baseIRRRA = 1;
-                } else {
-                    // PESSOA FÍSICA
-                    baseIRHonora = principalBase - (principalBase * percentualTotalAdv);
-    
-                    // Base 2: Sem sindicatos
-                    baseIRSindi = baseIRHonora - (principalBase * percentualTotalSind);
-                    
-                    // Base 3: Com deságio (se acordo)
-                    principalComDesagio = baseIRSindi;
-                    
-                    if (dados.tipoCalculo === 'acordo') {
-                        percentualDesagioIR = dados.percentualAcordo || 0;
-                        const valorDesagioIR = baseIRSindi * percentualDesagioIR;
-                        principalComDesagio = baseIRSindi - valorDesagioIR;
-                    }
-
-                    // Recalcular RRA baseado no deságio
-                    percentualDesagioIR = dados.percentualAcordo || 0;
-                    //const proporcaoSemDesagio = 1 - percentualDesagioIR; sem desagio no rra.
-                    rraComDesagio = dados.rra !== 0 ? 
-                        Math.max(1, rrapagamentoRecalculado) : 0;
-                    
-                    // Base 4: Sem previdência
-                    baseIRPrev = principalComDesagio - valorPrevidencia;
-                    
-                    // Base 5: Por RRA
-                    baseIRRRA = baseIRPrev / rraComDesagio;
-                    
-                    // Calcular IR final
-                    valorIRUnitario = calcularIR(baseIRRRA);
-                    valorIR = valorIRUnitario * rraComDesagio;
-                    aliquotaIR = obterAliquotaIR(baseIRRRA);
-                }
-            }
-
-            return {
-                valorIR,
-                aliquotaIR,
-                baseIRHonora,
-                baseIRSindi,
-                baseIRPrev,
-                principalComDesagio,
-                percentualDesagioIR, 
-                rraComDesagio,
-                baseIRRRA,
-                valorIRUnitario,
-            };
-        }
-
-        function calcularIR(valorBruto) {
-            if (valorBruto <= 2428.80) return 0;
-            else if (valorBruto <= 2826.65) return (valorBruto * 0.075) - 182.16;
-            else if (valorBruto <= 3751.05) return (valorBruto * 0.15) - 394.16;
-            else if (valorBruto <= 4664.68) return (valorBruto * 0.225) - 675.49;
-            else return (valorBruto * 0.275) - 908.73;
-        }
-
-        function obterAliquotaIR(valorBruto) {
-            if (valorBruto <= 2428.80) return 0;
-            else if (valorBruto <= 2826.65) return 0.075;
-            else if (valorBruto <= 3751.05) return 0.15;
-            else if (valorBruto <= 4664.68) return 0.225;
-            else return 0.275;
-        }
-
-        /**
-         * Arredondamento específico para RRA conforme legislação
-         * Regras:
-         * - < 5: mantém a 1ª casa decimal
-         * - > 5: adiciona 1 à 1ª casa decimal  
-         * - = 5: analisa a 3ª casa decimal:
-         *   - 3ª casa entre 0-4: mantém a 1ª casa decimal
-         *   - 3ª casa entre 5-9: adiciona 1 à 1ª casa decimal
-         */
-        function arredondarRRA(valor) {
-            
-            if (typeof valor !== 'number' || isNaN(valor)) {
-                return 0;
-            }
-
-            // Converter para string para analisar dígito por dígito
-            const valorStr = valor.toFixed(3); // Garantir 3 casas decimais
-            const partes = valorStr.split('.');
-            
-            if (partes.length !== 2) {
-                return Math.round(valor * 10) / 10; // Fallback para arredondamento normal
-            }
-            
-            const parteInteira = partes[0];
-            const parteDecimal = partes[1].padEnd(3, '0'); // Garantir 3 dígitos decimais
-            
-            const primeiraDecimal = parseInt(parteDecimal[0]);
-            const segundaDecimal = parseInt(parteDecimal[1]);
-            const terceiraDecimal = parseInt(parteDecimal[2]);
-            
-            let novaParteDecimal = primeiraDecimal;
-            
-            if (segundaDecimal < 5) {
-                // Regra I: menor que 5, mantém a 1ª casa decimal
-                novaParteDecimal = primeiraDecimal;
-            } else if (segundaDecimal > 5) {
-                // Regra II: maior que 5, adiciona 1 à 1ª casa decimal
-                novaParteDecimal = primeiraDecimal + 1;
-            } else if (segundaDecimal === 5) {
-                // Regra III: igual a 5, analisar a 3ª casa decimal
-                if (terceiraDecimal >= 0 && terceiraDecimal <= 4) {
-                    // III.a: 3ª casa entre 0-4, mantém a 1ª casa decimal
-                    novaParteDecimal = primeiraDecimal;
-                } else if (terceiraDecimal >= 5 && terceiraDecimal <= 9) {
-                    // III.b: 3ª casa entre 5-9, adiciona 1 à 1ª casa decimal
-                    novaParteDecimal = primeiraDecimal + 1;
-                }
-            }
-            
-            // Tratar caso onde a soma ultrapassa 9
-            if (novaParteDecimal >= 10) {
-                const novaParteInteira = parseInt(parteInteira) + 1;
-                novaParteDecimal = novaParteDecimal - 10;
-                return parseFloat(`${novaParteInteira}.${novaParteDecimal}`);
-            }
-            
-            return parseFloat(`${parteInteira}.${novaParteDecimal}`);
-        }
-
-        function calcularPrevidenciaIsolada(dados, principalBase, rrapagamento) {
-            let valorPrevidencia = 0;
-            let aliquotaEfetiva = 0;
-            let valorDesagioPrevidencia = 0;
-            let percentualDesagioPrevidencia = 0;
-
-            if (dados.tipoBeneficiario === 'pj') {
-                return { 
-                    valorPrevidencia: 0, 
-                    aliquotaEfetiva: 0,
-                    valorDesagioPrevidencia: 0,
-                    percentualDesagioPrevidencia: 0
-                };
-            }
-            
-            // Verificar se deve calcular previdência
-            const deveCalcularPrevidencia = dados.incidenciaPrevidencia || 
-                (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.previdencia));
-            
-            if (deveCalcularPrevidencia) {
-                let tipoPrevidencia = 'inss'; 
-                let aliquotaFixa = 0;
-                
-                if (dados.valoresPrincipais) {
-                    const itemComPrevidencia = dados.valoresPrincipais.find(item => item.tributacao?.previdencia);
-                    if (itemComPrevidencia) {
-                        tipoPrevidencia = itemComPrevidencia.tributacao.tipoPrevidencia || 'inss';
-                        aliquotaFixa = itemComPrevidencia.tributacao.aliquotaFixa || 0;
-                    }
-                } else {
-                    tipoPrevidencia = dados.tipoPrevidencia || 'inss';
-                    aliquotaFixa = dados.aliquotaFixa || 0;
-                }
-                
-                if (tipoPrevidencia === 'fixa') {
-                    valorPrevidencia = principalBase * aliquotaFixa;
-                    aliquotaEfetiva = aliquotaFixa;
-                } else {
-                    const base = rrapagamento === 0 ? principalBase : principalBase / rrapagamento;
-                    const resultadoINSS = calcularINSS(base);
-                    valorPrevidencia = resultadoINSS * (rrapagamento || 1);
-                    aliquotaEfetiva = base > 0 ? resultadoINSS / base : 0;
-                }
-
-                if (dados.tipoCalculo === 'acordo') {
-                    percentualDesagioPrevidencia = dados.percentualAcordo || 0;
-                    valorDesagioPrevidencia = valorPrevidencia * percentualDesagioPrevidencia;
-                    valorPrevidencia = valorPrevidencia - valorDesagioPrevidencia;
-                }
-            }
-            
-            return { valorPrevidencia, aliquotaEfetiva, valorDesagioPrevidencia, percentualDesagioPrevidencia };
-        }
-
-        function calcularINSS(base) {
-            if (base <= 1518.00) return base * 0.075;
-            else if (base <= 2793.88) return 1518 * 0.075 + (base - 1518) * 0.09;
-            else if (base <= 4190.83) return 1518 * 0.075 + 1275.88 * 0.09 + (base - 2793.88) * 0.12;
-            else if (base <= 8157.41) return 1518 * 0.075 + 1275.88 * 0.09 + 1396.95 * 0.12 + (base - 4190.83) * 0.14;
-            else return 951.63; // Teto
-        }
-
         //Herdeiros
         function calcularTotaisParaHerdeiros(dados, valortotatt, percentualprinc, percentualjur) {
             const dadosOrdem = { ...dados, tipoCalculo: 'ordem' };
@@ -4449,6 +4219,236 @@
                 valorHerdeiroLiquido,
                 cessoesHerdeiroFinais
             };
+        }
+
+        function calcularIRIsolado(dados, valortotatt, valorBase, principalBase, valorPrevidencia, rrapagamentoRecalculado) {
+            let valorIR = 0;
+            let aliquotaIR = 0;
+            let baseIRHonora = 0;
+            let baseIRSindi = 0;
+            let baseIRPrev = 0;
+            let baseIRRRA = 0;
+            let valorIRUnitario = 0;
+            let principalComDesagio =0;
+            let valorDesagioIR = 0;
+            let percentualDesagioIR = 0;
+            let rraComDesagio = 0;
+
+            if (dados.incidenciaIR && (dados.tipoBeneficiario === 'pj' || rrapagamentoRecalculado !== 0)) {
+                let percentualTotalAdv = 0;
+                let percentualTotalSind = 0;
+                
+                if (dados.tipoCalculo === 'preferencia') {
+                    // PREFERÊNCIA: Só desconta honorários que são pagos (advogados)
+                    percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+                    percentualTotalSind = 0;
+                } else {
+                    // ORDEM /PArcial e outros: Desconta todos os honorários
+                    percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+                    percentualTotalSind = dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
+                }
+                
+                if (dados.natureza === 'comum' && dados.tipoBeneficiario === 'pj') {
+                    // PESSOA JURÍDICA: Base diferente e alíquota fixa de 3%
+                    const baseIRPJ = valortotatt - (valortotatt * percentualTotalAdv) - (valortotatt * percentualTotalSind);
+                    valorIR = baseIRPJ * 0.03;
+                    aliquotaIR = 0.03;
+                    valorIRUnitario = valorIR; // Para PJ não divide por RRA
+                    
+                    // Aplicar deságio se for acordo
+                    if (dados.tipoCalculo === 'acordo') {
+                        percentualDesagioIR = dados.percentualAcordo || 0;
+                        const valorDesagioIR = valorIR * percentualDesagioIR;
+                        valorIR = valorIR - valorDesagioIR;
+                        valorIRUnitario = valorIR;
+                    }
+                    
+                    // Para PJ, as bases são simbólicas (valor 1)
+                    baseIRHonora = baseIRSindi = baseIRPrev = baseIRRRA = 1;
+                } else {
+                    // PESSOA FÍSICA
+                    baseIRHonora = principalBase - (principalBase * percentualTotalAdv);
+    
+                    // Base 2: Sem sindicatos
+                    baseIRSindi = baseIRHonora - (principalBase * percentualTotalSind);
+                    
+                    // Base 3: Com deságio (se acordo)
+                    principalComDesagio = baseIRSindi;
+                    
+                    if (dados.tipoCalculo === 'acordo') {
+                        percentualDesagioIR = dados.percentualAcordo || 0;
+                        const valorDesagioIR = baseIRSindi * percentualDesagioIR;
+                        principalComDesagio = baseIRSindi - valorDesagioIR;
+                    }
+
+                    // Recalcular RRA baseado no deságio
+                    percentualDesagioIR = dados.percentualAcordo || 0;
+                    //const proporcaoSemDesagio = 1 - percentualDesagioIR; sem desagio no rra.
+                    rraComDesagio = dados.rra !== 0 ? 
+                        Math.max(1, rrapagamentoRecalculado) : 0;
+                    
+                    // Base 4: Sem previdência
+                    baseIRPrev = principalComDesagio - valorPrevidencia;
+                    
+                    // Base 5: Por RRA
+                    baseIRRRA = baseIRPrev / rraComDesagio;
+                    
+                    // Calcular IR final
+                    valorIRUnitario = calcularIR(baseIRRRA);
+                    valorIR = valorIRUnitario * rraComDesagio;
+                    aliquotaIR = obterAliquotaIR(baseIRRRA);
+                }
+            }
+
+            return {
+                valorIR,
+                aliquotaIR,
+                baseIRHonora,
+                baseIRSindi,
+                baseIRPrev,
+                principalComDesagio,
+                percentualDesagioIR, 
+                rraComDesagio,
+                baseIRRRA,
+                valorIRUnitario,
+            };
+        }
+
+        function calcularIR(valorBruto) {
+            if (valorBruto <= 2428.80) return 0;
+            else if (valorBruto <= 2826.65) return (valorBruto * 0.075) - 182.16;
+            else if (valorBruto <= 3751.05) return (valorBruto * 0.15) - 394.16;
+            else if (valorBruto <= 4664.68) return (valorBruto * 0.225) - 675.49;
+            else return (valorBruto * 0.275) - 908.73;
+        }
+
+        function obterAliquotaIR(valorBruto) {
+            if (valorBruto <= 2428.80) return 0;
+            else if (valorBruto <= 2826.65) return 0.075;
+            else if (valorBruto <= 3751.05) return 0.15;
+            else if (valorBruto <= 4664.68) return 0.225;
+            else return 0.275;
+        }
+
+        /**
+         * Arredondamento específico para RRA conforme legislação
+         * Regras:
+         * - < 5: mantém a 1ª casa decimal
+         * - > 5: adiciona 1 à 1ª casa decimal  
+         * - = 5: analisa a 3ª casa decimal:
+         *   - 3ª casa entre 0-4: mantém a 1ª casa decimal
+         *   - 3ª casa entre 5-9: adiciona 1 à 1ª casa decimal
+         */
+        function arredondarRRA(valor) {
+            
+            if (typeof valor !== 'number' || isNaN(valor)) {
+                return 0;
+            }
+
+            // Converter para string para analisar dígito por dígito
+            const valorStr = valor.toFixed(3); // Garantir 3 casas decimais
+            const partes = valorStr.split('.');
+            
+            if (partes.length !== 2) {
+                return Math.round(valor * 10) / 10; // Fallback para arredondamento normal
+            }
+            
+            const parteInteira = partes[0];
+            const parteDecimal = partes[1].padEnd(3, '0'); // Garantir 3 dígitos decimais
+            
+            const primeiraDecimal = parseInt(parteDecimal[0]);
+            const segundaDecimal = parseInt(parteDecimal[1]);
+            const terceiraDecimal = parseInt(parteDecimal[2]);
+            
+            let novaParteDecimal = primeiraDecimal;
+            
+            if (segundaDecimal < 5) {
+                // Regra I: menor que 5, mantém a 1ª casa decimal
+                novaParteDecimal = primeiraDecimal;
+            } else if (segundaDecimal > 5) {
+                // Regra II: maior que 5, adiciona 1 à 1ª casa decimal
+                novaParteDecimal = primeiraDecimal + 1;
+            } else if (segundaDecimal === 5) {
+                // Regra III: igual a 5, analisar a 3ª casa decimal
+                if (terceiraDecimal >= 0 && terceiraDecimal <= 4) {
+                    // III.a: 3ª casa entre 0-4, mantém a 1ª casa decimal
+                    novaParteDecimal = primeiraDecimal;
+                } else if (terceiraDecimal >= 5 && terceiraDecimal <= 9) {
+                    // III.b: 3ª casa entre 5-9, adiciona 1 à 1ª casa decimal
+                    novaParteDecimal = primeiraDecimal + 1;
+                }
+            }
+            
+            // Tratar caso onde a soma ultrapassa 9
+            if (novaParteDecimal >= 10) {
+                const novaParteInteira = parseInt(parteInteira) + 1;
+                novaParteDecimal = novaParteDecimal - 10;
+                return parseFloat(`${novaParteInteira}.${novaParteDecimal}`);
+            }
+            
+            return parseFloat(`${parteInteira}.${novaParteDecimal}`);
+        }
+
+        function calcularPrevidenciaIsolada(dados, principalBase, rrapagamento) {
+            let valorPrevidencia = 0;
+            let aliquotaEfetiva = 0;
+            let valorDesagioPrevidencia = 0;
+            let percentualDesagioPrevidencia = 0;
+
+            if (dados.tipoBeneficiario === 'pj') {
+                return { 
+                    valorPrevidencia: 0, 
+                    aliquotaEfetiva: 0,
+                    valorDesagioPrevidencia: 0,
+                    percentualDesagioPrevidencia: 0
+                };
+            }
+            
+            // Verificar se deve calcular previdência
+            const deveCalcularPrevidencia = dados.incidenciaPrevidencia || 
+                (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.previdencia));
+            
+            if (deveCalcularPrevidencia) {
+                let tipoPrevidencia = 'inss'; 
+                let aliquotaFixa = 0;
+                
+                if (dados.valoresPrincipais) {
+                    const itemComPrevidencia = dados.valoresPrincipais.find(item => item.tributacao?.previdencia);
+                    if (itemComPrevidencia) {
+                        tipoPrevidencia = itemComPrevidencia.tributacao.tipoPrevidencia || 'inss';
+                        aliquotaFixa = itemComPrevidencia.tributacao.aliquotaFixa || 0;
+                    }
+                } else {
+                    tipoPrevidencia = dados.tipoPrevidencia || 'inss';
+                    aliquotaFixa = dados.aliquotaFixa || 0;
+                }
+                
+                if (tipoPrevidencia === 'fixa') {
+                    valorPrevidencia = principalBase * aliquotaFixa;
+                    aliquotaEfetiva = aliquotaFixa;
+                } else {
+                    const base = rrapagamento === 0 ? principalBase : principalBase / rrapagamento;
+                    const resultadoINSS = calcularINSS(base);
+                    valorPrevidencia = resultadoINSS * (rrapagamento || 1);
+                    aliquotaEfetiva = base > 0 ? resultadoINSS / base : 0;
+                }
+
+                if (dados.tipoCalculo === 'acordo') {
+                    percentualDesagioPrevidencia = dados.percentualAcordo || 0;
+                    valorDesagioPrevidencia = valorPrevidencia * percentualDesagioPrevidencia;
+                    valorPrevidencia = valorPrevidencia - valorDesagioPrevidencia;
+                }
+            }
+            
+            return { valorPrevidencia, aliquotaEfetiva, valorDesagioPrevidencia, percentualDesagioPrevidencia };
+        }
+
+        function calcularINSS(base) {
+            if (base <= 1518.00) return base * 0.075;
+            else if (base <= 2793.88) return 1518 * 0.075 + (base - 1518) * 0.09;
+            else if (base <= 4190.83) return 1518 * 0.075 + 1275.88 * 0.09 + (base - 2793.88) * 0.12;
+            else if (base <= 8157.41) return 1518 * 0.075 + 1275.88 * 0.09 + 1396.95 * 0.12 + (base - 4190.83) * 0.14;
+            else return 951.63; // Teto
         }
 
         function exibirResultados(resultados, dados) {
