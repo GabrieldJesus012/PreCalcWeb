@@ -3593,45 +3593,55 @@
                 };
             }
 
-            let valorBaseSucumbencialOriginal = valorBaseSucumbencial; 
+            const percentualTotalSucumbencial = dados.honorarioSucumbencial.advogados.reduce((total, adv) => {
+                if (adv.tipoHonorario === 'percentual') {
+                    return total + adv.percentual;
+                }
+                return total;
+            }, 0);
 
             if (dados.tipoCalculo === 'parcial') {
-                // 1. Primeiro calcular o valor total da sucumbencial (sem parcial)
-                const percentualTotalSucumbencial = dados.honorarioSucumbencial.advogados.reduce((total, adv) => {
-                    if (adv.tipoHonorario === 'percentual') {
-                        return total + adv.percentual;
+                if (dados.somenteHonorarioSucumbencial) {
+                    // Precatório é 100% sucumbencial
+                    const valorTotalSucumbencial = valorBaseSucumbencial * percentualTotalSucumbencial;
+                    
+                    if (dados.saldoParcial >= valorTotalSucumbencial) {
+                        // Não ajusta - paga o valor total da sucumbencial
+                    } else {
+                        // Ajusta proporcionalmente
+                        const fatorAjuste = dados.saldoParcial / valorTotalSucumbencial;
+                        valorBaseSucumbencial = valorBaseSucumbencial * fatorAjuste;
                     }
-                    return total;
-                }, 0);
-                
-                const valorTotalSucumbencial = valorBaseSucumbencial * percentualTotalSucumbencial;
-                
-                // 2. Para o total geral, precisa somar apenas a parte do precatório que tem sucumbencial
-                const valoresFiltrados = dados.valoresPrincipais?.filter(item => 
-                    item.tipoUsoHonorario === 'sucumbencial' || item.tipoUsoHonorario === 'ambos'
-                ) || [];
-                
-                const valorOriginalSucumbencial = valoresFiltrados.reduce((sum, v) => 
-                    sum + v.valorPrincipal + v.valorJuros, 0
-                );
-                
-                const valorOriginalTotal = dados.valoresPrincipais.reduce((sum, v) => 
-                    sum + v.valorPrincipal + v.valorJuros, 0
-                );
-                
-                const proporcaoVerbaSucumbencial = valorOriginalSucumbencial / valorOriginalTotal;
-                const valorPrecatorioComSucumbencial = valorTotalDivida * proporcaoVerbaSucumbencial;
-                
-                const totalGeral = valorPrecatorioComSucumbencial + valorTotalSucumbencial;
-                const proporcaoSucumbencial = valorTotalSucumbencial / totalGeral;
-                const valorParcialSucumbencial = dados.saldoParcial * proporcaoSucumbencial;
-                
-                // 3. Ajustar a base proporcionalmente
-                const fatorAjuste = valorParcialSucumbencial / valorTotalSucumbencial;
-                valorBaseSucumbencial = valorBaseSucumbencial * fatorAjuste;
+                } else {
+                    // Lógica para quando tem outras verbas além da sucumbencial
+                    const valorTotalSucumbencial = valorBaseSucumbencial * percentualTotalSucumbencial;
+
+                    const valoresFiltrados = dados.valoresPrincipais?.filter(item => 
+                        item.tipoUsoHonorario === 'sucumbencial' || item.tipoUsoHonorario === 'ambos'
+                    ) || [];
+                    
+                    const valorOriginalSucumbencial = valoresFiltrados.reduce((sum, v) => 
+                        sum + v.valorPrincipal + v.valorJuros, 0
+                    );
+                    
+                    const valorOriginalTotal = dados.valoresPrincipais.reduce((sum, v) => 
+                        sum + v.valorPrincipal + v.valorJuros, 0
+                    );
+                    
+                    const proporcaoVerbaSucumbencial = valorOriginalSucumbencial / valorOriginalTotal;
+                    const valorPrecatorioComSucumbencial = valorTotalDivida * proporcaoVerbaSucumbencial;
+                    
+                    const totalGeral = valorPrecatorioComSucumbencial + valorTotalSucumbencial;
+                    const proporcaoSucumbencial = valorTotalSucumbencial / totalGeral;
+                    const valorParcialSucumbencial = dados.saldoParcial * proporcaoSucumbencial;
+                    
+                    const fatorAjuste = valorParcialSucumbencial / valorTotalSucumbencial;
+                    valorBaseSucumbencial = valorBaseSucumbencial * fatorAjuste;
+                    
+                    console.log("PARCIAL COM OUTRAS VERBAS - fator ajuste:", fatorAjuste);
+                }
             }
 
-            
             const sucumbencial = dados.honorarioSucumbencial;
             const isAcordo = dados.tipoCalculo === 'acordo';
             const isPreferencia = dados.tipoCalculo === 'preferencia';
@@ -4923,7 +4933,16 @@
 
             let basesPagamento = '';
 
-            if (temHerdeiros && dados.tipoCalculo === 'preferencia') {
+            if (dados.somenteHonorarioSucumbencial && dados.tipoCalculo === 'parcial') {
+                // Quando é somente honorário sucumbencial no pagamento parcial
+                basesPagamento = `
+                    <tr class="highlight">
+                        <td><strong>Valor Disponível para Pagamento</strong></td>
+                        <td><strong>R$ ${formatarMoeda(dados.saldoParcial)}</strong></td>
+                        <td><strong>100,00%</strong></td>
+                    </tr>
+                `;
+            } else if (temHerdeiros && dados.tipoCalculo === 'preferencia') {
                 // Preferência → discrimina os herdeiros
                 const herdeirosParaMostrar = resultados.herdeiros.filter(h => h.temPreferencia);
                 if (herdeirosParaMostrar.length > 0) {
