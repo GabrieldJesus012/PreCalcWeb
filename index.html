@@ -3047,7 +3047,17 @@
             if (dados.tipoCalculo === 'preferencia' && dados.natureza === 'alimentar') {
                 valorBase = Math.min(valortotatt, dados.tetoPreferencia);
             } else if (dados.tipoCalculo === 'parcial') {
-                valorBase = Math.min(valortotatt, dados.saldoParcial);
+                if (dados.honorarioSucumbencial && dados.honorarioSucumbencial.advogados && dados.honorarioSucumbencial.advogados.length > 0) {
+                    const dadosTemporarios = {...dados, tipoCalculo: 'ordem'};
+                    const resultadoSucumbencial = calcularHonorariosSucumbenciais(dadosTemporarios, valortotatt);
+                    const valorTotalSucumbencial = resultadoSucumbencial.valorHonorarioTotal;
+                    const totalGeral = valortotatt + valorTotalSucumbencial;
+                    const proporcaoPrecatorio = valortotatt / totalGeral;
+                    valorBase = dados.saldoParcial * proporcaoPrecatorio;
+                } else {
+                    // Sem sucumbencial - lógica original
+                    valorBase = Math.min(valortotatt, dados.saldoParcial);
+                }
             }
 
             // Composição inicial - Para fins de tributação
@@ -3572,7 +3582,7 @@
                 };
             }
             
-            const valorBaseSucumbencial = calcularValorBaseSucumbencial(dados, valorTotalDivida);
+            let valorBaseSucumbencial = calcularValorBaseSucumbencial(dados, valorTotalDivida);
             
             if (valorBaseSucumbencial <= 0) {
                 return { 
@@ -3582,6 +3592,45 @@
                     temHonorariosSucumbenciais: false
                 };
             }
+
+            let valorBaseSucumbencialOriginal = valorBaseSucumbencial; 
+
+            if (dados.tipoCalculo === 'parcial') {
+                // 1. Primeiro calcular o valor total da sucumbencial (sem parcial)
+                const percentualTotalSucumbencial = dados.honorarioSucumbencial.advogados.reduce((total, adv) => {
+                    if (adv.tipoHonorario === 'percentual') {
+                        return total + adv.percentual;
+                    }
+                    return total;
+                }, 0);
+                
+                const valorTotalSucumbencial = valorBaseSucumbencial * percentualTotalSucumbencial;
+                
+                // 2. Para o total geral, precisa somar apenas a parte do precatório que tem sucumbencial
+                const valoresFiltrados = dados.valoresPrincipais?.filter(item => 
+                    item.tipoUsoHonorario === 'sucumbencial' || item.tipoUsoHonorario === 'ambos'
+                ) || [];
+                
+                const valorOriginalSucumbencial = valoresFiltrados.reduce((sum, v) => 
+                    sum + v.valorPrincipal + v.valorJuros, 0
+                );
+                
+                const valorOriginalTotal = dados.valoresPrincipais.reduce((sum, v) => 
+                    sum + v.valorPrincipal + v.valorJuros, 0
+                );
+                
+                const proporcaoVerbaSucumbencial = valorOriginalSucumbencial / valorOriginalTotal;
+                const valorPrecatorioComSucumbencial = valorTotalDivida * proporcaoVerbaSucumbencial;
+                
+                const totalGeral = valorPrecatorioComSucumbencial + valorTotalSucumbencial;
+                const proporcaoSucumbencial = valorTotalSucumbencial / totalGeral;
+                const valorParcialSucumbencial = dados.saldoParcial * proporcaoSucumbencial;
+                
+                // 3. Ajustar a base proporcionalmente
+                const fatorAjuste = valorParcialSucumbencial / valorTotalSucumbencial;
+                valorBaseSucumbencial = valorBaseSucumbencial * fatorAjuste;
+            }
+
             
             const sucumbencial = dados.honorarioSucumbencial;
             const isAcordo = dados.tipoCalculo === 'acordo';
@@ -5058,10 +5107,14 @@
                     });
                 }
 
+                const textoHonorario = dados.tipoCalculo === 'parcial' 
+                ? `Valor do Honorário (Parcial): R$ ${formatarMoeda(valorHonorarioTotal)}`
+                : `Valor do Honorário: R$ ${formatarMoeda(valorHonorarioTotal)}`;
+
                 secoesCessoes += `
                     <div style="margin-bottom: 30px;">
                         <h4>Cessão do Advogado Sucumbencial: ${adv.nome}</h4>
-                        <p><strong>Valor do Honorário:</strong> R$ ${formatarMoeda(valorHonorarioTotal)}</p>
+                        <p><strong>${textoHonorario}</strong></p>
                         <p><strong>Cedido:</strong> ${(totalCedido * 100).toFixed(2)}% para: ${listaCessionarios}</p>
                         
                         <table>
@@ -8635,7 +8688,7 @@
                         adv.cessionarios.forEach(cessionario => {
                             if (cessionario.valorLiquido > 0) {
                                 pagamentos.push({
-                                    credor: `${cessionario.nome} (Cessionário Adv. Sucumb. ${adv.nome})`,
+                                    credor: `${cessionario.nome} (Cessionário de ${adv.nome})`,
                                     valorDevido: cessionario.valorBruto,
                                     previdencia: 0,
                                     ir: cessionario.ir || 0,
