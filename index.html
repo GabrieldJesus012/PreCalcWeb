@@ -2926,17 +2926,6 @@
             }
 
             let valoresParaProcessar = dados.valoresPrincipais;
-
-            //sucumbencial
-            if (dados.calculandoHonorarioSucumbencial) {
-                valoresParaProcessar = dados.valoresPrincipais.filter(item => 
-                    item.tipoUsoHonorario === 'sucumbencial' || item.tipoUsoHonorario === 'ambos'
-                );
-                
-                if (valoresParaProcessar.length === 0) {
-                    return null;
-                }
-            }
             
             const itensCalculados = [];
             
@@ -2954,7 +2943,33 @@
             }
             
             const totais = totalizarTributacao(itensCalculados);
-            
+
+            const totaisPorTipo = {
+                contratual: 0,
+                sucumbencial: 0,
+                nenhum: 0,
+                total: totais.valorGeralTotal
+            };
+
+            // Mapear itens calculados com itens originais
+            valoresParaProcessar.forEach((itemOriginal, index) => {
+                const itemCalculado = itensCalculados[index];
+                if (itemCalculado) {
+                    const valorAtualizado = itemCalculado.valorAtualizado.total;
+                    
+                    if (itemOriginal.tipoUsoHonorario === 'contratual') {
+                        totaisPorTipo.contratual += valorAtualizado;
+                    } else if (itemOriginal.tipoUsoHonorario === 'sucumbencial') {
+                        totaisPorTipo.sucumbencial += valorAtualizado;
+                    } else if (itemOriginal.tipoUsoHonorario === 'ambos') {
+                        totaisPorTipo.contratual += valorAtualizado;
+                        totaisPorTipo.sucumbencial += valorAtualizado;
+                    } else if (itemOriginal.tipoUsoHonorario === 'nenhum') {
+                        totaisPorTipo.nenhum += valorAtualizado;
+                    }
+                }
+            });
+                        
             const percentualprinc = totais.valorPrincipalTotal / totais.valorGeralTotal;
             const percentualjur = totais.valorJurosTotal / totais.valorGeralTotal;
             
@@ -2989,14 +3004,15 @@
                     principalTributado: totais.principalTributadoPrevidencia,
                     jurosTributado: totais.jurosTributadoPrevidencia,
                     isento: totais.isentoPrevidencia
-                }
+                },
+                totaisPorTipo
             };
             
-            const detalhamento = calcularGlobal(dadosParaDetalhamento, totais.valorGeralTotal, percentualprinc, percentualjur);
+            const detalhamento = calcularGlobal(dadosParaDetalhamento, totais.valorGeralTotal, percentualprinc, percentualjur,totaisPorTipo);
             
-            const honorariosSucumbenciais = calcularHonorariosSucumbenciais(dadosParaDetalhamento, totais.valorGeralTotal);
+            const honorariosSucumbenciais = calcularHonorariosSucumbenciais(dadosParaDetalhamento, totais.valorGeralTotal, totaisPorTipo);
 
-            const herdeiros = calcularHerdeiros(dadosParaDetalhamento, totais.valorGeralTotal, totais.valorPrincipalTotal, totais.valorJurosTotal, detalhamento);
+            const herdeiros = calcularHerdeiros(dadosParaDetalhamento, totais.valorGeralTotal, totais.valorPrincipalTotal, totais.valorJurosTotal, detalhamento,totaisPorTipo);
             
             const resultadoFinal = {
                 valorprincatt: totais.valorPrincipalTotal,
@@ -3035,13 +3051,15 @@
                 percentualprinc,
                 percentualjur,
                 
-                valorOriginalTotal
+                valorOriginalTotal,
+
+                totaisPorTipo
             };
             
             return resultadoFinal;
         }
 
-        function calcularGlobal(dados, valortotatt, percentualprinc, percentualjur) {
+        function calcularGlobal(dados, valortotatt, percentualprinc, percentualjur,totaisPorTipo = null) {
             // Valor base conforme tipo de cálculo
             let valorBase = valortotatt;
             if (dados.tipoCalculo === 'preferencia' && dados.natureza === 'alimentar') {
@@ -3049,7 +3067,7 @@
             } else if (dados.tipoCalculo === 'parcial') {
                 if (dados.honorarioSucumbencial && dados.honorarioSucumbencial.advogados && dados.honorarioSucumbencial.advogados.length > 0) {
                     const dadosTemporarios = {...dados, tipoCalculo: 'ordem'};
-                    const resultadoSucumbencial = calcularHonorariosSucumbenciais(dadosTemporarios, valortotatt);
+                    const resultadoSucumbencial = calcularHonorariosSucumbenciais(dadosTemporarios, valortotatt,totaisPorTipo);
                     const valorTotalSucumbencial = resultadoSucumbencial.valorHonorarioTotal;
                     const totalGeral = valortotatt + valorTotalSucumbencial;
                     const proporcaoPrecatorio = valortotatt / totalGeral;
@@ -3118,7 +3136,7 @@
             }
 
             // Honorários
-            const resultadoHonorarios = calcularHonorarios(dados, valorBaseParaHonorarios, valortotatt);
+            const resultadoHonorarios = calcularHonorarios(dados, valorBaseParaHonorarios, valortotatt,dados.totaisPorTipo);
             const { honorarios, valorHonorarioTotal } = resultadoHonorarios;
             
             // Sindicatos 
@@ -3434,15 +3452,26 @@
             };
         }
 
-        function calcularHonorarios(dados, valorBase, valortotatt) {
+        function calcularHonorarios(dados, valorBase, valortotatt, totaisPorTipo = null) {
             let valorHonorarioTotal = 0;
             const isAcordo = dados.tipoCalculo === 'acordo';
             const isParcial = dados.tipoCalculo === 'parcial';
             const percentualDesagio = dados.percentualAcordo || 0;
             
+            let valorBaseContratual = valorBase;
+            
+            // NOVA LÓGICA: Usar totais por tipo calculados
+            if (totaisPorTipo && totaisPorTipo.contratual > 0) {
+                const proporcaoContratual = totaisPorTipo.contratual / totaisPorTipo.total;
+                valorBaseContratual = valorBase * proporcaoContratual;
+                
+            } else {
+                return { honorarios: [], valorHonorarioTotal: 0 };
+            }
+            
             const honorarios = dados.advogados.map(adv => {
                 const percentualTotalAdvogado = adv.percentual;
-                const valorBrutoTotal = valorBase * percentualTotalAdvogado;
+                const valorBrutoTotal = valorBaseContratual * percentualTotalAdvogado;
                 
                 // Verificar se o advogado fez cessão
                 const cessaoAdv = dados.cessoes?.filter(cessao => 
@@ -3453,8 +3482,8 @@
                 let percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
                 const percentualAdvogado = Math.max(0, percentualTotalAdvogado - percentualCessionarioAdv);
 
-                const valorBrutoAdvogado = valorBase * Math.max(0, percentualAdvogado);
-                const valorBrutoCessionario = valorBase * percentualCessionarioAdv;
+                const valorBrutoAdvogado = valorBaseContratual * Math.max(0, percentualAdvogado);
+                const valorBrutoCessionario = valorBaseContratual * percentualCessionarioAdv;
 
                 // CALCULAR IR COM DESÁGIO (SE ACORDO)
                 let valorParaIRAdvogado = valorBrutoAdvogado;
@@ -3483,7 +3512,7 @@
                 const valorLiquidoCessionario = valorBrutoCessionario - irCessionarioAdv;
 
                 const cessionarios = cessaoAdv.map(cessao => {
-                    const valorBrutoCessao = valorBase * cessao.percentual;
+                    const valorBrutoCessao = valorBaseContratual * cessao.percentual;
                     let valorParaIRCessao = valorBrutoCessao;
                     
                     if (isAcordo) {
@@ -3506,13 +3535,12 @@
 
                 const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
 
-                //  let valorParaDescontar = valorBrutoAdvogado; // antigamente era só o adv que rec. na pref
-                let valorParaDescontar = valorBrutoTotal // desconta do beneficiario a cessao do adv.
+                let valorParaDescontar = valorBrutoTotal;
                 if (isPreferenciaParcial) {
                     valorParaDescontar = valorBrutoTotal;
                 } else if (isParcial) {
                     valorParaDescontar = valorBrutoTotal;
-                }else {
+                } else {
                     valorParaDescontar = valorBrutoTotal;
                 }
                 valorHonorarioTotal += valorParaDescontar;
@@ -3546,33 +3574,7 @@
             return { honorarios, valorHonorarioTotal };
         }
 
-        function calcularValorBaseSucumbencial(dados, valortotatt) {
-            if (!dados.honorarioSucumbencial?.advogados?.length) {
-                return 0;
-            }
-            
-            const valoresFiltrados = dados.valoresPrincipais?.filter(item => 
-                item.tipoUsoHonorario === 'sucumbencial' || item.tipoUsoHonorario === 'ambos'
-            ) || [];
-            
-            if (valoresFiltrados.length === 0) {
-                return 0;
-            }
-            
-            const valorOriginalSucumbencial = valoresFiltrados.reduce((sum, v) => 
-                sum + v.valorPrincipal + v.valorJuros, 0
-            );
-            
-            const valorOriginalTotal = dados.valoresPrincipais.reduce((sum, v) => 
-                sum + v.valorPrincipal + v.valorJuros, 0
-            );
-            
-            const proporcao = valorOriginalSucumbencial / valorOriginalTotal;
-            const valorBaseSucumbencial = valortotatt * proporcao;
-            return valorBaseSucumbencial;
-        }
-
-        function calcularHonorariosSucumbenciais(dados, valorTotalDivida) {
+        function calcularHonorariosSucumbenciais(dados, valorTotalDivida,totaisPorTipo = null) {
             if (!dados.honorarioSucumbencial || !dados.honorarioSucumbencial.advogados || dados.honorarioSucumbencial.advogados.length === 0) {
                 return { 
                     honorarios: [], 
@@ -3582,7 +3584,11 @@
                 };
             }
             
-            let valorBaseSucumbencial = calcularValorBaseSucumbencial(dados, valorTotalDivida);
+            let valorBaseSucumbencial = 0;
+
+            if (totaisPorTipo && totaisPorTipo.sucumbencial > 0) {
+                valorBaseSucumbencial = totaisPorTipo.sucumbencial;
+            }
             
             if (valorBaseSucumbencial <= 0) {
                 return { 
@@ -3768,6 +3774,7 @@
             };
         }
 
+
         function calcularSindicatos(dados, valorBase, valortotatt) {
             let valorSindicatoTotal = 0;
             const isAcordo = dados.tipoCalculo === 'acordo';
@@ -3890,12 +3897,12 @@
         }
 
         //Herdeiros
-        function calcularTotaisParaHerdeiros(dados, valortotatt, percentualprinc, percentualjur) {
+        function calcularTotaisParaHerdeiros(dados, valortotatt, percentualprinc, percentualjur,totaisPorTipo = null) {
             const dadosOrdem = { ...dados, tipoCalculo: 'ordem' };
-            return calcularGlobal(dadosOrdem, valortotatt, percentualprinc, percentualjur);
+            return calcularGlobal(dadosOrdem, valortotatt, percentualprinc, percentualjur,totaisPorTipo);
         }
 
-        function calcularHerdeiros(dados, valortotatt, valorprincatt, valorjurosatt, detalhamento) {
+        function calcularHerdeiros(dados, valortotatt, valorprincatt, valorjurosatt, detalhamento,totaisPorTipo = null) {
             // Se não há herdeiros, retorna array vazio
             if (!dados.herdeiros || dados.herdeiros.length === 0) {
                 return [];
@@ -3904,7 +3911,7 @@
             // Calcular valores totais (como se fosse ordem cronológica)
             const percentualprinc = valorprincatt / valortotatt;
             const percentualjur = valorjurosatt / valortotatt;
-            const detalhamentoTotal = calcularTotaisParaHerdeiros(dados, valortotatt, percentualprinc, percentualjur);
+            const detalhamentoTotal = calcularTotaisParaHerdeiros(dados, valortotatt, percentualprinc, percentualjur,totaisPorTipo);
 
             const herdeirosCalculados = [];
 
@@ -3965,7 +3972,7 @@
                 let valorHerdeiroQueRecebeEfetivamente = valorBaseHerdeiro;
 
                 // 7. HONORÁRIOS
-                const resultadoHonorarios = calcularHonorarios(dados, valorBaseParaHonorarios, valorTotalHerdeiro);
+                const resultadoHonorarios = calcularHonorarios(dados, valorBaseParaHonorarios, valorTotalHerdeiro,totaisPorTipo);
                 const { honorarios: honorariosHerdeiro, valorHonorarioTotal: valorHonorarioTotalHerdeiro } = resultadoHonorarios;
 
                 // 8. SINDICATOS
@@ -5231,15 +5238,33 @@
 
                     // Agrupa herdeiros por base de cálculo
                     herdeirosFiltrados.forEach(h => {
-                        const baseKey = h.valorTotal.toFixed(2); // chave por valor base
+                        let valorBaseContratualHerdeiro = h.valorTotal;
+                        
+                        if (resultados.totaisPorTipo && resultados.totaisPorTipo.contratual > 0) {
+                            const proporcaoContratual = resultados.totaisPorTipo.contratual / resultados.totaisPorTipo.total;
+                            valorBaseContratualHerdeiro = h.valorTotal * proporcaoContratual;
+                        }
+                        
+                        const baseKey = valorBaseContratualHerdeiro.toFixed(2); 
                         if (!baseGroups.has(baseKey)) baseGroups.set(baseKey, []);
-                        baseGroups.get(baseKey).push(h);
+                        baseGroups.get(baseKey).push({
+                            ...h,
+                            valorTotal: valorBaseContratualHerdeiro 
+                        });
                     });
                 } else {
                     // Sem herdeiros, incluir beneficiário principal
+
+                    let valorBaseContratual = resultados.valorBase;
+    
+                    if (resultados.totaisPorTipo && resultados.totaisPorTipo.contratual > 0) {
+                        const proporcaoContratual = resultados.totaisPorTipo.contratual / resultados.totaisPorTipo.total;
+                        valorBaseContratual = resultados.valorBase * proporcaoContratual;
+                    }
+
                     baseGroups.set('PRINCIPAL', [{
                         nome: 'Beneficiário Principal',
-                        valorTotal: resultados.valorBase
+                        valorTotal: valorBaseContratual
                     }]);
                 }
 
@@ -5658,8 +5683,16 @@
                 
                 // Calcular honorários sobre o valor real (após cessões)
                 if (dados.advogados && dados.advogados.length > 0) {
+                    let valorBaseContratualHerdeiro = valorBrutoHerdeiro;
+                    
+                    // Aplicar proporção contratual se disponível
+                    if (resultados.totaisPorTipo && resultados.totaisPorTipo.contratual > 0) {
+                        const proporcaoContratual = resultados.totaisPorTipo.contratual / resultados.totaisPorTipo.total;
+                        valorBaseContratualHerdeiro = valorBrutoHerdeiro * proporcaoContratual;
+                    }
+                    
                     honorarioTotalReal = dados.advogados.reduce((sum, adv) => {
-                        return sum + (valorBrutoHerdeiro * adv.percentual);
+                        return sum + (valorBaseContratualHerdeiro * adv.percentual);
                     }, 0);
                 }
                 
@@ -5694,10 +5727,19 @@
                 sum + (h.valorAposCessoesBeneficiario || h.valorTotalOriginal), 0);
             
             // Total de honorários sobre valores reais
-            const totalHonorarios = dados.advogados ? 
-                dados.advogados.reduce((sum, adv) => {
-                    return sum + (totalRealHerdeiros * adv.percentual);
-                }, 0) : 0;
+            let totalHonorarios = 0;
+            if (dados.advogados) {
+                let valorBaseContratualTotal = totalRealHerdeiros;
+                
+                if (resultados.totaisPorTipo && resultados.totaisPorTipo.contratual > 0) {
+                    const proporcaoContratual = resultados.totaisPorTipo.contratual / resultados.totaisPorTipo.total;
+                    valorBaseContratualTotal = totalRealHerdeiros * proporcaoContratual;
+                }
+                
+                totalHonorarios = dados.advogados.reduce((sum, adv) => {
+                    return sum + (valorBaseContratualTotal * adv.percentual);
+                }, 0);
+            }
             
             // Total de sindicatos sobre valores reais
             const totalSindicatos = dados.sindicatos ? 
