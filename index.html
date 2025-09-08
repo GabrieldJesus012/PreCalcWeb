@@ -96,6 +96,8 @@
                     <div class="form-group">
                         <h3>📅 Datas-base de cálculos</h3>
                         <div class="input-group">
+                            <label for="dataatualizacao">Data de Atualização:</label>
+                            <input type="date" name="" id="dataatualizacao" style="margin-bottom:8px;" >
                             <label for="anoOrcamento">Ano do Orçamento:</label>
                             <input type="number" id="anoOrcamento" placeholder="Ano do Orçamento">
                         </div>
@@ -2245,6 +2247,9 @@
             }
             return somaJuros;
         }
+
+        const hoje = new Date().toISOString().split('T')[0];
+        document.getElementById("dataatualizacao").value = hoje;
 
         async function calcularSelic(dataBase, inicioGraca, fimGraca) {
             try {
