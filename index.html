@@ -2254,8 +2254,11 @@
         async function calcularSelic(dataBase, inicioGraca, fimGraca) {
             try {
                 // Descobre a data final como o último dia do mês anterior ao mês atual
-                const hoje = new Date();
-                const primeiroDiaMesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+                const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
+                const [ano, mes, dia] = dataAtualizacaoInput.split('-');
+                const dataReferencia = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+
+                const primeiroDiaMesAtual = new Date(dataReferencia.getFullYear(), dataReferencia.getMonth(), 1);
                 const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
                 const dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
                 const urlselic = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.4390/dados?formato=json&dataInicial=01/12/2021&dataFinal=${dataFinal}`;
@@ -2288,7 +2291,8 @@
                 
                 // Data de início da aplicação da SELIC (dezembro/2021) - igual à API
                 const inicioSelicPrec = new Date(2021, 11, 1); // dezembro/2021
-                const hoje = new Date();
+                const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
+                const hoje = new Date(dataAtualizacaoInput);
                 
                 // Verifica se precisa de SELIC antes da graça
                 if (dataBase < inicioGraca) {
@@ -2449,8 +2453,11 @@
         async function calcularIpca(dataBase, inicioGraca, fimGraca) {
             try {
                 // Descobre a data final como o último dia do mês anterior ao mês atual
-                const hoje = new Date();
-                const primeiroDiaMesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+                const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
+                const [ano, mes, dia] = dataAtualizacaoInput.split('-');
+                const dataReferencia = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+
+                const primeiroDiaMesAtual = new Date(dataReferencia.getFullYear(), dataReferencia.getMonth(), 1);
                 const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
                 const dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
                 const urlipca = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.7478/dados?formato=json&dataInicial=01/12/2021&dataFinal=${dataFinal}`;
@@ -4587,10 +4594,8 @@
         }
         //${gerarIndicesUtilizados(dados, resultados, inicioGraca, fimGraca)} - tirei para melhorar apresentação
         function obterDataAtual() {
-            const hoje = new Date();
-            const dia = String(hoje.getDate()).padStart(2, '0');
-            const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-            const ano = hoje.getFullYear();
+            const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
+            const [ano, mes, dia] = dataAtualizacaoInput.split('-');
             return `${dia}/${mes}/${ano}`;
         }
 
