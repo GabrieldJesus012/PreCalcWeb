@@ -3155,11 +3155,11 @@
             const { sindicatos, valorSindicatoTotal } = resultadoSindicatos;
 
             const valorSindicatoParaDescontar = isPreferencia ? 0 : valorSindicatoTotal;
+
             const valorBeneficiarioBruto = valorBase - valorHonorarioTotal - valorSindicatoParaDescontar;
 
             // RECÁLCULO PARA PREFERÊNCIA PARCIAL E CESSÕES
             if (isPreferenciasParcial) {
-                // Para preferência parcial, manter a mesma lógica de percentual tributável
                 if (dados.tributacaoIR) {
                     const percentualPrincipalTributadoIR = dados.tributacaoIR.percentuais?.principalTributado || 0;
                     principal = valorBeneficiarioQueRecebeEfetivamente * (percentualPrincipalTributadoIR / 100);
@@ -3167,7 +3167,6 @@
                     principal = valorBeneficiarioQueRecebeEfetivamente * percentualprinc;
                 }
                 
-                // Para RRA: garantir que seja pelo menos 1 se havia RRA original
                 if (dados.rra !== 0) {
                     const rraCalculado = arredondarRRA((valorBeneficiarioQueRecebeEfetivamente * dados.rra) / valortotatt);
                     rrapagamento = Math.max(1, rraCalculado); 
@@ -3180,7 +3179,6 @@
                     const proporcaoParcial = valorBase / valortotatt;
                     principal = principalTributadoTotal * proporcaoParcial;
                     
-                    // Ajustar juros também
                     const jurosTributadoTotal = dados.tributacaoIR.jurosTributado;
                     jurosBase = jurosTributadoTotal * proporcaoParcial;
                 } else {
@@ -3188,26 +3186,9 @@
                     jurosBase = valorBase * percentualjur;
                 }
                 
-                // Para RRA - também proporcional
                 if (dados.rra !== 0) {
                     const proporcaoParcial = valorBase / valortotatt;
                     rrapagamento = dados.rra !== 0 ? arredondarRRA((valorBase * dados.rra) / valortotatt) : 0;
-                } else {
-                    rrapagamento = 0;
-                }
-            } else if (cessoesBeneficiario.length > 0 && dados.tipoCalculo !== 'ordem') {
-                // CESSÕES: Principal baseado no valor que o beneficiário receberá
-                if (dados.tributacaoIR) {
-                    const percentualPrincipalTributadoIR = dados.tributacaoIR.percentuais?.principalTributado || 0;
-                    principal = valorBeneficiarioQueRecebeEfetivamente * (percentualPrincipalTributadoIR / 100);
-                } else {
-                    principal = valorBeneficiarioQueRecebeEfetivamente * percentualprinc;
-                }
-                
-                // Para RRA
-                if (dados.rra !== 0) {
-                    const rraCalculado = arredondarRRA((valorBeneficiarioQueRecebeEfetivamente * dados.rra) / valortotatt);
-                    rrapagamento = Math.max(1, rraCalculado); 
                 } else {
                     rrapagamento = 0;
                 }
