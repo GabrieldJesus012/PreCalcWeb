@@ -5719,8 +5719,8 @@
                 const valorLiquidoSemTributos = valorBrutoHerdeiro - honorarioTotalReal - sindicatoTotalReal;
                 
                 // Calcular RRA proporcional ao valor real
-                const rraReal = dados.rra !== 0 ? 
-                    arredondarRRA((valorBrutoHerdeiro * dados.rra) / resultados.valortotatt) : 0;
+                const rraReal = resultados.rraTotal !== 0 ? 
+                    Math.round((valorBrutoHerdeiro * resultados.rraTotal) / resultados.valortotatt) : 0;
                 
                 return `
                     <tr>
@@ -5761,8 +5761,8 @@
                 }, 0) : 0;
             
             const totalLiquido = totalRealHerdeiros - totalHonorarios - totalSindicatos;
-            const totalRRA = dados.rra !== 0 ? 
-            arredondarRRA((totalRealHerdeiros * dados.rra) / resultados.valortotatt) : 0;
+            const totalRRA = resultados.rraTotal !== 0 ? 
+                Math.round((totalRealHerdeiros * resultados.rraTotal) / resultados.valortotatt) : 0;
             
             // Verificar se houve cessão do beneficiário
             const houveCessaoBeneficiario = resultados.percentualBeneficiarioFinal && resultados.percentualBeneficiarioFinal < 1;
