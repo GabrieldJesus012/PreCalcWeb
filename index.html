@@ -5029,6 +5029,10 @@
                 return '';
             }
 
+            if (dados.honorarioSucumbencial?.advogados?.some(adv => adv.tipoHonorario === 'valorPrincipal')) {
+                return '';
+            }
+
             const honorarios = resultados.honorariosSucumbenciais.honorarios;
             const valorBaseSucumbencial = resultados.honorariosSucumbenciais.valorBaseSucumbencial;
 
