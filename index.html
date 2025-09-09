@@ -4551,8 +4551,8 @@
                     ${gerarTabelaHonorariosSucumbenciais(resultados, dados)}
                     <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
                         <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-                        <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 MP Nª 1.294, de 11 de Abril de 2025</p>
-                        <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
+                        <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nº 15.191, DE 11 DE AGOSTO DE 2025</p>
+                        <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, ART 714</p>
                     </div>
                 `;
             } else {
@@ -6746,7 +6746,7 @@
                     ${resultados.rrapagamento !== 0 ? `
                     <tr>
                         <th>RRA Pagamento:</th>
-                        <td>${Math.round(resultados.rrapagamento)}</td>
+                        <td>${arredondarRRA(resultados.rrapagamento)}</td>
                     </tr>
                     <tr>
                         <th>Base INSS por RRA:</th>
@@ -6825,7 +6825,7 @@
             return `
                 <table class="ir-table">
                     <tr>
-                        <th colspan="2" class="section-header">📄 Imposto de Renda - MP Nª 1.294, de 11 de Abril de 2025</th>
+                        <th colspan="2" class="section-header">📄 Imposto de Renda - LEI Nº 15.191, DE 11 DE AGOSTO DE 2025</th>
                     </tr>
                     <tr>
                         <th>Principal:</th>
@@ -6852,7 +6852,7 @@
                     </tr>` : ''}
                     <tr>
                         <th>RRA Pagamento:</th>
-                        <td>${Math.round(resultados.rraComDesagio || resultados.rrapagamento)}</td>
+                        <td>${arredondarRRA(resultados.rraComDesagio || resultados.rrapagamento)}</td>
                     </tr>
                     <tr>
                         <th>Base IR por RRA:</th>
@@ -7035,7 +7035,7 @@
                     ${primeiroHerdeiro.rrapagamento !== 0 ? `
                     <tr>
                         <th>RRA Pagamento:</th>
-                        <td>${Math.round(primeiroHerdeiro.rrapagamento)}</td>
+                        <td>${arredondarRRA(primeiroHerdeiro.rrapagamento)}</td>
                     </tr>
                     <tr>
                         <th>Base INSS por RRA:</th>
@@ -7104,7 +7104,7 @@
             return `
                 <table class="ir-table" style="margin-bottom: 15px;">
                     <tr>
-                        <th colspan="2" class="section-header">📄 Imposto de Renda - MP Nª 1.294, de 11 de Abril de 2025</th>
+                        <th colspan="2" class="section-header">📄 Imposto de Renda - LEI Nº 15.191, DE 11 DE AGOSTO DE 2025</th>
                     </tr>
                     <tr>
                         <th>Principal (base):</th>
@@ -7131,7 +7131,7 @@
                     </tr>` : ''}
                     <tr>
                         <th>RRA Pagamento:</th>
-                        <td>${Math.round(primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento)}</td>
+                        <td>${arredondarRRA(primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento)}</td>
                     </tr>
                     <tr>
                         <th>Base IR por RRA:</th>
@@ -7306,7 +7306,7 @@
                     ${primeiroHerdeiro.rrapagamento !== 0 ? `
                     <tr>
                         <th>RRA Pagamento:</th>
-                        <td>${Math.round(primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento)}</td>
+                        <td>${arredondarRRA(primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento)}</td>
                     </tr>
                     <tr>
                         <th>Base INSS por RRA:</th>
@@ -7404,7 +7404,7 @@
             return `
                 <table class="ir-table" style="margin-bottom: 15px;">
                     <tr>
-                        <th colspan="2" class="section-header">📄 Imposto de Renda - MP Nª 1.294, de 11 de Abril de 2025</th>
+                        <th colspan="2" class="section-header">📄 Imposto de Renda - LEI Nº 15.191, DE 11 DE AGOSTO DE 2025</th>
                     </tr>
                     <tr>
                         <th>Principal (base):</th>
@@ -7431,7 +7431,7 @@
                     </tr>` : ''}
                     <tr>
                         <th>RRA Pagamento:</th>
-                        <td>${Math.round(primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento)}</td>
+                        <td>${arredondarRRA(primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento)}</td>
                     </tr>
                     <tr>
                         <th>Base IR por RRA:</th>
@@ -8042,7 +8042,7 @@
                         
                         <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
                             <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 MP Nª 1.294, de 11 de Abril de 2025</p>
+                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nº 15.191, DE 11 DE AGOSTO DE 2025</p>
                             <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
                             <p style="margin: 5px 0;"><strong>Sindicatos:</strong> Tributação conforme Art. 27, da Lei nº 10.833/03 ou alíquota fixa quando aplicável</p>
                         </div>
@@ -8249,7 +8249,7 @@
                         ${totalHerdeiros === 1 ? `
                         <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
                             <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 MP Nª 1.294, de 11 de Abril de 2025</p>
+                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nº 15.191, DE 11 DE AGOSTO DE 2025</p>
                             <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
                             <p style="margin: 5px 0;"><strong>Sindicatos:</strong> Tributação conforme Art. 27, da Lei nº 10.833/03 ou alíquota fixa quando aplicável</p>
                         </div>
@@ -8573,7 +8573,7 @@
                         
                         <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
                             <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 MP Nª 1.294, de 11 de Abril de 2025</p>
+                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nº 15.191, DE 11 DE AGOSTO DE 2025</p>
                             <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
                             <p style="margin: 5px 0;"><strong>Sindicatos:</strong> Tributação conforme Art. 27, da Lei nº 10.833/03 ou alíquota fixa quando aplicável</p>
                         </div>
