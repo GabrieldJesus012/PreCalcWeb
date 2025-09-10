@@ -3868,7 +3868,6 @@
                         const principalTributadoTotal = dados.tributacaoIR.principalTributado;
                         const jurosTributadoTotal = dados.tributacaoIR.jurosTributado;
                         
-                        // Usar a proporção correta baseada no valor base do herdeiro
                         const proporcaoParcial = valorBaseHerdeiro / valorTotalHerdeiro;
                         
                         principalHerdeiroEfetivo = principalTributadoTotal * percentualHerdeiro * proporcaoParcial;
@@ -3878,7 +3877,6 @@
                         jurosBaseHerdeiroFinal = valorBaseHerdeiro * percentualjur;
                     }
                     
-                    // RRA proporcional
                     if (dados.rra !== 0) {
                         const proporcaoParcial = valorBaseHerdeiro / valorTotalHerdeiro;
                         rrapagamentoHerdeiroEfetivo = arredondarRRA(dados.rra * percentualHerdeiro * proporcaoParcial);
@@ -4016,10 +4014,8 @@
                     temCessoes: cessoesHerdeiro.length > 0,
                     temCessoesBeneficiario: detalhamentoTotal.percentualBeneficiarioFinal < 1.0
                 };
-
                 herdeirosCalculados.push(herdeiroDados);
             });
-
             return herdeirosCalculados;
         }
 
