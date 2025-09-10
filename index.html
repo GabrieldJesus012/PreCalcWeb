@@ -3965,8 +3965,8 @@
                     valorTotal: valorBaseHerdeiro,
                     principal: principalHerdeiroEfetivo,
                     jurosBase: jurosBaseHerdeiroFinal,
-                    rrapagamento: rrapagamentoHerdeiroEfetivo,  // RRA sem deságio
-                    rraComDesagio: rraComDesagioHerdeiro,       // RRA com deságio (vem da calcularIRIsolado)
+                    rrapagamento: rrapagamentoHerdeiroEfetivo,  
+                    rraComDesagio: rraComDesagioHerdeiro,      
                     
                     // Descontos
                     honorarios: honorariosHerdeiro,
@@ -4021,6 +4021,7 @@
 
         function calcularCessoesHerdeiro(dados, herdeiro, valorBaseHerdeiro, valorTotalHerdeiro, valorHonorarioTotal, valorSindicatoParaDescontar, valorPrevidenciaHerdeiro, valorIRHerdeiro) {
             const valorHerdeiroBruto = valorBaseHerdeiro - valorHonorarioTotal - valorSindicatoParaDescontar;
+
             const cessoesHerdeiro = dados.cessoes?.filter(cessao => 
                 cessao.tipo === 'cessaoherdeiro' && cessao.cedente === herdeiro.nome
             ) || [];
@@ -4059,7 +4060,6 @@
             const valorTotalSemAdvogados = valorTotalHerdeiro - (valorTotalHerdeiro * percentualAdvogados);
 
             if (isPreferenciaParcial) {
-                // PREFERÊNCIA PARCIAL - Cessionários não recebem na preferência
                 const parteHerdeiroNaDividaTotal = valorTotalSemAdvogados * percentualHerdeiroFinal;
                 const maxQueHerdeiroPodeReceber = Math.min(parteHerdeiroNaDividaTotal, valorHerdeiroBruto);
                 
@@ -4098,7 +4098,6 @@
                 valorHerdeiroLiquido = maxQueHerdeiroPodeReceber - valorPrevidenciaHerdeiroFinal - valorIRHerdeiroFinal;
                 
             } else {
-                // PREFERÊNCIA TOTAL, ORDEM CRONOLÓGICA OU OUTROS TIPOS - Cessionários recebem
                 const valorPrevidenciaPorPercentual = valorPrevidenciaHerdeiro; 
                 const valorIRPorPercentual = valorIRHerdeiro; 
                 
