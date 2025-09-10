@@ -3300,125 +3300,58 @@
                 dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0) : 0;
             const valortotattSemAdvogados = valortotatt - (valortotatt * percentualAdvogados);
 
-            if (isPreferenciasParcial) {
-                const parteBeneficiarioNaDividaTotal = valortotattSemAdvogados * percentualBeneficiarioFinal;
-                const maxQueBeneficiarioPodeReceber = Math.min(parteBeneficiarioNaDividaTotal, valorBeneficiarioBruto);
-                
-                cessoesBeneficiarioCalculadas = [];
-                cessoesBeneficiarioFinais = [];
-                
-                for (const cessao of cessoesBeneficiario) {
-                    const parteCessionarioNaDividaTotal = valortotattSemAdvogados * cessao.percentual;
-                    
-                    const cessaoCalculada = {
-                        tipo: cessao.tipo,
-                        cedente: cessao.cedente,
-                        cessionario: cessao.cessionario,
-                        percentual: cessao.percentual,
-                        valorBruto: 0,
-                        valorSaldoDevedor: parteCessionarioNaDividaTotal,
-                        observacao: 'Aguarda pagamento - sem direito à preferência'
-                    };
-                    
-                    const cessaoFinal = {
-                        ...cessaoCalculada,
-                        previdenciaCessao: 0,
-                        irCessao: 0,
-                        valorLiquido: 0
-                    };
-                    
-                    cessoesBeneficiarioCalculadas.push(cessaoCalculada);
-                    cessoesBeneficiarioFinais.push(cessaoFinal);
-                }
+            const deveReceberAgora = !isPreferenciasParcial;
+            const valorPrevidenciaBase = deveReceberAgora ? valorPrevidencia : 0;
+            const valorIRBase = deveReceberAgora ? valorIR : 0;
 
-                valorCessoesBeneficiario = 0; 
-                valorBeneficiarioAposCessoes = maxQueBeneficiarioPodeReceber;
+            cessoesBeneficiarioCalculadas = [];
+            cessoesBeneficiarioFinais = [];
+
+            for (const cessao of cessoesBeneficiario) {
+                // Valor bruto da cessão
+                const valorBrutoCessao = deveReceberAgora ? (valorBeneficiarioBruto * cessao.percentual) : 0;
+                valorCessoesBeneficiario += valorBrutoCessao;
                 
+                const cessaoCalculada = {
+                    tipo: cessao.tipo,
+                    cedente: cessao.cedente,
+                    cessionario: cessao.cessionario,
+                    percentual: cessao.percentual,
+                    valorBruto: valorBrutoCessao,
+                    ...(isPreferenciasParcial && {
+                        valorSaldoDevedor: valortotattSemAdvogados * cessao.percentual,
+                        observacao: 'Aguarda pagamento - sem direito à preferência'
+                    })
+                };
+                
+                const previdenciaCessao = valorPrevidenciaBase * cessao.percentual;
+                const irCessao = valorIRBase * cessao.percentual;
+                const valorLiquidoCessao = valorBrutoCessao - previdenciaCessao - irCessao;
+                
+                const cessaoFinal = {
+                    ...cessaoCalculada,
+                    previdenciaCessao,
+                    irCessao,
+                    valorLiquido: valorLiquidoCessao
+                };
+                
+                cessoesBeneficiarioCalculadas.push(cessaoCalculada);
+                cessoesBeneficiarioFinais.push(cessaoFinal);
+            }
+
+            if (isPreferenciasParcial) {
+                // PREFERÊNCIA PARCIAL: beneficiário limitado pelo teto
+                const parteBeneficiarioNaDividaTotal = valortotattSemAdvogados * percentualBeneficiarioFinal;
+                valorBeneficiarioAposCessoes = Math.min(parteBeneficiarioNaDividaTotal, valorBeneficiarioBruto);
                 valorPrevidenciaBeneficiario = valorPrevidencia;
                 valorIRBeneficiario = valorIR;
-                valorBeneficiarioFinal = maxQueBeneficiarioPodeReceber - valorPrevidenciaBeneficiario - valorIRBeneficiario;
-            } else if (isParcial) {
-                // PAGAMENTO PARCIAL
-                valorCessoesBeneficiario = 0;
-                
-                cessoesBeneficiarioCalculadas = [];
-                cessoesBeneficiarioFinais = [];
-                
-                for (const cessao of cessoesBeneficiario) {
-                    // Para pagamento parcial, calcular sobre o valor líquido do beneficiário (já com honorários descontados)
-                    const valorBrutoCessao = valorBeneficiarioBruto * cessao.percentual;
-                    valorCessoesBeneficiario += valorBrutoCessao;
-                    
-                    const cessaoCalculada = {
-                        tipo: cessao.tipo,
-                        cedente: cessao.cedente,
-                        cessionario: cessao.cessionario,
-                        percentual: cessao.percentual,
-                        valorBruto: valorBrutoCessao
-                    };
-                    
-                    const previdenciaCessao = valorPrevidencia * cessao.percentual;
-                    const irCessao = valorIR* cessao.percentual;
-                    const valorLiquidoCessao = valorBrutoCessao - previdenciaCessao - irCessao;
-                    
-                    const cessaoFinal = {
-                        ...cessaoCalculada,
-                        previdenciaCessao,
-                        irCessao,
-                        valorLiquido: valorLiquidoCessao
-                    };
-                    
-                    cessoesBeneficiarioCalculadas.push(cessaoCalculada);
-                    cessoesBeneficiarioFinais.push(cessaoFinal);
-                }
-                
-                valorBeneficiarioAposCessoes = valorBeneficiarioBruto * percentualBeneficiarioFinal;
-                valorPrevidenciaBeneficiario = valorPrevidencia * percentualBeneficiarioFinal;
-                valorIRBeneficiario = valorIR * percentualBeneficiarioFinal;
-                valorBeneficiarioFinal = valorBeneficiarioAposCessoes - valorPrevidenciaBeneficiario - valorIRBeneficiario;
-
             } else {
-                // PREFERÊNCIA TOTAL OU OUTROS TIPOS 
-                const valorPrevidenciaPorPercentual = valorPrevidencia; 
-                const valorIRPorPercentual = valorIR; 
-                
-                valorCessoesBeneficiario = 0;
-                
-                cessoesBeneficiarioCalculadas = [];
-                cessoesBeneficiarioFinais = [];
-                
-                for (const cessao of cessoesBeneficiario) {
-                    const valorBrutoCessao = valorBeneficiarioBruto * cessao.percentual;
-                    valorCessoesBeneficiario += valorBrutoCessao;
-                    
-                    const cessaoCalculada = {
-                        tipo: cessao.tipo,
-                        cedente: cessao.cedente,
-                        cessionario: cessao.cessionario,
-                        percentual: cessao.percentual,
-                        valorBruto: valorBrutoCessao
-                    };
-                    
-                    const previdenciaCessao = valorPrevidenciaPorPercentual * cessao.percentual;
-                    const irCessao = valorIRPorPercentual * cessao.percentual;
-                    const valorLiquidoCessao = valorBrutoCessao - previdenciaCessao - irCessao;
-                    
-                    const cessaoFinal = {
-                        ...cessaoCalculada,
-                        previdenciaCessao,
-                        irCessao,
-                        valorLiquido: valorLiquidoCessao
-                    };
-                    
-                    cessoesBeneficiarioCalculadas.push(cessaoCalculada);
-                    cessoesBeneficiarioFinais.push(cessaoFinal);
-                }
-                
                 valorBeneficiarioAposCessoes = valorBeneficiarioBruto * percentualBeneficiarioFinal;
                 valorPrevidenciaBeneficiario = valorPrevidencia * percentualBeneficiarioFinal;
                 valorIRBeneficiario = valorIR * percentualBeneficiarioFinal;
-                valorBeneficiarioFinal = valorBeneficiarioAposCessoes - valorPrevidenciaBeneficiario - valorIRBeneficiario;
             }
+
+            valorBeneficiarioFinal = valorBeneficiarioAposCessoes - valorPrevidenciaBeneficiario - valorIRBeneficiario;
 
             return {
                 valorBeneficiarioBruto,
