@@ -3196,10 +3196,12 @@
 
             // PREVIDÊNCIA      
             const resultadoPrevidencia = calcularPrevidenciaIsolada(dados, principal, rrapagamento);
-            let valorPrevidencia = resultadoPrevidencia.valorPrevidencia;
-            let aliquotaEfetiva = resultadoPrevidencia.aliquotaEfetiva;
-            let valorDesagioPrevidencia = resultadoPrevidencia.valorDesagioPrevidencia;       
-            let percentualDesagioPrevidencia = resultadoPrevidencia.percentualDesagioPrevidencia; 
+            let {
+                valorPrevidencia,
+                aliquotaEfetiva,
+                valorDesagioPrevidencia,
+                percentualDesagioPrevidencia
+            } = resultadoPrevidencia;
 
             //Imposto de Renda
             const resultadoIR = calcularIRIsolado(dados, valortotatt, valorBase, principal, valorPrevidencia, rrapagamento);
