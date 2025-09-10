@@ -3800,6 +3800,9 @@
                 
                 if (dados.tipoCalculo === 'preferencia' && dados.natureza === 'alimentar' && herdeiro.temPreferencia) {
                     valorBaseHerdeiro = Math.min(valorAposCessoesHerdeiro, dados.tetoPreferencia);
+                }else if (dados.tipoCalculo === 'parcial') {
+                    const proporcaoParcial = dados.saldoParcial / valortotatt;
+                    valorBaseHerdeiro = valorAposCessoesHerdeiro * proporcaoParcial;
                 }
 
                 // 5. COMPOSIÇÃO INICIAL - Usar percentuais tributáveis quando disponível
@@ -3816,11 +3819,18 @@
                     jurosBaseHerdeiroFinal = valorBaseHerdeiro * percentualjur;
                 }
                 
-                let rrapagamentoHerdeiroBase = dados.rra !== 0 ? arredondarRRA(dados.rra * percentualHerdeiro) : 0;
+                let rrapagamentoHerdeiroBase;
+                if (dados.tipoCalculo === 'parcial') {
+                    const proporcaoParcial = valorBaseHerdeiro / valorTotalHerdeiro;
+                    rrapagamentoHerdeiroBase = dados.rra !== 0 ? arredondarRRA(dados.rra * percentualHerdeiro * proporcaoParcial) : 0;
+                } else {
+                    rrapagamentoHerdeiroBase = dados.rra !== 0 ? arredondarRRA(dados.rra * percentualHerdeiro) : 0;
+                }
 
                 // 6. VERIFICAÇÕES
                 const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && valorBaseHerdeiro < valorTotalHerdeiro;
                 const isPreferencia = dados.tipoCalculo === 'preferencia';
+                const isParcial = dados.tipoCalculo === 'parcial';
                 let valorBaseParaHonorarios = valorBaseHerdeiro;
                 let valorHerdeiroQueRecebeEfetivamente = valorBaseHerdeiro;
 
@@ -3853,7 +3863,29 @@
                     } else {
                         rrapagamentoHerdeiroEfetivo = 0;
                     }
-                } 
+                } else if (isParcial) {
+                    if (dados.tributacaoIR) {
+                        const principalTributadoTotal = dados.tributacaoIR.principalTributado;
+                        const jurosTributadoTotal = dados.tributacaoIR.jurosTributado;
+                        
+                        // Usar a proporção correta baseada no valor base do herdeiro
+                        const proporcaoParcial = valorBaseHerdeiro / valorTotalHerdeiro;
+                        
+                        principalHerdeiroEfetivo = principalTributadoTotal * percentualHerdeiro * proporcaoParcial;
+                        jurosBaseHerdeiroFinal = jurosTributadoTotal * percentualHerdeiro * proporcaoParcial;
+                    } else {
+                        principalHerdeiroEfetivo = valorBaseHerdeiro * percentualprinc;
+                        jurosBaseHerdeiroFinal = valorBaseHerdeiro * percentualjur;
+                    }
+                    
+                    // RRA proporcional
+                    if (dados.rra !== 0) {
+                        const proporcaoParcial = valorBaseHerdeiro / valorTotalHerdeiro;
+                        rrapagamentoHerdeiroEfetivo = arredondarRRA(dados.rra * percentualHerdeiro * proporcaoParcial);
+                    } else {
+                        rrapagamentoHerdeiroEfetivo = 0;
+                    }
+                }
 
                 // 10. PREVIDÊNCIA
                 const resultadoPrevidencia = calcularPrevidenciaIsolada(dados, principalHerdeiroEfetivo, rrapagamentoHerdeiroEfetivo);
