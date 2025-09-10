@@ -7794,7 +7794,9 @@
                 ? resultados.herdeiros.filter(h => h.temPreferencia || h.isPreferenciaParcial)
                 : resultados.herdeiros;
             
-            const herdeirosComPagamentos = herdeirosParaPagar.filter(h => h.valorLiquido > 0);
+            const herdeirosComPagamentos = herdeirosParaPagar.filter(h => {
+                return h.valorLiquido > 0 || (h.cessoesHerdeiro && h.cessoesHerdeiro.length > 0);
+            });
             
             if (herdeirosComPagamentos.length === 0) return '';
             
@@ -7924,13 +7926,15 @@
             const previdencia = temCessoesHerdeiro ? herdeiro.valorPrevidenciaFinal : herdeiro.valorPrevidencia;
             const ir = temCessoesHerdeiro ? herdeiro.valorIRFinal : herdeiro.valorIR;
             
-            pagamentosHerdeiro.push({
-                credor: `${herdeiro.nome} (Herdeiro)`,
-                valorDevido: valorDevido,
-                previdencia: previdencia,
-                ir: ir,
-                valorLiquido: herdeiro.valorLiquido
-            });
+            if (herdeiro.valorLiquido > 0) {
+                pagamentosHerdeiro.push({
+                    credor: `${herdeiro.nome} (Herdeiro)`,
+                    valorDevido: valorDevido,
+                    previdencia: previdencia,
+                    ir: ir,
+                    valorLiquido: herdeiro.valorLiquido
+                });
+            }
             
             // 2. Cessionários do herdeiro (só ordem cronológica)
             if (!isPreferencia && herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0) {
