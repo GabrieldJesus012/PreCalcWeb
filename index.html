@@ -3667,75 +3667,46 @@
             const isAcordo = dados.tipoCalculo === 'acordo';
             const percentualDesagio = dados.percentualAcordo || 0;
             
-            // Verificar se é preferência parcial (não paga sindicatos)
             const isPreferencia = dados.tipoCalculo === 'preferencia';
             const isParcial = dados.tipoCalculo === 'parcial';
+
+            const calcularIRSindicato = (valor, tributacao, aliquotaPersonalizada = 0) => {
+                if (tributacao === 'nao') return 0;
+                if (tributacao === 'lei') return valor * 0.03;
+                if (tributacao === 'fixa') return valor * aliquotaPersonalizada;
+                return 0;
+            };
             
             const sindicatos = dados.sindicatos.map(sind => {
                 const percentualTotalSindicato = sind.percentual;
                 
-                //Sindicato sempre calcula sobre valor total da dívida
                 const valorBaseCalculo = isParcial ? valorBase : valortotatt;
                 const valorBrutoTotal = valorBaseCalculo * percentualTotalSindicato;
                 
-                // Verificar se o sindicato fez cessão
                 const cessaoSind = dados.cessoes?.filter(cessao => 
                     cessao.tipo === 'cessaoSindicato' && cessao.cedente === sind.nome
                 ) || [];
                 
-                // Calcular percentual total cedido pelo sindicato
                 let percentualCessionarioSind = cessaoSind.reduce((total, cessao) => total + cessao.percentual, 0);
                 const percentualSindicato = Math.max(0, percentualTotalSindicato - percentualCessionarioSind);
 
                 const valorBrutoSindicato = valorBrutoTotal * percentualSindicato; 
                 const valorBrutoCessionario = valorBrutoTotal * percentualCessionarioSind; 
 
-                // CALCULAR IR COM DESÁGIO (SE ACORDO)
-                let valorParaIRSindicato = valorBrutoSindicato;
-                let valorParaIRCessionario = valorBrutoCessionario;
+                let valorParaIRSindicato = isAcordo ? valorBrutoSindicato * (1 - percentualDesagio) : valorBrutoSindicato;
+                let valorParaIRCessionario = isAcordo ? valorBrutoCessionario * (1 - percentualDesagio) : valorBrutoCessionario;
                 
-                if (isAcordo) {
-                    valorParaIRSindicato = valorBrutoSindicato * (1 - percentualDesagio);
-                    valorParaIRCessionario = valorBrutoCessionario * (1 - percentualDesagio);
-                }
-
-                let irSindicato = 0;
-                let irCessionarioSind = 0;
+                let irSindicato = calcularIRSindicato(valorParaIRSindicato, sind.tributacao, sind.aliquotaTributacao);
+                let irCessionarioSind = calcularIRSindicato(valorParaIRCessionario, sind.tributacao, sind.aliquotaTributacao);
                 
-                if (sind.tributacao === 'nao') {
-                    // Sem tributação (aliquotaTributacao = 1)
-                    irSindicato = 0;
-                    irCessionarioSind = 0;
-                } else if (sind.tributacao === 'lei') {
-                    // Art. 27, Lei 10.833/03 (aliquotaTributacao = 0.03)
-                    irSindicato = valorParaIRSindicato * 0.03;
-                    irCessionarioSind = valorParaIRCessionario * 0.03;
-                } else if (sind.tributacao === 'fixa') {
-                    // Alíquota fixa personalizada
-                    irSindicato = valorParaIRSindicato * sind.aliquotaTributacao;
-                    irCessionarioSind = valorParaIRCessionario * sind.aliquotaTributacao;
-                }
-
                 const valorLiquidoSindicato = valorBrutoSindicato - irSindicato;
                 const valorLiquidoCessionario = valorBrutoCessionario - irCessionarioSind;
 
-                // Detalhes dos cessionários
                 const cessionarios = cessaoSind.map(cessao => {
                     const valorBrutoCessao = valorBrutoTotal * cessao.percentual; 
-                    let valorParaIRCessao = valorBrutoCessao;
+                    let valorParaIRCessao = isAcordo ? valorBrutoCessao * (1 - percentualDesagio) : valorBrutoCessao;
                     
-                    if (isAcordo) {
-                        valorParaIRCessao = valorBrutoCessao * (1 - percentualDesagio);
-                    }
-                    
-                    let irCessao = 0;
-                    if (sind.tributacao === 'nao') {
-                        irCessao = 0;
-                    } else if (sind.tributacao === 'lei') {
-                        irCessao = valorParaIRCessao * 0.03;
-                    } else if (sind.tributacao === 'fixa') {
-                        irCessao = valorParaIRCessao * sind.aliquotaTributacao;
-                    }
+                    let irCessao = calcularIRSindicato(valorParaIRCessao, sind.tributacao, sind.aliquotaTributacao);
                     
                     return {
                         nome: cessao.cessionario,
@@ -3746,9 +3717,7 @@
                     };
                 });
 
-                // Definir valores efetivos baseado na preferência parcial
                 if (!isPreferencia) {
-                    // Ordem comum 
                     valorSindicatoTotal += valorBrutoTotal;
                 }
 
@@ -3790,12 +3759,10 @@
         }
 
         function calcularHerdeiros(dados, valortotatt, valorprincatt, valorjurosatt, detalhamento,totaisPorTipo = null) {
-            // Se não há herdeiros, retorna array vazio
             if (!dados.herdeiros || dados.herdeiros.length === 0) {
                 return [];
             }
 
-            // Calcular valores totais (como se fosse ordem cronológica)
             const percentualprinc = valorprincatt / valortotatt;
             const percentualjur = valorjurosatt / valortotatt;
             const detalhamentoTotal = calcularTotaisParaHerdeiros(dados, valortotatt, percentualprinc, percentualjur,totaisPorTipo);
@@ -3845,7 +3812,6 @@
                     principalHerdeiroBase = valorBaseHerdeiro * (percentualPrincipalTributado / 100);
                     jurosBaseHerdeiroFinal = valorBaseHerdeiro * (percentualJurosTributado / 100);
                 } else {
-                    // Fallback para percentuais gerais
                     principalHerdeiroBase = valorBaseHerdeiro * percentualprinc;
                     jurosBaseHerdeiroFinal = valorBaseHerdeiro * percentualjur;
                 }
@@ -3887,22 +3853,7 @@
                     } else {
                         rrapagamentoHerdeiroEfetivo = 0;
                     }
-
-                } else if (cessoesHerdeiro.length > 0 && dados.tipoCalculo !== 'ordem') {
-                    if (dados.tributacaoIR) {
-                        const percentualPrincipalTributado = dados.tributacaoIR.percentuais?.principalTributado || 0;
-                        principalHerdeiroEfetivo = valorHerdeiroQueRecebeEfetivamente * (percentualPrincipalTributado / 100);
-                    } else {
-                        principalHerdeiroEfetivo = valorHerdeiroQueRecebeEfetivamente * percentualprinc;
-                    }
-                    
-                    if (dados.rra !== 0) {
-                        const rraCalculado = arredondarRRA((valorHerdeiroQueRecebeEfetivamente * dados.rra) / valorTotalHerdeiro);
-                        rrapagamentoHerdeiroEfetivo = Math.max(1, rraCalculado);
-                    } else {
-                        rrapagamentoHerdeiroEfetivo = 0;
-                    }
-                }
+                } 
 
                 // 10. PREVIDÊNCIA
                 const resultadoPrevidencia = calcularPrevidenciaIsolada(dados, principalHerdeiroEfetivo, rrapagamentoHerdeiroEfetivo);
