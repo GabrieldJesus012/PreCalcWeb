@@ -3374,11 +3374,9 @@
             
             let valorBaseContratual = valorBase;
             
-            // NOVA LÓGICA: Usar totais por tipo calculados
             if (totaisPorTipo && totaisPorTipo.contratual > 0) {
                 const proporcaoContratual = totaisPorTipo.contratual / totaisPorTipo.total;
                 valorBaseContratual = valorBase * proporcaoContratual;
-                
             } else {
                 return { honorarios: [], valorHonorarioTotal: 0 };
             }
@@ -3387,19 +3385,16 @@
                 const percentualTotalAdvogado = adv.percentual;
                 const valorBrutoTotal = valorBaseContratual * percentualTotalAdvogado;
                 
-                // Verificar se o advogado fez cessão
                 const cessaoAdv = dados.cessoes?.filter(cessao => 
                     cessao.tipo === 'cessaoAdv' && cessao.cedente === adv.nome
                 );
                 
-                // Calcular percentual total cedido pelo advogado
                 let percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
                 const percentualAdvogado = Math.max(0, percentualTotalAdvogado - percentualCessionarioAdv);
 
                 const valorBrutoAdvogado = valorBaseContratual * Math.max(0, percentualAdvogado);
                 const valorBrutoCessionario = valorBaseContratual * percentualCessionarioAdv;
 
-                // CALCULAR IR COM DESÁGIO (SE ACORDO)
                 let valorParaIRAdvogado = valorBrutoAdvogado;
                 let valorParaIRCessionario = valorBrutoCessionario;
                 
@@ -3408,19 +3403,13 @@
                     valorParaIRCessionario = valorBrutoCessionario * (1 - percentualDesagio);
                 }
 
-                let irAdvogado = 0;
-                if (adv.tipo === 'PF') {
-                    irAdvogado = calcularIR(valorParaIRAdvogado); 
-                } else {
-                    irAdvogado = valorParaIRAdvogado * 0.015; 
-                }
+                const calcularIRPessoa = (valor) => {
+                    return adv.tipo === 'PF' ? calcularIR(valor) : valor * 0.015;
+                };
 
-                let irCessionarioAdv = 0;
-                if (adv.tipo === 'PF') {
-                    irCessionarioAdv = calcularIR(valorParaIRCessionario); 
-                } else {
-                    irCessionarioAdv = valorParaIRCessionario * 0.015; 
-                }
+                let irAdvogado = calcularIRPessoa(valorParaIRAdvogado);
+
+                let irCessionarioAdv = calcularIRPessoa(valorParaIRCessionario);
 
                 const valorLiquidoAdvogado = valorBrutoAdvogado - irAdvogado;
                 const valorLiquidoCessionario = valorBrutoCessionario - irCessionarioAdv;
@@ -3448,16 +3437,8 @@
                 const valorLiquido = valorLiquidoAdvogado + valorLiquidoCessionario;
 
                 const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
-
-                let valorParaDescontar = valorBrutoTotal;
-                if (isPreferenciaParcial) {
-                    valorParaDescontar = valorBrutoTotal;
-                } else if (isParcial) {
-                    valorParaDescontar = valorBrutoTotal;
-                } else {
-                    valorParaDescontar = valorBrutoTotal;
-                }
-                valorHonorarioTotal += valorParaDescontar;
+                
+                valorHonorarioTotal += valorBrutoTotal;
 
                 // Compatibilidade com código antigo
                 const primeiraCessao = cessaoAdv.length > 0 ? cessaoAdv[0] : null;
