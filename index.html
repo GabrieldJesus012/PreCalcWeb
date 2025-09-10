@@ -3441,7 +3441,7 @@
                 valorHonorarioTotal += valorBrutoTotal;
 
                 // Compatibilidade com código antigo
-                const primeiraCessao = cessaoAdv.length > 0 ? cessaoAdv[0] : null;
+                //const primeiraCessao = cessaoAdv.length > 0 ? cessaoAdv[0] : null;
 
                 return {
                     ...adv,
@@ -3460,9 +3460,10 @@
                     valorLiquidoCessionario,
                     cessionarios,
                     cessoesAdv: cessaoAdv,
-                    // Compatibilidade
-                    cessao: primeiraCessao,
-                    nomeCessionario: primeiraCessao ? primeiraCessao.cessionario : null
+
+                    // Compatibilidade com código antigo
+                    //cessao: primeiraCessao,
+                    //nomeCessionario: primeiraCessao ? primeiraCessao.cessionario : null
                 };
             });
 
