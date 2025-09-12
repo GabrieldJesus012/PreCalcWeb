@@ -2485,8 +2485,8 @@
                 const primeiroDiaMesAtual = new Date(dataReferencia.getFullYear(), dataReferencia.getMonth(), 1);
                 const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
                 const dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
-                const urlipca = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.7478/dados?formato=json&dataInicial=01/12/2021&dataFinal=${dataFinal}`;
-                
+                const urlipca = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.10764/dados?formato=json&dataInicial=01/12/2021&dataFinal=${dataFinal}`;
+                //7478 - ipca 10764 - IPCA.E
                 const response = await fetch(urlipca);
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
@@ -4668,8 +4668,8 @@
                     const totalJurosIPCA = totalJuros * indiceIpca;
                     const jurosFinal = itemCalculado.valorAtualizado?.juros || 0;
 
-                    const temJurosIniciais = item.valorJuros && parseFloat(item.valorJuros) > 0;
-                    const temJurosMora = item.indices.jurosMora && valorJurosMora > 0;
+                    const temJurosIniciais = item.valorJuros && parseFloat(item.valorJuros) !== 0;
+                    const temJurosMora = item.indices.jurosMora && valorJurosMora !== 0;
                     const temAlgumJuros = temJurosIniciais || temJurosMora;
                     
                     // Título e detalhes condicionais
