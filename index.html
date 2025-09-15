@@ -143,11 +143,32 @@
                                     <input type="number" id="valorJuros" step="0.01" placeholder="0.00">
                                 </div>
                             </div>
-                        <!-- <div class="input-group">
-                            <label>Valor Selic (R$):</label>
-                            <input type="number" id="valorSelic" step="0.01" placeholder="0.00">
-                        </div>
-                        -->
+                            <div class="valor-selic-group">
+                                <label>Selic ("%"/ "R$"):</label>
+                                <div class="checkbox-group">
+                                    <div class="checkbox-item">
+                                        <input type="radio" id="selicValor" name="tipoSelic" value="valor" checked>
+                                        <label for="selicValor">Valor em R$</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="radio" id="selicPercentual" name="tipoSelic" value="percentual">
+                                        <label for="selicPercentual">Percentual (%)</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="selic-inputs">
+                                    <div class="input-group" id="campoValorSelic">
+                                        <label for="valorSelic">Valor Selic (R$):</label>
+                                        <input type="number" id="valorSelic" step="0.01" placeholder="0.00">
+                                    </div>
+                                    
+                                    <div class="input-group" id="campoPercentualSelic" style="display: none;">
+                                        <label for="percentualSelic">Percentual Selic (ex: 0.3 para 30%):</label>
+                                        <input type="number" id="percentualSelic" step="0.01" placeholder="0.00">
+                                    </div>
+                                </div>
+                            </div>
                         <div class="input-group">
                             <label for="rra">RRA:</label>
                             <input type="number" id="rra" value="0" min="0">
@@ -544,12 +565,40 @@
             document.getElementById('tipoPrevidencia').dispatchEvent(new Event('change'));
         });
 
+        document.addEventListener('DOMContentLoaded', function() {
+            const radioValor = document.getElementById('selicValor');
+            const radioPercentual = document.getElementById('selicPercentual');
+            const campoValor = document.getElementById('campoValorSelic');
+            const campoPercentual = document.getElementById('campoPercentualSelic');
+            const inputValor = document.getElementById('valorSelic');
+            const inputPercentual = document.getElementById('percentualSelic');
+
+            function alternarCampos() {
+                if (radioValor.checked) {
+                    campoValor.style.display = 'block';
+                    campoPercentual.style.display = 'none';
+                    inputPercentual.value = '';
+                } else {
+                    campoValor.style.display = 'none';
+                    campoPercentual.style.display = 'block';
+                    inputValor.value = '';
+                }
+            }
+
+            radioValor.addEventListener('change', alternarCampos);
+            radioPercentual.addEventListener('change', alternarCampos);
+            
+            alternarCampos();
+        });
+
         // Inicialização dos campos na carga da página
         window.addEventListener('load', function() {
             document.getElementById('tipoCalculo').dispatchEvent(new Event('change'));
             document.getElementById('natureza').dispatchEvent(new Event('change'));
             document.getElementById('incidenciaPrevidencia').dispatchEvent(new Event('change'));
             document.getElementById('tipoPrevidencia').dispatchEvent(new Event('change'));
+            document.getElementById('selicValor').checked = true;
+            document.getElementById('selicValor').dispatchEvent(new Event('change'));
             toggleAbaAcordo();
         });
 
@@ -667,6 +716,10 @@
             const descricao = document.getElementById('descricaoPrincipal').value; 
             const tipoUsoHonorario = document.getElementById('tipoUsoHonorario')?.value || 'ambos';
 
+            const tipoSelic = document.querySelector('input[name="tipoSelic"]:checked')?.value;
+            const valorSelic = parseFloat(document.getElementById('valorSelic').value) || 0;
+            const percentualSelic = parseFloat(document.getElementById('percentualSelic').value) || 0;
+
             if (!anoBase || (!valorPrincipal && !valorJuros)) {
                 alert('Preencha o ano base e pelo menos um valor (principal, juros)');
                 return;
@@ -713,6 +766,9 @@
                 anoBase: parseInt(anoBase),
                 valorPrincipal: parseFloat(valorPrincipal) || 0,
                 valorJuros: parseFloat(valorJuros) || 0,
+                tipoSelic: tipoSelic,
+                valorSelic: tipoSelic === 'valor' ? valorSelic : 0,
+                percentualSelic: tipoSelic === 'percentual' ? percentualSelic : 0,
                 indices,
                 tributacao,
                 descricao: descricao || 'Valor Principal',
@@ -763,6 +819,15 @@
                     'nenhum': 'Sem honorários'
                 }[valor.tipoUsoHonorario] || 'Ambos honorários';
 
+                let selicTexto = '';
+                if (valor.tipoSelic === 'valor' && valor.valorSelic > 0) {
+                    selicTexto = `R$ ${valor.valorSelic.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+                } else if (valor.tipoSelic === 'percentual' && valor.percentualSelic > 0) {
+                    selicTexto = `${(valor.percentualSelic * 100).toFixed(4)}%`;
+                } else {
+                    selicTexto = 'R$ 0,00';
+                }
+
                 div.innerHTML = `
                     <div class="item-header">
                         <strong>${valor.descricao}</strong>
@@ -773,6 +838,7 @@
                         <span><strong>Base:</strong> ${valor.mesBase}/${valor.anoBase}</span>
                         <span><strong>Principal:</strong> R$ ${valor.valorPrincipal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                         <span><strong>Juros:</strong> R$ ${valor.valorJuros.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                        <span><strong>Selic:</strong> ${selicTexto}</span>
                         <span><strong>Índices:</strong> ${indicesTexto}</span>
                         <span><strong>Tributação:</strong> ${tributacaoTexto.join(', ') || 'Nenhuma'}</span>
                         <span><strong>Uso:</strong> ${tipoUsoTexto}</span>
@@ -797,6 +863,22 @@
             document.getElementById('valorJuros').value = valorParaEditar.valorJuros || '';
             document.getElementById('rra').value = valorParaEditar.tributacao.rra || '';
             document.getElementById('tipoUsoHonorario').value = valorParaEditar.tipoUsoHonorario || 'ambos';
+
+            if (valorParaEditar.tipoSelic === 'valor') {
+                document.getElementById('selicValor').checked = true;
+                document.getElementById('valorSelic').value = valorParaEditar.valorSelic || '';
+                document.getElementById('percentualSelic').value = '';
+            } else if (valorParaEditar.tipoSelic === 'percentual') {
+                document.getElementById('selicPercentual').checked = true;
+                document.getElementById('percentualSelic').value = valorParaEditar.percentualSelic || '';
+                document.getElementById('valorSelic').value = '';
+            } else {
+                document.getElementById('selicValor').checked = true;
+                document.getElementById('valorSelic').value = '';
+                document.getElementById('percentualSelic').value = '';
+            }
+            const eventoSelic = new Event('change');
+            document.querySelector('input[name="tipoSelic"]:checked').dispatchEvent(eventoSelic);
 
             document.getElementById('principalCNJ').checked = valorParaEditar.indices.cnj || false;
             document.getElementById('principalSELIC').checked = valorParaEditar.indices.selic || false;
@@ -836,10 +918,15 @@
         function limparFormularioPrincipal() {
             document.getElementById('valorPrincipal').value = '';
             document.getElementById('valorJuros').value = '';
-            //document.getElementById('valorSelic').value = '';
+            document.getElementById('valorSelic').value = '';
+            document.getElementById('percentualSelic').value = '';
             document.getElementById('rra').value = '';
             document.getElementById('descricaoPrincipal').value = ''; 
             document.getElementById('tipoUsoHonorario').value = 'ambos';
+
+            document.getElementById('selicValor').checked = true;
+            const eventoSelic = new Event('change');
+            document.getElementById('selicValor').dispatchEvent(eventoSelic);
         }
 
         // Armazenar
@@ -2594,6 +2681,8 @@
                     valorPrincipal: parseFloat(valor.valorPrincipal) || 0,
                     valorJuros: parseFloat(valor.valorJuros) || 0,
                     valorSelic: parseFloat(valor.valorSelic) || 0,
+                    percentualSelic: parseFloat(valor.percentualSelic) || 0,
+                    tipoSelic: valor.tipoSelic || 'valor',
                     tributacao: {
                         ...valor.tributacao,
                         rra: parseFloat(valor.tributacao.rra) || 0,
@@ -2859,7 +2948,37 @@
             } 
             
             if (item.indices.selic) {
-                dadosSelic = await calcularSelic(dataBase, inicioGraca, fimGraca);
+                const temSelicInformado = (item.tipoSelic === 'valor' && item.valorSelic > 0) || 
+                (item.tipoSelic === 'percentual' && item.percentualSelic > 0);
+                
+                let dataInicioSelic = dataBase;
+
+                if (temSelicInformado) {
+                    dataInicioSelic = new Date(dataBase);
+                    dataInicioSelic.setMonth(dataInicioSelic.getMonth() + 1);
+                }
+
+                dadosSelic = await calcularSelic(dataInicioSelic, inicioGraca, fimGraca);
+
+                let percentualSelicAdicional = 0;
+
+                if (item.tipoSelic === 'valor' && item.valorSelic > 0) {
+                    // Se informou valor em R$, calcular o percentual
+                    const totalBase = item.valorPrincipal + item.valorJuros;
+                    if (totalBase > 0) {
+                        percentualSelicAdicional = item.valorSelic / totalBase;
+                    }
+                } else if (item.tipoSelic === 'percentual' && item.percentualSelic > 0) {
+                    percentualSelicAdicional = item.percentualSelic;
+                }
+                
+                if (percentualSelicAdicional > 0) {
+                    const percentualSelicOriginal = dadosSelic.indiceselic - 1;
+                    
+                    const percentualSelicTotal = percentualSelicOriginal + percentualSelicAdicional;
+                    
+                    dadosSelic.indiceselic = 1 + percentualSelicTotal;
+                }
             } 
             
             if (item.indices.ipca) {
@@ -4643,6 +4762,15 @@
             const fimGracaFormatado = formatarData(fimGraca);
             
             let memoriaisCalculos = '';
+
+            const temSelicInformado = dados.valoresPrincipais?.some(item => 
+                (item.tipoSelic === 'valor' && item.valorSelic > 0) || 
+                (item.tipoSelic === 'percentual' && item.percentualSelic > 0)
+            );
+
+            const temJurosMora = dados.valoresPrincipais?.some(item => 
+                item.indices.jurosMora && (resultados.itensCalculados?.find(calc => calc.id === item.id)?.jurosMoraCalculado || 0) > 0
+            );
             
             // Para cada item, gerar memorial de cálculo individual
             if (dados.valoresPrincipais && dados.valoresPrincipais.length > 0) {
@@ -4784,12 +4912,52 @@
                     `;
                 });
             }
+
+            let notaSelicInformado = '';
+            if (temSelicInformado) {
+                const itensComSelic = dados.valoresPrincipais.filter(item => 
+                    (item.tipoSelic === 'valor' && item.valorSelic > 0) || 
+                    (item.tipoSelic === 'percentual' && item.percentualSelic > 0)
+                );
+                
+                const notasItens = itensComSelic.map(item => {
+                    const itemCalculado = resultados.itensCalculados?.find(calc => calc.id === item.id) || {};
+                    const indiceSelic = itemCalculado.indices?.selic || 1;
+                    
+                    const percentualTotal = ((indiceSelic - 1) * 100).toFixed(2);
+                    
+                    let percentualInformado;
+                    if (item.tipoSelic === 'valor') {
+                        const totalBase = item.valorPrincipal + item.valorJuros;
+                        percentualInformado = totalBase > 0 ? ((item.valorSelic / totalBase) * 100).toFixed(4) : 0;
+                    } else {
+                        percentualInformado = (item.percentualSelic * 100).toFixed(2);
+                    }
+                    
+                    const percentualAutomatico = (parseFloat(percentualTotal) - parseFloat(percentualInformado)).toFixed(2);
+                    
+                    const dataBase = criarDataBase(item.mesBase, item.anoBase);
+                    const dataInicio = new Date(dataBase);
+                    dataInicio.setMonth(dataInicio.getMonth() + 1);
+
+                    const dataAtualizacaoInput = document.getElementById('dataatualizacao').value;
+                    const dataFim = new Date(dataAtualizacaoInput);
+                    
+                    const periodoInicio = `${String(dataInicio.getMonth() + 1).padStart(2, '0')}/${dataInicio.getFullYear()}`;
+                    const periodoFim = `${String(dataFim.getMonth() + 1).padStart(2, '0')}/${dataFim.getFullYear()}`;
+                    
+                    return `SELIC: ${percentualInformado}% Cálculo Homologado (${item.mesBase}/${item.anoBase}) +  ${percentualAutomatico}% (${periodoInicio} a ${periodoFim}) = ${percentualTotal}% total`;
+                }).join('; ');
+                
+                notaSelicInformado = `*${notasItens}.<br>`;
+            }
             
             return `
                 ${memoriaisCalculos}
+                ${(notaSelicInformado || temJurosMora) ? `
                 <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
-                    *Juros calculados de forma simples, conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ e SV nº 17 do STF.
-                </div>
+                    ${notaSelicInformado}${temJurosMora ? '*Juros calculados de forma simples (até Novembro/2021), conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ e SV nº 17 do STF.' : ''}
+                </div>` : ''}
             `;
         }
 
