@@ -167,6 +167,14 @@
                                         <label for="percentualSelic">Percentual Selic (ex: 0.3 para 30%):</label>
                                         <input type="number" id="percentualSelic" step="0.01" placeholder="0.00">
                                     </div>
+
+                                    <div class="input-group" id="campoMesReferencSelic">
+                                        <label for="mesReferenciaSelic">Este valor SELIC refere-se ao:</label>
+                                        <select id="mesReferenciaSelic">
+                                            <option value="mesAnterior">Mês Anterior ao mês base</option>
+                                            <option value="mesmomesBase">Mês base</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         <div class="input-group">
@@ -719,6 +727,7 @@
             const tipoSelic = document.querySelector('input[name="tipoSelic"]:checked')?.value;
             const valorSelic = parseFloat(document.getElementById('valorSelic').value) || 0;
             const percentualSelic = parseFloat(document.getElementById('percentualSelic').value) || 0;
+            const mesReferenciaSelic = document.getElementById('mesReferenciaSelic').value;
 
             if (!anoBase || (!valorPrincipal && !valorJuros)) {
                 alert('Preencha o ano base e pelo menos um valor (principal, juros)');
@@ -769,6 +778,7 @@
                 tipoSelic: tipoSelic,
                 valorSelic: tipoSelic === 'valor' ? valorSelic : 0,
                 percentualSelic: tipoSelic === 'percentual' ? percentualSelic : 0,
+                mesReferenciaSelic: mesReferenciaSelic,
                 indices,
                 tributacao,
                 descricao: descricao || 'Valor Principal',
@@ -839,6 +849,7 @@
                         <span><strong>Principal:</strong> R$ ${valor.valorPrincipal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                         <span><strong>Juros:</strong> R$ ${valor.valorJuros.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                         <span><strong>Selic:</strong> ${selicTexto}</span>
+                        <span><strong>Refere-se ao:</strong> ${valor.mesReferenciaSelic === 'mesAnterior' ? 'Mês anterior' : 'Mesmo mês'}</span>
                         <span><strong>Índices:</strong> ${indicesTexto}</span>
                         <span><strong>Tributação:</strong> ${tributacaoTexto.join(', ') || 'Nenhuma'}</span>
                         <span><strong>Uso:</strong> ${tipoUsoTexto}</span>
@@ -880,6 +891,8 @@
             const eventoSelic = new Event('change');
             document.querySelector('input[name="tipoSelic"]:checked').dispatchEvent(eventoSelic);
 
+            document.getElementById('mesReferenciaSelic').value = valorParaEditar.mesReferenciaSelic || 'mesmomesBase';
+
             document.getElementById('principalCNJ').checked = valorParaEditar.indices.cnj || false;
             document.getElementById('principalSELIC').checked = valorParaEditar.indices.selic || false;
             document.getElementById('principalIPCA').checked = valorParaEditar.indices.ipca || false;
@@ -920,6 +933,7 @@
             document.getElementById('valorJuros').value = '';
             document.getElementById('valorSelic').value = '';
             document.getElementById('percentualSelic').value = '';
+            document.getElementById('mesReferenciaSelic').value = 'mesmomesBase';
             document.getElementById('rra').value = '';
             document.getElementById('descricaoPrincipal').value = ''; 
             document.getElementById('tipoUsoHonorario').value = 'ambos';
@@ -2955,7 +2969,14 @@
 
                 if (temSelicInformado) {
                     dataInicioSelic = new Date(dataBase);
-                    dataInicioSelic.setMonth(dataInicioSelic.getMonth() + 1);
+                    if (item.mesReferenciaSelic === 'mesAnterior') {
+                        // SELIC informado é do mês anterior, então começar da própria data base
+                        dataInicioSelic = new Date(dataBase);
+                    } else {
+                        // SELIC informado é do mesmo mês da data base, então começar do mês seguinte
+                        dataInicioSelic = new Date(dataBase);
+                        dataInicioSelic.setMonth(dataInicioSelic.getMonth() + 1);
+                    }
                 }
 
                 dadosSelic = await calcularSelic(dataInicioSelic, inicioGraca, fimGraca);
@@ -4938,7 +4959,12 @@
                     
                     const dataBase = criarDataBase(item.mesBase, item.anoBase);
                     const dataInicio = new Date(dataBase);
-                    dataInicio.setMonth(dataInicio.getMonth() + 1);
+                    if (item.mesReferenciaSelic === 'mesAnterior') {
+                        
+                    } else {
+                        // Se SELIC informado é do mesmo mês, começar do mês seguinte
+                        dataInicio.setMonth(dataInicio.getMonth() + 1);
+                    }
 
                     const dataAtualizacaoInput = document.getElementById('dataatualizacao').value;
                     const dataFim = new Date(dataAtualizacaoInput);
