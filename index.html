@@ -891,7 +891,7 @@
             const eventoSelic = new Event('change');
             document.querySelector('input[name="tipoSelic"]:checked').dispatchEvent(eventoSelic);
 
-            document.getElementById('mesReferenciaSelic').value = valorParaEditar.mesReferenciaSelic || 'mesmomesBase';
+            document.getElementById('mesReferenciaSelic').value = valorParaEditar.mesReferenciaSelic || 'mesAnterior';
 
             document.getElementById('principalCNJ').checked = valorParaEditar.indices.cnj || false;
             document.getElementById('principalSELIC').checked = valorParaEditar.indices.selic || false;
@@ -933,7 +933,7 @@
             document.getElementById('valorJuros').value = '';
             document.getElementById('valorSelic').value = '';
             document.getElementById('percentualSelic').value = '';
-            document.getElementById('mesReferenciaSelic').value = 'mesmomesBase';
+            document.getElementById('mesReferenciaSelic').value = 'mesAnterior';
             document.getElementById('rra').value = '';
             document.getElementById('descricaoPrincipal').value = ''; 
             document.getElementById('tipoUsoHonorario').value = 'ambos';
