@@ -3017,11 +3017,13 @@
                 quantHerdeiros: cache.getValue('quantHerdeiros', 0, parseInt),
                 quantSindicatos: cache.getValue('quantSindicatos', 0, parseInt),
                 quantCessoes: cache.getValue('quantCessoes', 0, parseInt),
+                quantidadePagamentos: cache.getValue('quantidadePagamentos', 0, parseInt), 
                 
                 advogados: [],
                 herdeiros: [],
                 sindicatos: [],
-                cessoes: []
+                cessoes: [],
+                pagamentos: []
             };
             
             dados.valorTotal = dados.valorPrincipal + dados.valorJuros;
@@ -3041,6 +3043,7 @@
             coletarHerdeiros(dados);
             coletarSindicatos(dados);
             coletarCessoes(dados);
+            coletarPagamentos(dados);
             
             return dados;
         }
@@ -3157,6 +3160,40 @@
                     });
                 }
             }
+        }
+
+        function coletarPagamentos(dados) {
+            const quantidade = parseInt(document.getElementById('quantidadePagamentos')?.value) || 0;
+            dados.pagamentos = [];
+            
+            for (let i = 0; i < quantidade; i++) {
+                const beneficiario = document.getElementById(`pagBeneficiario${i}`)?.value?.trim();
+                const dataBase = document.getElementById(`pagDataBase${i}`)?.value;
+                const valorPrincipal = document.getElementById(`pagValorPrincipal${i}`)?.value;
+                const valorJuros = document.getElementById(`pagValorJuros${i}`)?.value;
+                
+                const selicValorRadio = document.getElementById(`pagSelicValor${i}`);
+                const tipoSelic = selicValorRadio && selicValorRadio.checked ? 'valor' : 'percentual';
+                
+                const valorSelic = document.getElementById(`pagValorSelic${i}`)?.value;
+                const percentualSelic = document.getElementById(`pagPercentualSelic${i}`)?.value;
+                const selicReferencia = document.getElementById(`pagMesReferenciaSelic${i}`)?.value;
+                
+                if (beneficiario && dataBase && (valorPrincipal || valorJuros)) {
+                    dados.pagamentos.push({
+                        beneficiario: beneficiario,
+                        dataBase: dataBase,
+                        valorPrincipal: parseFloat(valorPrincipal) || 0,
+                        valorJuros: parseFloat(valorJuros) || 0,
+                        tipoSelic: tipoSelic,
+                        valorSelic: parseFloat(valorSelic) || 0,
+                        percentualSelic: parseFloat(percentualSelic) || 0,
+                        selicReferencia: selicReferencia || 'mesAnterior'
+                    });
+                }
+            }
+            
+            dados.quantidadePagamentos = dados.pagamentos.length; 
         }
 
         function validarDados(dados) {
