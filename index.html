@@ -3440,6 +3440,156 @@
             return totais;
         }
 
+        async function calcularPagamentos(dados) {
+            console.log('Iniciando cálculo de pagamentos:', dados.pagamentos);
+            
+            if (!dados.pagamentos || dados.pagamentos.length === 0) {
+                console.log('Nenhum pagamento encontrado');
+                return [];
+            }
+            
+            const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
+            console.log('Período da graça:', { inicioGraca, fimGraca });
+            
+            const pagamentosCalculados = [];
+            
+            for (let i = 0; i < dados.pagamentos.length; i++) {
+                const pagamento = dados.pagamentos[i];
+                console.log(`\nCalculando Pagamento ${i + 1}:`, pagamento);
+                
+                try {
+                    const [ano, mes, dia] = pagamento.dataBase.split('-');
+                    const anoBase = parseInt(ano);
+                    const mesNumero = parseInt(mes);
+                    const mesesNomes = ['', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 
+                                    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+                    const mesBase = mesesNomes[mesNumero];
+
+                    const dataBase = criarDataBase(mesBase, anoBase);
+                    console.log('Data base do pagamento:', dataBase.toLocaleDateString('pt-BR'));
+                    
+                    console.log('Mês/Ano base:', mesBase, anoBase);
+                    
+                    let indicesCNJ = 1;
+                    let dadosSelic = { indiceselic: 1 };
+                    let indiceipca = 1;
+                    let jurosmora = 0;
+                    
+                    // 1. CNJ sempre aplicar
+                    indicesCNJ = obterIndiceCNJ(mesBase, anoBase);
+                    console.log('Índice CNJ:', indicesCNJ);
+                    
+                    // 2. SELIC - LÓGICA IGUAL AO calcularItemPrincipal
+                    const temSelicInformado = (pagamento.tipoSelic === 'valor' && pagamento.valorSelic > 0) || 
+                        (pagamento.tipoSelic === 'percentual' && pagamento.percentualSelic > 0);
+                    
+                    let dataInicioSelic = dataBase;
+                    
+                    if (temSelicInformado) {
+                        dataInicioSelic = new Date(dataBase);
+                        if (pagamento.selicReferencia === 'mesAnterior') {
+                            // SELIC informado é do mês anterior, então começar da própria data base
+                            dataInicioSelic = new Date(dataBase);
+                            console.log('SELIC informado do mês anterior, início da SELIC:', dataInicioSelic.toLocaleDateString('pt-BR'));
+                        } else {
+                            // SELIC informado é do mesmo mês da data base, então começar do mês seguinte
+                            dataInicioSelic = new Date(dataBase);
+                            dataInicioSelic.setMonth(dataInicioSelic.getMonth() + 1);
+                            console.log('SELIC informado do mês base, início da SELIC:', dataInicioSelic.toLocaleDateString('pt-BR'));
+                        }
+                    }
+                    
+                    dadosSelic = await calcularSelic(dataInicioSelic, inicioGraca, fimGraca);
+                    console.log('SELIC calculada automaticamente:', dadosSelic.indiceselic);
+                    
+                    let percentualSelicAdicional = 0;
+                    
+                    if (pagamento.tipoSelic === 'valor' && pagamento.valorSelic > 0) {
+                        // Se informou valor em R$, calcular o percentual
+                        const totalBase = pagamento.valorPrincipal + pagamento.valorJuros;
+                        if (totalBase > 0) {
+                            percentualSelicAdicional = pagamento.valorSelic / totalBase;
+                        }
+                        console.log('SELIC por valor - percentual adicional:', percentualSelicAdicional);
+                    } else if (pagamento.tipoSelic === 'percentual' && pagamento.percentualSelic > 0) {
+                        percentualSelicAdicional = pagamento.percentualSelic;
+                        console.log('SELIC por percentual - percentual adicional:', percentualSelicAdicional);
+                    }
+                    
+                    if (percentualSelicAdicional > 0) {
+                        const percentualSelicOriginal = dadosSelic.indiceselic - 1;
+                        const percentualSelicTotal = percentualSelicOriginal + percentualSelicAdicional;
+                        dadosSelic.indiceselic = 1 + percentualSelicTotal;
+                        console.log('SELIC original:', percentualSelicOriginal, 'SELIC adicional:', percentualSelicAdicional, 'SELIC total:', dadosSelic.indiceselic);
+                    }
+                    
+                    // 3. IPCA sempre aplicar
+                    indiceipca = await calcularIpca(dataBase, inicioGraca, fimGraca);
+                    console.log('Índice IPCA:', indiceipca);
+                    
+                    // 4. Juros de mora sempre aplicar
+                    jurosmora = calcularSomaJurosMora(mesBase, anoBase, dados.natureza, inicioGraca, fimGraca) / 100;
+                    console.log('Juros de mora:', jurosmora);
+                    
+                    // Cálculos dos índices compostos
+                    const indiceprinc = indicesCNJ * dadosSelic.indiceselic * indiceipca;
+                    const indicejur = dadosSelic.indiceselic * indiceipca;
+                    console.log('Índice Principal composto:', indiceprinc);
+                    console.log('Índice Juros composto:', indicejur);
+                    
+                    // Cálculo de juros de mora
+                    const valorjurosmora = pagamento.valorPrincipal * indicesCNJ * jurosmora;
+                    const jurosItem = valorjurosmora + (pagamento.valorJuros * indicesCNJ);
+                    console.log('Juros de mora calculado:', valorjurosmora);
+                    console.log('Juros total do item:', jurosItem);
+                    
+                    // Valores atualizados
+                    const valorPrincipalAtualizado = pagamento.valorPrincipal * indiceprinc;
+                    const valorJurosAtualizado = jurosItem * indicejur;
+                    const valorTotalItem = valorPrincipalAtualizado + valorJurosAtualizado;
+                    
+                    console.log('RESULTADOS DO PAGAMENTO:');
+                    console.log('  - Principal atualizado:', valorPrincipalAtualizado.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}));
+                    console.log('  - Juros atualizado:', valorJurosAtualizado.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}));
+                    console.log('  - Total do pagamento:', valorTotalItem.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}));
+                    
+                    const resultado = {
+                        beneficiario: pagamento.beneficiario,
+                        dataBase: pagamento.dataBase,
+                        valorOriginal: {
+                            principal: pagamento.valorPrincipal,
+                            juros: pagamento.valorJuros,
+                            total: pagamento.valorPrincipal + pagamento.valorJuros
+                        },
+                        valorAtualizado: {
+                            principal: valorPrincipalAtualizado,
+                            juros: valorJurosAtualizado,
+                            total: valorTotalItem
+                        },
+                        indices: {
+                            cnj: indicesCNJ,
+                            selic: dadosSelic.indiceselic,
+                            ipca: indiceipca,
+                            jurosMora: jurosmora,
+                            indicePrincipal: indiceprinc,
+                            indiceJuros: indicejur
+                        },
+                        jurosMoraCalculado: valorjurosmora,
+                        selicReferencia: pagamento.selicReferencia,
+                        tipoSelic: pagamento.tipoSelic
+                    };
+                    
+                    pagamentosCalculados.push(resultado);
+                    
+                } catch (error) {
+                    console.error(`Erro ao calcular pagamento ${i + 1}:`, error);
+                }
+            }
+            
+            console.log('Pagamentos calculados:', pagamentosCalculados);
+            return pagamentosCalculados;
+        }
+
         async function calcularValores(dados) {
             if (!dados.valoresPrincipais || dados.valoresPrincipais.length === 0) {
                 console.error('❌ Erro: Nenhum valor principal encontrado!');
@@ -3534,6 +3684,12 @@
             const honorariosSucumbenciais = calcularHonorariosSucumbenciais(dadosParaDetalhamento, totais.valorGeralTotal, totaisPorTipo);
 
             const herdeiros = calcularHerdeiros(dadosParaDetalhamento, totais.valorGeralTotal, totais.valorPrincipalTotal, totais.valorJurosTotal, detalhamento,totaisPorTipo);
+
+            const pagamentosCalculados = await calcularPagamentos(dados);
+
+            const totalPagamentos = pagamentosCalculados.reduce((total, pag) => 
+                total + pag.valorAtualizado.total, 0
+            );
             
             const resultadoFinal = {
                 valorprincatt: totais.valorPrincipalTotal,
