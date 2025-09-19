@@ -24,6 +24,7 @@
                 <button class="tab-button" onclick="showTab('tab3')">👩‍💼 Deduções Acessórias</button>
                 <button class="tab-button" onclick="showTab('tab4')">👥 Herdeiros</button>
                 <button class="tab-button" onclick="showTab('tab5')">🔄 Cessões de Crédito</button>
+                <button class="tab-button" id= "tabPagamento" onclick="showTab('tab9')" style="display: none;">💳 Pagamentos</button>
                 <button class="tab-button" id="tabAcordo" onclick="showTab('tab6')" style="display: none;">🤝 Adesão ao Acordo</button>
                 <button class="tab-button" onclick="showTab('tab7')">📊 Resultados</button>
             </div>
@@ -72,6 +73,13 @@
                                 <option value="preferencia">Preferência</option>
                                 <option value="acordo">Acordo</option>
                                 <option value="parcial">Parcial</option>
+                            </select>
+                        </div>
+                        <div class="input-group" id="perguntaPagamento" style="display: none;">
+                            <label for="houvePagamento">Houve pagamento?</label>
+                            <select id="houvePagamento">
+                                <option value="nao">Não</option>
+                                <option value="sim">Sim</option>
                             </select>
                         </div>
                         <div class="input-group" id="tetoPreferencia" style="display: none;">
@@ -329,6 +337,7 @@
             </div>
         </div>
 
+        <!-- Tab 8: Honorários Sucumbencial -->
         <div id="tab8" class="tab-content">
             <div class="form-section">
                 <div class="form-group">
@@ -356,7 +365,26 @@
                 </div>
             </div>
         </div>  
-        
+
+        <!-- Tab 9: Pagamento -->
+        <div id="tab9" class="tab-content">
+            <div class="form-section">
+                <div class="form-section">
+                    <div class="form-group">
+                        <h3>💳 Configuração dos Pagamentos</h3>
+                        
+                        <div class="input-group">
+                            <label for="quantidadePagamentos">Quantos pagamentos ocorreram?</label>
+                            <input type="number" id="quantidadePagamentos" min="0" value="0">
+                        </div>
+
+                        <div id="listaPagamentos"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botões -->
         <div class="btn-container">
             <button type="button" class="btn btn-secondary" onclick="limparFormulario()">🗑️ Limpar Formulário</button>
             <button type="button" class="btn" onclick="calcular()">🧮 Calcular Valores</button>
@@ -528,6 +556,13 @@
             toggleAbaAcordo();
         });
 
+        document.getElementById('tipoCalculo').addEventListener('change', function() {
+            const tipo = this.value;
+            
+            mostrarOcultar('perguntaPagamento', ['ordem', 'acordo', 'parcial'].includes(tipo));
+            document.getElementById('houvePagamento').addEventListener('change', toggleAbaPagamento);
+        });
+
         document.getElementById('natureza').addEventListener('change', function() {
             const natureza = this.value;
             const tipo = document.getElementById('tipoCalculo').value;
@@ -608,6 +643,7 @@
             document.getElementById('selicValor').checked = true;
             document.getElementById('selicValor').dispatchEvent(new Event('change'));
             toggleAbaAcordo();
+            toggleAbaPagamento();
         });
 
         document.getElementById('somenteHonorarioSucumbencial').addEventListener('change', function() {
@@ -673,6 +709,16 @@
             FormCache.quantCessoes?.addEventListener('change', function() {
                 const quant = parseInt(this.value) || 0;
                 criarCessoes(quant);
+            });
+
+            FormCache.quantidadePagamentos?.addEventListener('change', function() {
+                const quant = parseInt(this.value) || 0;
+                criarElementosFormulario({
+                    container: FormCache.pagamentosContainer,
+                    quantidade: quant,
+                    criarElementoFn: criarElementoPagamento,
+                    tipo: 'pagamentos'
+                });
             });
 
             FormCache.tipoCalculo?.addEventListener('change', function() {
@@ -950,6 +996,7 @@
             herdeiros: [],
             sindicatos: [],
             cessoes: [],
+            pagamentos: [],
             
             salvar(tipo) {
                 switch(tipo) {
@@ -967,6 +1014,9 @@
                         break;
                     case 'cessoes':
                         this.salvarCessoes();
+                        break;
+                    case 'pagamentos': 
+                        this.salvarPagamentos();
                         break;
                     case 'todos':
                         this.salvarTodos();
@@ -1044,6 +1094,26 @@
                     });
                 }
             },
+
+            salvarPagamentos() {
+                this.pagamentos = [];
+                const quantidade = parseInt(document.getElementById('quantidadePagamentos')?.value) || 0;
+                for (let i = 0; i < quantidade; i++) {
+                    const selicValorRadio = document.getElementById(`pagSelicValor${i}`);
+                    const tipoSelic = selicValorRadio && selicValorRadio.checked ? 'valor' : 'percentual';
+                    
+                    this.pagamentos.push({
+                        beneficiario: document.getElementById(`pagBeneficiario${i}`)?.value || '',
+                        dataBase: document.getElementById(`pagDataBase${i}`)?.value || '',
+                        valorPrincipal: document.getElementById(`pagValorPrincipal${i}`)?.value || '',
+                        valorJuros: document.getElementById(`pagValorJuros${i}`)?.value || '',
+                        tipoSelic: tipoSelic,
+                        valorSelic: document.getElementById(`pagValorSelic${i}`)?.value || '',
+                        percentualSelic: document.getElementById(`pagPercentualSelic${i}`)?.value || '',
+                        selicReferencia: document.getElementById(`pagMesReferenciaSelic${i}`)?.value || 'mesAnterior'
+                    });
+                }
+            },
             
             salvarTodos() {
                 this.salvarAdvogados();
@@ -1051,6 +1121,7 @@
                 this.salvarHerdeiros();
                 this.salvarSindicatos();
                 this.salvarCessoes();
+                this.salvarPagamentos();
             },
             
             // Restaurar dados
@@ -1144,6 +1215,40 @@
                         }, 50);
                     }
                 }
+            },
+
+            restaurarPagamentos() {
+                const limite = Math.min(this.pagamentos.length, parseInt(document.getElementById('quantidadePagamentos')?.value) || 0);
+                for (let i = 0; i < limite; i++) {
+                    const dados = this.pagamentos[i];
+
+                    const beneficiario = document.getElementById(`pagBeneficiario${i}`);
+                    const dataBase = document.getElementById(`pagDataBase${i}`);
+                    const valorPrincipal = document.getElementById(`pagValorPrincipal${i}`);
+                    const valorJuros = document.getElementById(`pagValorJuros${i}`);
+                    const selicValorRadio = document.getElementById(`pagSelicValor${i}`);
+                    const selicPercentualRadio = document.getElementById(`pagSelicPercentual${i}`);
+                    const valorSelic = document.getElementById(`pagValorSelic${i}`);
+                    const percentualSelic = document.getElementById(`pagPercentualSelic${i}`);
+                    const selicReferencia = document.getElementById(`pagMesReferenciaSelic${i}`);
+
+                    if (beneficiario) beneficiario.value = dados.beneficiario;
+                    if (dataBase) dataBase.value = dados.dataBase;
+                    if (valorPrincipal) valorPrincipal.value = dados.valorPrincipal;
+                    if (valorJuros) valorJuros.value = dados.valorJuros;
+                    
+                    if (dados.tipoSelic === 'valor') {
+                        if (selicValorRadio) selicValorRadio.checked = true;
+                        if (valorSelic) valorSelic.value = dados.valorSelic;
+                    } else {
+                        if (selicPercentualRadio) selicPercentualRadio.checked = true;
+                        if (percentualSelic) percentualSelic.value = dados.percentualSelic;
+                    }
+                    
+                    if (selicReferencia) selicReferencia.value = dados.selicReferencia;
+                    
+                    toggleSelicPagamento(i);
+                }
             }
         };
         
@@ -1162,6 +1267,9 @@
             advogadosSucumbenciaisContainer: null,
             quantAdvogadosSucumbenciais: null,
             somenteHonorarioSucumbencial: null,
+
+            pagamentosContainer: null,
+            quantidadePagamentos: null,
             
             init() {
                 this.advogadosContainer = document.getElementById('advogadosContainer');
@@ -1178,6 +1286,9 @@
                 this.advogadosSucumbenciaisContainer = document.getElementById('advogadosSucumbenciaisContainer');
                 this.quantAdvogadosSucumbenciais = document.getElementById('quantAdvogadosSucumbenciais');
                 this.somenteHonorarioSucumbencial = document.getElementById('somenteHonorarioSucumbencial');
+
+                this.pagamentosContainer = document.getElementById('listaPagamentos');
+                this.quantidadePagamentos = document.getElementById('quantidadePagamentos');
             }
         };
 
@@ -1201,12 +1312,14 @@
                     quantHerdeiros: document.getElementById('quantHerdeiros'),
                     quantSindicatos: document.getElementById('quantSindicatos'),
                     quantCessoes: document.getElementById('quantCessoes'),
+                    quantidadePagamentos: document.getElementById('quantidadePagamentos'), 
                     
                     // Campos condicionais
                     tetoPreferenciaPrincipal: document.getElementById('tetoPreferenciaPrincipal'),
                     percentualAcordoValor: document.getElementById('percentualAcordoValor'),
                     saldoParcialValor: document.getElementById('saldoParcialValor'),
-                    somenteHonorarioSucumbencial: document.getElementById('somenteHonorarioSucumbencial') 
+                    somenteHonorarioSucumbencial: document.getElementById('somenteHonorarioSucumbencial'),
+                    houvePagamento: document.getElementById('houvePagamento')
                 };
             },
             
@@ -1260,6 +1373,9 @@
                             break;
                         case 'advogadosSucumbenciais':
                             DadosFormulario.restaurarAdvogadosSucumbenciais();
+                            break;
+                        case 'pagamentos': 
+                            DadosFormulario.restaurarPagamentos();
                             break;
                     }
                     callback && callback();
@@ -1481,6 +1597,165 @@
             }
         }
 
+        function criarElementoPagamento(index) {
+            const pagDiv = document.createElement('div');
+            pagDiv.className = 'advogado-item'; 
+            pagDiv.innerHTML = `
+                <div class="advogado-header">Pagamento ${index + 1}</div>
+                <div class="advogado-row">
+                    <div class="input-group">
+                        <label>Beneficiário:</label>
+                        <select id="pagBeneficiario${index}">
+                            <option value="">Selecione o beneficiário...</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="pagDataBase${index}">Data do Pagamento:</label>
+                        <input type="date" id="pagDataBase${index}">
+                    </div>
+                    <div class="input-group">
+                        <label>Valor Principal (R$):</label>
+                        <input type="number" id="pagValorPrincipal${index}" step="0.01" placeholder="0,00">
+                    </div>
+                    <div class="input-group">
+                        <label>Valor Juros (R$):</label>
+                        <input type="number" id="pagValorJuros${index}" step="0.01" placeholder="0,00">
+                    </div>
+                    <div class="valor-selic-group">
+                        <label>Selic ("%"/ "R$"):</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="radio" id="pagSelicValor${index}" name="tipoSelic${index}" value="valor" checked>
+                                <label for="pagSelicValor${index}">Valor em R$</label>
+                            </div>
+                            
+                            <div class="checkbox-item">
+                                <input type="radio" id="pagSelicPercentual${index}" name="tipoSelic${index}" value="percentual">
+                                <label for="pagSelicPercentual${index}">Percentual (%)</label>
+                            </div>
+                        </div>
+                        
+                        <div class="selic-inputs">
+                            <div class="input-group" id="pagCampoValorSelic${index}">
+                                <label for="pagValorSelic${index}">Valor Selic (R$):</label>
+                                <input type="number" id="pagValorSelic${index}" step="0.01" placeholder="0.00">
+                            </div>
+                            
+                            <div class="input-group" id="pagCampoPercentualSelic${index}" style="display: none;">
+                                <label for="pagPercentualSelic${index}">Percentual Selic (ex: 0.3 para 30%):</label>
+                                <input type="number" id="pagPercentualSelic${index}" step="0.01" placeholder="0.00">
+                            </div>
+
+                            <div class="input-group" id="pagCampoMesReferencSelic${index}">
+                                <label for="pagMesReferenciaSelic${index}">Este valor SELIC refere-se ao:</label>
+                                <select id="pagMesReferenciaSelic${index}">
+                                    <option value="mesAnterior">Mês Anterior ao mês base</option>
+                                    <option value="mesmomesBase">Mês base</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const valorRadio = pagDiv.querySelector(`#pagSelicValor${index}`);
+            const percentualRadio = pagDiv.querySelector(`#pagSelicPercentual${index}`);
+            
+            valorRadio.addEventListener('change', () => toggleSelicPagamento(index));
+            percentualRadio.addEventListener('change', () => toggleSelicPagamento(index));
+
+            setTimeout(() => popularBeneficiariosPagamento(index), 10);
+            
+            return pagDiv;
+        }
+
+        function toggleSelicPagamento(index) {
+            const valorRadio = document.getElementById(`pagSelicValor${index}`);
+            const campoValor = document.getElementById(`pagCampoValorSelic${index}`);
+            const campoPercentual = document.getElementById(`pagCampoPercentualSelic${index}`);
+            const inputValor = document.getElementById(`pagValorSelic${index}`);
+            const inputPercentual = document.getElementById(`pagPercentualSelic${index}`);
+            
+            if (valorRadio && valorRadio.checked) {
+                campoValor.style.display = 'block';
+                campoPercentual.style.display = 'none';
+                
+                if (inputPercentual) {
+                    inputPercentual.value = '';
+                }
+            } else {
+                campoValor.style.display = 'none';
+                campoPercentual.style.display = 'block';
+                
+                if (inputValor) {
+                    inputValor.value = '';
+                }
+            }
+        }
+
+        function popularBeneficiariosPagamento(index) {
+            const beneficiarioSelect = document.getElementById(`pagBeneficiario${index}`);
+            if (!beneficiarioSelect) return;
+            
+            const valorAtual = beneficiarioSelect.value;
+            
+            beneficiarioSelect.innerHTML = '<option value="">Selecione o beneficiário...</option>';
+            
+            const { advogados, advogadosSucumbenciais, herdeiros, sindicatos } = CessaoCache.getQuantidades();
+            
+            // Beneficiário Principal
+            const beneficiario = document.getElementById('beneficiario')?.value?.trim();
+            if (beneficiario) {
+                beneficiarioSelect.innerHTML += `<option value="${beneficiario}">${beneficiario} (Beneficiário Principal)</option>`;
+            }
+            
+            // Advogados
+            for (let i = 0; i < advogados; i++) {
+                const nome = document.getElementById(`advNome${i}`)?.value?.trim();
+                if (nome) {
+                    beneficiarioSelect.innerHTML += `<option value="${nome}">${nome} (Advogado)</option>`;
+                }
+            }
+            
+            // Advogados Sucumbenciais
+            for (let i = 0; i < advogadosSucumbenciais; i++) {
+                const nome = document.getElementById(`advSucNome${i}`)?.value?.trim();
+                if (nome) {
+                    beneficiarioSelect.innerHTML += `<option value="${nome}">${nome} (Adv. Sucumbencial)</option>`;
+                }
+            }
+            
+            // Herdeiros
+            for (let i = 0; i < herdeiros; i++) {
+                const nome = document.getElementById(`herdNome${i}`)?.value?.trim();
+                if (nome) {
+                    beneficiarioSelect.innerHTML += `<option value="${nome}">${nome} (Herdeiro)</option>`;
+                }
+            }
+            
+            // Sindicatos
+            for (let i = 0; i < sindicatos; i++) {
+                const nome = document.getElementById(`sindNome${i}`)?.value?.trim();
+                if (nome) {
+                    beneficiarioSelect.innerHTML += `<option value="${nome}">${nome} (Sindicato)</option>`;
+                }
+            }
+            
+            // Cessionários 
+            const quantCessoes = parseInt(document.getElementById('quantCessoes')?.value) || 0;
+            for (let i = 0; i < quantCessoes; i++) {
+                const nome = document.getElementById(`cessionarioNome${i}`)?.value?.trim();
+                if (nome) {
+                    beneficiarioSelect.innerHTML += `<option value="${nome}">${nome} (Cessionário)</option>`;
+                }
+            }
+            
+            // Restaurar valor se ainda existir
+            if (valorAtual) {
+                beneficiarioSelect.value = valorAtual;
+            }
+        }
+
         function limparFormulario() {
             // Limpar cache
             DadosFormulario.advogados = [];
@@ -1488,6 +1763,7 @@
             DadosFormulario.herdeiros = [];
             DadosFormulario.sindicatos = [];
             DadosFormulario.cessoes = [];
+            DadosFormulario.pagamentos = [];
 
             valoresPrincipais = [];
             const listaValoresPrincipais = document.getElementById('listaValoresPrincipais');
@@ -1502,7 +1778,8 @@
                 { element: FormCache.quantAdvogadosSucumbenciais, container: FormCache.advogadosSucumbenciaisContainer },
                 { element: FormCache.quantHerdeiros, container: FormCache.herdeirosContainer },
                 { element: FormCache.quantSindicatos, container: FormCache.sindicatosContainer },
-                { element: FormCache.quantCessoes, container: document.getElementById('cessaoContainer') }
+                { element: FormCache.quantCessoes, container: document.getElementById('cessaoContainer') },
+                { element: FormCache.quantidadePagamentos, container: FormCache.pagamentosContainer }
             ];
             
             containersConfig.forEach(({ element, container }) => {
@@ -1516,16 +1793,19 @@
             }
 
             document.getElementById('somenteHonorarioSucumbencial').checked = false;
+            document.getElementById('houvePagamento').value = 'nao';
 
             // Limpar cache se necessário
             if (ColetaCache.elementos) {
                 ColetaCache.elementos.somenteHonorarioSucumbencial.checked = false;
+                ColetaCache.elementos.houvePagamento.value = 'nao';
             }
             
             limparNotasExplicativas();
 
             showTab('tab1');
             toggleAbaAcordo();
+            toggleAbaPagamento();
 
             document.getElementById('tipoCalculo').dispatchEvent(new Event('change'));
         }
@@ -1670,7 +1950,17 @@
                     }
                 });
             }
+
+            atualizarTodosBeneficiariosPagamentos();
         }
+
+        function atualizarTodosBeneficiariosPagamentos() {
+            const quantPagamentos = parseInt(document.getElementById('quantidadePagamentos')?.value) || 0;
+            
+            for (let i = 0; i < quantPagamentos; i++) {
+                popularBeneficiariosPagamento(i);
+            }
+        }   
 
         function criarOpcoesTipoCessao(quantAdvogados,quantAdvogadosSucumbenciais, quantHerdeiros, quantSindicatos) {
             if (quantAdvogados === undefined) {
@@ -1765,6 +2055,23 @@
                 const cessaoTipoElement = document.getElementById(`cessaoTipo${i}`);
                 if (cessaoTipoElement?.value) {
                     atualizarCedentes(i);
+                }
+            }
+        }
+
+        //pagamentos
+        function toggleAbaPagamento() {
+            const houvePagamento = document.getElementById('houvePagamento').value;
+            const tabPagamento = document.getElementById('tabPagamento');
+            
+            if (houvePagamento === 'sim') {
+                tabPagamento.style.display = 'block';
+            } else {
+                tabPagamento.style.display = 'none';
+                
+                const abaPagamentoAtiva = document.getElementById('tab9');
+                if (abaPagamentoAtiva && abaPagamentoAtiva.classList.contains('active')) {
+                    showTab('tab1');
                 }
             }
         }

@@ -1104,6 +1104,45 @@ tr.highlight {
     display: inline-block !important;
 }
 
+#tab9 #listaPagamentos .advogado-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important; 
+    gap: 20px !important;
+    align-items: end !important;
+}
+
+#tab9 #listaPagamentos .valor-selic-group {
+    grid-column: 1 / -1 !important; 
+    width: 100% !important;
+}
+
+#tab9 #listaPagamentos .checkbox-group {
+    display: flex !important;
+    gap: 20px !important;
+    margin: 1px 0 12px 0 !important;
+    background: #F5F1E8 !important;
+    padding: 12px !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(197, 165, 114, 0.3) !important;
+}
+
+#tab9 #listaPagamentos .checkbox-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+#tab9 #listaPagamentos .selic-inputs {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important; 
+    gap: 20px !important;
+    align-items: end !important;
+}
+
+#tab9 #listaPagamentos .input-group {
+    margin-bottom: 0px !important; 
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
     .header h1 {
