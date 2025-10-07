@@ -3441,21 +3441,16 @@
         }
 
         async function calcularPagamentos(dados) {
-            console.log('Iniciando cálculo de pagamentos:', dados.pagamentos);
-            
             if (!dados.pagamentos || dados.pagamentos.length === 0) {
-                console.log('Nenhum pagamento encontrado');
                 return [];
             }
             
             const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
-            console.log('Período da graça:', { inicioGraca, fimGraca });
             
             const pagamentosCalculados = [];
             
             for (let i = 0; i < dados.pagamentos.length; i++) {
                 const pagamento = dados.pagamentos[i];
-                console.log(`\nCalculando Pagamento ${i + 1}:`, pagamento);
                 
                 try {
                     const [ano, mes, dia] = pagamento.dataBase.split('-');
@@ -3466,9 +3461,6 @@
                     const mesBase = mesesNomes[mesNumero];
 
                     const dataBase = criarDataBase(mesBase, anoBase);
-                    console.log('Data base do pagamento:', dataBase.toLocaleDateString('pt-BR'));
-                    
-                    console.log('Mês/Ano base:', mesBase, anoBase);
                     
                     let indicesCNJ = 1;
                     let dadosSelic = { indiceselic: 1 };
@@ -3477,9 +3469,8 @@
                     
                     // 1. CNJ sempre aplicar
                     indicesCNJ = obterIndiceCNJ(mesBase, anoBase);
-                    console.log('Índice CNJ:', indicesCNJ);
                     
-                    // 2. SELIC - LÓGICA IGUAL AO calcularItemPrincipal
+                    // 2. SELIC 
                     const temSelicInformado = (pagamento.tipoSelic === 'valor' && pagamento.valorSelic > 0) || 
                         (pagamento.tipoSelic === 'percentual' && pagamento.percentualSelic > 0);
                     
@@ -3490,17 +3481,14 @@
                         if (pagamento.selicReferencia === 'mesAnterior') {
                             // SELIC informado é do mês anterior, então começar da própria data base
                             dataInicioSelic = new Date(dataBase);
-                            console.log('SELIC informado do mês anterior, início da SELIC:', dataInicioSelic.toLocaleDateString('pt-BR'));
                         } else {
                             // SELIC informado é do mesmo mês da data base, então começar do mês seguinte
                             dataInicioSelic = new Date(dataBase);
                             dataInicioSelic.setMonth(dataInicioSelic.getMonth() + 1);
-                            console.log('SELIC informado do mês base, início da SELIC:', dataInicioSelic.toLocaleDateString('pt-BR'));
                         }
                     }
                     
                     dadosSelic = await calcularSelic(dataInicioSelic, inicioGraca, fimGraca);
-                    console.log('SELIC calculada automaticamente:', dadosSelic.indiceselic);
                     
                     let percentualSelicAdicional = 0;
                     
@@ -3510,48 +3498,34 @@
                         if (totalBase > 0) {
                             percentualSelicAdicional = pagamento.valorSelic / totalBase;
                         }
-                        console.log('SELIC por valor - percentual adicional:', percentualSelicAdicional);
                     } else if (pagamento.tipoSelic === 'percentual' && pagamento.percentualSelic > 0) {
                         percentualSelicAdicional = pagamento.percentualSelic;
-                        console.log('SELIC por percentual - percentual adicional:', percentualSelicAdicional);
                     }
                     
                     if (percentualSelicAdicional > 0) {
                         const percentualSelicOriginal = dadosSelic.indiceselic - 1;
                         const percentualSelicTotal = percentualSelicOriginal + percentualSelicAdicional;
                         dadosSelic.indiceselic = 1 + percentualSelicTotal;
-                        console.log('SELIC original:', percentualSelicOriginal, 'SELIC adicional:', percentualSelicAdicional, 'SELIC total:', dadosSelic.indiceselic);
                     }
                     
                     // 3. IPCA sempre aplicar
                     indiceipca = await calcularIpca(dataBase, inicioGraca, fimGraca);
-                    console.log('Índice IPCA:', indiceipca);
                     
                     // 4. Juros de mora sempre aplicar
                     jurosmora = calcularSomaJurosMora(mesBase, anoBase, dados.natureza, inicioGraca, fimGraca) / 100;
-                    console.log('Juros de mora:', jurosmora);
                     
                     // Cálculos dos índices compostos
                     const indiceprinc = indicesCNJ * dadosSelic.indiceselic * indiceipca;
                     const indicejur = dadosSelic.indiceselic * indiceipca;
-                    console.log('Índice Principal composto:', indiceprinc);
-                    console.log('Índice Juros composto:', indicejur);
                     
                     // Cálculo de juros de mora
                     const valorjurosmora = pagamento.valorPrincipal * indicesCNJ * jurosmora;
                     const jurosItem = valorjurosmora + (pagamento.valorJuros * indicesCNJ);
-                    console.log('Juros de mora calculado:', valorjurosmora);
-                    console.log('Juros total do item:', jurosItem);
                     
                     // Valores atualizados
                     const valorPrincipalAtualizado = pagamento.valorPrincipal * indiceprinc;
                     const valorJurosAtualizado = jurosItem * indicejur;
                     const valorTotalItem = valorPrincipalAtualizado + valorJurosAtualizado;
-                    
-                    console.log('RESULTADOS DO PAGAMENTO:');
-                    console.log('  - Principal atualizado:', valorPrincipalAtualizado.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}));
-                    console.log('  - Juros atualizado:', valorJurosAtualizado.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}));
-                    console.log('  - Total do pagamento:', valorTotalItem.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}));
                     
                     const resultado = {
                         beneficiario: pagamento.beneficiario,
@@ -3586,7 +3560,6 @@
                 }
             }
             
-            console.log('Pagamentos calculados:', pagamentosCalculados);
             return pagamentosCalculados;
         }
 
@@ -3723,6 +3696,9 @@
                 temHerdeiros: herdeiros.length > 0,
 
                 honorariosSucumbenciais,
+
+                pagamentos: pagamentosCalculados,
+                totalPagamentos: totalPagamentos,
                 
                 indiceTotal,
                 percentualprinc,
@@ -5059,6 +5035,8 @@
                     ${gerarSecaoDeducoesAcessorias(resultados, dados)}
                     ${gerarSecaoCessoesSindicatos(resultados, dados)}
                     ${gerarSecaoCessoesAdvogados(resultados, dados)}
+
+                    ${gerarSecaoPagamentosOcorridos(resultados, dados)}
 
                     ${gerarSecaoCessoesBeneficiario(resultados, dados)}
                     ${temHerdeiros ? gerarSecaoHerdeiros(resultados, dados) : ''}
@@ -6869,6 +6847,128 @@
                     </div>
                 `;
             }
+        }
+
+        function gerarSecaoPagamentosOcorridos(resultados, dados) {
+            if (!resultados.pagamentos || resultados.pagamentos.length === 0) {
+                return '';
+            }
+
+            const pagamentosPorBeneficiario = {};
+            resultados.pagamentos.forEach(pag => {
+                if (!pagamentosPorBeneficiario[pag.beneficiario]) {
+                    pagamentosPorBeneficiario[pag.beneficiario] = [];
+                }
+                pagamentosPorBeneficiario[pag.beneficiario].push(pag);
+            });
+
+            let htmlLinhas = '';
+
+            Object.keys(pagamentosPorBeneficiario).forEach(beneficiario => {
+                const pagamentosDoBeneficiario = pagamentosPorBeneficiario[beneficiario];
+                
+                pagamentosDoBeneficiario.forEach(pag => {
+                    const dataFormatada = new Date(pag.dataBase + 'T00:00:00').toLocaleDateString('pt-BR');
+                    
+                    const pagamentoOriginal = dados.pagamentos.find(p => 
+                        p.beneficiario === pag.beneficiario && 
+                        p.dataBase === pag.dataBase
+                    );
+                    
+                    let valorOriginalPago = pag.valorOriginal.principal + pag.valorOriginal.juros;
+                    
+                    let detalhamentoGrid = `
+                        <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; margin-top: 6px; font-size: 0.85em; color: #666;">
+                            <span>Principal:</span>
+                            <span style="text-align: right;">R$ ${formatarMoeda(pag.valorOriginal.principal)}</span>
+                            <span>Juros:</span>
+                            <span style="text-align: right;">R$ ${formatarMoeda(pag.valorOriginal.juros)}</span>
+                    `;
+                    
+                    if (pagamentoOriginal) {
+                        if (pagamentoOriginal.tipoSelic === 'valor' && pagamentoOriginal.valorSelic > 0) {
+                            const valorSelicInformado = pagamentoOriginal.valorSelic;
+                            valorOriginalPago += valorSelicInformado;
+                            detalhamentoGrid += `
+                                <span>SELIC:</span>
+                                <span style="text-align: right;">R$ ${formatarMoeda(valorSelicInformado)}</span>
+                            `;
+                        } else if (pagamentoOriginal.tipoSelic === 'percentual' && pagamentoOriginal.percentualSelic > 0) {
+                            const percentualSelicInformado = pagamentoOriginal.percentualSelic;
+                            const valorSelicCalculado = (pag.valorOriginal.principal + pag.valorOriginal.juros) * percentualSelicInformado;
+                            valorOriginalPago += valorSelicCalculado;
+                            detalhamentoGrid += `
+                                <span>SELIC (${(percentualSelicInformado * 100).toFixed(2)}%):</span>
+                                <span style="text-align: right;">R$ ${formatarMoeda(valorSelicCalculado)}</span>
+                            `;
+                        }
+                    }
+                    
+                    detalhamentoGrid += `</div>`;
+                    
+                    const detalhesIndices = [];
+                    
+                    if (pag.indices.cnj && pag.indices.cnj !== 1) {
+                        detalhesIndices.push(`CNJ: ${(pag.indices.cnj).toFixed(6)}`);
+                    }
+                    
+                    if (pag.indices.selic && pag.indices.selic !== 1) {
+                        const percentualSelic = ((pag.indices.selic - 1) * 100).toFixed(2);
+                        detalhesIndices.push(`SELIC: ${percentualSelic}%`);
+                    }
+                    
+                    if (pag.indices.ipca && pag.indices.ipca !== 1) {
+                        detalhesIndices.push(`IPCA: ${(pag.indices.ipca).toFixed(6)}`);
+                    }
+                    
+                    if (pag.indices.jurosMora && pag.indices.jurosMora > 0) {
+                        const percentualMora = (pag.indices.jurosMora * 100).toFixed(4);
+                        detalhesIndices.push(`J.Mora: ${percentualMora}%`);
+                    }
+                    
+                    const indicesTexto = detalhesIndices.length > 0 ? 
+                        detalhesIndices.join(' | ') : 
+                        'Sem correção';
+
+                    htmlLinhas += `
+                        <tr>
+                            <td>${beneficiario}</td>
+                            <td>${dataFormatada}</td>
+                            <td>
+                                <strong style="font-size: 1.05em;">R$ ${formatarMoeda(valorOriginalPago)}</strong>
+                                ${detalhamentoGrid}
+                            </td>
+                            <td>${indicesTexto}</td>
+                            <td><strong>R$ ${formatarMoeda(pag.valorAtualizado.total)}</strong></td>
+                        </tr>
+                    `;
+                });
+            });
+
+            return `
+                <div class="deducoes-acessorias">
+                    <div class="table-container">
+                        <h3>💳 Pagamentos Ocorridos</h3>
+                        <div class="explicacao-juridica">
+                            <div class="titulo">Entenda os Pagamentos Ocorridos</div>
+                            <p><strong>Valores Pagos:</strong> Montantes que já foram pagos aos beneficiários em datas anteriores.</p>
+                            <p><strong>Atualização Monetária:</strong> Os valores foram corrigidos desde a data do pagamento até a data de atualização do cálculo.</p>
+                            <p><strong>Desconto Necessário:</strong> Estes valores devem ser deduzidos dos montantes devidos atualmente.</p>
+                        </div>
+                        
+                        <table>
+                            <tr>
+                                <th>Beneficiário</th>
+                                <th>Data do Pagamento</th>
+                                <th>Valor Original Pago</th>
+                                <th>Índices Aplicados</th>
+                                <th>Valor Atualizado</th>
+                            </tr>
+                            ${htmlLinhas}
+                        </table>
+                    </div>
+                </div>
+            `;
         }
 
         function gerarSecaoDeducoes(resultados, dados) {
