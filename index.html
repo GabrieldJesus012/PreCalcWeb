@@ -392,95 +392,6 @@
     </div>
 
     <script>
-        //Modelo Sindifaz
-        function configurarSindiFaz() {
-            if (!confirm("Configurar dados padrão do SindiFaz?")) return;
-            try {
-            const dados = {
-                advogados: [
-                    ["FURTADO COELHO ADVOGADOS ASSOCIADOS", "PJ", 0.16],
-                    ["FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "PF", 0.06],
-                    ["ADAUTO FORTES ADVOGADOS ASSOCIADOS", "PJ", 0.02666667],
-                    ["JUAREZ CHAVES DE AZEVEDO JUNIOR - SOCIEDADE INDIVIDUAL DE ADVOCACIA", "PJ", 0.013333333]
-                ],
-                cessoes: [
-                    ["cessaoAdv", "FURTADO COELHO ADVOGADOS ASSOCIADOS", "LAGUZ I FIDC NP", 0.02],
-                    ["cessaoAdv", "FURTADO COELHO ADVOGADOS ASSOCIADOS", "DOMUS OCTANTE I FIDC LTDA", 0.02],
-                    ["cessaoAdv", "ADAUTO FORTES ADVOGADOS ASSOCIADOS", "LAGUZ I FIDC NP", 0.0063],
-                    ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "LAGUZ I FIDC NP", 0.01],
-                    ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "REAG LEGAL CLAIMS FIDC NP", 0.01],
-                    ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "FLAVIA CEOLIN LOPES PIANA", 0.00444],
-                    ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "FJ CONSULTORIA LTDA", 0.001653],
-                    ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "ISA MARIA LEME OPPENHEIMER BORGES", 0.003907],
-                    ["cessaoSindicato", "Sindifaz", "TABARE FIDC NP", 0.5],
-                    ["cessaoSindicato", "Sindifaz", "ZEFIROS I FIDC NP", 0.5]
-                ]
-            };
-            
-            preencherSindiFaz(dados);
-            alert("✅ SindiFaz configurado!");
-                
-            } catch (error) {
-                alert("❌ Erro ao configurar.");
-            }
-        }
-
-        function preencherSindiFaz(dados) {
-            const definir = (id, valor) => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.value = valor;
-                    el.dispatchEvent(new Event('change'));
-                }
-            };
-            
-            // 1. Advogados
-            definir('quantAdvogados', dados.advogados.length);
-            setTimeout(() => {
-                dados.advogados.forEach(([nome, tipo, perc], i) => {
-                    definir(`advNome${i}`, nome);
-                    definir(`advTipo${i}`, tipo);
-                    definir(`advPercentual${i}`, perc);
-                });
-            }, 100);
-            
-            // 2. Sindicato
-            definir('quantSindicatos', 1);
-            setTimeout(() => {
-                definir('sindNome0', 'Sindifaz');
-                definir('sindPercentual0', 0.01);
-                definir('sindTrib0', 'nao');
-            }, 200);
-            
-            // 3. Cessões
-            definir('quantCessoes', dados.cessoes.length);
-            setTimeout(() => {
-                dados.cessoes.forEach(([tipo, cedente, cessionario, perc], i) => {
-                    definir(`cessaoTipo${i}`, tipo);
-                    setTimeout(() => {
-                        definir(`cedenteNome${i}`, cedente);
-                        definir(`cessionarioNome${i}`, cessionario);
-                        definir(`cessaoPercentual${i}`, perc);
-                    }, 50);
-                });
-            }, 300);
-            
-            // 4. Configurações padrão
-            setTimeout(() => {
-                definir('natureza', 'alimentar');
-                definir('incidenciaIR', 'sim');
-                definir('incidenciaPrevidencia', 'sim');
-
-                setTimeout(() => {
-                    definir('tipoPrevidencia', 'fixa');
-                    definir('aliquotaFixa', 0.08); 
-                    definir('anoOrcamento', 2020);
-                    definir('mesBase', 'fevereiro');
-                    definir('anoBase', 2018);
-                }, 100);
-            }, 400);
-        }
-
         function showTab(tabId) {
             const allTabs = document.querySelectorAll('.tab-content');
             const allButtons = document.querySelectorAll('.tab-button');
@@ -527,20 +438,18 @@
 
         // Event listeners
         document.getElementById('dataBase').addEventListener('change', function() {
-            const dataBase = this.value; // formato: "2025-09-11"
+            const dataBase = this.value; 
             
             if (dataBase) {
-                // Usar split para evitar problemas de timezone
                 const [ano, mes, dia] = dataBase.split('-');
-                const mesNumero = parseInt(mes); // 09 vira 9
+                const mesNumero = parseInt(mes); 
                 
                 const meses = [
                     'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
                     'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
                 ];
                 
-                // Atualizar campos escondidos
-                document.getElementById('mesBase').value = meses[mesNumero - 1]; // -1 porque array começa em 0
+                document.getElementById('mesBase').value = meses[mesNumero - 1]; 
                 document.getElementById('anoBase').value = ano;
             }
         });
@@ -590,20 +499,16 @@
         });
 
         document.addEventListener('DOMContentLoaded', function() {
-            // 1. Configurações iniciais
             const anoAtual = new Date().getFullYear();
             document.getElementById('anoBase').value = anoAtual;
             document.getElementById('anoOrcamento').value = anoAtual;
             
-            // 2. Inicializar todos os caches
             FormCache.init();
             CessaoCache.init();
             ColetaCache.init();
             
-            // 3. Configurar event listeners
             initializeFormEventListeners();
             
-            // 4. Disparar eventos iniciais
             document.getElementById('incidenciaPrevidencia').dispatchEvent(new Event('change'));
             document.getElementById('tipoPrevidencia').dispatchEvent(new Event('change'));
         });
@@ -722,13 +627,12 @@
             });
 
             FormCache.tipoCalculo?.addEventListener('change', function() {
-                // Salvar dados dos herdeiros ANTES
                 DadosFormulario.salvarHerdeiros();
                 
-                // Apenas atualizar visibilidade dos campos de preferência
                 atualizarVisibilidadePreferencia();
                 atualizarVisibilidadePreferenciaSucumbencial();
             });
+            
             // Beneficiário
             FormCache.beneficiario?.addEventListener('change', atualizarOpcoesCessao);
         }
@@ -4084,9 +3988,6 @@
                 
                 valorHonorarioTotal += valorBrutoTotal;
 
-                // Compatibilidade com código antigo
-                //const primeiraCessao = cessaoAdv.length > 0 ? cessaoAdv[0] : null;
-
                 return {
                     ...adv,
                     valorBruto,
@@ -4104,10 +4005,6 @@
                     valorLiquidoCessionario,
                     cessionarios,
                     cessoesAdv: cessaoAdv,
-
-                    // Compatibilidade com código antigo
-                    //cessao: primeiraCessao,
-                    //nomeCessionario: primeiraCessao ? primeiraCessao.cessionario : null
                 };
             });
 
@@ -5292,6 +5189,8 @@
                 html += `
                     ${gerarSecaoHonorariosSucumbenciais(resultados, dados)}
                     ${gerarSecaoCessoesHonorariosSucumbenciais(resultados, dados)}
+                    ${gerarSecaoPagamentosOcorridos(resultados, dados)}
+                    ${gerarDemonstrativoSaldoRemanescente(resultados)}
                     ${gerarTabelaHonorariosSucumbenciais(resultados, dados)}
                     <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
                         <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
@@ -5310,6 +5209,7 @@
                     ${gerarSecaoCessoesAdvogados(resultados, dados)}
 
                     ${gerarSecaoPagamentosOcorridos(resultados, dados)}
+                    ${gerarDemonstrativoSaldoRemanescente(resultados)}
 
                     ${gerarSecaoCessoesBeneficiario(resultados, dados)}
                     ${temHerdeiros ? gerarSecaoHerdeiros(resultados, dados) : ''}
@@ -7239,6 +7139,125 @@
                             </tr>
                             ${htmlLinhas}
                         </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function gerarDemonstrativoSaldoRemanescente(resultados) {
+            if (!resultados.saldosFinais) {
+                return '';
+            }
+            
+            const saldos = resultados.saldosFinais;
+            let htmlLinhas = '';
+            
+            // 1. Beneficiário Principal
+            if (saldos.beneficiarioPrincipal) {
+                const benef = saldos.beneficiarioPrincipal;
+                htmlLinhas += `
+                    <tr>
+                        <td>${benef.nome} (Beneficiário Principal)</td>
+                        <td>R$ ${formatarMoeda(benef.valorBruto)}</td>
+                        <td>R$ ${formatarMoeda(benef.pagamento)}</td>
+                        <td><strong>R$ ${formatarMoeda(benef.saldo)}</strong></td>
+                    </tr>
+                `;
+            }
+            
+            // 2. Herdeiros
+            if (saldos.herdeiros && saldos.herdeiros.length > 0) {
+                saldos.herdeiros.forEach(herd => {
+                    htmlLinhas += `
+                        <tr>
+                            <td>${herd.nome} (Herdeiro)</td>
+                            <td>R$ ${formatarMoeda(herd.valorBruto)}</td>
+                            <td>R$ ${formatarMoeda(herd.pagamento)}</td>
+                            <td><strong>R$ ${formatarMoeda(herd.saldo)}</strong></td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            // 3. Advogados
+            if (saldos.advogados && saldos.advogados.length > 0) {
+                saldos.advogados.forEach(adv => {
+                    htmlLinhas += `
+                        <tr>
+                            <td>${adv.nome} (Advogado ${adv.tipo})</td>
+                            <td>R$ ${formatarMoeda(adv.valorBruto)}</td>
+                            <td>R$ ${formatarMoeda(adv.pagamento)}</td>
+                            <td><strong>R$ ${formatarMoeda(adv.saldo)}</strong></td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            // 4. Advogados Sucumbenciais
+            if (saldos.advogadosSucumbenciais && saldos.advogadosSucumbenciais.length > 0) {
+                saldos.advogadosSucumbenciais.forEach(advSuc => {
+                    htmlLinhas += `
+                        <tr>
+                            <td>${advSuc.nome} (Adv. Sucumbencial ${advSuc.tipo})</td>
+                            <td>R$ ${formatarMoeda(advSuc.valorBruto)}</td>
+                            <td>R$ ${formatarMoeda(advSuc.pagamento)}</td>
+                            <td><strong>R$ ${formatarMoeda(advSuc.saldo)}</strong></td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            // 5. Sindicatos
+            if (saldos.sindicatos && saldos.sindicatos.length > 0) {
+                saldos.sindicatos.forEach(sind => {
+                    htmlLinhas += `
+                        <tr>
+                            <td>${sind.nome} (Sindicato)</td>
+                            <td>R$ ${formatarMoeda(sind.valorBruto)}</td>
+                            <td>R$ ${formatarMoeda(sind.pagamento)}</td>
+                            <td><strong>R$ ${formatarMoeda(sind.saldo)}</strong></td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            // 6. Cessionários
+            if (saldos.cessionarios && saldos.cessionarios.length > 0) {
+                saldos.cessionarios.forEach(cess => {
+                    htmlLinhas += `
+                        <tr>
+                            <td>${cess.nome} (${cess.tipo})</td>
+                            <td>R$ ${formatarMoeda(cess.valorBruto)}</td>
+                            <td>R$ ${formatarMoeda(cess.pagamento)}</td>
+                            <td><strong>R$ ${formatarMoeda(cess.saldo)}</strong></td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            return `
+                <div class="pagamentos-finais">
+                    <div class="table-container">
+                        <h3>📊 Demonstrativo do Saldo Remanescente</h3>
+                        <table>
+                            <tr>
+                                <th>Beneficiário</th>
+                                <th>Valor Antes do Pagamento (Bruto)</th>
+                                <th>(-) Valor Pago</th>
+                                <th>Saldo Remanescente (Bruto)</th>
+                            </tr>
+                            ${htmlLinhas}
+                            <tr class="highlight">
+                                <td><strong>TOTAL</strong></td>
+                                <td><strong>R$ ${formatarMoeda(saldos.totalGeralOriginal)}</strong></td>
+                                <td><strong>R$ ${formatarMoeda(saldos.totalGeralOriginal - saldos.totalGeralBruto)}</strong></td>
+                                <td><strong>R$ ${formatarMoeda(saldos.totalGeralBruto)}</strong></td>
+                            </tr>
+                        </table>
+                        
+                        <div style="margin-top: 15px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+                            <strong>⚠️ Observação:</strong> Os valores de IR e Previdência serão calculados sobre o saldo remanescente.
+                        </div>
                     </div>
                 </div>
             `;
@@ -9790,6 +9809,97 @@
                 </div>
             `;
         }
+
+        //Modelo Sindifaz - um processo padrão com varias cessoes
+        function configurarSindiFaz() {
+            if (!confirm("Configurar dados padrão do SindiFaz?")) return;
+            try {
+            const dados = {
+                advogados: [
+                    ["FURTADO COELHO ADVOGADOS ASSOCIADOS", "PJ", 0.16],
+                    ["FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "PF", 0.06],
+                    ["ADAUTO FORTES ADVOGADOS ASSOCIADOS", "PJ", 0.02666667],
+                    ["JUAREZ CHAVES DE AZEVEDO JUNIOR - SOCIEDADE INDIVIDUAL DE ADVOCACIA", "PJ", 0.013333333]
+                ],
+                cessoes: [
+                    ["cessaoAdv", "FURTADO COELHO ADVOGADOS ASSOCIADOS", "LAGUZ I FIDC NP", 0.02],
+                    ["cessaoAdv", "FURTADO COELHO ADVOGADOS ASSOCIADOS", "DOMUS OCTANTE I FIDC LTDA", 0.02],
+                    ["cessaoAdv", "ADAUTO FORTES ADVOGADOS ASSOCIADOS", "LAGUZ I FIDC NP", 0.0063],
+                    ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "LAGUZ I FIDC NP", 0.01],
+                    ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "REAG LEGAL CLAIMS FIDC NP", 0.01],
+                    ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "FLAVIA CEOLIN LOPES PIANA", 0.00444],
+                    ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "FJ CONSULTORIA LTDA", 0.001653],
+                    ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "ISA MARIA LEME OPPENHEIMER BORGES", 0.003907],
+                    ["cessaoSindicato", "Sindifaz", "TABARE FIDC NP", 0.5],
+                    ["cessaoSindicato", "Sindifaz", "ZEFIROS I FIDC NP", 0.5]
+                ]
+            };
+            
+            preencherSindiFaz(dados);
+            alert("✅ SindiFaz configurado!");
+                
+            } catch (error) {
+                alert("❌ Erro ao configurar.");
+            }
+        }
+
+        function preencherSindiFaz(dados) {
+            const definir = (id, valor) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.value = valor;
+                    el.dispatchEvent(new Event('change'));
+                }
+            };
+            
+            // 1. Advogados
+            definir('quantAdvogados', dados.advogados.length);
+            setTimeout(() => {
+                dados.advogados.forEach(([nome, tipo, perc], i) => {
+                    definir(`advNome${i}`, nome);
+                    definir(`advTipo${i}`, tipo);
+                    definir(`advPercentual${i}`, perc);
+                });
+            }, 100);
+            
+            // 2. Sindicato
+            definir('quantSindicatos', 1);
+            setTimeout(() => {
+                definir('sindNome0', 'Sindifaz');
+                definir('sindPercentual0', 0.01);
+                definir('sindTrib0', 'nao');
+            }, 200);
+            
+            // 3. Cessões
+            definir('quantCessoes', dados.cessoes.length);
+            setTimeout(() => {
+                dados.cessoes.forEach(([tipo, cedente, cessionario, perc], i) => {
+                    definir(`cessaoTipo${i}`, tipo);
+                    setTimeout(() => {
+                        definir(`cedenteNome${i}`, cedente);
+                        definir(`cessionarioNome${i}`, cessionario);
+                        definir(`cessaoPercentual${i}`, perc);
+                    }, 50);
+                });
+            }, 300);
+            
+            // 4. Configurações padrão
+            setTimeout(() => {
+                definir('natureza', 'alimentar');
+                definir('incidenciaIR', 'sim');
+                definir('incidenciaPrevidencia', 'sim');
+
+                setTimeout(() => {
+                    definir('tipoPrevidencia', 'fixa');
+                    definir('aliquotaFixa', 0.08); 
+                    definir('anoOrcamento', 2020);
+                    definir('mesBase', 'fevereiro');
+                    definir('anoBase', 2018);
+                    definir('dataBase', '2018-02-01');
+                }, 100);
+            }, 400);
+        }
+
     </script>
     <footer class="footer">
         <div class="footer-content">
