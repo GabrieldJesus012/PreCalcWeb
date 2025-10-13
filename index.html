@@ -4693,10 +4693,7 @@
         }
 
         function calcularSaldoFinalComPagamentos(resultados, pagamentosCalculados, dados) {
-            console.log('🧮 Iniciando cálculo de saldos após pagamentos...');
-            
             if (!pagamentosCalculados || pagamentosCalculados.length === 0) {
-                console.log('❌ Nenhum pagamento para deduzir');
                 return null;
             }
             
@@ -4708,9 +4705,7 @@
                 }
                 pagamentosPorBeneficiario[pag.beneficiario].totalPago += pag.valorAtualizado.total;
             });
-            
-            console.log('📊 Pagamentos mapeados:', pagamentosPorBeneficiario);
-            
+                        
             // 2. Estrutura de saldos finais
             const saldosFinais = {
                 beneficiarioPrincipal: null,
@@ -4958,8 +4953,475 @@
             
             saldosFinais.totalLiquido = saldosFinais.totalGeralBruto - saldosFinais.previdenciaTotal - saldosFinais.irTotal;
             
-            console.log('✅ Saldos finais:', saldosFinais);
             return saldosFinais;
+        }
+
+        function ajustarResultadosComPagamentos(resultados, dados) {
+            if (!resultados.saldosFinais) {
+                return resultados;
+            }
+            
+            const saldos = resultados.saldosFinais;
+            const resultadosAjustados = JSON.parse(JSON.stringify(resultados));
+            
+            if (saldos.totalGeralBruto > 0 && saldos.totalGeralOriginal > 0) {
+                const proporcao = saldos.totalGeralBruto / saldos.totalGeralOriginal;
+                
+                // Ajustar valores globais
+                resultadosAjustados.principal = saldos.principalTotal;
+                resultadosAjustados.valorBase = saldos.totalGeralBruto;
+                resultadosAjustados.valortotatt = saldos.totalGeralBruto;
+                resultadosAjustados.rrapagamento = saldos.rraAjustado || saldos.rraOriginal;
+                
+                // Recalcular Previdência
+                if (dados.incidenciaPrevidencia || 
+                    (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.previdencia))) {
+                    
+                    const resultadoPrevCompleto = calcularPrevidenciaIsolada(
+                        dados,
+                        resultadosAjustados.principal,
+                        resultadosAjustados.rrapagamento
+                    );
+                    
+                    resultadosAjustados.valorPrevidencia = resultadoPrevCompleto.valorPrevidencia;
+                    resultadosAjustados.aliquotaEfetiva = resultadoPrevCompleto.aliquotaEfetiva;
+                    resultadosAjustados.valorDesagioPrevidencia = resultadoPrevCompleto.valorDesagioPrevidencia;
+                    resultadosAjustados.percentualDesagioPrevidencia = resultadoPrevCompleto.percentualDesagioPrevidencia;
+                }
+                
+                // Recalcular IR
+                const temIR = dados.incidenciaIR || 
+                    (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.ir === true));
+
+                if (temIR && (dados.tipoBeneficiario === 'pj' || resultadosAjustados.rrapagamento !== 0)) {
+                    
+                    const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+                    const percentualTotalSind = dados.tipoCalculo === 'preferencia' ? 0 : 
+                        dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
+                    
+                    if (dados.natureza === 'comum' && dados.tipoBeneficiario === 'pj') {
+                        // Pessoa Jurídica
+                        const resultadoIRCompleto = calcularIRIsolado(
+                            dados,
+                            resultadosAjustados.valortotatt,
+                            resultadosAjustados.valorBase,
+                            resultadosAjustados.principal,
+                            resultadosAjustados.valorPrevidencia,
+                            resultadosAjustados.rrapagamento
+                        );
+                        
+                        resultadosAjustados.valorIR = resultadoIRCompleto.valorIR;
+                        resultadosAjustados.aliquotaIR = resultadoIRCompleto.aliquotaIR;
+                        resultadosAjustados.baseIRHonora = resultadoIRCompleto.baseIRHonora;
+                        resultadosAjustados.baseIRSindi = resultadoIRCompleto.baseIRSindi;
+                        resultadosAjustados.baseIRPrev = resultadoIRCompleto.baseIRPrev;
+                        resultadosAjustados.baseIRRRA = resultadoIRCompleto.baseIRRRA;
+                        resultadosAjustados.valorIRUnitario = resultadoIRCompleto.valorIRUnitario;
+                        resultadosAjustados.principalComDesagio = resultadoIRCompleto.principalComDesagio;
+                        resultadosAjustados.percentualDesagioIR = resultadoIRCompleto.percentualDesagioIR;
+                        resultadosAjustados.rraComDesagio = resultadoIRCompleto.rraComDesagio;
+                    } else {
+                        // Pessoa Física
+                        const valorHonorariosParaIR = resultadosAjustados.principal * percentualTotalAdv;
+                        const baseIRHonora = resultadosAjustados.principal - valorHonorariosParaIR;
+                        
+                        const valorSindicatosParaIR = resultadosAjustados.principal * percentualTotalSind;
+                        const baseIRSindi = baseIRHonora - valorSindicatosParaIR;
+                        
+                        let principalComDesagio = baseIRSindi;
+                        let percentualDesagioIR = 0;
+                        if (dados.tipoCalculo === 'acordo') {
+                            percentualDesagioIR = dados.percentualAcordo || 0;
+                            const valorDesagioIR = baseIRSindi * percentualDesagioIR;
+                            principalComDesagio = baseIRSindi - valorDesagioIR;
+                        }
+                        
+                        const baseIRPrev = principalComDesagio - resultadosAjustados.valorPrevidencia;
+                        const rraComDesagio = resultadosAjustados.rrapagamento > 0 ? 
+                            Math.max(1, resultadosAjustados.rrapagamento) : 0;
+                        const baseIRRRA = rraComDesagio > 0 ? baseIRPrev / rraComDesagio : baseIRPrev;
+                        
+                        const valorIRUnitario = calcularIR(baseIRRRA);
+                        const valorIR = valorIRUnitario * rraComDesagio;
+                        const aliquotaIR = obterAliquotaIR(baseIRRRA);
+                        
+                        resultadosAjustados.valorIR = valorIR;
+                        resultadosAjustados.aliquotaIR = aliquotaIR;
+                        resultadosAjustados.baseIRHonora = baseIRHonora;
+                        resultadosAjustados.baseIRSindi = baseIRSindi;
+                        resultadosAjustados.baseIRPrev = baseIRPrev;
+                        resultadosAjustados.baseIRRRA = baseIRRRA;
+                        resultadosAjustados.valorIRUnitario = valorIRUnitario;
+                        resultadosAjustados.principalComDesagio = principalComDesagio;
+                        resultadosAjustados.percentualDesagioIR = percentualDesagioIR;
+                        resultadosAjustados.rraComDesagio = rraComDesagio;
+                    }
+                }
+                
+                // Ajustar Beneficiário Principal
+                if (saldos.beneficiarioPrincipal && saldos.beneficiarioPrincipal.saldo > 0) {
+                    resultadosAjustados.valorBeneficiarioAposCessoes = saldos.beneficiarioPrincipal.saldo;
+                    
+                    if (resultados.valorPrevidenciaBeneficiario) {
+                        resultadosAjustados.valorPrevidenciaBeneficiario = resultados.valorPrevidenciaBeneficiario * proporcao;
+                    }
+                    if (resultados.valorIRBeneficiario) {
+                        resultadosAjustados.valorIRBeneficiario = resultados.valorIRBeneficiario * proporcao;
+                    }
+                }
+
+                // Ajustar Advogados
+                if (saldos.advogados && saldos.advogados.length > 0 && resultadosAjustados.honorarios) {
+                    resultadosAjustados.honorarios = resultadosAjustados.honorarios.map(adv => {
+                        const saldoAdv = saldos.advogados.find(a => a.nome === adv.nome);
+                        
+                        if (!saldoAdv || saldoAdv.saldo <= 0) {
+                            return adv;
+                        }
+                        
+                        // RECALCULAR IR respeitando incidenciaIR
+                        let novoIR = 0;
+                        if (saldoAdv.saldo > 0) {
+                            novoIR = adv.tipo === 'PF' ? calcularIR(saldoAdv.saldo) : saldoAdv.saldo * 0.015;
+                        }
+                        
+                        return {
+                            ...adv,
+                            valorBrutoAdvogado: saldoAdv.saldo,
+                            irAdvogado: novoIR,
+                            valorLiquidoAdvogado: saldoAdv.saldo - novoIR
+                        };
+                    });
+                }
+
+                // Ajustar Advogados Sucumbenciais
+                if (saldos.advogadosSucumbenciais && saldos.advogadosSucumbenciais.length > 0 && 
+                    resultadosAjustados.honorariosSucumbenciais?.honorarios) {
+                    resultadosAjustados.honorariosSucumbenciais.honorarios = resultadosAjustados.honorariosSucumbenciais.honorarios.map(advSuc => {
+                        const saldoAdvSuc = saldos.advogadosSucumbenciais.find(a => a.nome === advSuc.nome);
+                        
+                        if (!saldoAdvSuc || saldoAdvSuc.saldo <= 0) {
+                            return advSuc;
+                        }
+                        
+                        // RECALCULAR IR respeitando incidenciaIR
+                        let novoIR = 0;
+                        if (adv.incidenciaIR && saldoAdvSuc.saldo > 0) {
+                            novoIR = advSuc.tipo === 'PF' ? calcularIR(saldoAdvSuc.saldo) : saldoAdvSuc.saldo * 0.015;
+                        }
+                        
+                        return {
+                            ...advSuc,
+                            valorBrutoAdvogado: saldoAdvSuc.saldo,
+                            irAdvogado: novoIR,
+                            valorLiquidoAdvogado: saldoAdvSuc.saldo - novoIR
+                        };
+                    });
+                }
+
+                // Ajustar Sindicatos
+                if (saldos.sindicatos && saldos.sindicatos.length > 0 && resultadosAjustados.sindicatos) {
+                    resultadosAjustados.sindicatos = resultadosAjustados.sindicatos.map(sind => {
+                        const saldoSind = saldos.sindicatos.find(s => s.nome === sind.nome);
+                        
+                        if (!saldoSind || saldoSind.saldo <= 0) {
+                            return sind;
+                        }
+                        
+                        // RECALCULAR IR do sindicato (usar a lógica original)
+                        let novoIR = 0;
+                        if (sind.tipoTributacao === 'pj') {
+                            novoIR = saldoSind.saldo * 0.015; // PJ: 1,5%
+                        } else if (sind.aliquotaFixaIR) {
+                            novoIR = saldoSind.saldo * sind.aliquotaFixaIR; // Alíquota fixa
+                        } else {
+                            novoIR = saldoSind.saldo * 0.015; // Padrão: 1,5%
+                        }
+                        
+                        return {
+                            ...sind,
+                            valorBrutoSindicato: saldoSind.saldo,
+                            irSindicato: novoIR,
+                            valorLiquidoSindicato: saldoSind.saldo - novoIR
+                        };
+                    });
+                }
+                
+                // Ajustar Herdeiros
+                if (saldos.herdeiros && saldos.herdeiros.length > 0 && resultadosAjustados.herdeiros) {
+                    resultadosAjustados.herdeiros = resultadosAjustados.herdeiros.map((herd, index) => {
+                        const saldoHerd = saldos.herdeiros[index];
+                        
+                        if (!saldoHerd || saldoHerd.saldo <= 0) {
+                            return herd;
+                        }
+                        
+                        const proporcaoHerd = saldoHerd.saldo / saldoHerd.valorBruto;
+                        
+                        const herdAjustado = {
+                            ...herd,
+                            principal: herd.principal * proporcaoHerd,
+                            valorTotal: saldoHerd.saldo,
+                            valorBruto: saldoHerd.saldo,
+                            valorLiquido: herd.valorLiquido ? herd.valorLiquido * proporcaoHerd : saldoHerd.saldo
+                        };
+                        
+                        if (dados.incidenciaPrevidencia || 
+                            (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.previdencia))) {
+                            
+                            const resultadoPrevHerd = calcularPrevidenciaIsolada(
+                                dados,
+                                herdAjustado.principal,
+                                herd.rrapagamento
+                            );
+                            
+                            herdAjustado.valorPrevidencia = resultadoPrevHerd.valorPrevidencia;
+                            herdAjustado.aliquotaEfetiva = resultadoPrevHerd.aliquotaEfetiva;
+                            herdAjustado.valorDesagioPrevidencia = resultadoPrevHerd.valorDesagioPrevidencia;
+                            herdAjustado.percentualDesagioPrevidencia = resultadoPrevHerd.percentualDesagioPrevidencia;
+                        }
+                        
+                        if (temIR && herd.rrapagamento !== 0) {
+                            const resultadoIRHerd = calcularIRIsolado(
+                                dados,
+                                herdAjustado.valorTotal,
+                                herdAjustado.valorTotal,
+                                herdAjustado.principal,
+                                herdAjustado.valorPrevidencia,
+                                herd.rrapagamento
+                            );
+                            
+                            herdAjustado.valorIR = resultadoIRHerd.valorIR;
+                            herdAjustado.aliquotaIR = resultadoIRHerd.aliquotaIR;
+                            herdAjustado.baseIRHonora = resultadoIRHerd.baseIRHonora;
+                            herdAjustado.baseIRSindi = resultadoIRHerd.baseIRSindi;
+                            herdAjustado.baseIRPrev = resultadoIRHerd.baseIRPrev;
+                            herdAjustado.baseIRRRA = resultadoIRHerd.baseIRRRA;
+                            herdAjustado.valorIRUnitario = resultadoIRHerd.valorIRUnitario;
+                        }
+                        
+                        return herdAjustado;
+                    });
+                }
+
+                if (saldos.cessionarios && saldos.cessionarios.length > 0) {
+                    // Cessionários do Beneficiário
+                    if (resultadosAjustados.cessoesBeneficiarioFinais) {
+                        resultadosAjustados.cessoesBeneficiarioFinais = resultadosAjustados.cessoesBeneficiarioFinais.map(cess => {
+                            const saldoCess = saldos.cessionarios.find(c => 
+                                c.nome === cess.cessionario && 
+                                c.tipo === 'Cessionário do Beneficiário'
+                            );
+                            
+                            if (!saldoCess || saldoCess.saldo <= 0) {
+                                return cess; // Não teve pagamento, mantém original
+                            }
+                            
+                            // RECALCULAR Previdência sobre o novo valor
+                            const principalCess = saldoCess.saldo * (resultados.percentualprinc || 0.5);
+                            const rraCess = resultadosAjustados.rrapagamento || resultados.rrapagamento;
+                            
+                            const resultadoPrevCess = calcularPrevidenciaIsolada(dados, principalCess, rraCess);
+                            const novaPrevidencia = resultadoPrevCess.valorPrevidencia;
+                            
+                            // RECALCULAR IR sobre o novo valor
+                            const temIR = dados.incidenciaIR || 
+                                (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.ir === true));
+                            
+                            let novoIR = 0;
+                            if (temIR && rraCess !== 0) {
+                                const resultadoIRCess = calcularIRIsolado(
+                                    dados,
+                                    saldoCess.saldo,
+                                    saldoCess.saldo,
+                                    principalCess,
+                                    novaPrevidencia,
+                                    rraCess
+                                );
+                                novoIR = resultadoIRCess.valorIR;
+                            }
+                            
+                            return {
+                                ...cess,
+                                valorBruto: saldoCess.saldo,
+                                previdenciaCessao: novaPrevidencia,
+                                irCessao: novoIR,
+                                valorLiquido: saldoCess.saldo - novaPrevidencia - novoIR
+                            };
+                        });
+                    }
+                    
+                    // Cessionários de Advogados
+                    if (resultadosAjustados.honorarios) {
+                        resultadosAjustados.honorarios = resultadosAjustados.honorarios.map(adv => {
+                            if (!adv.cessionarios || adv.cessionarios.length === 0) {
+                                return adv;
+                            }
+                            
+                            return {
+                                ...adv,
+                                cessionarios: adv.cessionarios.map(cess => {
+                                    const saldoCess = saldos.cessionarios.find(c => 
+                                        c.nome === cess.nome && 
+                                        c.cedente === adv.nome &&
+                                        (c.tipo === 'Cessionário de Advogado' || c.tipo.includes('Advogado'))
+                                    );
+                                    
+                                    if (!saldoCess || saldoCess.saldo <= 0) {
+                                        return cess; // Não teve pagamento, mantém original
+                                    }
+                                    
+                                    // RECALCULAR IR (advogados contratuais SEMPRE têm IR)
+                                    const novoIRCess = adv.tipo === 'PF' ? calcularIR(saldoCess.saldo) : saldoCess.saldo * 0.015;
+                                    
+                                    return {
+                                        ...cess,
+                                        valorBruto: saldoCess.saldo,
+                                        ir: novoIRCess,
+                                        valorLiquido: saldoCess.saldo - novoIRCess
+                                    };
+                                })
+                            };
+                        });
+                    }
+                    
+                    // Cessionários de Advogados Sucumbenciais
+                    if (resultadosAjustados.honorariosSucumbenciais?.honorarios) {
+                        resultadosAjustados.honorariosSucumbenciais.honorarios = resultadosAjustados.honorariosSucumbenciais.honorarios.map(advSuc => {
+                            if (!advSuc.cessionarios || advSuc.cessionarios.length === 0) {
+                                return advSuc;
+                            }
+                            
+                            return {
+                                ...advSuc,
+                                cessionarios: advSuc.cessionarios.map(cess => {
+                                    const saldoCess = saldos.cessionarios.find(c => 
+                                        c.nome === cess.nome && 
+                                        c.cedente === advSuc.nome &&
+                                        c.tipo === 'Cessionário de Adv. Sucumbencial'
+                                    );
+                                    
+                                    if (!saldoCess || saldoCess.saldo <= 0) {
+                                        return cess; // Não teve pagamento, mantém original
+                                    }
+                                    
+                                    // RECALCULAR IR respeitando incidenciaIR
+                                    let novoIRCess = 0;
+                                    if (advSuc.incidenciaIR && saldoCess.saldo > 0) {
+                                        novoIRCess = advSuc.tipo === 'PF' ? calcularIR(saldoCess.saldo) : saldoCess.saldo * 0.015;
+                                    }
+                                    
+                                    return {
+                                        ...cess,
+                                        valorBruto: saldoCess.saldo,
+                                        ir: novoIRCess,
+                                        valorLiquido: saldoCess.saldo - novoIRCess
+                                    };
+                                })
+                            };
+                        });
+                    }
+                    
+                    // Cessionários de Sindicatos
+                    if (resultadosAjustados.sindicatos) {
+                        resultadosAjustados.sindicatos = resultadosAjustados.sindicatos.map(sind => {
+                            if (!sind.cessionarios || sind.cessionarios.length === 0) {
+                                return sind;
+                            }
+                            
+                            return {
+                                ...sind,
+                                cessionarios: sind.cessionarios.map(cess => {
+                                    const saldoCess = saldos.cessionarios.find(c => 
+                                        c.nome === cess.nome && 
+                                        c.cedente === sind.nome &&
+                                        c.tipo === 'Cessionário de Sindicato'
+                                    );
+                                    
+                                    if (!saldoCess || saldoCess.saldo <= 0) {
+                                        return cess; // Não teve pagamento, mantém original
+                                    }
+                                    
+                                    // RECALCULAR IR do cessionário (mesma regra do sindicato)
+                                    let novoIRCess = 0;
+                                    if (sind.tipoTributacao === 'pj') {
+                                        novoIRCess = saldoCess.saldo * 0.015;
+                                    } else if (sind.aliquotaFixaIR) {
+                                        novoIRCess = saldoCess.saldo * sind.aliquotaFixaIR;
+                                    } else {
+                                        novoIRCess = saldoCess.saldo * 0.015;
+                                    }
+                                    
+                                    return {
+                                        ...cess,
+                                        valorBruto: saldoCess.saldo,
+                                        ir: novoIRCess,
+                                        valorLiquido: saldoCess.saldo - novoIRCess
+                                    };
+                                })
+                            };
+                        });
+                    }
+                    
+                    // Cessionários de Herdeiros
+                    if (resultadosAjustados.herdeiros) {
+                        resultadosAjustados.herdeiros = resultadosAjustados.herdeiros.map(herd => {
+                            if (!herd.cessoesHerdeiroFinais || herd.cessoesHerdeiroFinais.length === 0) {
+                                return herd;
+                            }
+                            
+                            return {
+                                ...herd,
+                                cessoesHerdeiroFinais: herd.cessoesHerdeiroFinais.map(cess => {
+                                    const saldoCess = saldos.cessionarios.find(c => 
+                                        c.nome === cess.cessionario && 
+                                        c.cedente === herd.nome &&
+                                        c.tipo === 'Cessionário de Herdeiro'
+                                    );
+                                    
+                                    if (!saldoCess || saldoCess.saldo <= 0) {
+                                        return cess; // Não teve pagamento, mantém original
+                                    }
+                                    
+                                    // RECALCULAR Previdência sobre o novo valor
+                                    const principalCessHerd = saldoCess.saldo * (resultados.percentualprinc || 0.5);
+                                    const rraCessHerd = herd.rrapagamento;
+                                    
+                                    const resultadoPrevCessHerd = calcularPrevidenciaIsolada(dados, principalCessHerd, rraCessHerd);
+                                    const novaPrevidenciaHerd = resultadoPrevCessHerd.valorPrevidencia;
+                                    
+                                    // RECALCULAR IR sobre o novo valor
+                                    const temIR = dados.incidenciaIR || 
+                                        (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.ir === true));
+                                    
+                                    let novoIRHerd = 0;
+                                    if (temIR && rraCessHerd !== 0) {
+                                        const resultadoIRCessHerd = calcularIRIsolado(
+                                            dados,
+                                            saldoCess.saldo,
+                                            saldoCess.saldo,
+                                            principalCessHerd,
+                                            novaPrevidenciaHerd,
+                                            rraCessHerd
+                                        );
+                                        novoIRHerd = resultadoIRCessHerd.valorIR;
+                                    }
+                                    
+                                    return {
+                                        ...cess,
+                                        valorBruto: saldoCess.saldo,
+                                        previdenciaCessao: novaPrevidenciaHerd,
+                                        irCessao: novoIRHerd,
+                                        valorLiquido: saldoCess.saldo - novaPrevidenciaHerd - novoIRHerd
+                                    };
+                                })
+                            };
+                        });
+                    }
+                }
+            }
+            
+            return resultadosAjustados;
         }
 
         function calcularIRIsolado(dados, valortotatt, valorBase, principalBase, valorPrevidencia, rrapagamentoRecalculado) {
@@ -7277,25 +7739,29 @@
                 if (!validarAdesaoParaAcordo(dados)) return '';
             }
 
+            const resultadosParaUsar = resultados.saldosFinais 
+                ? ajustarResultadosComPagamentos(resultados, dados) 
+                : resultados;
+
             const config = {
                 temPrevidencia,
                 temIR,
                 tipoPrevidencia: dados.valoresPrincipais?.find(item => item.tributacao?.tipoPrevidencia)?.tributacao.tipoPrevidencia || null,
-                temHerdeiros: resultados.temHerdeiros && resultados.herdeiros.length > 0
+                temHerdeiros: resultadosParaUsar.temHerdeiros && resultadosParaUsar.herdeiros.length > 0  // ← MUDOU
             };
 
             if (dados.natureza === 'comum') {
-                return gerarDeducoesSimples(resultados, dados, config.temPrevidencia, config.temIR);
+                return gerarDeducoesSimples(resultadosParaUsar, dados, config.temPrevidencia, config.temIR);
             }
             
             if (!config.temHerdeiros) {
-                return gerarDeducoesSimples(resultados, dados, config.temPrevidencia, config.temIR);
+                return gerarDeducoesSimples(resultadosParaUsar, dados, config.temPrevidencia, config.temIR);
             }
             
             if (dados.tipoCalculo === 'preferencia') {
-                return gerarDeducoesPreferencia(resultados, dados, config);
+                return gerarDeducoesPreferencia(resultadosParaUsar, dados, config);
             } else {
-                return gerarDeducoesOrdem(resultados, dados, config);
+                return gerarDeducoesOrdem(resultadosParaUsar, dados, config);
             }
         }
 
@@ -8404,16 +8870,22 @@
         }
 
         function gerarSecoesPagamentos(resultados, dados) {
+            // ========== AJUSTAR RESULTADOS SE HOUVER PAGAMENTOS ==========
+            const resultadosParaUsar = resultados.saldosFinais 
+                ? ajustarResultadosComPagamentos(resultados, dados) 
+                : resultados;
+            // =============================================================
+            
             if (dados.tipoCalculo === 'acordo') {
-                return gerarTabelaPagamentosAcordo(resultados, dados);
+                return gerarTabelaPagamentosAcordo(resultadosParaUsar, dados);
             }
 
-            const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
+            const temHerdeiros = resultadosParaUsar.temHerdeiros && resultadosParaUsar.herdeiros.length > 0;
 
             if (temHerdeiros) {
-                return gerarPagamentosComHerdeiros(resultados, dados);
+                return gerarPagamentosComHerdeiros(resultadosParaUsar, dados);
             } else {
-                return gerarPagamentosSemHerdeiros(resultados, dados);
+                return gerarPagamentosSemHerdeiros(resultadosParaUsar, dados);
             }
         }
 
