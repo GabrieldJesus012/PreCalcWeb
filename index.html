@@ -1517,15 +1517,29 @@
                         <label for="pagDataBase${index}">Data do Pagamento:</label>
                         <input type="date" id="pagDataBase${index}">
                     </div>
-                    <div class="input-group">
+                    <div class="input-group" style="grid-column: span 2;">
+                        <label for="pagTipoInformacao${index}">Tipo de Informação:</label>
+                        <select id="pagTipoInformacao${index}" onchange="toggleTipoPagamento(${index})">
+                            <option value="separado">Informar Principal, Juros e SELIC separadamente</option>
+                            <option value="total">Informar apenas Valor Total pago</option>
+                        </select>
+                    </div>
+                    <div class="input-group pag-campo-total-${index}" style="display: none; grid-column: span 2;">
+                        <label>Valor Total Pago (R$):</label>
+                        <input type="number" id="pagValorTotal${index}" step="0.01" placeholder="0,00">
+                    </div>
+                    <div class="input-group pag-campo-total-${index}" style="display: none; grid-column: span 2; background: #e3f2fd; padding: 10px; border-left: 4px solid #2196f3; border-radius: 4px;">
+                        <small style="color: #1976d2;"><strong>ℹ️ Cálculo Automático:</strong> O sistema calculará Principal, Juros e SELIC automaticamente.</small>
+                    </div>
+                    <div class="input-group pag-campo-separado-${index}">
                         <label>Valor Principal (R$):</label>
                         <input type="number" id="pagValorPrincipal${index}" step="0.01" placeholder="0,00">
                     </div>
-                    <div class="input-group">
+                    <div class="input-group pag-campo-separado-${index}">
                         <label>Valor Juros (R$):</label>
                         <input type="number" id="pagValorJuros${index}" step="0.01" placeholder="0,00">
                     </div>
-                    <div class="valor-selic-group">
+                    <div class="valor-selic-group pag-campo-separado-${index}">
                         <label>Selic ("%"/ "R$"):</label>
                         <div class="checkbox-group">
                             <div class="checkbox-item">
@@ -1571,6 +1585,21 @@
             setTimeout(() => popularBeneficiariosPagamento(index), 10);
             
             return pagDiv;
+        }
+
+        function toggleTipoPagamento(index) {
+            const tipoSelect = document.getElementById(`pagTipoInformacao${index}`);
+            
+            const camposTotal = document.querySelectorAll(`.pag-campo-total-${index}`);
+            const camposSeparados = document.querySelectorAll(`.pag-campo-separado-${index}`);
+            
+            if (tipoSelect.value === 'total') {
+                camposTotal.forEach(el => el.style.display = 'block');
+                camposSeparados.forEach(el => el.style.display = 'none');
+            } else {
+                camposTotal.forEach(el => el.style.display = 'none');
+                camposSeparados.forEach(el => el.style.display = 'block');
+            }
         }
 
         function toggleSelicPagamento(index) {
