@@ -5106,7 +5106,7 @@
                         
                         // RECALCULAR IR respeitando incidenciaIR
                         let novoIR = 0;
-                        if (adv.incidenciaIR && saldoAdvSuc.saldo > 0) {
+                        if (advSuc.incidenciaIR && saldoAdvSuc.saldo > 0) {
                             novoIR = advSuc.tipo === 'PF' ? calcularIR(saldoAdvSuc.saldo) : saldoAdvSuc.saldo * 0.015;
                         }
                         
