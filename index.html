@@ -3938,10 +3938,18 @@
                 );
                 
                 let percentualCessionarioAdv = cessaoAdv.reduce((total, cessao) => total + cessao.percentual, 0);
-                const percentualAdvogado = Math.max(0, percentualTotalAdvogado - percentualCessionarioAdv);
+                let valorBrutoAdvogado, valorBrutoCessionario, percentualAdvogado;
 
-                const valorBrutoAdvogado = valorBaseContratual * Math.max(0, percentualAdvogado);
-                const valorBrutoCessionario = valorBaseContratual * percentualCessionarioAdv;
+                if (percentualCessionarioAdv >= 1.0) {
+                    // Cessão de 100%: Calcular sobre o honorário do advogado
+                    valorBrutoAdvogado = 0;
+                    valorBrutoCessionario = valorBrutoTotal; // Todo o honorário vai para cessionário
+                } else {
+                    // Cessão parcial: Calcular sobre o precatório (lógica original)
+                    percentualAdvogado = Math.max(0, percentualTotalAdvogado - percentualCessionarioAdv);
+                    valorBrutoAdvogado = valorBaseContratual * Math.max(0, percentualAdvogado);
+                    valorBrutoCessionario = valorBaseContratual * percentualCessionarioAdv;
+                }
 
                 let valorParaIRAdvogado = valorBrutoAdvogado;
                 let valorParaIRCessionario = valorBrutoCessionario;
@@ -3963,7 +3971,13 @@
                 const valorLiquidoCessionario = valorBrutoCessionario - irCessionarioAdv;
 
                 const cessionarios = cessaoAdv.map(cessao => {
-                    const valorBrutoCessao = valorBaseContratual * cessao.percentual;
+                    let valorBrutoCessao;
+                    if (percentualCessionarioAdv >= 1.0) {
+                        valorBrutoCessao = valorBrutoTotal * cessao.percentual;
+                    } else {
+                        valorBrutoCessao = valorBaseContratual * cessao.percentual;
+                    }
+
                     let valorParaIRCessao = valorBrutoCessao;
                     
                     if (isAcordo) {
