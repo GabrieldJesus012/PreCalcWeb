@@ -4732,114 +4732,193 @@
                 totalGeralOriginal: 0
             };
             
-            // 3. Beneficiário Principal
-            if (resultados.valorBeneficiarioAposCessoes && resultados.valorBeneficiarioAposCessoes > 0) {
-                const nomeBeneficiario = dados.beneficiario;
-                const pagamento = pagamentosPorBeneficiario[nomeBeneficiario]?.totalPago || 0;
-                const valorBruto = resultados.valorBeneficiarioAposCessoes;
-                const saldoBruto = valorBruto - pagamento;
-                
-                saldosFinais.beneficiarioPrincipal = {
-                    nome: nomeBeneficiario,
-                    valorBruto: valorBruto,
-                    pagamento: pagamento,
-                    saldo: saldoBruto
-                };
-                
-                saldosFinais.totalGeralBruto += saldoBruto;
-                saldosFinais.totalGeralOriginal += valorBruto;
-            }
+            // 3. Identificar cessões de 100%
+            const cessoes100 = {
+                advogados: {},
+                advogadosSucumbenciais: {},
+                sindicatos: {},
+                beneficiarioPrincipal: false
+            };
             
-            // 4. Advogados
-            if (resultados.honorarios && resultados.honorarios.length > 0) {
+            // Mapear cessões de advogados
+            if (resultados.honorarios) {
                 resultados.honorarios.forEach(adv => {
-                    const pagamento = pagamentosPorBeneficiario[adv.nome]?.totalPago || 0;
-                    const valorBruto = adv.valorBruto || adv.valorBrutoAdvogado || 0;
-                    const saldoBruto = valorBruto - pagamento;
-                    
-                    saldosFinais.advogados.push({
-                        nome: adv.nome,
-                        tipo: adv.tipo,
-                        valorBruto: valorBruto,
-                        pagamento: pagamento,
-                        saldo: saldoBruto
-                    });
-                    
-                    saldosFinais.totalGeralBruto += saldoBruto;
-                    saldosFinais.totalGeralOriginal += valorBruto;
+                    if (adv.cessionarios && adv.cessionarios.length > 0) {
+                        const percentualCedido = adv.cessionarios.reduce((sum, c) => sum + c.percentual, 0);
+                        if (percentualCedido >= 1.0) {
+                            cessoes100.advogados[adv.nome] = adv.cessionarios;
+                        }
+                    }
                 });
             }
             
-            // 5. Advogados Sucumbenciais
+            // Mapear cessões de advogados sucumbenciais
             if (resultados.honorariosSucumbenciais?.honorarios) {
                 resultados.honorariosSucumbenciais.honorarios.forEach(advSuc => {
-                    const pagamento = pagamentosPorBeneficiario[advSuc.nome]?.totalPago || 0;
-                    const valorBruto = advSuc.valorBruto || 0;
-                    const saldoBruto = valorBruto - pagamento;
-                    
-                    saldosFinais.advogadosSucumbenciais.push({
-                        nome: advSuc.nome,
-                        tipo: advSuc.tipo,
-                        valorBruto: valorBruto,
-                        pagamento: pagamento,
-                        saldo: saldoBruto
-                    });
-                    
-                    saldosFinais.totalGeralBruto += saldoBruto;
-                    saldosFinais.totalGeralOriginal += valorBruto;
+                    if (advSuc.cessionarios && advSuc.cessionarios.length > 0) {
+                        const percentualCedido = advSuc.cessionarios.reduce((sum, c) => sum + c.percentual, 0);
+                        if (percentualCedido >= 1.0) {
+                            cessoes100.advogadosSucumbenciais[advSuc.nome] = advSuc.cessionarios;
+                        }
+                    }
                 });
             }
             
-            // 6. Sindicatos
-            if (resultados.sindicatos && resultados.sindicatos.length > 0) {
+            // Mapear cessões de sindicatos
+            if (resultados.sindicatos) {
                 resultados.sindicatos.forEach(sind => {
-                    const pagamento = pagamentosPorBeneficiario[sind.nome]?.totalPago || 0;
-                    const valorBruto = sind.valorBrutoSindicato || 0;
-                    const saldoBruto = valorBruto - pagamento;
-                    
-                    saldosFinais.sindicatos.push({
-                        nome: sind.nome,
-                        valorBruto: valorBruto,
-                        pagamento: pagamento,
-                        saldo: saldoBruto
-                    });
-                    
-                    saldosFinais.totalGeralBruto += saldoBruto;
-                    saldosFinais.totalGeralOriginal += valorBruto;
+                    if (sind.cessionarios && sind.cessionarios.length > 0) {
+                        const percentualCedido = sind.cessionarios.reduce((sum, c) => sum + c.percentual, 0);
+                        if (percentualCedido >= 1.0) {
+                            cessoes100.sindicatos[sind.nome] = sind.cessionarios;
+                        }
+                    }
                 });
             }
             
-            // 7. Herdeiros
+            // Verificar cessão 100% do beneficiário principal
+            if (resultados.cessoesBeneficiarioFinais && resultados.cessoesBeneficiarioFinais.length > 0) {
+                const percentualCedidoBenef = resultados.cessoesBeneficiarioFinais.reduce((sum, c) => sum + c.percentual, 0);
+                cessoes100.beneficiarioPrincipal = percentualCedidoBenef >= 1.0;
+            }
+            
+            // 4. Beneficiário Principal ou Herdeiros
+            const nomeBeneficiario = dados.beneficiario;
+            const pagamentoBeneficiario = pagamentosPorBeneficiario[nomeBeneficiario]?.totalPago || 0;
+            
             if (resultados.temHerdeiros && resultados.herdeiros && resultados.herdeiros.length > 0) {
+                // TEM HERDEIROS: Dividir pagamento do beneficiário proporcionalmente
                 resultados.herdeiros.forEach(herdeiro => {
-                    const pagamento = pagamentosPorBeneficiario[herdeiro.nome]?.totalPago || 0;
+                    const pagamentoDiretoHerdeiro = pagamentosPorBeneficiario[herdeiro.nome]?.totalPago || 0;
+                    const pagamentoDoBeneficiarioParaHerdeiro = pagamentoBeneficiario * herdeiro.percentual;
+                    const totalPagamentoHerdeiro = pagamentoDiretoHerdeiro + pagamentoDoBeneficiarioParaHerdeiro;
+                    
                     const valorBruto = herdeiro.valorBruto || 0;
-                    const saldoBruto = valorBruto - pagamento;
+                    const saldoBruto = valorBruto - totalPagamentoHerdeiro;
                     
                     saldosFinais.herdeiros.push({
                         nome: herdeiro.nome,
                         valorBruto: valorBruto,
-                        pagamento: pagamento,
+                        pagamento: totalPagamentoHerdeiro,
+                        pagamentoDireto: pagamentoDiretoHerdeiro,
+                        pagamentoDoBeneficiario: pagamentoDoBeneficiarioParaHerdeiro,
                         saldo: saldoBruto
                     });
                     
                     saldosFinais.totalGeralBruto += saldoBruto;
                     saldosFinais.totalGeralOriginal += valorBruto;
                 });
+            } else {
+                // NÃO TEM HERDEIROS: Beneficiário Principal normal
+                if (resultados.valorBeneficiarioAposCessoes && resultados.valorBeneficiarioAposCessoes > 0) {
+                    const valorBruto = resultados.valorBeneficiarioAposCessoes;
+                    const saldoBruto = valorBruto - pagamentoBeneficiario;
+                    
+                    saldosFinais.beneficiarioPrincipal = {
+                        nome: nomeBeneficiario,
+                        valorBruto: valorBruto,
+                        pagamento: pagamentoBeneficiario,
+                        saldo: saldoBruto
+                    };
+                    
+                    saldosFinais.totalGeralBruto += saldoBruto;
+                    saldosFinais.totalGeralOriginal += valorBruto;
+                }
             }
             
-            // 8.1 Cessionários do Beneficiário Principal
+            // 5. Advogados
+            if (resultados.honorarios && resultados.honorarios.length > 0) {
+                resultados.honorarios.forEach(adv => {
+                    const pagamentoDireto = pagamentosPorBeneficiario[adv.nome]?.totalPago || 0;
+                    const valorBruto = adv.valorBruto || adv.valorBrutoAdvogado || 0;
+                    
+                    // Se cessão é 100%, NÃO mostrar advogado (pagamento vai para cessionário)
+                    if (!cessoes100.advogados[adv.nome]) {
+                        const saldoBruto = valorBruto - pagamentoDireto;
+                        
+                        saldosFinais.advogados.push({
+                            nome: adv.nome,
+                            tipo: adv.tipo,
+                            valorBruto: valorBruto,
+                            pagamento: pagamentoDireto,
+                            saldo: saldoBruto
+                        });
+                        
+                        saldosFinais.totalGeralBruto += saldoBruto;
+                        saldosFinais.totalGeralOriginal += valorBruto;
+                    }
+                });
+            }
+            
+            // 6. Advogados Sucumbenciais
+            if (resultados.honorariosSucumbenciais?.honorarios) {
+                resultados.honorariosSucumbenciais.honorarios.forEach(advSuc => {
+                    const pagamentoDireto = pagamentosPorBeneficiario[advSuc.nome]?.totalPago || 0;
+                    const valorBruto = advSuc.valorBruto || 0;
+                    
+                    // Se cessão é 100%, NÃO mostrar advogado (pagamento vai para cessionário)
+                    if (!cessoes100.advogadosSucumbenciais[advSuc.nome]) {
+                        const saldoBruto = valorBruto - pagamentoDireto;
+                        
+                        saldosFinais.advogadosSucumbenciais.push({
+                            nome: advSuc.nome,
+                            tipo: advSuc.tipo,
+                            valorBruto: valorBruto,
+                            pagamento: pagamentoDireto,
+                            saldo: saldoBruto
+                        });
+                        
+                        saldosFinais.totalGeralBruto += saldoBruto;
+                        saldosFinais.totalGeralOriginal += valorBruto;
+                    }
+                });
+            }
+            
+            // 7. Sindicatos
+            if (resultados.sindicatos && resultados.sindicatos.length > 0) {
+                resultados.sindicatos.forEach(sind => {
+                    const pagamentoDireto = pagamentosPorBeneficiario[sind.nome]?.totalPago || 0;
+                    const valorBruto = sind.valorBrutoSindicato || 0;
+                    
+                    // Se cessão é 100%, NÃO mostrar sindicato (pagamento vai para cessionário)
+                    if (!cessoes100.sindicatos[sind.nome]) {
+                        const saldoBruto = valorBruto - pagamentoDireto;
+                        
+                        saldosFinais.sindicatos.push({
+                            nome: sind.nome,
+                            valorBruto: valorBruto,
+                            pagamento: pagamentoDireto,
+                            saldo: saldoBruto
+                        });
+                        
+                        saldosFinais.totalGeralBruto += saldoBruto;
+                        saldosFinais.totalGeralOriginal += valorBruto;
+                    }
+                });
+            }
+            
+            // 8. Cessionários do Beneficiário Principal
             if (resultados.cessoesBeneficiarioFinais && resultados.cessoesBeneficiarioFinais.length > 0) {
                 resultados.cessoesBeneficiarioFinais.forEach(cess => {
-                    const pagamento = pagamentosPorBeneficiario[cess.nome]?.totalPago || 0;
+                    const pagamentoDireto = pagamentosPorBeneficiario[cess.cessionario]?.totalPago || 0;
                     const valorBruto = cess.valorBruto || 0;
-                    const saldoBruto = valorBruto - pagamento;
+                    
+                    let pagamentoTotal = pagamentoDireto;
+                    
+                    // Se cessão é 100%, redirecionar pagamento do beneficiário
+                    if (cessoes100.beneficiarioPrincipal) {
+                        const pagamentoDoBeneficiario = pagamentoBeneficiario * cess.percentual;
+                        pagamentoTotal += pagamentoDoBeneficiario;
+                    }
+                    
+                    const saldoBruto = valorBruto - pagamentoTotal;
                     
                     saldosFinais.cessionarios.push({
-                        nome: cess.nome,
+                        nome: cess.cessionario,
                         tipo: 'Cessionário do Beneficiário',
                         valorBruto: valorBruto,
-                        pagamento: pagamento,
+                        pagamento: pagamentoTotal,
+                        pagamentoDireto: pagamentoDireto,
                         saldo: saldoBruto
                     });
                     
@@ -4848,21 +4927,21 @@
                 });
             }
 
-            // 8.2 Cessionários dos Herdeiros
+            // 9. Cessionários dos Herdeiros
             if (resultados.temHerdeiros && resultados.herdeiros && resultados.herdeiros.length > 0) {
                 resultados.herdeiros.forEach(herdeiro => {
                     if (herdeiro.cessoesHerdeiroFinais && herdeiro.cessoesHerdeiroFinais.length > 0) {
                         herdeiro.cessoesHerdeiroFinais.forEach(cess => {
-                            const pagamento = pagamentosPorBeneficiario[cess.nome]?.totalPago || 0;
+                            const pagamentoDireto = pagamentosPorBeneficiario[cess.cessionario]?.totalPago || 0;
                             const valorBruto = cess.valorBruto || 0;
-                            const saldoBruto = valorBruto - pagamento;
+                            const saldoBruto = valorBruto - pagamentoDireto;
                             
                             saldosFinais.cessionarios.push({
-                                nome: cess.nome,
+                                nome: cess.cessionario,
                                 cedente: herdeiro.nome,
                                 tipo: 'Cessionário de Herdeiro',
                                 valorBruto: valorBruto,
-                                pagamento: pagamento,
+                                pagamento: pagamentoDireto,
                                 saldo: saldoBruto
                             });
                             
@@ -4873,21 +4952,34 @@
                 });
             }
 
-            // 8.3 Cessionários dos Advogados
+            // 10. Cessionários dos Advogados
             if (resultados.honorarios && resultados.honorarios.length > 0) {
                 resultados.honorarios.forEach(adv => {
                     if (adv.cessionarios && adv.cessionarios.length > 0) {
+                        const pagamentoCedente = pagamentosPorBeneficiario[adv.nome]?.totalPago || 0;
+                        const cedeu100 = cessoes100.advogados[adv.nome];
+                        
                         adv.cessionarios.forEach(cess => {
-                            const pagamento = pagamentosPorBeneficiario[cess.nome]?.totalPago || 0;
+                            const pagamentoDireto = pagamentosPorBeneficiario[cess.nome]?.totalPago || 0;
                             const valorBruto = cess.valorBruto || 0;
-                            const saldoBruto = valorBruto - pagamento;
+                            
+                            let pagamentoTotal = pagamentoDireto;
+                            
+                            // Se cessão é 100%, redirecionar pagamento do cedente
+                            if (cedeu100) {
+                                const pagamentoDoCedente = pagamentoCedente * cess.percentual;
+                                pagamentoTotal += pagamentoDoCedente;
+                            }
+                            
+                            const saldoBruto = valorBruto - pagamentoTotal;
                             
                             saldosFinais.cessionarios.push({
                                 nome: cess.nome,
                                 cedente: adv.nome,
                                 tipo: 'Cessionário de Advogado',
                                 valorBruto: valorBruto,
-                                pagamento: pagamento,
+                                pagamento: pagamentoTotal,
+                                pagamentoDireto: pagamentoDireto,
                                 saldo: saldoBruto
                             });
                             
@@ -4898,21 +4990,34 @@
                 });
             }
 
-            // 8.4 Cessionários dos Advogados Sucumbenciais
+            // 11. Cessionários dos Advogados Sucumbenciais
             if (resultados.honorariosSucumbenciais?.honorarios) {
                 resultados.honorariosSucumbenciais.honorarios.forEach(advSuc => {
                     if (advSuc.cessionarios && advSuc.cessionarios.length > 0) {
+                        const pagamentoCedente = pagamentosPorBeneficiario[advSuc.nome]?.totalPago || 0;
+                        const cedeu100 = cessoes100.advogadosSucumbenciais[advSuc.nome];
+                        
                         advSuc.cessionarios.forEach(cess => {
-                            const pagamento = pagamentosPorBeneficiario[cess.nome]?.totalPago || 0;
+                            const pagamentoDireto = pagamentosPorBeneficiario[cess.nome]?.totalPago || 0;
                             const valorBruto = cess.valorBruto || 0;
-                            const saldoBruto = valorBruto - pagamento;
+                            
+                            let pagamentoTotal = pagamentoDireto;
+                            
+                            // Se cessão é 100%, redirecionar pagamento do cedente
+                            if (cedeu100) {
+                                const pagamentoDoCedente = pagamentoCedente * cess.percentual;
+                                pagamentoTotal += pagamentoDoCedente;
+                            }
+                            
+                            const saldoBruto = valorBruto - pagamentoTotal;
                             
                             saldosFinais.cessionarios.push({
                                 nome: cess.nome,
                                 cedente: advSuc.nome,
                                 tipo: 'Cessionário de Adv. Sucumbencial',
                                 valorBruto: valorBruto,
-                                pagamento: pagamento,
+                                pagamento: pagamentoTotal,
+                                pagamentoDireto: pagamentoDireto,
                                 saldo: saldoBruto
                             });
                             
@@ -4923,21 +5028,34 @@
                 });
             }
 
-            // 8.5 Cessionários dos Sindicatos
+            // 12. Cessionários dos Sindicatos
             if (resultados.sindicatos && resultados.sindicatos.length > 0) {
                 resultados.sindicatos.forEach(sind => {
                     if (sind.cessionarios && sind.cessionarios.length > 0) {
+                        const pagamentoCedente = pagamentosPorBeneficiario[sind.nome]?.totalPago || 0;
+                        const cedeu100 = cessoes100.sindicatos[sind.nome];
+                        
                         sind.cessionarios.forEach(cess => {
-                            const pagamento = pagamentosPorBeneficiario[cess.nome]?.totalPago || 0;
+                            const pagamentoDireto = pagamentosPorBeneficiario[cess.nome]?.totalPago || 0;
                             const valorBruto = cess.valorBruto || 0;
-                            const saldoBruto = valorBruto - pagamento;
+                            
+                            let pagamentoTotal = pagamentoDireto;
+                            
+                            // Se cessão é 100%, redirecionar pagamento do cedente
+                            if (cedeu100) {
+                                const pagamentoDoCedente = pagamentoCedente * cess.percentual;
+                                pagamentoTotal += pagamentoDoCedente;
+                            }
+                            
+                            const saldoBruto = valorBruto - pagamentoTotal;
                             
                             saldosFinais.cessionarios.push({
                                 nome: cess.nome,
                                 cedente: sind.nome,
                                 tipo: 'Cessionário de Sindicato',
                                 valorBruto: valorBruto,
-                                pagamento: pagamento,
+                                pagamento: pagamentoTotal,
+                                pagamentoDireto: pagamentoDireto,
                                 saldo: saldoBruto
                             });
                             
@@ -4948,17 +5066,17 @@
                 });
             }
             
-            // 9. Calcular Principal e Juros do TOTAL
+            // 13. Calcular Principal e Juros do TOTAL
             saldosFinais.principalTotal = saldosFinais.totalGeralBruto * (resultados.percentualprinc || 0.5);
             saldosFinais.jurosTotal = saldosFinais.totalGeralBruto * (resultados.percentualjur || 0.5);
             
-            // 10. RRA ajustado
+            // 14. RRA ajustado
             const rraOriginal = resultados.rrapagamento || resultados.rraTotal || 0;
             const proporcao = saldosFinais.totalGeralBruto / saldosFinais.totalGeralOriginal;
             saldosFinais.rraOriginal = rraOriginal;
             saldosFinais.rraAjustado = rraOriginal > 0 ? Math.max(1, arredondarRRA(proporcao * rraOriginal)) : 0;
             
-            // 11. IR e Previdência recalculados
+            // 15. IR e Previdência recalculados
             const resultadoPrevidencia = calcularPrevidenciaIsolada(dados, saldosFinais.principalTotal, saldosFinais.rraAjustado);
             saldosFinais.previdenciaTotal = resultadoPrevidencia.valorPrevidencia;
             
@@ -7511,9 +7629,65 @@
                 pagamentosPorBeneficiario[pag.beneficiario].push(pag);
             });
 
+            // Lista de cessionários (para filtrar)
+            const cessionarios = new Set();
+            
+            // Cessionários do Beneficiário
+            if (resultados.cessoesBeneficiarioFinais) {
+                resultados.cessoesBeneficiarioFinais.forEach(c => cessionarios.add(c.cessionario));
+            }
+            
+            // Cessionários de Herdeiros
+            if (resultados.herdeiros) {
+                resultados.herdeiros.forEach(h => {
+                    if (h.cessoesHerdeiroFinais) {
+                        h.cessoesHerdeiroFinais.forEach(c => cessionarios.add(c.cessionario));
+                    }
+                });
+            }
+            
+            // Cessionários de Advogados
+            if (resultados.honorarios) {
+                resultados.honorarios.forEach(adv => {
+                    if (adv.cessionarios) {
+                        adv.cessionarios.forEach(c => cessionarios.add(c.nome));
+                    }
+                });
+            }
+            
+            // Cessionários de Advogados Sucumbenciais
+            if (resultados.honorariosSucumbenciais?.honorarios) {
+                resultados.honorariosSucumbenciais.honorarios.forEach(adv => {
+                    if (adv.cessionarios) {
+                        adv.cessionarios.forEach(c => cessionarios.add(c.nome));
+                    }
+                });
+            }
+            
+            // Cessionários de Sindicatos
+            if (resultados.sindicatos) {
+                resultados.sindicatos.forEach(sind => {
+                    if (sind.cessionarios) {
+                        sind.cessionarios.forEach(c => cessionarios.add(c.nome));
+                    }
+                });
+            }
+
             let htmlLinhas = '';
 
             Object.keys(pagamentosPorBeneficiario).forEach(beneficiario => {
+                // ❌ NÃO MOSTRAR cessionários sem pagamento direto
+                if (cessionarios.has(beneficiario)) {
+                    const pagamentosDoBeneficiario = pagamentosPorBeneficiario[beneficiario];
+                    
+                    // Verificar se teve pagamento direto
+                    const tevePagamentoDireto = pagamentosDoBeneficiario.length > 0;
+                    
+                    if (!tevePagamentoDireto) {
+                        return; // Pula este cessionário
+                    }
+                }
+                
                 const pagamentosDoBeneficiario = pagamentosPorBeneficiario[beneficiario];
                 
                 pagamentosDoBeneficiario.forEach(pag => {
@@ -7629,7 +7803,7 @@
             let htmlLinhas = '';
             
             // 1. Beneficiário Principal
-            if (saldos.beneficiarioPrincipal) {
+            if (saldos.beneficiarioPrincipal && saldos.beneficiarioPrincipal.pagamento > 0) {
                 const benef = saldos.beneficiarioPrincipal;
                 htmlLinhas += `
                     <tr>
@@ -7644,11 +7818,16 @@
             // 2. Herdeiros
             if (saldos.herdeiros && saldos.herdeiros.length > 0) {
                 saldos.herdeiros.forEach(herd => {
+                    let detalhesPagamento = '';
+                    if (herd.pagamentoDoBeneficiario && herd.pagamentoDoBeneficiario > 0) {
+                        detalhesPagamento = `<br><small style="color: #666;">(Direto: R$ ${formatarMoeda(herd.pagamentoDireto)} + Do Benef.: R$ ${formatarMoeda(herd.pagamentoDoBeneficiario)})</small>`;
+                    }
+                    
                     htmlLinhas += `
                         <tr>
                             <td>${herd.nome} (Herdeiro)</td>
                             <td>R$ ${formatarMoeda(herd.valorBruto)}</td>
-                            <td>R$ ${formatarMoeda(herd.pagamento)}</td>
+                            <td>R$ ${formatarMoeda(herd.pagamento)}${detalhesPagamento}</td>
                             <td><strong>R$ ${formatarMoeda(herd.saldo)}</strong></td>
                         </tr>
                     `;
@@ -7697,17 +7876,30 @@
                 });
             }
             
-            // 6. Cessionários
+            // 6. Cessionários (SEMPRE mostrar, mesmo sem pagamento direto)
             if (saldos.cessionarios && saldos.cessionarios.length > 0) {
                 saldos.cessionarios.forEach(cess => {
-                    htmlLinhas += `
-                        <tr>
-                            <td>${cess.nome} (${cess.tipo})</td>
-                            <td>R$ ${formatarMoeda(cess.valorBruto)}</td>
-                            <td>R$ ${formatarMoeda(cess.pagamento)}</td>
-                            <td><strong>R$ ${formatarMoeda(cess.saldo)}</strong></td>
-                        </tr>
-                    `;
+                    // Só mostrar se teve pagamento
+                    if (cess.pagamento > 0) {  // 👈 ESTA LINHA É CRUCIAL
+                        let detalhesPagamento = '';
+                        
+                        // Se tem pagamentoDireto definido, mostrar detalhamento
+                        if (cess.hasOwnProperty('pagamentoDireto')) {
+                            const pagamentoDoCedente = cess.pagamento - cess.pagamentoDireto;
+                            if (pagamentoDoCedente > 0) {
+                                detalhesPagamento = `<br><small style="color: #666;">(Direto: R$ ${formatarMoeda(cess.pagamentoDireto)} + Do Cedente: R$ ${formatarMoeda(pagamentoDoCedente)})</small>`;
+                            }
+                        }
+                        
+                        htmlLinhas += `
+                            <tr>
+                                <td>${cess.nome} (${cess.tipo})</td>
+                                <td>R$ ${formatarMoeda(cess.valorBruto)}</td>
+                                <td>R$ ${formatarMoeda(cess.pagamento)}${detalhesPagamento}</td>
+                                <td><strong>R$ ${formatarMoeda(cess.saldo)}</strong></td>
+                            </tr>
+                        `;
+                    }  // 👈 FECHA O IF
                 });
             }
             
