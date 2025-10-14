@@ -1003,12 +1003,16 @@
                 this.pagamentos = [];
                 const quantidade = parseInt(document.getElementById('quantidadePagamentos')?.value) || 0;
                 for (let i = 0; i < quantidade; i++) {
+                    const tipoInformacao = document.getElementById(`pagTipoInformacao${i}`)?.value || 'total';
+
                     const selicValorRadio = document.getElementById(`pagSelicValor${i}`);
                     const tipoSelic = selicValorRadio && selicValorRadio.checked ? 'valor' : 'percentual';
                     
                     this.pagamentos.push({
                         beneficiario: document.getElementById(`pagBeneficiario${i}`)?.value || '',
                         dataBase: document.getElementById(`pagDataBase${i}`)?.value || '',
+                        tipoInformacao: tipoInformacao,
+                        valorTotal: document.getElementById(`pagValorTotal${i}`)?.value || '',
                         valorPrincipal: document.getElementById(`pagValorPrincipal${i}`)?.value || '',
                         valorJuros: document.getElementById(`pagValorJuros${i}`)?.value || '',
                         tipoSelic: tipoSelic,
@@ -1128,6 +1132,9 @@
 
                     const beneficiario = document.getElementById(`pagBeneficiario${i}`);
                     const dataBase = document.getElementById(`pagDataBase${i}`);
+                    const tipoInformacao = document.getElementById(`pagTipoInformacao${i}`);
+                    const valorTotal = document.getElementById(`pagValorTotal${i}`);
+
                     const valorPrincipal = document.getElementById(`pagValorPrincipal${i}`);
                     const valorJuros = document.getElementById(`pagValorJuros${i}`);
                     const selicValorRadio = document.getElementById(`pagSelicValor${i}`);
@@ -1138,20 +1145,23 @@
 
                     if (beneficiario) beneficiario.value = dados.beneficiario;
                     if (dataBase) dataBase.value = dados.dataBase;
-                    if (valorPrincipal) valorPrincipal.value = dados.valorPrincipal;
-                    if (valorJuros) valorJuros.value = dados.valorJuros;
-                    
-                    if (dados.tipoSelic === 'valor') {
-                        if (selicValorRadio) selicValorRadio.checked = true;
-                        if (valorSelic) valorSelic.value = dados.valorSelic;
-                    } else {
-                        if (selicPercentualRadio) selicPercentualRadio.checked = true;
-                        if (percentualSelic) percentualSelic.value = dados.percentualSelic;
+                    if (tipoInformacao) tipoInformacao.value = dados.tipoInformacao || 'total';
+                    if (dados.tipoInformacao === 'total') {
+                        if (valorTotal) valorTotal.value = dados.valorTotal;
+                    } else{
+                        if (valorPrincipal) valorPrincipal.value = dados.valorPrincipal;
+                        if (valorJuros) valorJuros.value = dados.valorJuros;
+                        
+                        if (dados.tipoSelic === 'valor') {
+                            if (selicValorRadio) selicValorRadio.checked = true;
+                            if (valorSelic) valorSelic.value = dados.valorSelic;
+                        } else {
+                            if (selicPercentualRadio) selicPercentualRadio.checked = true;
+                            if (percentualSelic) percentualSelic.value = dados.percentualSelic;
+                        }
                     }
                     
                     if (selicReferencia) selicReferencia.value = dados.selicReferencia;
-                    
-                    toggleSelicPagamento(i);
                 }
             }
         };
@@ -1280,6 +1290,10 @@
                             break;
                         case 'pagamentos': 
                             DadosFormulario.restaurarPagamentos();
+                            const quantPag = parseInt(document.getElementById('quantidadePagamentos')?.value) || 0;
+                            for (let i = 0; i < quantPag; i++) {
+                                toggleTipoPagamento(i);
+                            }
                             break;
                     }
                     callback && callback();
@@ -1520,8 +1534,8 @@
                     <div class="input-group" style="grid-column: span 2;">
                         <label for="pagTipoInformacao${index}">Tipo de Informação:</label>
                         <select id="pagTipoInformacao${index}" onchange="toggleTipoPagamento(${index})">
-                            <option value="separado">Informar Principal, Juros e SELIC separadamente</option>
                             <option value="total">Informar apenas Valor Total pago</option>
+                            <option value="separado">Informar Principal, Juros e SELIC separadamente</option>
                         </select>
                     </div>
                     <div class="input-group pag-campo-total-${index}" style="display: none; grid-column: span 2;">
@@ -2001,6 +2015,12 @@
                 tabPagamento.style.display = 'block';
             } else {
                 tabPagamento.style.display = 'none';
+
+                const quantPagamentos = document.getElementById('quantidadePagamentos');
+                if (quantPagamentos && quantPagamentos.value !== '0') {
+                    quantPagamentos.value = 0;
+                    quantPagamentos.dispatchEvent(new Event('change'));
+                }
                 
                 const abaPagamentoAtiva = document.getElementById('tab9');
                 if (abaPagamentoAtiva && abaPagamentoAtiva.classList.contains('active')) {
