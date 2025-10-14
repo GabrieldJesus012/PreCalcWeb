@@ -3102,28 +3102,46 @@
             for (let i = 0; i < quantidade; i++) {
                 const beneficiario = document.getElementById(`pagBeneficiario${i}`)?.value?.trim();
                 const dataBase = document.getElementById(`pagDataBase${i}`)?.value;
-                const valorPrincipal = document.getElementById(`pagValorPrincipal${i}`)?.value;
-                const valorJuros = document.getElementById(`pagValorJuros${i}`)?.value;
                 
-                const selicValorRadio = document.getElementById(`pagSelicValor${i}`);
-                const tipoSelic = selicValorRadio && selicValorRadio.checked ? 'valor' : 'percentual';
+                const tipoInformacao = document.getElementById(`pagTipoInformacao${i}`)?.value || 'separado';
                 
-                const valorSelic = document.getElementById(`pagValorSelic${i}`)?.value;
-                const percentualSelic = document.getElementById(`pagPercentualSelic${i}`)?.value;
-                const selicReferencia = document.getElementById(`pagMesReferenciaSelic${i}`)?.value;
+                if (!beneficiario || !dataBase) continue;
                 
-                if (beneficiario && dataBase && (valorPrincipal || valorJuros)) {
-                    dados.pagamentos.push({
-                        beneficiario: beneficiario,
-                        dataBase: dataBase,
-                        valorPrincipal: parseFloat(valorPrincipal) || 0,
-                        valorJuros: parseFloat(valorJuros) || 0,
-                        tipoSelic: tipoSelic,
-                        valorSelic: parseFloat(valorSelic) || 0,
-                        percentualSelic: parseFloat(percentualSelic) || 0,
-                        selicReferencia: selicReferencia || 'mesAnterior'
-                    });
+                const pagamento = {
+                    beneficiario: beneficiario,
+                    dataBase: dataBase,
+                    tipoInformacao: tipoInformacao
+                };
+                
+                if (tipoInformacao === 'total') {
+                    const valorTotal = document.getElementById(`pagValorTotal${i}`)?.value;
+                    
+                    if (!valorTotal || parseFloat(valorTotal) <= 0) continue;
+                    
+                    pagamento.valorTotal = parseFloat(valorTotal);                    
+                } else {
+                    const valorPrincipal = document.getElementById(`pagValorPrincipal${i}`)?.value;
+                    const valorJuros = document.getElementById(`pagValorJuros${i}`)?.value;
+                    
+                    if (!valorPrincipal && !valorJuros) continue;
+                    
+                    pagamento.valorPrincipal = parseFloat(valorPrincipal) || 0;
+                    pagamento.valorJuros = parseFloat(valorJuros) || 0;
+                    
+                    const selicValorRadio = document.getElementById(`pagSelicValor${i}`);
+                    const tipoSelic = selicValorRadio && selicValorRadio.checked ? 'valor' : 'percentual';
+                    
+                    const valorSelic = document.getElementById(`pagValorSelic${i}`)?.value;
+                    const percentualSelic = document.getElementById(`pagPercentualSelic${i}`)?.value;
+                    const selicReferencia = document.getElementById(`pagMesReferenciaSelic${i}`)?.value;
+                    
+                    pagamento.tipoSelic = tipoSelic;
+                    pagamento.valorSelic = parseFloat(valorSelic) || 0;
+                    pagamento.percentualSelic = parseFloat(percentualSelic) || 0;
+                    pagamento.selicReferencia = selicReferencia || 'mesAnterior';
                 }
+                
+                dados.pagamentos.push(pagamento);
             }
             
             dados.quantidadePagamentos = dados.pagamentos.length; 
@@ -3386,6 +3404,24 @@
                 const pagamento = dados.pagamentos[i];
                 
                 try {
+                    if (pagamento.tipoInformacao === 'total') {                        
+                        const componentes = await calcularComponentesPagamentoTotal(dados, pagamento);
+                        
+                        if (!componentes) {
+                            console.error(`❌ Erro ao calcular componentes do pagamento ${i + 1}`);
+                            continue;
+                        }
+                        
+                        // Adicionar componentes ao pagamento
+                        pagamento.valorPrincipal = componentes.valorPrincipal;
+                        pagamento.valorJuros = componentes.valorJuros;
+                        pagamento.tipoSelic = componentes.tipoSelic;
+                        pagamento.percentualSelic = componentes.percentualSelic;
+                        pagamento.valorSelic = componentes.valorSelic;
+                        pagamento.selicReferencia = componentes.selicReferencia;
+                        pagamento.percentualSelicOriginal = componentes.percentualSelicOriginal;
+                    }
+                    
                     const [ano, mes, dia] = pagamento.dataBase.split('-');
                     const anoBase = parseInt(ano);
                     const mesNumero = parseInt(mes);
@@ -3494,6 +3530,63 @@
             }
             
             return pagamentosCalculados;
+        }
+
+        async function calcularComponentesPagamentoTotal(dados, pagamento) {           
+            const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
+            
+            // Salvar a data atual do campo
+            const dataOriginal = document.getElementById("dataatualizacao").value;
+            
+            try {
+                // TEMPORARIAMENTE alterar a data para a data do pagamento
+                document.getElementById("dataatualizacao").value = pagamento.dataBase;
+                
+                // Calcular cada item até a data do pagamento
+                let valorPrincipalAtualizado = 0;
+                let valorJurosAtualizado = 0;
+                let percentualSelicAcumulado = 0;
+                
+                for (const item of dados.valoresPrincipais) {
+                    const itemCalculado = await calcularItemPrincipal(item, dados);
+                    valorPrincipalAtualizado += itemCalculado.valorAtualizado.principal;
+                    valorJurosAtualizado += itemCalculado.valorAtualizado.juros;
+                    
+                    // Pegar o percentual de SELIC do item
+                    if (item.indices.selic && itemCalculado.indices.selic) {
+                        percentualSelicAcumulado = itemCalculado.indices.selic - 1;
+                    }
+                }
+                
+                const totalAtualizado = valorPrincipalAtualizado + valorJurosAtualizado;
+                 
+                // Calcular proporção do pagamento sobre o total atualizado
+                const proporcao = pagamento.valorTotal / totalAtualizado;
+                                
+                // Aplicar proporção para descobrir quanto foi pago de cada
+                const principalPago = valorPrincipalAtualizado * proporcao;
+                const jurosPago = valorJurosAtualizado * proporcao;
+                
+                // Remover a SELIC desses valores pagos
+                const indiceSelic = 1 + percentualSelicAcumulado;
+                const principalSemSelic = principalPago / indiceSelic;
+                const jurosSemSelic = jurosPago / indiceSelic;
+                const selicPaga = (principalPago - principalSemSelic) + (jurosPago - jurosSemSelic);
+                
+                return {
+                    valorPrincipal: principalSemSelic,
+                    valorJuros: jurosSemSelic,
+                    percentualSelicOriginal: percentualSelicAcumulado,
+                    tipoSelic: 'percentual',
+                    percentualSelic: percentualSelicAcumulado,
+                    valorSelic: 0,
+                    selicReferencia: 'mesAnterior'
+                };
+                
+            } finally {
+                // RESTAURAR a data original do campo
+                document.getElementById("dataatualizacao").value = dataOriginal;
+            }
         }
 
         async function calcularValores(dados) {
