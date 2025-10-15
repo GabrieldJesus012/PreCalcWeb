@@ -949,6 +949,7 @@
                     this.advogados.push({
                         nome: document.getElementById(`advNome${i}`)?.value || '',
                         tipo: document.getElementById(`advTipo${i}`)?.value || 'PF',
+                        incidenciaIR: document.getElementById(`advIncidenciaIR${i}`)?.value || 'sim', 
                         percentual: document.getElementById(`advPercentual${i}`)?.value || ''
                     });
                 }
@@ -1052,10 +1053,12 @@
                 for (let i = 0; i < limite; i++) {
                     const advNome = document.getElementById(`advNome${i}`);
                     const advTipo = document.getElementById(`advTipo${i}`);
+                    const advIncidenciaIR = document.getElementById(`advIncidenciaIR${i}`);
                     const advPercentual = document.getElementById(`advPercentual${i}`);
                     
                     if (advNome) advNome.value = this.advogados[i].nome;
                     if (advTipo) advTipo.value = this.advogados[i].tipo;
+                    if (advIncidenciaIR) advIncidenciaIR.value = this.advogados[i].incidenciaIR;
                     if (advPercentual) advPercentual.value = this.advogados[i].percentual;
                 }
             },
@@ -1400,6 +1403,13 @@
                         <select id="advTipo${index}">
                             <option value="PF">Pessoa Física</option>
                             <option value="PJ">Pessoa Jurídica</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Incidência de IR:</label>
+                        <select id="advIncidenciaIR${index}">
+                            <option value="sim" selected>Sim</option>
+                            <option value="nao">Não</option>
                         </select>
                     </div>
                     <div class="input-group">
@@ -3019,9 +3029,10 @@
             for (let i = 0; i < dados.quantAdvogados; i++) {
                 const nome = document.getElementById(`advNome${i}`)?.value || '';
                 const tipo = document.getElementById(`advTipo${i}`)?.value || '';
+                const incidenciaIRElement = document.getElementById(`advIncidenciaIR${i}`); 
                 const percentual = parseFloat(document.getElementById(`advPercentual${i}`)?.value) || 0;
                 
-                dados.advogados.push({ nome, tipo, percentual });
+                dados.advogados.push({ nome, tipo,incidenciaIR: incidenciaIRElement?.value === 'sim', percentual });
             }
         }
 
@@ -3593,10 +3604,10 @@
                 }
                 
                 const totalAtualizado = valorPrincipalAtualizado + valorJurosAtualizado;
-                 
+                
                 // Calcular proporção do pagamento sobre o total atualizado
                 const proporcao = pagamento.valorTotal / totalAtualizado;
-                                
+                
                 // Aplicar proporção para descobrir quanto foi pago de cada
                 const principalPago = valorPrincipalAtualizado * proporcao;
                 const jurosPago = valorJurosAtualizado * proporcao;
@@ -3673,7 +3684,7 @@
                     }
                 }
             });
-                        
+            
             const percentualprinc = totais.valorPrincipalTotal / totais.valorGeralTotal;
             const percentualjur = totais.valorJurosTotal / totais.valorGeralTotal;
             
@@ -4116,6 +4127,7 @@
                 }
 
                 const calcularIRPessoa = (valor) => {
+                    if (!adv.incidenciaIR || valor <= 0) return 0; 
                     return adv.tipo === 'PF' ? calcularIR(valor) : valor * 0.015;
                 };
 
@@ -4140,7 +4152,8 @@
                         valorParaIRCessao = valorBrutoCessao * (1 - percentualDesagio);
                     }
                     
-                    const irCessao = adv.tipo === 'PF' ? calcularIR(valorParaIRCessao) : valorParaIRCessao * 0.015;
+                    const irCessao = adv.incidenciaIR ? 
+                    (adv.tipo === 'PF' ? calcularIR(valorParaIRCessao) : valorParaIRCessao * 0.015) : 0;
                     return {
                         nome: cessao.cessionario,
                         percentual: cessao.percentual,
@@ -5353,7 +5366,7 @@
                         
                         // RECALCULAR IR respeitando incidenciaIR
                         let novoIR = 0;
-                        if (saldoAdv.saldo > 0) {
+                        if (adv.incidenciaIR && saldoAdv.saldo > 0) {
                             novoIR = adv.tipo === 'PF' ? calcularIR(saldoAdv.saldo) : saldoAdv.saldo * 0.015;
                         }
                         
@@ -5543,8 +5556,11 @@
                                         return cess; // Não teve pagamento, mantém original
                                     }
                                     
-                                    // RECALCULAR IR (advogados contratuais SEMPRE têm IR)
-                                    const novoIRCess = adv.tipo === 'PF' ? calcularIR(saldoCess.saldo) : saldoCess.saldo * 0.015;
+                                    // RECALCULAR IR 
+                                    const novoIRCess =0
+                                    if (adv.incidenciaIR && saldoCess.saldo > 0) {  
+                                        novoIRCess = adv.tipo === 'PF' ? calcularIR(saldoCess.saldo) : saldoCess.saldo * 0.015;
+                                    } 
                                     
                                     return {
                                         ...cess,
