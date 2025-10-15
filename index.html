@@ -5222,25 +5222,72 @@
                 });
             }
             
-            // 13. Calcular Principal e Juros do TOTAL
-            saldosFinais.principalTotal = saldosFinais.totalGeralBruto * (resultados.percentualprinc || 0.5);
-            saldosFinais.jurosTotal = saldosFinais.totalGeralBruto * (resultados.percentualjur || 0.5);
-            
-            // 14. RRA ajustado
+            // 13. Calcular Principal e Juros do TOTAL (SEM honorários sucumbenciais)
+            let totalSemHonorariosSucumbenciais = saldosFinais.totalGeralBruto;
+
+            // Subtrair honorários sucumbenciais
+            if (saldosFinais.advogadosSucumbenciais && saldosFinais.advogadosSucumbenciais.length > 0) {
+                const totalHonorariosSucumbenciais = saldosFinais.advogadosSucumbenciais.reduce((sum, adv) => sum + adv.saldo, 0);
+                totalSemHonorariosSucumbenciais -= totalHonorariosSucumbenciais;
+            }
+
+            // Subtrair cessionários de honorários sucumbenciais
+            if (saldosFinais.cessionarios && saldosFinais.cessionarios.length > 0) {
+                const totalCessionariosSucumbenciais = saldosFinais.cessionarios
+                    .filter(c => c.tipo === 'Cessionário de Adv. Sucumbencial')
+                    .reduce((sum, c) => sum + c.saldo, 0);
+                totalSemHonorariosSucumbenciais -= totalCessionariosSucumbenciais;
+            }
+
+            // Salvar total sem honorários sucumbenciais
+            saldosFinais.totalSemHonorariosSucumbenciais = totalSemHonorariosSucumbenciais;
+
+            saldosFinais.principalTotal = totalSemHonorariosSucumbenciais * (resultados.percentualprinc || 0.5);
+            saldosFinais.jurosTotal = totalSemHonorariosSucumbenciais * (resultados.percentualjur || 0.5);
+
+            // 14. RRA ajustado (baseado no total SEM honorários sucumbenciais)
             const rraOriginal = resultados.rrapagamento || resultados.rraTotal || 0;
-            const proporcao = saldosFinais.totalGeralBruto / saldosFinais.totalGeralOriginal;
+
+            // Calcular valor original sem honorários sucumbenciais
+            let totalOriginalSemHonorariosSucumbenciais = saldosFinais.totalGeralOriginal;
+            if (saldosFinais.advogadosSucumbenciais && saldosFinais.advogadosSucumbenciais.length > 0) {
+                const totalOriginalHonSuc = saldosFinais.advogadosSucumbenciais.reduce((sum, adv) => sum + adv.valorBruto, 0);
+                totalOriginalSemHonorariosSucumbenciais -= totalOriginalHonSuc;
+            }
+            if (saldosFinais.cessionarios && saldosFinais.cessionarios.length > 0) {
+                const totalOriginalCessSuc = saldosFinais.cessionarios
+                    .filter(c => c.tipo === 'Cessionário de Adv. Sucumbencial')
+                    .reduce((sum, c) => sum + c.valorBruto, 0);
+                totalOriginalSemHonorariosSucumbenciais -= totalOriginalCessSuc;
+            }
+
+            const proporcao = totalOriginalSemHonorariosSucumbenciais > 0 ? 
+                (totalSemHonorariosSucumbenciais / totalOriginalSemHonorariosSucumbenciais) : 0;
+
             saldosFinais.rraOriginal = rraOriginal;
             saldosFinais.rraAjustado = rraOriginal > 0 ? Math.max(1, arredondarRRA(proporcao * rraOriginal)) : 0;
-            
-            // 15. IR e Previdência recalculados
+
+            // 15. IR e Previdência recalculados (sobre o total SEM honorários sucumbenciais)
             const resultadoPrevidencia = calcularPrevidenciaIsolada(dados, saldosFinais.principalTotal, saldosFinais.rraAjustado);
             saldosFinais.previdenciaTotal = resultadoPrevidencia.valorPrevidencia;
-            
-            const resultadoIR = calcularIRIsolado(dados, saldosFinais.totalGeralBruto, saldosFinais.totalGeralBruto, saldosFinais.principalTotal, saldosFinais.previdenciaTotal, saldosFinais.rraAjustado);
+            saldosFinais.aliquotaEfetiva = resultadoPrevidencia.aliquotaEfetiva;
+            saldosFinais.valorDesagioPrevidencia = resultadoPrevidencia.valorDesagioPrevidencia;
+            saldosFinais.percentualDesagioPrevidencia = resultadoPrevidencia.percentualDesagioPrevidencia;
+
+            const resultadoIR = calcularIRIsolado(dados, totalSemHonorariosSucumbenciais, totalSemHonorariosSucumbenciais, saldosFinais.principalTotal, saldosFinais.previdenciaTotal, saldosFinais.rraAjustado);
             saldosFinais.irTotal = resultadoIR.valorIR;
-            
-            saldosFinais.totalLiquido = saldosFinais.totalGeralBruto - saldosFinais.previdenciaTotal - saldosFinais.irTotal;
-            
+            saldosFinais.aliquotaIR = resultadoIR.aliquotaIR;
+            saldosFinais.baseIRHonora = resultadoIR.baseIRHonora;
+            saldosFinais.baseIRSindi = resultadoIR.baseIRSindi;
+            saldosFinais.baseIRPrev = resultadoIR.baseIRPrev;
+            saldosFinais.baseIRRRA = resultadoIR.baseIRRRA;
+            saldosFinais.valorIRUnitario = resultadoIR.valorIRUnitario;
+            saldosFinais.principalComDesagio = resultadoIR.principalComDesagio;
+            saldosFinais.percentualDesagioIR = resultadoIR.percentualDesagioIR;
+            saldosFinais.rraComDesagio = resultadoIR.rraComDesagio;
+
+            saldosFinais.totalLiquido = totalSemHonorariosSucumbenciais - saldosFinais.previdenciaTotal - saldosFinais.irTotal;
+
             return saldosFinais;
         }
 
@@ -5253,108 +5300,45 @@
             const resultadosAjustados = JSON.parse(JSON.stringify(resultados));
             
             if (saldos.totalGeralBruto > 0 && saldos.totalGeralOriginal > 0) {
-                const proporcao = saldos.totalGeralBruto / saldos.totalGeralOriginal;
+                // Usar o total SEM honorários sucumbenciais para os cálculos principais
+                const totalParaCalculo = saldos.totalSemHonorariosSucumbenciais || saldos.totalGeralBruto;
                 
-                // Ajustar valores globais
+                // Ajustar valores globais USANDO os valores já calculados
                 resultadosAjustados.principal = saldos.principalTotal;
-                resultadosAjustados.valorBase = saldos.totalGeralBruto;
-                resultadosAjustados.valortotatt = saldos.totalGeralBruto;
+                resultadosAjustados.valorBase = totalParaCalculo;
+                resultadosAjustados.valortotatt = totalParaCalculo;
                 resultadosAjustados.rrapagamento = saldos.rraAjustado || saldos.rraOriginal;
                 
-                // Recalcular Previdência
-                if (dados.incidenciaPrevidencia || 
-                    (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.previdencia))) {
-                    
-                    const resultadoPrevCompleto = calcularPrevidenciaIsolada(
-                        dados,
-                        resultadosAjustados.principal,
-                        resultadosAjustados.rrapagamento
-                    );
-                    
-                    resultadosAjustados.valorPrevidencia = resultadoPrevCompleto.valorPrevidencia;
-                    resultadosAjustados.aliquotaEfetiva = resultadoPrevCompleto.aliquotaEfetiva;
-                    resultadosAjustados.valorDesagioPrevidencia = resultadoPrevCompleto.valorDesagioPrevidencia;
-                    resultadosAjustados.percentualDesagioPrevidencia = resultadoPrevCompleto.percentualDesagioPrevidencia;
-                }
+                // USAR Previdência já calculada (NÃO recalcular)
+                resultadosAjustados.valorPrevidencia = saldos.previdenciaTotal;
+                resultadosAjustados.aliquotaEfetiva = saldos.aliquotaEfetiva;
+                resultadosAjustados.valorDesagioPrevidencia = saldos.valorDesagioPrevidencia;
+                resultadosAjustados.percentualDesagioPrevidencia = saldos.percentualDesagioPrevidencia;
                 
-                // Recalcular IR
-                const temIR = dados.incidenciaIR || 
-                    (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.ir === true));
-
-                if (temIR && (dados.tipoBeneficiario === 'pj' || resultadosAjustados.rrapagamento !== 0)) {
-                    
-                    const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
-                    const percentualTotalSind = dados.tipoCalculo === 'preferencia' ? 0 : 
-                        dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
-                    
-                    if (dados.natureza === 'comum' && dados.tipoBeneficiario === 'pj') {
-                        // Pessoa Jurídica
-                        const resultadoIRCompleto = calcularIRIsolado(
-                            dados,
-                            resultadosAjustados.valortotatt,
-                            resultadosAjustados.valorBase,
-                            resultadosAjustados.principal,
-                            resultadosAjustados.valorPrevidencia,
-                            resultadosAjustados.rrapagamento
-                        );
-                        
-                        resultadosAjustados.valorIR = resultadoIRCompleto.valorIR;
-                        resultadosAjustados.aliquotaIR = resultadoIRCompleto.aliquotaIR;
-                        resultadosAjustados.baseIRHonora = resultadoIRCompleto.baseIRHonora;
-                        resultadosAjustados.baseIRSindi = resultadoIRCompleto.baseIRSindi;
-                        resultadosAjustados.baseIRPrev = resultadoIRCompleto.baseIRPrev;
-                        resultadosAjustados.baseIRRRA = resultadoIRCompleto.baseIRRRA;
-                        resultadosAjustados.valorIRUnitario = resultadoIRCompleto.valorIRUnitario;
-                        resultadosAjustados.principalComDesagio = resultadoIRCompleto.principalComDesagio;
-                        resultadosAjustados.percentualDesagioIR = resultadoIRCompleto.percentualDesagioIR;
-                        resultadosAjustados.rraComDesagio = resultadoIRCompleto.rraComDesagio;
-                    } else {
-                        // Pessoa Física
-                        const valorHonorariosParaIR = resultadosAjustados.principal * percentualTotalAdv;
-                        const baseIRHonora = resultadosAjustados.principal - valorHonorariosParaIR;
-                        
-                        const valorSindicatosParaIR = resultadosAjustados.principal * percentualTotalSind;
-                        const baseIRSindi = baseIRHonora - valorSindicatosParaIR;
-                        
-                        let principalComDesagio = baseIRSindi;
-                        let percentualDesagioIR = 0;
-                        if (dados.tipoCalculo === 'acordo') {
-                            percentualDesagioIR = dados.percentualAcordo || 0;
-                            const valorDesagioIR = baseIRSindi * percentualDesagioIR;
-                            principalComDesagio = baseIRSindi - valorDesagioIR;
-                        }
-                        
-                        const baseIRPrev = principalComDesagio - resultadosAjustados.valorPrevidencia;
-                        const rraComDesagio = resultadosAjustados.rrapagamento > 0 ? 
-                            Math.max(1, resultadosAjustados.rrapagamento) : 0;
-                        const baseIRRRA = rraComDesagio > 0 ? baseIRPrev / rraComDesagio : baseIRPrev;
-                        
-                        const valorIRUnitario = calcularIR(baseIRRRA);
-                        const valorIR = valorIRUnitario * rraComDesagio;
-                        const aliquotaIR = obterAliquotaIR(baseIRRRA);
-                        
-                        resultadosAjustados.valorIR = valorIR;
-                        resultadosAjustados.aliquotaIR = aliquotaIR;
-                        resultadosAjustados.baseIRHonora = baseIRHonora;
-                        resultadosAjustados.baseIRSindi = baseIRSindi;
-                        resultadosAjustados.baseIRPrev = baseIRPrev;
-                        resultadosAjustados.baseIRRRA = baseIRRRA;
-                        resultadosAjustados.valorIRUnitario = valorIRUnitario;
-                        resultadosAjustados.principalComDesagio = principalComDesagio;
-                        resultadosAjustados.percentualDesagioIR = percentualDesagioIR;
-                        resultadosAjustados.rraComDesagio = rraComDesagio;
-                    }
-                }
+                // USAR IR já calculado (NÃO recalcular)
+                resultadosAjustados.valorIR = saldos.irTotal;
+                resultadosAjustados.aliquotaIR = saldos.aliquotaIR;
+                resultadosAjustados.baseIRHonora = saldos.baseIRHonora;
+                resultadosAjustados.baseIRSindi = saldos.baseIRSindi;
+                resultadosAjustados.baseIRPrev = saldos.baseIRPrev;
+                resultadosAjustados.baseIRRRA = saldos.baseIRRRA;
+                resultadosAjustados.valorIRUnitario = saldos.valorIRUnitario;
+                resultadosAjustados.principalComDesagio = saldos.principalComDesagio;
+                resultadosAjustados.percentualDesagioIR = saldos.percentualDesagioIR;
+                resultadosAjustados.rraComDesagio = saldos.rraComDesagio;
                 
                 // Ajustar Beneficiário Principal
                 if (saldos.beneficiarioPrincipal && saldos.beneficiarioPrincipal.saldo > 0) {
                     resultadosAjustados.valorBeneficiarioAposCessoes = saldos.beneficiarioPrincipal.saldo;
                     
-                    if (resultados.valorPrevidenciaBeneficiario) {
-                        resultadosAjustados.valorPrevidenciaBeneficiario = resultados.valorPrevidenciaBeneficiario * proporcao;
-                    }
-                    if (resultados.valorIRBeneficiario) {
-                        resultadosAjustados.valorIRBeneficiario = resultados.valorIRBeneficiario * proporcao;
+                    // Distribuir proporcionalmente IR e Previdência para o beneficiário
+                    if (totalParaCalculo > 0) {
+                        const proporcaoBenef = saldos.beneficiarioPrincipal.saldo / totalParaCalculo;
+                        resultadosAjustados.valorPrevidenciaBeneficiario = saldos.previdenciaTotal * proporcaoBenef;
+                        resultadosAjustados.valorIRBeneficiario = saldos.irTotal * proporcaoBenef;
+                        resultadosAjustados.valorBeneficiarioFinal = saldos.beneficiarioPrincipal.saldo - 
+                            resultadosAjustados.valorPrevidenciaBeneficiario - 
+                            resultadosAjustados.valorIRBeneficiario;
                     }
                 }
 
@@ -5725,7 +5709,9 @@
             let percentualDesagioIR = 0;
             let rraComDesagio = 0;
 
-            if (!dados.incidenciaIR || (dados.tipoBeneficiario !== 'pj' && rrapagamentoRecalculado === 0)) {
+            const temIR = (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.ir === true));
+
+            if (!temIR || (dados.tipoBeneficiario !== 'pj' && rrapagamentoRecalculado === 0)) {
                 return { valorIR, aliquotaIR, baseIRHonora, baseIRSindi, baseIRPrev, principalComDesagio, percentualDesagioIR, rraComDesagio, baseIRRRA, valorIRUnitario };
             }
 
