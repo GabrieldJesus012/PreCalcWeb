@@ -468,8 +468,22 @@
         document.getElementById('tipoCalculo').addEventListener('change', function() {
             const tipo = this.value;
             
-            mostrarOcultar('perguntaPagamento', ['ordem', 'acordo', 'parcial'].includes(tipo));
-            document.getElementById('houvePagamento').addEventListener('change', toggleAbaPagamento);
+            const permitePagamento = ['ordem', 'acordo'].includes(tipo);
+            mostrarOcultar('perguntaPagamento', permitePagamento);
+            
+            if (!permitePagamento) {
+                const houvePagamento = document.getElementById('houvePagamento');
+                if (houvePagamento) {
+                    houvePagamento.value = 'nao';
+                    toggleAbaPagamento(); 
+                }
+            }
+            
+            const houvePagamento = document.getElementById('houvePagamento');
+            if (houvePagamento && !houvePagamento.dataset.listenerAdded) {
+                houvePagamento.addEventListener('change', toggleAbaPagamento);
+                houvePagamento.dataset.listenerAdded = 'true';
+            }
         });
 
         document.getElementById('natureza').addEventListener('change', function() {
