@@ -416,7 +416,7 @@
         // ====================================
         // FUNÇÕES DE VISIBILIDADE
         // ====================================
-        
+
         function toggleDisplay(el, mostrar, tipo = 'block') {
             if (!el) return;
             el.style.display = mostrar ? tipo : 'none';
@@ -1802,205 +1802,76 @@
 
             DadosFormulario.salvarTodos();
 
-            const beneficiario = document.getElementById('beneficiario')?.value.trim() || 'Beneficiário Principal';
-            const quantAdvogados = parseInt(document.getElementById('quantAdvogados')?.value) || 0;
-            const quantAdvogadosSucumbenciais = parseInt(document.getElementById('quantAdvogadosSucumbenciais')?.value) || 0;
-            const quantHerdeiros = parseInt(document.getElementById('quantHerdeiros')?.value) || 0;
-            const quantSindicatos = parseInt(document.getElementById('quantSindicatos')?.value) || 0;
-            const quantCessoes = parseInt(document.getElementById('quantCessoes')?.value) || 0;
+            const beneficiario = Cache.beneficiario?.value.trim() || 'Beneficiário Principal';
+            const { advogados, advogadosSucumbenciais, herdeiros, sindicatos, cessoes } = getQuantidadesCessao();
 
             let html = '';
 
             // Beneficiário Principal - APENAS se NÃO houver herdeiros (pessoa ainda viva)
-            if (quantHerdeiros === 0) {
-                const percentualCedidoBeneficiario = calcularPercentualCedido('beneficiario', beneficiario);
-                const percentualLiquidoBeneficiario = 100 - percentualCedidoBeneficiario;
-                
-                if (percentualLiquidoBeneficiario > 0) {
-                    html += criarItemAcordo('beneficiario', beneficiario, 'Beneficiário Principal');
-                }
+            if (herdeiros === 0) {
+                html += criarItemAcordo('beneficiario', beneficiario, 'Beneficiário Principal');
             }
 
-            // Advogados
-            for (let i = 0; i < quantAdvogados; i++) {
-                const nome = DadosFormulario.advogados[i]?.nome?.trim() || `Advogado ${i + 1}`;
-                const percentualCedido = calcularPercentualCedido('advogado', nome);
-                const percentualLiquido = 100 - percentualCedido;
-                
-                if (percentualLiquido > 0) {
-                    html += criarItemAcordo(`advogado_${i}`, nome, 'Advogado Contratual');
+            const tiposConfig = [
+                { 
+                    quant: advogados, 
+                    dados: DadosFormulario.advogados, 
+                    prefixo: 'advogado', 
+                    label: 'Advogado Contratual',
+                    labelPadrao: 'Advogado'
+                },
+                { 
+                    quant: advogadosSucumbenciais, 
+                    dados: DadosFormulario.advogadosSucumbenciais, 
+                    prefixo: 'advogadoSucumbencial', 
+                    label: 'Adv. Sucumbencial',
+                    labelPadrao: 'Adv. Sucumbencial'
+                },
+                { 
+                    quant: herdeiros, 
+                    dados: DadosFormulario.herdeiros, 
+                    prefixo: 'herdeiro', 
+                    label: 'Herdeiro',
+                    labelPadrao: 'Herdeiro'
+                },
+                { 
+                    quant: sindicatos, 
+                    dados: DadosFormulario.sindicatos, 
+                    prefixo: 'sindicato', 
+                    label: 'Sindicato',
+                    labelPadrao: 'Sindicato'
                 }
-            }
+            ];
 
-            //sucumbenciais
-            for (let i = 0; i < quantAdvogadosSucumbenciais; i++) {
-                const nome = DadosFormulario.advogadosSucumbenciais[i]?.nome || `Adv. Sucumbencial ${i + 1}`;
-                const tipoHonorario = DadosFormulario.advogadosSucumbenciais[i]?.tipoHonorario || 'percentual';
-                const percentualCedido = calcularPercentualCedido('advogadoSucumbencial', nome);
-                let percentualLiquido = 0;
-                
-                let descricaoHonorario = '';
-                
-                if (tipoHonorario === 'percentual') {
-                    percentualLiquido = 100 - percentualCedido;
-                } else if (tipoHonorario === 'valorPrincipal') {
-                    percentualLiquido = 100 - percentualCedido; 
+            tiposConfig.forEach(({ quant, dados, prefixo, label, labelPadrao }) => {
+                for (let i = 0; i < quant; i++) {
+                    const nome = dados[i]?.nome?.trim() || `${labelPadrao} ${i + 1}`;
+                    html += criarItemAcordo(`${prefixo}_${i}`, nome, label);
                 }
-                
-                if (percentualLiquido > 0) {
-                    html += criarItemAcordo(`advogadoSucumbencial_${i}`, nome, 'Adv. Sucumbencial');
-                }
-            }
+            });
 
-            // Herdeiros
-            for (let i = 0; i < quantHerdeiros; i++) {
-                const nome = DadosFormulario.herdeiros[i]?.nome || `Herdeiro ${i + 1}`;
-                const percentualCedido = calcularPercentualCedido('herdeiro', nome);
-                const percentualLiquido = 100 - percentualCedido;
-                
-                if (percentualLiquido > 0) {
-                    html += criarItemAcordo(`herdeiro_${i}`, nome, 'Herdeiro');
-                }
-            }
+            const tiposCessaoTexto = {
+                'cessaobenPrincipal': (cedente) => `Cessionário do ${cedente}`,
+                'cessaoAdv': (cedente) => `Cessionário do Advogado ${cedente}`,
+                'cessaoAdvSuc': (cedente) => `Cessionário do Advogado Sucumbencial ${cedente}`,
+                'cessaoherdeiro': (cedente) => `Cessionário do Herdeiro ${cedente}`,
+                'cessaoSindicato': (cedente) => `Cessionário do Sindicato ${cedente}`
+            };
 
-            // Sindicatos
-            for (let i = 0; i < quantSindicatos; i++) {
-                const nome = DadosFormulario.sindicatos[i]?.nome || `Sindicato ${i + 1}`;
-                const percentualCedido = calcularPercentualCedido('sindicato', nome);
-                const percentualLiquido = 100 - percentualCedido;
-                
-                if (percentualLiquido > 0) {
-                    html += criarItemAcordo(`sindicato_${i}`, nome, 'Sindicato');
-                }
-            }
-
-            // Cessionários
-            for (let i = 0; i < quantCessoes; i++) {
+            for (let i = 0; i < cessoes; i++) {
                 const cessao = DadosFormulario.cessoes[i];
                 if (cessao?.cessionario?.trim()) {
                     const nomeCessionario = cessao.cessionario.trim();
                     const nomeCedente = cessao.cedente?.trim() || 'Desconhecido';
-                    
-                    let tipoTexto = '';
-                    switch(cessao.tipo) {
-                        case 'cessaobenPrincipal':
-                            tipoTexto = `Cessionário do ${nomeCedente}`;
-                            break;
-                        case 'cessaoAdv':
-                            tipoTexto = `Cessionário do Advogado ${nomeCedente}`;
-                            break;
-                        case 'cessaoAdvSuc':
-                            tipoTexto = `Cessionário do Advogado Sucumbencial ${nomeCedente}`;
-                            break;
-                        case 'cessaoherdeiro':
-                            tipoTexto = `Cessionário do Herdeiro ${nomeCedente}`;
-                            break;
-                        case 'cessaoSindicato':
-                            tipoTexto = `Cessionário do Sindicato ${nomeCedente}`;
-                            break;
-                        default:
-                            tipoTexto = `Cessionário de ${nomeCedente}`;
-                    }
+                    const tipoTexto = tiposCessaoTexto[cessao.tipo] 
+                        ? tiposCessaoTexto[cessao.tipo](nomeCedente)
+                        : `Cessionário de ${nomeCedente}`;
                     
                     html += criarItemAcordo(`cessionario_${i}`, nomeCessionario, tipoTexto);
                 }
             }
 
-            if (html === '') {
-                html = '<p class="loading">Nenhuma pessoa/entidade cadastrada para aderir ao acordo.</p>';
-            }
-
-            container.innerHTML = html;
-        }
-
-        function calcularPercentualCedido(tipoCedente, nomeCedente) {
-            let totalCedido = 0;
-            const quantCessoes = parseInt(document.getElementById('quantCessoes')?.value) || 0;
-            
-            let percentualOriginal = 0;
-            
-            switch(tipoCedente) {
-                case 'beneficiario':
-                    percentualOriginal = 1.0; 
-                    break;
-                    
-                case 'advogado':
-                    const quantAdvogados = parseInt(document.getElementById('quantAdvogados')?.value) || 0;
-                    for (let i = 0; i < quantAdvogados; i++) {
-                        const nomeAdv = DadosFormulario.advogados[i]?.nome?.trim();
-                        if (nomeAdv === nomeCedente) {
-                            percentualOriginal = parseFloat(DadosFormulario.advogados[i]?.percentual || '0');
-                            break;
-                        }
-                    }
-                    break;
-                    
-                case 'advogadoSucumbencial':
-                    const quantAdvSuc = parseInt(document.getElementById('quantAdvSuc')?.value) || 0;
-                    for (let i = 0; i < quantAdvSuc; i++) {
-                        const nomeAdvSuc = DadosFormulario.advogadosSucumbenciais[i]?.nome?.trim();
-                        if (nomeAdvSuc === nomeCedente) {
-                            percentualOriginal = parseFloat(DadosFormulario.advogadosSucumbenciais[i]?.percentual || '0');
-                            break;
-                        }
-                    }
-                    break;
-                    
-                case 'herdeiro':
-                    const quantHerdeiros = parseInt(document.getElementById('quantHerdeiros')?.value) || 0;
-                    for (let i = 0; i < quantHerdeiros; i++) {
-                        const nomeHerd = DadosFormulario.herdeiros[i]?.nome?.trim();
-                        if (nomeHerd === nomeCedente) {
-                            percentualOriginal = parseFloat(DadosFormulario.herdeiros[i]?.percentual || '0');
-                            break;
-                        }
-                    }
-                    break;
-                    
-                case 'sindicato':
-                    const quantSindicatos = parseInt(document.getElementById('quantSindicatos')?.value) || 0;
-                    for (let i = 0; i < quantSindicatos; i++) {
-                        const nomeSind = DadosFormulario.sindicatos[i]?.nome?.trim();
-                        if (nomeSind === nomeCedente) {
-                            percentualOriginal = parseFloat(DadosFormulario.sindicatos[i]?.percentual || '0');
-                            break;
-                        }
-                    }
-                    break;
-            }
-            
-            // 2. SEGUNDO: Calcular quanto foi cedido (em relação ao que tinha)
-            for (let i = 0; i < quantCessoes; i++) {
-                const cedente = DadosFormulario.cessoes[i]?.cedente;
-                const percentualCessao = parseFloat(DadosFormulario.cessoes[i]?.percentual || '0');
-                const tipoCessao = DadosFormulario.cessoes[i]?.tipo;
-                
-                let isCedenteCorreto = false;
-                
-                switch(tipoCedente) {
-                    case 'beneficiario':
-                        isCedenteCorreto = (tipoCessao === 'cessaobenPrincipal' && cedente === nomeCedente);
-                        break;
-                    case 'advogado':
-                        isCedenteCorreto = (tipoCessao === 'cessaoAdv' && cedente === nomeCedente);
-                        break;
-                    case 'advogadoSucumbencial':
-                        isCedenteCorreto = (tipoCessao === 'cessaoAdvSuc' && cedente === nomeCedente);
-                        break;
-                    case 'herdeiro':
-                        isCedenteCorreto = (tipoCessao === 'cessaoherdeiro' && cedente === nomeCedente);
-                        break;
-                    case 'sindicato':
-                        isCedenteCorreto = (tipoCessao === 'cessaoSindicato' && cedente === nomeCedente);
-                        break;
-                }
-                
-                if (isCedenteCorreto) {
-                    totalCedido += (percentualCessao * 100); 
-                }
-            }
-            
-            return Math.min(totalCedido, 100);
+            container.innerHTML = html || '<p class="loading">Nenhuma pessoa/entidade cadastrada para aderir ao acordo.</p>';
         }
 
         function criarItemAcordo(id, nome, tipo) {
@@ -2016,15 +1887,11 @@
         }
 
         function toggleAcordoItem(id) {
-            const checkbox = document.getElementById(`check_${id}`);
-            const item = document.getElementById(`acordo_${id}`);
+            const checkbox = $(`check_${id}`);
+            const item = $(`acordo_${id}`);
             
             if (checkbox && item) {
-                if (checkbox.checked) {
-                    item.classList.add('selected');
-                } else {
-                    item.classList.remove('selected');
-                }
+                item.classList.toggle('selected', checkbox.checked);
             }
         }
 
@@ -2038,56 +1905,25 @@
                 cessionarios: []
             };
 
-            // Verificar beneficiário
-            const checkBeneficiario = document.getElementById('check_beneficiario');
-            if (checkBeneficiario?.checked) {
+            if ($('check_beneficiario')?.checked) {
                 adesoes.beneficiario = true;
             }
 
-            // Verificar advogados
-            const quantAdvogados = parseInt(document.getElementById('quantAdvogados')?.value) || 0;
-            for (let i = 0; i < quantAdvogados; i++) {
-                const check = document.getElementById(`check_advogado_${i}`);
-                if (check?.checked) {
-                    adesoes.advogados.push(i);
-                }
-            }
+            const tiposVerificacao = [
+                { quant: parseInt(Cache.quantAdvogados?.value) || 0, prefixo: 'advogado', array: 'advogados' },
+                { quant: parseInt(Cache.quantAdvogadosSucumbenciais?.value) || 0, prefixo: 'advogadoSucumbencial', array: 'advogadosSucumbenciais' },
+                { quant: parseInt(Cache.quantHerdeiros?.value) || 0, prefixo: 'herdeiro', array: 'herdeiros' },
+                { quant: parseInt(Cache.quantSindicatos?.value) || 0, prefixo: 'sindicato', array: 'sindicatos' },
+                { quant: parseInt(Cache.quantCessoes?.value) || 0, prefixo: 'cessionario', array: 'cessionarios' }
+            ];
 
-            //Verificar advogados sucumb
-            const quantAdvogadosSucumbenciais = parseInt(document.getElementById('quantAdvogadosSucumbenciais')?.value) || 0;
-            for (let i = 0; i < quantAdvogadosSucumbenciais; i++) {
-                const check = document.getElementById(`check_advogadoSucumbencial_${i}`);
-                if (check?.checked) {
-                    adesoes.advogadosSucumbenciais.push(i); 
+            tiposVerificacao.forEach(({ quant, prefixo, array }) => {
+                for (let i = 0; i < quant; i++) {
+                    if (document.getElementById(`check_${prefixo}_${i}`)?.checked) {
+                        adesoes[array].push(i);
+                    }
                 }
-            }
-
-            // Verificar herdeiros
-            const quantHerdeiros = parseInt(document.getElementById('quantHerdeiros')?.value) || 0;
-            for (let i = 0; i < quantHerdeiros; i++) {
-                const check = document.getElementById(`check_herdeiro_${i}`);
-                if (check?.checked) {
-                    adesoes.herdeiros.push(i);
-                }
-            }
-
-            // Verificar sindicatos
-            const quantSindicatos = parseInt(document.getElementById('quantSindicatos')?.value) || 0;
-            for (let i = 0; i < quantSindicatos; i++) {
-                const check = document.getElementById(`check_sindicato_${i}`);
-                if (check?.checked) {
-                    adesoes.sindicatos.push(i);
-                }
-            }
-
-            // Verificar cessionários
-            const quantCessoes = parseInt(document.getElementById('quantCessoes')?.value) || 0;
-            for (let i = 0; i < quantCessoes; i++) {
-                const check = document.getElementById(`check_cessionario_${i}`);
-                if (check?.checked) {
-                    adesoes.cessionarios.push(i);
-                }
-            }
+            });
 
             return adesoes;
         }
