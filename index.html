@@ -392,30 +392,30 @@
     </div>
 
     <script>
+        // ====================================
+        // CONTROLE DE ABAS E UTILIDADES
+        // ====================================
+
+        const $ = id => document.getElementById(id);
+
         function showTab(tabId) {
-            const allTabs = document.querySelectorAll('.tab-content');
-            const allButtons = document.querySelectorAll('.tab-button');
-            
-            allTabs.forEach(tab => {
-                if (tab.id === tabId) {
-                    tab.classList.add('active');
-                } else {
-                    tab.classList.remove('active');
-                }
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.toggle('active', tab.id === tabId);
             });
             
-            allButtons.forEach(btn => {
-                if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(`showTab('${tabId}')`)) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                const onclick = btn.getAttribute('onclick');
+                btn.classList.toggle('active', onclick && onclick.includes(`showTab('${tabId}')`));
             });
 
-            if (tabId === 'tab6') {
+            if (tabId === 'tab6' && typeof atualizarAdesaoAcordo === 'function') {
                 atualizarAdesaoAcordo();
             }
         }
+
+        // ====================================
+        // FUNÇÕES DE VISIBILIDADE
+        // ====================================
 
         function mostrarOcultar(elementId, mostrar) {
             const element = document.getElementById(elementId);
@@ -424,217 +424,85 @@
             }
         }
 
+        function toggleDisplay(el, mostrar, tipo = 'block') {
+            if (!el) return;
+            el.style.display = mostrar ? tipo : 'none';
+        }
+
         function toggleTipoBeneficiario() {
-            const natureza = document.getElementById('natureza').value;
-            const tipoBeneficiarioGroup = document.getElementById('tipoBeneficiarioGroup');
-            
-            if (natureza === 'comum') {
-                tipoBeneficiarioGroup.classList.add('show');
-            } else {
-                tipoBeneficiarioGroup.classList.remove('show');
-                document.getElementById('tipoBeneficiario').value = 'pf';
+            const natureza = $('natureza').value;
+            const grupo = $('tipoBeneficiarioGroup');
+            grupo.classList.toggle('show', natureza === 'comum');
+            if (natureza !== 'comum') $('tipoBeneficiario').value = 'pf';
+        }
+
+        function atualizarVisibilidadePreferencia() {
+            const tipo = FormCache.tipoCalculo?.value;
+            const quant = parseInt(FormCache.quantHerdeiros?.value) || 0;
+            for (let i = 0; i < quant; i++) {
+                toggleDisplay($(`herdPreferenciaContainer${i}`), tipo === 'preferencia', '');
             }
         }
 
-        // Event listeners
-        document.getElementById('dataBase').addEventListener('change', function() {
-            const dataBase = this.value; 
-            
-            if (dataBase) {
-                const [ano, mes, dia] = dataBase.split('-');
-                const mesNumero = parseInt(mes); 
-                
-                const meses = [
-                    'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
-                    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
-                ];
-                
-                document.getElementById('mesBase').value = meses[mesNumero - 1]; 
-                document.getElementById('anoBase').value = ano;
+        function atualizarVisibilidadePreferenciaSucumbencial() {
+            const tipo = FormCache.tipoCalculo?.value;
+            const quant = parseInt(FormCache.quantAdvogadosSucumbenciais?.value) || 0;
+            for (let i = 0; i < quant; i++) {
+                toggleDisplay($(`advSucPreferenciaContainer${i}`), tipo === 'preferencia');
             }
-        });
+        }
 
-        document.getElementById('tipoCalculo').addEventListener('change', function() {
-            const tipo = this.value;
-            const natureza = document.getElementById('natureza').value;
-            
-            mostrarOcultar('tetoPreferencia', tipo === 'preferencia' && natureza === 'alimentar');
-            mostrarOcultar('percentualAcordo', tipo === 'acordo');
-            mostrarOcultar('saldoParcial', tipo === 'parcial');
+        function toggleTipoPagamento(index) {
+            const tipo = $(`pagTipoInformacao${index}`).value;
+            document.querySelectorAll(`.pag-campo-total-${index}`).forEach(el =>
+                toggleDisplay(el, tipo === 'total')
+            );
+            document.querySelectorAll(`.pag-campo-separado-${index}`).forEach(el =>
+                toggleDisplay(el, tipo !== 'total')
+            );
+        }
 
-            toggleAbaAcordo();
-        });
-
-        document.getElementById('tipoCalculo').addEventListener('change', function() {
-            const tipo = this.value;
-            
-            const permitePagamento = ['ordem', 'acordo'].includes(tipo);
-            mostrarOcultar('perguntaPagamento', permitePagamento);
-            
-            if (!permitePagamento) {
-                const houvePagamento = document.getElementById('houvePagamento');
-                if (houvePagamento) {
-                    houvePagamento.value = 'nao';
-                    toggleAbaPagamento(); 
-                }
-            }
-            
-            const houvePagamento = document.getElementById('houvePagamento');
-            if (houvePagamento && !houvePagamento.dataset.listenerAdded) {
-                houvePagamento.addEventListener('change', toggleAbaPagamento);
-                houvePagamento.dataset.listenerAdded = 'true';
-            }
-        });
-
-        document.getElementById('natureza').addEventListener('change', function() {
-            const natureza = this.value;
-            const tipo = document.getElementById('tipoCalculo').value;
-            mostrarOcultar('tetoPreferencia', tipo === 'preferencia' && natureza === 'alimentar');
-        });
-
-        document.getElementById('incidenciaPrevidencia').addEventListener('change', function() {
-            const incidencia = this.value;
-            
-            if (incidencia === 'sim') {
-                mostrarOcultar('tipoPrevidenciaDiv', true);
-                const tipoPrevidencia = document.getElementById('tipoPrevidencia').value;
-                mostrarOcultar('aliquotaFixaDiv', tipoPrevidencia === 'fixa');
-            } else {
-                mostrarOcultar('tipoPrevidenciaDiv', false);
-                mostrarOcultar('aliquotaFixaDiv', false);
-            }
-        });
-
-        document.getElementById('tipoPrevidencia').addEventListener('change', function() {
-            const tipo = this.value;
-            const incidencia = document.getElementById('incidenciaPrevidencia').value;
-            
-            mostrarOcultar('aliquotaFixaDiv', tipo === 'fixa' && incidencia === 'sim');
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const anoAtual = new Date().getFullYear();
-            document.getElementById('anoBase').value = anoAtual;
-            document.getElementById('anoOrcamento').value = anoAtual;
-            
-            FormCache.init();
-            CessaoCache.init();
-            ColetaCache.init();
-            
-            initializeFormEventListeners();
-            
-            document.getElementById('incidenciaPrevidencia').dispatchEvent(new Event('change'));
-            document.getElementById('tipoPrevidencia').dispatchEvent(new Event('change'));
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const radioValor = document.getElementById('selicValor');
-            const radioPercentual = document.getElementById('selicPercentual');
-            const campoValor = document.getElementById('campoValorSelic');
-            const campoPercentual = document.getElementById('campoPercentualSelic');
-            const inputValor = document.getElementById('valorSelic');
-            const inputPercentual = document.getElementById('percentualSelic');
-
-            function alternarCampos() {
-                if (radioValor.checked) {
-                    campoValor.style.display = 'block';
-                    campoPercentual.style.display = 'none';
-                    inputPercentual.value = '';
-                } else {
-                    campoValor.style.display = 'none';
-                    campoPercentual.style.display = 'block';
-                    inputValor.value = '';
-                }
-            }
-
-            radioValor.addEventListener('change', alternarCampos);
-            radioPercentual.addEventListener('change', alternarCampos);
-            
-            alternarCampos();
-        });
-
-        // Inicialização dos campos na carga da página
-        window.addEventListener('load', function() {
-            document.getElementById('tipoCalculo').dispatchEvent(new Event('change'));
-            document.getElementById('natureza').dispatchEvent(new Event('change'));
-            document.getElementById('incidenciaPrevidencia').dispatchEvent(new Event('change'));
-            document.getElementById('tipoPrevidencia').dispatchEvent(new Event('change'));
-            document.getElementById('selicValor').checked = true;
-            document.getElementById('selicValor').dispatchEvent(new Event('change'));
-            toggleAbaAcordo();
-            toggleAbaPagamento();
-        });
-
-        document.getElementById('somenteHonorarioSucumbencial').addEventListener('change', function() {
-            const quantAdvSuc = parseInt(document.getElementById('quantAdvogadosSucumbenciais')?.value) || 0;
-            
-            if (this.checked && quantAdvSuc === 0) {
-                alert('⚠️ Para marcar "Somente Honorário Sucumbencial", você precisa ter pelo menos 1 Advogado Sucumbencial cadastrado.');
-                this.checked = false;
-                return;
-            }
-        });
+        function toggleSelicPagamento(index) {
+            const valor = $(`pagSelicValor${index}`);
+            toggleDisplay($(`pagCampoValorSelic${index}`), valor?.checked);
+            toggleDisplay($(`pagCampoPercentualSelic${index}`), !valor?.checked);
+            if (valor?.checked) $(`pagPercentualSelic${index}`).value = '';
+            else $(`pagValorSelic${index}`).value = '';
+        }
+        
+        // ====================================
+        // INICIALIZAÇÃO DE FORMULÁRIOS
+        // ====================================
 
         function initializeFormEventListeners() {
-            // Advogados
-            FormCache.quantAdvogados?.addEventListener('change', function() {
-                const quant = parseInt(this.value) || 0;
-                criarElementosFormulario({
-                    container: FormCache.advogadosContainer,
-                    quantidade: quant,
-                    criarElementoFn: criarElementoAdvogado,
-                    tipo: 'advogados',
-                    callback: atualizarOpcoesCessao
-                });
-            });
+            const handlers = [
+                ['quantAdvogados', criarElementoAdvogado, 'advogados'],
+                ['quantAdvogadosSucumbenciais', criarElementoAdvogadoSucumbencial, 'advogadosSucumbenciais'],
+                ['quantSindicatos', criarElementoSindicato, 'sindicatos'],
+                ['quantHerdeiros', criarElementoHerdeiro, 'herdeiros']
+            ];
 
-            //sucumbencial 
-            FormCache.quantAdvogadosSucumbenciais?.addEventListener('change', function() {
-                const quant = parseInt(this.value) || 0;
-                criarElementosFormulario({
-                    container: FormCache.advogadosSucumbenciaisContainer,
-                    quantidade: quant,
-                    criarElementoFn: criarElementoAdvogadoSucumbencial,
-                    tipo: 'advogadosSucumbenciais',
-                    callback:atualizarOpcoesCessao
-                });
-            });
-
-            // Sindicatos
-            FormCache.quantSindicatos?.addEventListener('change', function() {
-                const quant = parseInt(this.value) || 0;
-                criarElementosFormulario({
-                    container: FormCache.sindicatosContainer,
-                    quantidade: quant,
-                    criarElementoFn: criarElementoSindicato,
-                    tipo: 'sindicatos',
-                    callback: atualizarOpcoesCessao
-                });
-            });
-
-            // Herdeiros
-            FormCache.quantHerdeiros?.addEventListener('change', function() {
-                const quant = parseInt(this.value) || 0;
-                criarElementosFormulario({
-                    container: FormCache.herdeirosContainer,
-                    quantidade: quant,
-                    criarElementoFn: criarElementoHerdeiro,
-                    tipo: 'herdeiros',
-                    callback: atualizarOpcoesCessao
+            handlers.forEach(([campo, fn, tipo]) => {
+                FormCache[campo]?.addEventListener('change', function() {
+                    criarElementosFormulario({
+                        container: FormCache[`${tipo}Container`],
+                        quantidade: parseInt(this.value) || 0,
+                        criarElementoFn: fn,
+                        tipo,
+                        callback: atualizarOpcoesCessao
+                    });
                 });
             });
 
             // Cessões
-            FormCache.quantCessoes?.addEventListener('change', function() {
-                const quant = parseInt(this.value) || 0;
-                criarCessoes(quant);
-            });
+            FormCache.quantCessoes?.addEventListener('change', e =>
+                criarCessoes(parseInt(e.target.value) || 0)
+            );
 
-            FormCache.quantidadePagamentos?.addEventListener('change', function() {
-                const quant = parseInt(this.value) || 0;
+            FormCache.quantidadePagamentos?.addEventListener('change', e => {
                 criarElementosFormulario({
                     container: FormCache.pagamentosContainer,
-                    quantidade: quant,
+                    quantidade: parseInt(e.target.value) || 0,
                     criarElementoFn: criarElementoPagamento,
                     tipo: 'pagamentos'
                 });
@@ -642,7 +510,6 @@
 
             FormCache.tipoCalculo?.addEventListener('change', function() {
                 DadosFormulario.salvarHerdeiros();
-                
                 atualizarVisibilidadePreferencia();
                 atualizarVisibilidadePreferenciaSucumbencial();
             });
@@ -651,84 +518,169 @@
             FormCache.beneficiario?.addEventListener('change', atualizarOpcoesCessao);
         }
 
-        function atualizarVisibilidadePreferencia() {
-            const tipoCalculo = FormCache.tipoCalculo?.value;
-            const mostraPreferencia = tipoCalculo === 'preferencia';
-            const quantHerdeiros = parseInt(FormCache.quantHerdeiros?.value) || 0;
-            
-            for (let i = 0; i < quantHerdeiros; i++) {
-                const container = document.getElementById(`herdPreferenciaContainer${i}`);
-                if (container) {
-                    container.style.display = mostraPreferencia ? '' : 'none';
+        // ====================================
+        // CONFIGURAÇÃO DE EVENT LISTENERS
+        // ====================================
+
+        function configureEventListeners() {
+            // Atualiza mês e ano a partir de dataBase
+            $('dataBase')?.addEventListener('change', e => {
+                const [ano, mes] = e.target.value.split('-');
+                const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+                $('mesBase').value = meses[parseInt(mes) - 1] || '';
+                $('anoBase').value = ano || '';
+            });
+
+            // Tipo de cálculo
+            $('tipoCalculo')?.addEventListener('change', () => {
+                const tipo = $('tipoCalculo').value;
+                const natureza = $('natureza').value;
+
+                toggleDisplay($('tetoPreferencia'), tipo === 'preferencia' && natureza === 'alimentar');
+                toggleDisplay($('percentualAcordo'), tipo === 'acordo');
+                toggleDisplay($('saldoParcial'), tipo === 'parcial');
+
+                const permitePagamento = ['ordem','acordo'].includes(tipo);
+                toggleDisplay($('perguntaPagamento'), permitePagamento);
+
+                const houvePagamento = $('houvePagamento');
+                if (!permitePagamento && houvePagamento) {
+                    houvePagamento.value = 'nao';
+                    toggleAbaPagamento();
                 }
-            }
+
+                if (houvePagamento && !houvePagamento.dataset.listenerAdded) {
+                    houvePagamento.addEventListener('change', toggleAbaPagamento);
+                    houvePagamento.dataset.listenerAdded = 'true';
+                }
+
+                toggleAbaAcordo();
+            });
+
+            // Natureza
+            $('natureza')?.addEventListener('change', () => {
+                const tipo = $('tipoCalculo').value;
+                toggleDisplay($('tetoPreferencia'), tipo === 'preferencia' && $('natureza').value === 'alimentar');
+            });
+
+            // Incidência Previdência
+            $('incidenciaPrevidencia')?.addEventListener('change', () => {
+                const incidencia = $('incidenciaPrevidencia').value === 'sim';
+                toggleDisplay($('tipoPrevidenciaDiv'), incidencia);
+                toggleDisplay($('aliquotaFixaDiv'), incidencia && $('tipoPrevidencia').value === 'fixa');
+            });
+
+            $('tipoPrevidencia')?.addEventListener('change', () => {
+                toggleDisplay($('aliquotaFixaDiv'), $('incidenciaPrevidencia').value === 'sim' && $('tipoPrevidencia').value === 'fixa');
+            });
+
+            // Honorário sucumbencial
+            $('somenteHonorarioSucumbencial')?.addEventListener('change', e => {
+                if (e.target.checked && (parseInt($('quantAdvogadosSucumbenciais')?.value) || 0) === 0) {
+                    alert('⚠️ Para marcar "Somente Honorário Sucumbencial", você precisa ter pelo menos 1 Advogado Sucumbencial cadastrado.');
+                    e.target.checked = false;
+                }
+            });
         }
 
-        function atualizarVisibilidadePreferenciaSucumbencial() {
-            const tipoCalculo = FormCache.tipoCalculo?.value;
-            const mostraPreferencia = tipoCalculo === 'preferencia';
-            const quantAdvogados = parseInt(FormCache.quantAdvogadosSucumbenciais?.value) || 0;
-            
-            for (let i = 0; i < quantAdvogados; i++) {
-                const preferenciaContainer = document.getElementById(`advSucPreferenciaContainer${i}`);
-                if (preferenciaContainer) {
-                    preferenciaContainer.style.display = mostraPreferencia ? 'block' : 'none';
-                }
-            }
-        }
+        // ====================================
+        // INICIALIZAÇÃO PRINCIPAL
+        // ====================================
 
-        //valores principais - informações financeiras
+        document.addEventListener('DOMContentLoaded', function() {
+            const anoAtual = new Date().getFullYear();
+            $('anoBase').value = anoAtual;
+            $('anoOrcamento').value = anoAtual;
+            
+            FormCache.init();
+            CessaoCache.init();
+            ColetaCache.init();
+            initializeFormEventListeners();
+            configureEventListeners();
+            
+            ['incidenciaPrevidencia','tipoPrevidencia','tipoCalculo','natureza'].forEach(id =>
+                $(id)?.dispatchEvent(new Event('change'))
+            );
+
+            const selic = {
+                valor: $('selicValor'),
+                perc: $('selicPercentual'),
+                campoValor: $('campoValorSelic'),
+                campoPerc: $('campoPercentualSelic'),
+                inputValor: $('valorSelic'),
+                inputPerc: $('percentualSelic')
+            };
+
+            function alternarCamposSelic() {
+                const usarValor = selic.valor.checked;
+                toggleDisplay(selic.campoValor, usarValor);
+                toggleDisplay(selic.campoPerc, !usarValor);
+                if (usarValor) selic.inputPerc.value = '';
+                else selic.inputValor.value = '';
+            }
+
+            selic.valor?.addEventListener('change', alternarCamposSelic);
+            selic.perc?.addEventListener('change', alternarCamposSelic);
+            alternarCamposSelic();
+            toggleAbaAcordo();
+            toggleAbaPagamento();
+        });
+
+        // ====================================
+        // INICIALIZAÇÃO NA CARGA DA PÁGINA
+        // ====================================
+
+        window.addEventListener('load', () => {
+            ['tipoCalculo','natureza','incidenciaPrevidencia','tipoPrevidencia'].forEach(id =>
+                $(id)?.dispatchEvent(new Event('change'))
+            );
+            $('selicValor').checked = true;
+            $('selicValor').dispatchEvent(new Event('change'));
+            toggleAbaAcordo();
+            toggleAbaPagamento();
+        });
+
+        // ====================================
+        // Cadastro Valores Principais - informações financeiras
+        // ====================================
+
         let valoresPrincipais = [];
         function adicionarValorPrincipal() {
-            const mesBase = document.getElementById('mesBase').value;
-            const anoBase = document.getElementById('anoBase').value;
-            const valorPrincipal = document.getElementById('valorPrincipal').value;
-            const valorJuros = document.getElementById('valorJuros').value;
-            const rra = document.getElementById('rra').value;
-            const descricao = document.getElementById('descricaoPrincipal').value; 
-            const tipoUsoHonorario = document.getElementById('tipoUsoHonorario')?.value || 'ambos';
+            const mesBase = $('mesBase').value;
+            const anoBase = $('anoBase').value;
+            const valorPrincipal = parseFloat($('valorPrincipal').value) || 0;
+            const valorJuros = parseFloat($('valorJuros').value) || 0;
+            const rra = parseFloat($('rra').value) || 0;
+            const descricao = $('descricaoPrincipal').value || 'Valor Principal';
+            const tipoUsoHonorario = $('tipoUsoHonorario')?.value || 'ambos';
 
             const tipoSelic = document.querySelector('input[name="tipoSelic"]:checked')?.value;
-            const valorSelic = parseFloat(document.getElementById('valorSelic').value) || 0;
-            const percentualSelic = parseFloat(document.getElementById('percentualSelic').value) || 0;
-            const mesReferenciaSelic = document.getElementById('mesReferenciaSelic').value;
+            const valorSelic = parseFloat($('valorSelic').value) || 0;
+            const percentualSelic = parseFloat($('percentualSelic').value) || 0;
+            const mesReferenciaSelic = $('mesReferenciaSelic').value;
 
             if (!anoBase || (!valorPrincipal && !valorJuros)) {
                 alert('Preencha o ano base e pelo menos um valor (principal, juros)');
                 return;
             }
 
-            const indices = {
-                cnj: document.getElementById('principalCNJ').checked,
-                selic: document.getElementById('principalSELIC').checked,
-                ipca: document.getElementById('principalIPCA').checked,
-                jurosMora: document.getElementById('principalJurosMora').checked
-            };
+            const indices = { cnj: document.getElementById('principalCNJ').checked, selic: document.getElementById('principalSELIC').checked, ipca: document.getElementById('principalIPCA').checked, jurosMora: document.getElementById('principalJurosMora').checked };
 
             const tributacao = {
-                ir: document.getElementById('incidenciaIR').value === 'sim',
-                previdencia: document.getElementById('incidenciaPrevidencia').value === 'sim',
-                tipoPrevidencia: document.getElementById('tipoPrevidencia').value,
-                aliquotaFixa: parseFloat(document.getElementById('aliquotaFixa').value) || 0,
+                ir: $('incidenciaIR').value === 'sim',
+                previdencia: $('incidenciaPrevidencia').value === 'sim',
+                tipoPrevidencia: $('tipoPrevidencia').value,
+                aliquotaFixa: parseFloat($('aliquotaFixa').value) || 0,
                 rra: parseFloat(rra) || 0
             };
 
             if (tributacao.previdencia) {
-                const temAliquotaFixaExistente = valoresPrincipais.some(item => 
-                    item.tributacao.previdencia && item.tributacao.tipoPrevidencia === 'fixa'
-                );
-                
-                const temINSSExistente = valoresPrincipais.some(item => 
-                    item.tributacao.previdencia && item.tributacao.tipoPrevidencia === 'inss'
-                );
+                const existeFixa = valoresPrincipais.some(item => item.tributacao.previdencia && item.tributacao.tipoPrevidencia === 'fixa');
+                const existeINSS = valoresPrincipais.some(item => item.tributacao.previdencia && item.tributacao.tipoPrevidencia === 'inss');
 
-                if (temAliquotaFixaExistente && tributacao.tipoPrevidencia === 'inss') {
-                    alert('❌ Erro: Já existe item com alíquota fixa de previdência. Todos os itens devem seguir o mesmo padrão (fixa ou sem incidência).');
-                    return;
-                }
-
-                if (temINSSExistente && tributacao.tipoPrevidencia === 'fixa') {
-                    alert('❌ Erro: Já existe item com INSS. Para usar alíquota fixa, todos os itens devem seguir o mesmo padrão.');
+                if ((existeFixa && tributacao.tipoPrevidencia === 'inss') ||
+                    (existeINSS && tributacao.tipoPrevidencia === 'fixa')) {
+                    alert('❌ Todos os itens devem seguir o mesmo padrão de previdência (fixa ou INSS).');
                     return;
                 }
             }
@@ -737,16 +689,16 @@
                 id: Date.now(),
                 mesBase,
                 anoBase: parseInt(anoBase),
-                valorPrincipal: parseFloat(valorPrincipal) || 0,
-                valorJuros: parseFloat(valorJuros) || 0,
-                tipoSelic: tipoSelic,
+                valorPrincipal,
+                valorJuros,
+                tipoSelic,
                 valorSelic: tipoSelic === 'valor' ? valorSelic : 0,
                 percentualSelic: tipoSelic === 'percentual' ? percentualSelic : 0,
-                mesReferenciaSelic: mesReferenciaSelic,
+                mesReferenciaSelic,
                 indices,
                 tributacao,
-                descricao: descricao || 'Valor Principal',
-                tipoUsoHonorario: tipoUsoHonorario
+                descricao,
+                tipoUsoHonorario,
             };
 
             valoresPrincipais.push(valor);
@@ -755,13 +707,12 @@
 
             alert("✅ Valor cadastrado com sucesso!");
 
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // Renderizar valores principais
+        // ====================================
+        // // Renderizar valores principais
+        // ====================================
         function renderizarValoresPrincipais() {
             const lista = document.getElementById('listaValoresPrincipais');
             lista.innerHTML = '';
@@ -823,91 +774,95 @@
             });
         }
 
+        // ====================================
+        // Editar Valores
+        // ====================================
+
         function editarValorPrincipal(id) {
             const valorParaEditar = valoresPrincipais.find(v => v.id === id);
-            
             if (!valorParaEditar) {
                 alert('Valor não encontrado!');
                 return;
             }
-
-            document.getElementById('descricaoPrincipal').value = valorParaEditar.descricao || '';
-            document.getElementById('mesBase').value = valorParaEditar.mesBase || '';
-            document.getElementById('anoBase').value = valorParaEditar.anoBase || '';
-            document.getElementById('valorPrincipal').value = valorParaEditar.valorPrincipal || '';
-            document.getElementById('valorJuros').value = valorParaEditar.valorJuros || '';
-            document.getElementById('rra').value = valorParaEditar.tributacao.rra || '';
-            document.getElementById('tipoUsoHonorario').value = valorParaEditar.tipoUsoHonorario || 'ambos';
+            $('descricaoPrincipal').value = valorParaEditar.descricao || '';
+            $('mesBase').value = valorParaEditar.mesBase || '';
+            $('anoBase').value = valorParaEditar.anoBase || '';
+            $('valorPrincipal').value = valorParaEditar.valorPrincipal || '';
+            $('valorJuros').value = valorParaEditar.valorJuros || '';
+            $('rra').value = valorParaEditar.tributacao.rra || '';
+            $('tipoUsoHonorario').value = valorParaEditar.tipoUsoHonorario || 'ambos';
 
             if (valorParaEditar.tipoSelic === 'valor') {
-                document.getElementById('selicValor').checked = true;
-                document.getElementById('valorSelic').value = valorParaEditar.valorSelic || '';
-                document.getElementById('percentualSelic').value = '';
+                $('selicValor').checked = true;
+                $('valorSelic').value = valorParaEditar.valorSelic || '';
+                $('percentualSelic').value = '';
             } else if (valorParaEditar.tipoSelic === 'percentual') {
-                document.getElementById('selicPercentual').checked = true;
-                document.getElementById('percentualSelic').value = valorParaEditar.percentualSelic || '';
-                document.getElementById('valorSelic').value = '';
+                $('selicPercentual').checked = true;
+                $('percentualSelic').value = valorParaEditar.percentualSelic || '';
+                $('valorSelic').value = '';
             } else {
-                document.getElementById('selicValor').checked = true;
-                document.getElementById('valorSelic').value = '';
-                document.getElementById('percentualSelic').value = '';
+                $('selicValor').checked = true;
+                $('valorSelic').value = '';
+                $('percentualSelic').value = '';
             }
-            const eventoSelic = new Event('change');
-            document.querySelector('input[name="tipoSelic"]:checked').dispatchEvent(eventoSelic);
 
-            document.getElementById('mesReferenciaSelic').value = valorParaEditar.mesReferenciaSelic || 'mesAnterior';
+            $('mesReferenciaSelic').value = valorParaEditar.mesReferenciaSelic || 'mesAnterior';
+            $('selicValor').dispatchEvent(new Event('change'));
+            $('selicPercentual').dispatchEvent(new Event('change'));
 
-            document.getElementById('principalCNJ').checked = valorParaEditar.indices.cnj || false;
-            document.getElementById('principalSELIC').checked = valorParaEditar.indices.selic || false;
-            document.getElementById('principalIPCA').checked = valorParaEditar.indices.ipca || false;
-            document.getElementById('principalJurosMora').checked = valorParaEditar.indices.jurosMora || false;
+            $('principalCNJ').checked = valorParaEditar.indices.cnj || false; 
+            $('principalSELIC').checked = valorParaEditar.indices.selic || false; 
+            $('principalIPCA').checked = valorParaEditar.indices.ipca || false; 
+            $('principalJurosMora').checked = valorParaEditar.indices.jurosMora || false;
 
-            document.getElementById('incidenciaIR').value = valorParaEditar.tributacao.ir ? 'sim' : 'nao';
-            document.getElementById('incidenciaPrevidencia').value = valorParaEditar.tributacao.previdencia ? 'sim' : 'nao';
+            const trib = valorParaEditar.tributacao || {};
+            $('incidenciaIR').value = trib.ir ? 'sim' : 'nao';
+            $('incidenciaPrevidencia').value = trib.previdencia ? 'sim' : 'nao';
             
-            if (valorParaEditar.tributacao.previdencia) {
-                document.getElementById('tipoPrevidencia').value = valorParaEditar.tributacao.tipoPrevidencia || 'inss';
-                if (valorParaEditar.tributacao.tipoPrevidencia === 'fixa') {
-                    document.getElementById('aliquotaFixa').value = valorParaEditar.tributacao.aliquotaFixa || '';
-                }
+            if (trib.previdencia) {
+                $('tipoPrevidencia').value = trib.tipoPrevidencia || 'inss';
+                $('aliquotaFixa').value = trib.tipoPrevidencia === 'fixa' ? trib.aliquotaFixa || '' : '';
             }
 
-            const eventIncidenciaPrevidencia = new Event('change');
-            document.getElementById('incidenciaPrevidencia').dispatchEvent(eventIncidenciaPrevidencia);
+            $('incidenciaPrevidencia').dispatchEvent(new Event('change'));
+            $('tipoPrevidencia').dispatchEvent(new Event('change'));
 
-            const eventTipoPrevidencia = new Event('change');
-            document.getElementById('tipoPrevidencia').dispatchEvent(eventTipoPrevidencia);
-
+            // Remove valor antigo e re-renderiza lista
             valoresPrincipais = valoresPrincipais.filter(v => v.id !== id);
             renderizarValoresPrincipais();
 
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        // ====================================
+        // Remover valores
+        // ====================================
         function removerValorPrincipal(id) {
             valoresPrincipais = valoresPrincipais.filter(v => v.id !== id);
             renderizarValoresPrincipais();
         }
 
-        function limparFormularioPrincipal() {
-            document.getElementById('valorPrincipal').value = '';
-            document.getElementById('valorJuros').value = '';
-            document.getElementById('valorSelic').value = '';
-            document.getElementById('percentualSelic').value = '';
-            document.getElementById('mesReferenciaSelic').value = 'mesAnterior';
-            document.getElementById('rra').value = '';
-            document.getElementById('descricaoPrincipal').value = ''; 
-            document.getElementById('tipoUsoHonorario').value = 'ambos';
+        // ====================================
+        // Limpar formularios
+        // ====================================
 
-            document.getElementById('selicValor').checked = true;
+        function limparFormularioPrincipal() {
+            $('valorPrincipal').value = '';
+            $('valorJuros').value = '';
+            $('valorSelic').value = '';
+            $('percentualSelic').value = '';
+            $('mesReferenciaSelic').value = 'mesAnterior';
+            $('rra').value = '';
+            $('descricaoPrincipal').value = ''; 
+            $('tipoUsoHonorario').value = 'ambos';
+            $('selicValor').checked = true;
             const eventoSelic = new Event('change');
-            document.getElementById('selicValor').dispatchEvent(eventoSelic);
+            $('selicValor').dispatchEvent(eventoSelic);
         }
 
-        // Armazenar
+        // ====================================
+        // Armazenamento
+        // ====================================
         const DadosFormulario = {
             advogados: [],
             advogadosSucumbenciais: [],
@@ -1623,45 +1578,6 @@
             setTimeout(() => popularBeneficiariosPagamento(index), 10);
             
             return pagDiv;
-        }
-
-        function toggleTipoPagamento(index) {
-            const tipoSelect = document.getElementById(`pagTipoInformacao${index}`);
-            
-            const camposTotal = document.querySelectorAll(`.pag-campo-total-${index}`);
-            const camposSeparados = document.querySelectorAll(`.pag-campo-separado-${index}`);
-            
-            if (tipoSelect.value === 'total') {
-                camposTotal.forEach(el => el.style.display = 'block');
-                camposSeparados.forEach(el => el.style.display = 'none');
-            } else {
-                camposTotal.forEach(el => el.style.display = 'none');
-                camposSeparados.forEach(el => el.style.display = 'block');
-            }
-        }
-
-        function toggleSelicPagamento(index) {
-            const valorRadio = document.getElementById(`pagSelicValor${index}`);
-            const campoValor = document.getElementById(`pagCampoValorSelic${index}`);
-            const campoPercentual = document.getElementById(`pagCampoPercentualSelic${index}`);
-            const inputValor = document.getElementById(`pagValorSelic${index}`);
-            const inputPercentual = document.getElementById(`pagPercentualSelic${index}`);
-            
-            if (valorRadio && valorRadio.checked) {
-                campoValor.style.display = 'block';
-                campoPercentual.style.display = 'none';
-                
-                if (inputPercentual) {
-                    inputPercentual.value = '';
-                }
-            } else {
-                campoValor.style.display = 'none';
-                campoPercentual.style.display = 'block';
-                
-                if (inputValor) {
-                    inputValor.value = '';
-                }
-            }
         }
 
         function popularBeneficiariosPagamento(index) {
