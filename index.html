@@ -437,16 +437,16 @@
         }
 
         function atualizarVisibilidadePreferencia() {
-            const tipo = FormCache.tipoCalculo?.value;
-            const quant = parseInt(FormCache.quantHerdeiros?.value) || 0;
+            const tipo = Cache.tipoCalculo?.value;
+            const quant = parseInt(Cache.quantHerdeiros?.value) || 0;
             for (let i = 0; i < quant; i++) {
                 toggleDisplay($(`herdPreferenciaContainer${i}`), tipo === 'preferencia', '');
             }
         }
 
         function atualizarVisibilidadePreferenciaSucumbencial() {
-            const tipo = FormCache.tipoCalculo?.value;
-            const quant = parseInt(FormCache.quantAdvogadosSucumbenciais?.value) || 0;
+            const tipo = Cache.tipoCalculo?.value;
+            const quant = parseInt(Cache.quantAdvogadosSucumbenciais?.value) || 0;
             for (let i = 0; i < quant; i++) {
                 toggleDisplay($(`advSucPreferenciaContainer${i}`), tipo === 'preferencia');
             }
@@ -470,6 +470,38 @@
             else $(`pagValorSelic${index}`).value = '';
         }
 
+        function toggleAliquotaSindicato(index) {
+            const selectTrib = document.getElementById(`sindTrib${index}`);
+            const aliquotaContainer = document.getElementById(`aliquotaSindContainer${index}`);
+            
+            if (!selectTrib || !aliquotaContainer) return;
+            
+            const mostrarAliquota = selectTrib.value === 'fixa';
+            
+            aliquotaContainer.style.display = mostrarAliquota ? 'block' : 'none';
+            
+            // Limpar valor quando ocultar
+            if (!mostrarAliquota) {
+                const aliquotaInput = document.getElementById(`aliquotaSind${index}`);
+                if (aliquotaInput) {
+                    aliquotaInput.value = '';
+                }
+            }
+        }
+
+        function toggleCamposSucumbencial(index) {
+            const tipoHonorario = document.getElementById(`advSucTipoHonorario${index}`);
+            const percentualContainer = document.getElementById(`advSucPercentualContainer${index}`);
+            
+            if (!tipoHonorario) return;
+            
+            if (tipoHonorario.value === 'percentual') {
+                if (percentualContainer) percentualContainer.style.display = 'block';
+            } else if (tipoHonorario.value === 'valorPrincipal') {
+                if (percentualContainer) percentualContainer.style.display = 'none';
+            }
+        }
+
         // ====================================
         // INICIALIZAÇÃO PRINCIPAL
         // ====================================
@@ -479,9 +511,9 @@
             $('anoBase').value = anoAtual;
             $('anoOrcamento').value = anoAtual;
             
-            FormCache.init();
+            Cache.init();
             CessaoCache.init();
-            ColetaCache.init();
+            Cache.init();
             initializeFormEventListeners();
             configureEventListeners();
             
@@ -540,9 +572,9 @@
             ];
 
             handlers.forEach(([campo, fn, tipo]) => {
-                FormCache[campo]?.addEventListener('change', function() {
+                Cache[campo]?.addEventListener('change', function() {
                     criarElementosFormulario({
-                        container: FormCache[`${tipo}Container`],
+                        container: Cache[`${tipo}Container`],
                         quantidade: parseInt(this.value) || 0,
                         criarElementoFn: fn,
                         tipo,
@@ -552,27 +584,27 @@
             });
 
             // Cessões
-            FormCache.quantCessoes?.addEventListener('change', e =>
+            Cache.quantCessoes?.addEventListener('change', e =>
                 criarCessoes(parseInt(e.target.value) || 0)
             );
 
-            FormCache.quantidadePagamentos?.addEventListener('change', e => {
+            Cache.quantidadePagamentos?.addEventListener('change', e => {
                 criarElementosFormulario({
-                    container: FormCache.pagamentosContainer,
+                    container: Cache.pagamentosContainer,
                     quantidade: parseInt(e.target.value) || 0,
                     criarElementoFn: criarElementoPagamento,
                     tipo: 'pagamentos'
                 });
             });
 
-            FormCache.tipoCalculo?.addEventListener('change', function() {
+            Cache.tipoCalculo?.addEventListener('change', function() {
                 DadosFormulario.salvarHerdeiros();
                 atualizarVisibilidadePreferencia();
                 atualizarVisibilidadePreferenciaSucumbencial();
             });
             
             // Beneficiário
-            FormCache.beneficiario?.addEventListener('change', atualizarOpcoesCessao);
+            Cache.beneficiario?.addEventListener('change', atualizarOpcoesCessao);
         }
 
         // ====================================
@@ -718,6 +750,7 @@
         // ====================================
         // // Renderizar valores principais
         // ====================================
+
         function renderizarValoresPrincipais() {
             const lista = document.getElementById('listaValoresPrincipais');
             lista.innerHTML = '';
@@ -842,6 +875,7 @@
         // ====================================
         // Remover valores e Limpar formularios
         // ====================================
+
         function removerValorPrincipal(id) {
             valoresPrincipais = valoresPrincipais.filter(v => v.id !== id);
             renderizarValoresPrincipais();
@@ -920,7 +954,7 @@
                     mapeamento: { mesReferenciaSelic: 'selicReferencia' },
                     condicional: (dados, i) => {
                         // Detecta tipo de Selic
-                        const selicValorRadio = document.getElementById(`pagSelicValor${i}`);
+                        const selicValorRadio = $(`pagSelicValor${i}`);
                         dados.tipoSelic = selicValorRadio?.checked ? 'valor' : 'percentual';
                     }
                 }
@@ -931,7 +965,7 @@
                 if (!cfg) return;
                 
                 this[tipo] = [];
-                const quantidade = parseInt(document.getElementById(cfg.quantId)?.value) || 0;
+                const quantidade = parseInt($(cfg.quantId)?.value) || 0;
                 
                 for (let i = 0; i < quantidade; i++) {
                     const dados = {};
@@ -942,7 +976,7 @@
                             ? `${campo}${i}` 
                             : `${cfg.prefixo}${campo.charAt(0).toUpperCase() + campo.slice(1)}${i}`;
                         
-                        const elemento = document.getElementById(idCompleto);
+                        const elemento = $(idCompleto);
                         dados[nomeCampo] = elemento?.value || '';
                     });
                     
@@ -956,7 +990,7 @@
                 const cfg = this.config[tipo];
                 if (!cfg) return;
                 
-                const quantidade = parseInt(document.getElementById(cfg.quantId)?.value) || 0;
+                const quantidade = parseInt($(cfg.quantId)?.value) || 0;
                 const limite = Math.min(this[tipo].length, quantidade);
                 
                 for (let i = 0; i < limite; i++) {
@@ -969,7 +1003,7 @@
                             ? `${campo}${i}` 
                             : `${cfg.prefixo}${campo.charAt(0).toUpperCase() + campo.slice(1)}${i}`;
                         
-                        const elemento = document.getElementById(idCompleto);
+                        const elemento = $(idCompleto);
                         
                         // Mapeamento reverso para advogadosSucumbenciais
                         let valorParaRestaurat = dados[nomeCampo];
@@ -989,9 +1023,9 @@
                     } else if (tipo === 'cessoes') {
                         atualizarCedentes(i);
                         setTimeout(() => {
-                            const cedenteNome = document.getElementById(`cedenteNome${i}`);
-                            const cessionarioNome = document.getElementById(`cessionarioNome${i}`);
-                            const cessaoPercentual = document.getElementById(`cessaoPercentual${i}`);
+                            const cedenteNome = $(`cedenteNome${i}`);
+                            const cessionarioNome = $(`cessionarioNome${i}`);
+                            const cessaoPercentual = $(`cessaoPercentual${i}`);
                             
                             if (cedenteNome) cedenteNome.value = dados.cedente;
                             if (cessionarioNome) cessionarioNome.value = dados.cessionario;
@@ -1004,7 +1038,7 @@
             },
             
             restaurarPagamentoEspecial(i, dados) {
-                const tipoInformacao = document.getElementById(`pagTipoInformacao${i}`);
+                const tipoInformacao = $(`pagTipoInformacao${i}`);
                 if (tipoInformacao) {
                     tipoInformacao.value = dados.tipoInformacao || 'total';
                     
@@ -1015,12 +1049,12 @@
                     const valorTotal = document.getElementById(`pagValorTotal${i}`);
                     if (valorTotal) valorTotal.value = dados.valorTotal;
                 } else {
-                    const valorPrincipal = document.getElementById(`pagValorPrincipal${i}`);
-                    const valorJuros = document.getElementById(`pagValorJuros${i}`);
-                    const selicValorRadio = document.getElementById(`pagSelicValor${i}`);
-                    const selicPercentualRadio = document.getElementById(`pagSelicPercentual${i}`);
-                    const valorSelic = document.getElementById(`pagValorSelic${i}`);
-                    const percentualSelic = document.getElementById(`pagPercentualSelic${i}`);
+                    const valorPrincipal = $(`pagValorPrincipal${i}`);
+                    const valorJuros = $(`pagValorJuros${i}`);
+                    const selicValorRadio = $(`pagSelicValor${i}`);
+                    const selicPercentualRadio = $(`pagSelicPercentual${i}`);
+                    const valorSelic = $(`pagValorSelic${i}`);
+                    const percentualSelic = $(`pagPercentualSelic${i}`);
                     
                     if (valorPrincipal) valorPrincipal.value = dados.valorPrincipal;
                     if (valorJuros) valorJuros.value = dados.valorJuros;
@@ -1064,80 +1098,71 @@
             restaurarCessoes() { this.restaurarTipo('cessoes'); },
             restaurarPagamentos() { this.restaurarTipo('pagamentos'); }
         };
-        
-        const FormCache = {
-            advogadosContainer: null,
-            sindicatosContainer: null,
-            herdeirosContainer: null,
-            quantAdvogados: null,
-            quantSindicatos: null,
-            quantHerdeiros: null,
-            quantCessoes: null,
-            tipoCalculo: null,
-            beneficiario: null,
-            calculatorForm: null,
 
-            advogadosSucumbenciaisContainer: null,
-            quantAdvogadosSucumbenciais: null,
-            somenteHonorarioSucumbencial: null,
+        // ====================================
+        // CACHE
+        // ====================================
 
-            pagamentosContainer: null,
-            quantidadePagamentos: null,
+        const Cache = {
+            config: {
+                // Containers
+                containers: [
+                    'advogadosContainer',
+                    'advogadosSucumbenciaisContainer',
+                    'sindicatosContainer',
+                    'herdeirosContainer'
+                ],
+                
+                // Dados básicos
+                dadosBasicos: [
+                    'numprocesso',
+                    'anoOrcamento',
+                    'beneficiario',
+                    'tipoBeneficiario',
+                    'credor',
+                    'natureza',
+                    'tipoCalculo',
+                    'calculatorForm'
+                ],
+                
+                // Quantidades
+                quantidades: [
+                    'quantAdvogados',
+                    'quantAdvogadosSucumbenciais',
+                    'quantHerdeiros',
+                    'quantSindicatos',
+                    'quantCessoes',
+                    'quantidadePagamentos'
+                ],
+                
+                // Campos condicionais
+                condicionais: [
+                    'tetoPreferenciaPrincipal',
+                    'percentualAcordoValor',
+                    'saldoParcialValor',
+                    'somenteHonorarioSucumbencial',
+                    'houvePagamento'
+                ]
+            },
+            
+            especiais: {
+                pagamentosContainer: 'listaPagamentos'
+            },
             
             init() {
-                this.advogadosContainer = document.getElementById('advogadosContainer');
-                this.sindicatosContainer = document.getElementById('sindicatosContainer');
-                this.herdeirosContainer = document.getElementById('herdeirosContainer');
-                this.quantAdvogados = document.getElementById('quantAdvogados');
-                this.quantSindicatos = document.getElementById('quantSindicatos');
-                this.quantHerdeiros = document.getElementById('quantHerdeiros');
-                this.quantCessoes = document.getElementById('quantCessoes');
-                this.tipoCalculo = document.getElementById('tipoCalculo');
-                this.beneficiario = document.getElementById('beneficiario');
-                this.calculatorForm = document.getElementById('calculatorForm');
-
-                this.advogadosSucumbenciaisContainer = document.getElementById('advogadosSucumbenciaisContainer');
-                this.quantAdvogadosSucumbenciais = document.getElementById('quantAdvogadosSucumbenciais');
-                this.somenteHonorarioSucumbencial = document.getElementById('somenteHonorarioSucumbencial');
-
-                this.pagamentosContainer = document.getElementById('listaPagamentos');
-                this.quantidadePagamentos = document.getElementById('quantidadePagamentos');
-            }
-        };
-
-        const ColetaCache = {
-            elementos: null,
-            
-            init() {
-                this.elementos = {
-                    // Dados básicos
-                    numprocesso: document.getElementById('numprocesso'),
-                    anoOrcamento: document.getElementById('anoOrcamento'),
-                    beneficiario: document.getElementById('beneficiario'),
-                    tipoBeneficiario: document.getElementById('tipoBeneficiario'),
-                    credor: document.getElementById('credor'),
-                    natureza: document.getElementById('natureza'),
-                    tipoCalculo: document.getElementById('tipoCalculo'),                
-                    
-                    // Quantidades
-                    quantAdvogados: document.getElementById('quantAdvogados'),
-                    quantAdvogadosSucumbenciais: document.getElementById('quantAdvogadosSucumbenciais'),
-                    quantHerdeiros: document.getElementById('quantHerdeiros'),
-                    quantSindicatos: document.getElementById('quantSindicatos'),
-                    quantCessoes: document.getElementById('quantCessoes'),
-                    quantidadePagamentos: document.getElementById('quantidadePagamentos'), 
-                    
-                    // Campos condicionais
-                    tetoPreferenciaPrincipal: document.getElementById('tetoPreferenciaPrincipal'),
-                    percentualAcordoValor: document.getElementById('percentualAcordoValor'),
-                    saldoParcialValor: document.getElementById('saldoParcialValor'),
-                    somenteHonorarioSucumbencial: document.getElementById('somenteHonorarioSucumbencial'),
-                    houvePagamento: document.getElementById('houvePagamento')
-                };
+                Object.values(this.config).forEach(grupo => {
+                    grupo.forEach(id => {
+                        this[id] = document.getElementById(id);
+                    });
+                });
+                
+                Object.entries(this.especiais).forEach(([prop, id]) => {
+                    this[prop] = document.getElementById(id);
+                });
             },
             
             getValue(elementId, defaultValue = '', parser = null) {
-                const element = this.elementos[elementId];
+                const element = this[elementId];
                 if (!element) return defaultValue;
                 
                 const value = element.value;
@@ -1146,6 +1171,10 @@
                 return parser ? parser(value) || defaultValue : value;
             }
         };
+
+        // ====================================
+        // CRIAÇÃO DE ELEMENTOS
+        // ====================================
 
         function criarElementosFormulario(config) {
             const { container, quantidade, criarElementoFn, callback, tipo } = config;
@@ -1203,7 +1232,7 @@
         }
 
         function criarElementoAdvogadoSucumbencial(index) {
-            const tipoCalculo = FormCache.tipoCalculo?.value;
+            const tipoCalculo = Cache.tipoCalculo?.value;
             const mostraPreferencia = tipoCalculo === 'preferencia';
             
             const advDiv = document.createElement('div');
@@ -1353,7 +1382,7 @@
         }
 
         function criarElementoHerdeiro(index) {
-            const tipoCalculo = FormCache.tipoCalculo?.value;
+            const tipoCalculo = Cache.tipoCalculo?.value;
             const mostraPreferencia = tipoCalculo === 'preferencia';
             
             const herdDiv = document.createElement('div');
@@ -1387,38 +1416,6 @@
             }
             
             return herdDiv;
-        }
-
-        function toggleAliquotaSindicato(index) {
-            const selectTrib = document.getElementById(`sindTrib${index}`);
-            const aliquotaContainer = document.getElementById(`aliquotaSindContainer${index}`);
-            
-            if (!selectTrib || !aliquotaContainer) return;
-            
-            const mostrarAliquota = selectTrib.value === 'fixa';
-            
-            aliquotaContainer.style.display = mostrarAliquota ? 'block' : 'none';
-            
-            // Limpar valor quando ocultar
-            if (!mostrarAliquota) {
-                const aliquotaInput = document.getElementById(`aliquotaSind${index}`);
-                if (aliquotaInput) {
-                    aliquotaInput.value = '';
-                }
-            }
-        }
-
-        function toggleCamposSucumbencial(index) {
-            const tipoHonorario = document.getElementById(`advSucTipoHonorario${index}`);
-            const percentualContainer = document.getElementById(`advSucPercentualContainer${index}`);
-            
-            if (!tipoHonorario) return;
-            
-            if (tipoHonorario.value === 'percentual') {
-                if (percentualContainer) percentualContainer.style.display = 'block';
-            } else if (tipoHonorario.value === 'valorPrincipal') {
-                if (percentualContainer) percentualContainer.style.display = 'none';
-            }
         }
 
         function criarElementoPagamento(index) {
@@ -1585,15 +1582,15 @@
                 listaValoresPrincipais.innerHTML = '';
             }
             
-            FormCache.calculatorForm?.reset();
+            Cache.calculatorForm?.reset();
             
             const containersConfig = [
-                { element: FormCache.quantAdvogados, container: FormCache.advogadosContainer },
-                { element: FormCache.quantAdvogadosSucumbenciais, container: FormCache.advogadosSucumbenciaisContainer },
-                { element: FormCache.quantHerdeiros, container: FormCache.herdeirosContainer },
-                { element: FormCache.quantSindicatos, container: FormCache.sindicatosContainer },
-                { element: FormCache.quantCessoes, container: document.getElementById('cessaoContainer') },
-                { element: FormCache.quantidadePagamentos, container: FormCache.pagamentosContainer }
+                { element: Cache.quantAdvogados, container: Cache.advogadosContainer },
+                { element: Cache.quantAdvogadosSucumbenciais, container: Cache.advogadosSucumbenciaisContainer },
+                { element: Cache.quantHerdeiros, container: Cache.herdeirosContainer },
+                { element: Cache.quantSindicatos, container: Cache.sindicatosContainer },
+                { element: Cache.quantCessoes, container: document.getElementById('cessaoContainer') },
+                { element: Cache.quantidadePagamentos, container: Cache.pagamentosContainer }
             ];
             
             containersConfig.forEach(({ element, container }) => {
@@ -1610,9 +1607,9 @@
             document.getElementById('houvePagamento').value = 'nao';
 
             // Limpar cache se necessário
-            if (ColetaCache.elementos) {
-                ColetaCache.elementos.somenteHonorarioSucumbencial.checked = false;
-                ColetaCache.elementos.houvePagamento.value = 'nao';
+            if (Cache.elementos) {
+                Cache.elementos.somenteHonorarioSucumbencial.checked = false;
+                Cache.elementos.houvePagamento.value = 'nao';
             }
             
             limparNotasExplicativas();
@@ -2804,7 +2801,7 @@
         }
 
         function coletarDados() {
-            const cache = ColetaCache;
+            const cache = Cache;
             
             const dados = {
                 numProcesso: cache.getValue('numprocesso', 'Processo'),
@@ -3108,8 +3105,8 @@
 
         //Calculos:
         async function calcular() {
-            if (!ColetaCache.elementos) {
-                ColetaCache.init();
+            if (!Cache.elementos) {
+                Cache.init();
             }
 
             if (!valoresPrincipais || valoresPrincipais.length === 0) {
