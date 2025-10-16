@@ -469,6 +469,63 @@
             if (valor?.checked) $(`pagPercentualSelic${index}`).value = '';
             else $(`pagValorSelic${index}`).value = '';
         }
+
+        // ====================================
+        // INICIALIZAÇÃO PRINCIPAL
+        // ====================================
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const anoAtual = new Date().getFullYear();
+            $('anoBase').value = anoAtual;
+            $('anoOrcamento').value = anoAtual;
+            
+            FormCache.init();
+            CessaoCache.init();
+            ColetaCache.init();
+            initializeFormEventListeners();
+            configureEventListeners();
+            
+            ['incidenciaPrevidencia','tipoPrevidencia','tipoCalculo','natureza'].forEach(id =>
+                $(id)?.dispatchEvent(new Event('change'))
+            );
+
+            const selic = {
+                valor: $('selicValor'),
+                perc: $('selicPercentual'),
+                campoValor: $('campoValorSelic'),
+                campoPerc: $('campoPercentualSelic'),
+                inputValor: $('valorSelic'),
+                inputPerc: $('percentualSelic')
+            };
+
+            function alternarCamposSelic() {
+                const usarValor = selic.valor.checked;
+                toggleDisplay(selic.campoValor, usarValor);
+                toggleDisplay(selic.campoPerc, !usarValor);
+                if (usarValor) selic.inputPerc.value = '';
+                else selic.inputValor.value = '';
+            }
+
+            selic.valor?.addEventListener('change', alternarCamposSelic);
+            selic.perc?.addEventListener('change', alternarCamposSelic);
+            alternarCamposSelic();
+            toggleAbaAcordo();
+            toggleAbaPagamento();
+        });
+
+        // ====================================
+        // INICIALIZAÇÃO NA CARGA DA PÁGINA
+        // ====================================
+
+        window.addEventListener('load', () => {
+            ['tipoCalculo','natureza','incidenciaPrevidencia','tipoPrevidencia'].forEach(id =>
+                $(id)?.dispatchEvent(new Event('change'))
+            );
+            $('selicValor').checked = true;
+            $('selicValor').dispatchEvent(new Event('change'));
+            toggleAbaAcordo();
+            toggleAbaPagamento();
+        });
         
         // ====================================
         // INICIALIZAÇÃO DE FORMULÁRIOS
@@ -584,63 +641,6 @@
         }
 
         // ====================================
-        // INICIALIZAÇÃO PRINCIPAL
-        // ====================================
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const anoAtual = new Date().getFullYear();
-            $('anoBase').value = anoAtual;
-            $('anoOrcamento').value = anoAtual;
-            
-            FormCache.init();
-            CessaoCache.init();
-            ColetaCache.init();
-            initializeFormEventListeners();
-            configureEventListeners();
-            
-            ['incidenciaPrevidencia','tipoPrevidencia','tipoCalculo','natureza'].forEach(id =>
-                $(id)?.dispatchEvent(new Event('change'))
-            );
-
-            const selic = {
-                valor: $('selicValor'),
-                perc: $('selicPercentual'),
-                campoValor: $('campoValorSelic'),
-                campoPerc: $('campoPercentualSelic'),
-                inputValor: $('valorSelic'),
-                inputPerc: $('percentualSelic')
-            };
-
-            function alternarCamposSelic() {
-                const usarValor = selic.valor.checked;
-                toggleDisplay(selic.campoValor, usarValor);
-                toggleDisplay(selic.campoPerc, !usarValor);
-                if (usarValor) selic.inputPerc.value = '';
-                else selic.inputValor.value = '';
-            }
-
-            selic.valor?.addEventListener('change', alternarCamposSelic);
-            selic.perc?.addEventListener('change', alternarCamposSelic);
-            alternarCamposSelic();
-            toggleAbaAcordo();
-            toggleAbaPagamento();
-        });
-
-        // ====================================
-        // INICIALIZAÇÃO NA CARGA DA PÁGINA
-        // ====================================
-
-        window.addEventListener('load', () => {
-            ['tipoCalculo','natureza','incidenciaPrevidencia','tipoPrevidencia'].forEach(id =>
-                $(id)?.dispatchEvent(new Event('change'))
-            );
-            $('selicValor').checked = true;
-            $('selicValor').dispatchEvent(new Event('change'));
-            toggleAbaAcordo();
-            toggleAbaPagamento();
-        });
-
-        // ====================================
         // Cadastro Valores Principais - informações financeiras
         // ====================================
 
@@ -664,7 +664,12 @@
                 return;
             }
 
-            const indices = { cnj: document.getElementById('principalCNJ').checked, selic: document.getElementById('principalSELIC').checked, ipca: document.getElementById('principalIPCA').checked, jurosMora: document.getElementById('principalJurosMora').checked };
+            const indices = { 
+                cnj: $('principalCNJ').checked, 
+                selic: $('principalSELIC').checked, 
+                ipca: $('principalIPCA').checked, 
+                jurosMora: $('principalJurosMora').checked 
+            };
 
             const tributacao = {
                 ir: $('incidenciaIR').value === 'sim',
@@ -835,16 +840,12 @@
         }
 
         // ====================================
-        // Remover valores
+        // Remover valores e Limpar formularios
         // ====================================
         function removerValorPrincipal(id) {
             valoresPrincipais = valoresPrincipais.filter(v => v.id !== id);
             renderizarValoresPrincipais();
         }
-
-        // ====================================
-        // Limpar formularios
-        // ====================================
 
         function limparFormularioPrincipal() {
             $('valorPrincipal').value = '';
@@ -861,9 +862,9 @@
         }
 
         // ====================================
-        // Armazenamento
+        // Armazenamento do formulário
         // ====================================
-        
+
         const DadosFormulario = {
             advogados: [],
             advogadosSucumbenciais: [],
@@ -872,271 +873,196 @@
             cessoes: [],
             pagamentos: [],
             
-            salvar(tipo) {
-                switch(tipo) {
-                    case 'advogados':
-                        this.salvarAdvogados();
-                        break;
-                    case 'advogadosSucumbenciais': 
-                        this.salvarAdvogadosSucumbenciais();
-                        break;
-                    case 'herdeiros':
-                        this.salvarHerdeiros();
-                        break;
-                    case 'sindicatos':
-                        this.salvarSindicatos();
-                        break;
-                    case 'cessoes':
-                        this.salvarCessoes();
-                        break;
-                    case 'pagamentos': 
-                        this.salvarPagamentos();
-                        break;
-                    case 'todos':
-                        this.salvarTodos();
-                        break;
-                }
-            },
-            
-            salvarAdvogados() {
-                this.advogados = [];
-                const quantidade = parseInt(document.getElementById('quantAdvogados')?.value) || 0;
-                for (let i = 0; i < quantidade; i++) {
-                    this.advogados.push({
-                        nome: document.getElementById(`advNome${i}`)?.value || '',
-                        tipo: document.getElementById(`advTipo${i}`)?.value || 'PF',
-                        incidenciaIR: document.getElementById(`advIncidenciaIR${i}`)?.value || 'sim', 
-                        percentual: document.getElementById(`advPercentual${i}`)?.value || ''
-                    });
-                }
-            },
-
-            salvarAdvogadosSucumbenciais() {
-                this.advogadosSucumbenciais = [];
-                const quantidade = parseInt(document.getElementById('quantAdvogadosSucumbenciais')?.value) || 0;
-                for (let i = 0; i < quantidade; i++) {
-                    const dadosAdv = {
-                        nome: document.getElementById(`advSucNome${i}`)?.value || '',
-                        tipo: document.getElementById(`advSucTipo${i}`)?.value || 'PF',
-                        incidenciaIR: document.getElementById(`advSucIncidenciaIR${i}`)?.value || 'sim',
-                        tipoHonorario: document.getElementById(`advSucTipoHonorario${i}`)?.value || 'percentual',
-                        preferencia: document.getElementById(`advSucTemPreferencia${i}`)?.value || 'nao'
-                    };
-                    
-                    if (dadosAdv.tipoHonorario === 'percentual') {
-                        dadosAdv.percentual = document.getElementById(`advSucPercentual${i}`)?.value || '';
+            config: {
+                advogados: {
+                    quantId: 'quantAdvogados',
+                    campos: ['nome', 'tipo', 'incidenciaIR', 'percentual'],
+                    prefixo: 'adv',
+                    maiusculo: false
+                },
+                advogadosSucumbenciais: {
+                    quantId: 'quantAdvogadosSucumbenciais',
+                    campos: ['nome', 'tipo', 'incidenciaIR', 'tipoHonorario', 'percentual', 'temPreferencia'],
+                    prefixo: 'advSuc',
+                    maiusculo: false,
+                    condicional: (dados, i) => {
+                        if (dados.tipoHonorario !== 'percentual') delete dados.percentual;
+                        dados.preferencia = dados.temPreferencia;
+                        delete dados.temPreferencia;
                     }
-                    // Se for valorPrincipal, não precisa salvar nada extra (é 100% dele)
-                    
-                    this.advogadosSucumbenciais.push(dadosAdv);
-                }
-            },
-            
-            salvarHerdeiros() {
-                this.herdeiros = [];
-                const quantidade = parseInt(document.getElementById('quantHerdeiros')?.value) || 0;
-                for (let i = 0; i < quantidade; i++) {
-                    this.herdeiros.push({
-                        nome: document.getElementById(`herdNome${i}`)?.value || '',
-                        percentual: document.getElementById(`herdPercentual${i}`)?.value || '',
-                        preferencia: document.getElementById(`herdPreferencia${i}`)?.value || 'sim'
-                    });
-                }
-            },
-            
-            salvarSindicatos() {
-                this.sindicatos = [];
-                const quantidade = parseInt(document.getElementById('quantSindicatos')?.value) || 0;
-                for (let i = 0; i < quantidade; i++) {
-                    this.sindicatos.push({
-                        nome: document.getElementById(`sindNome${i}`)?.value || '',
-                        percentual: document.getElementById(`sindPercentual${i}`)?.value || '',
-                        tributacao: document.getElementById(`sindTrib${i}`)?.value || 'nao',
-                        aliquota: document.getElementById(`aliquotaSind${i}`)?.value || ''
-                    });
-                }
-            },
-            
-            salvarCessoes() {
-                this.cessoes = [];
-                const quantidade = parseInt(document.getElementById('quantCessoes')?.value) || 0;
-                for (let i = 0; i < quantidade; i++) {
-                    this.cessoes.push({
-                        tipo: document.getElementById(`cessaoTipo${i}`)?.value || '',
-                        cedente: document.getElementById(`cedenteNome${i}`)?.value || '',
-                        cessionario: document.getElementById(`cessionarioNome${i}`)?.value || '',
-                        percentual: document.getElementById(`cessaoPercentual${i}`)?.value || ''
-                    });
-                }
-            },
-
-            salvarPagamentos() {
-                this.pagamentos = [];
-                const quantidade = parseInt(document.getElementById('quantidadePagamentos')?.value) || 0;
-                for (let i = 0; i < quantidade; i++) {
-                    const tipoInformacao = document.getElementById(`pagTipoInformacao${i}`)?.value || 'total';
-
-                    const selicValorRadio = document.getElementById(`pagSelicValor${i}`);
-                    const tipoSelic = selicValorRadio && selicValorRadio.checked ? 'valor' : 'percentual';
-                    
-                    this.pagamentos.push({
-                        beneficiario: document.getElementById(`pagBeneficiario${i}`)?.value || '',
-                        dataBase: document.getElementById(`pagDataBase${i}`)?.value || '',
-                        tipoInformacao: tipoInformacao,
-                        valorTotal: document.getElementById(`pagValorTotal${i}`)?.value || '',
-                        valorPrincipal: document.getElementById(`pagValorPrincipal${i}`)?.value || '',
-                        valorJuros: document.getElementById(`pagValorJuros${i}`)?.value || '',
-                        tipoSelic: tipoSelic,
-                        valorSelic: document.getElementById(`pagValorSelic${i}`)?.value || '',
-                        percentualSelic: document.getElementById(`pagPercentualSelic${i}`)?.value || '',
-                        selicReferencia: document.getElementById(`pagMesReferenciaSelic${i}`)?.value || 'mesAnterior'
-                    });
-                }
-            },
-            
-            salvarTodos() {
-                this.salvarAdvogados();
-                this.salvarAdvogadosSucumbenciais();
-                this.salvarHerdeiros();
-                this.salvarSindicatos();
-                this.salvarCessoes();
-                this.salvarPagamentos();
-            },
-            
-            // Restaurar dados
-            restaurarAdvogados() {
-                const limite = Math.min(this.advogados.length, parseInt(document.getElementById('quantAdvogados')?.value) || 0);
-                for (let i = 0; i < limite; i++) {
-                    const advNome = document.getElementById(`advNome${i}`);
-                    const advTipo = document.getElementById(`advTipo${i}`);
-                    const advIncidenciaIR = document.getElementById(`advIncidenciaIR${i}`);
-                    const advPercentual = document.getElementById(`advPercentual${i}`);
-                    
-                    if (advNome) advNome.value = this.advogados[i].nome;
-                    if (advTipo) advTipo.value = this.advogados[i].tipo;
-                    if (advIncidenciaIR) advIncidenciaIR.value = this.advogados[i].incidenciaIR;
-                    if (advPercentual) advPercentual.value = this.advogados[i].percentual;
-                }
-            },
-
-            restaurarAdvogadosSucumbenciais() {
-                const limite = Math.min(this.advogadosSucumbenciais.length, parseInt(document.getElementById('quantAdvogadosSucumbenciais')?.value) || 0);
-                for (let i = 0; i < limite; i++) {
-                    const dados = this.advogadosSucumbenciais[i];
-
-                    const nome = document.getElementById(`advSucNome${i}`);
-                    const tipo = document.getElementById(`advSucTipo${i}`);
-                    const incidenciaIR = document.getElementById(`advSucIncidenciaIR${i}`);
-                    const tipoHonorario = document.getElementById(`advSucTipoHonorario${i}`);
-                    const percentual = document.getElementById(`advSucPercentual${i}`);
-                    const preferencia = document.getElementById(`advSucTemPreferencia${i}`);
-
-                    if (nome) nome.value = dados.nome;
-                    if (tipo) tipo.value = dados.tipo;
-                    if (incidenciaIR) incidenciaIR.value = dados.incidenciaIR;
-                    if (tipoHonorario) {
-                        tipoHonorario.value = dados.tipoHonorario;
-                        toggleCamposSucumbencial(i); 
-                    }
-                    // Só restaura percentual se tiver (tipo percentual)
-                    if (percentual && dados.percentual) percentual.value = dados.percentual;
-                    if (preferencia) preferencia.value = dados.preferencia;
-                }
-            },
-            
-            restaurarHerdeiros() {
-                const limite = Math.min(this.herdeiros.length, parseInt(document.getElementById('quantHerdeiros')?.value) || 0);
-                for (let i = 0; i < limite; i++) {
-                    const herdNome = document.getElementById(`herdNome${i}`);
-                    const herdPercentual = document.getElementById(`herdPercentual${i}`);
-                    const herdPreferencia = document.getElementById(`herdPreferencia${i}`);
-                    
-                    if (herdNome) herdNome.value = this.herdeiros[i].nome;
-                    if (herdPercentual) herdPercentual.value = this.herdeiros[i].percentual;
-                    if (herdPreferencia) herdPreferencia.value = this.herdeiros[i].preferencia;
-                }
-            },
-            
-            restaurarSindicatos() {
-                const limite = Math.min(this.sindicatos.length, parseInt(document.getElementById('quantSindicatos')?.value) || 0);
-                for (let i = 0; i < limite; i++) {
-                    const sindNome = document.getElementById(`sindNome${i}`);
-                    const sindPercentual = document.getElementById(`sindPercentual${i}`);
-                    const sindTrib = document.getElementById(`sindTrib${i}`);
-                    const aliquotaSind = document.getElementById(`aliquotaSind${i}`);
-                    
-                    if (sindNome) sindNome.value = this.sindicatos[i].nome;
-                    if (sindPercentual) sindPercentual.value = this.sindicatos[i].percentual;
-                    if (sindTrib) {
-                        sindTrib.value = this.sindicatos[i].tributacao;
-                        toggleAliquotaSindicato(i);
-                    }
-                    if (aliquotaSind && this.sindicatos[i].tributacao === 'fixa') {
-                        aliquotaSind.value = this.sindicatos[i].aliquota;
+                },
+                herdeiros: {
+                    quantId: 'quantHerdeiros',
+                    campos: ['nome', 'percentual', 'preferencia'],
+                    prefixo: 'herd',
+                    maiusculo: false
+                },
+                sindicatos: {
+                    quantId: 'quantSindicatos',
+                    campos: ['nome', 'percentual', 'trib', 'aliquotaSind'],
+                    prefixo: 'sind',
+                    maiusculo: false,
+                    mapeamento: { trib: 'tributacao', aliquotaSind: 'aliquota' }
+                },
+                cessoes: {
+                    quantId: 'quantCessoes',
+                    campos: ['tipo', 'cedenteNome', 'cessionarioNome', 'percentual'],
+                    prefixo: 'cessao',
+                    maiusculo: false,
+                    mapeamento: { cedenteNome: 'cedente', cessionarioNome: 'cessionario' }
+                },
+                pagamentos: {
+                    quantId: 'quantidadePagamentos',
+                    campos: ['beneficiario', 'dataBase', 'tipoInformacao', 'valorTotal', 'valorPrincipal', 
+                            'valorJuros', 'valorSelic', 'percentualSelic', 'mesReferenciaSelic'],
+                    prefixo: 'pag',
+                    maiusculo: false,
+                    mapeamento: { mesReferenciaSelic: 'selicReferencia' },
+                    condicional: (dados, i) => {
+                        // Detecta tipo de Selic
+                        const selicValorRadio = document.getElementById(`pagSelicValor${i}`);
+                        dados.tipoSelic = selicValorRadio?.checked ? 'valor' : 'percentual';
                     }
                 }
             },
             
-            restaurarCessoes() {
-                const limite = Math.min(this.cessoes.length, parseInt(document.getElementById('quantCessoes')?.value) || 0);
-                for (let i = 0; i < limite; i++) {
-                    const cessaoTipo = document.getElementById(`cessaoTipo${i}`);
-                    if (cessaoTipo && this.cessoes[i].tipo) {
-                        cessaoTipo.value = this.cessoes[i].tipo;
-                        atualizarCedentes(i);
+            salvarTipo(tipo) {
+                const cfg = this.config[tipo];
+                if (!cfg) return;
+                
+                this[tipo] = [];
+                const quantidade = parseInt(document.getElementById(cfg.quantId)?.value) || 0;
+                
+                for (let i = 0; i < quantidade; i++) {
+                    const dados = {};
+                    
+                    cfg.campos.forEach(campo => {
+                        const nomeCampo = cfg.mapeamento?.[campo] || campo;
+                        const idCompleto = campo.includes('Nome') || campo.includes('aliquota') || campo.includes('Referencia')
+                            ? `${campo}${i}` 
+                            : `${cfg.prefixo}${campo.charAt(0).toUpperCase() + campo.slice(1)}${i}`;
                         
+                        const elemento = document.getElementById(idCompleto);
+                        dados[nomeCampo] = elemento?.value || '';
+                    });
+                    
+                    if (cfg.condicional) cfg.condicional(dados, i);
+                    
+                    this[tipo].push(dados);
+                }
+            },
+            
+            restaurarTipo(tipo) {
+                const cfg = this.config[tipo];
+                if (!cfg) return;
+                
+                const quantidade = parseInt(document.getElementById(cfg.quantId)?.value) || 0;
+                const limite = Math.min(this[tipo].length, quantidade);
+                
+                for (let i = 0; i < limite; i++) {
+                    const dados = this[tipo][i];
+                    
+                    cfg.campos.forEach(campo => {
+                        const nomeCampo = cfg.mapeamento?.[campo] || campo;
+                        // Tratamento especial para campos com 'Nome' ou outros que não seguem o padrão
+                        const idCompleto = campo.includes('Nome') || campo.includes('aliquota') || campo.includes('Referencia')
+                            ? `${campo}${i}` 
+                            : `${cfg.prefixo}${campo.charAt(0).toUpperCase() + campo.slice(1)}${i}`;
+                        
+                        const elemento = document.getElementById(idCompleto);
+                        
+                        // Mapeamento reverso para advogadosSucumbenciais
+                        let valorParaRestaurat = dados[nomeCampo];
+                        if (tipo === 'advogadosSucumbenciais' && nomeCampo === 'preferencia') {
+                            valorParaRestaurat = dados.preferencia;
+                        }
+                        
+                        if (elemento && valorParaRestaurat !== undefined && valorParaRestaurat !== '') {
+                            elemento.value = valorParaRestaurat;
+                        }
+                    });
+                    
+                    if (tipo === 'advogadosSucumbenciais') {
+                        toggleCamposSucumbencial(i);
+                    } else if (tipo === 'sindicatos') {
+                        toggleAliquotaSindicato(i);
+                    } else if (tipo === 'cessoes') {
+                        atualizarCedentes(i);
                         setTimeout(() => {
                             const cedenteNome = document.getElementById(`cedenteNome${i}`);
                             const cessionarioNome = document.getElementById(`cessionarioNome${i}`);
                             const cessaoPercentual = document.getElementById(`cessaoPercentual${i}`);
                             
-                            if (cedenteNome) cedenteNome.value = this.cessoes[i].cedente;
-                            if (cessionarioNome) cessionarioNome.value = this.cessoes[i].cessionario;
-                            if (cessaoPercentual) cessaoPercentual.value = this.cessoes[i].percentual;
+                            if (cedenteNome) cedenteNome.value = dados.cedente;
+                            if (cessionarioNome) cessionarioNome.value = dados.cessionario;
+                            if (cessaoPercentual) cessaoPercentual.value = dados.percentual;
                         }, 50);
+                    } else if (tipo === 'pagamentos') {
+                        this.restaurarPagamentoEspecial(i, dados);
                     }
                 }
             },
-
-            restaurarPagamentos() {
-                const limite = Math.min(this.pagamentos.length, parseInt(document.getElementById('quantidadePagamentos')?.value) || 0);
-                for (let i = 0; i < limite; i++) {
-                    const dados = this.pagamentos[i];
-
-                    const beneficiario = document.getElementById(`pagBeneficiario${i}`);
-                    const dataBase = document.getElementById(`pagDataBase${i}`);
-                    const tipoInformacao = document.getElementById(`pagTipoInformacao${i}`);
+            
+            restaurarPagamentoEspecial(i, dados) {
+                const tipoInformacao = document.getElementById(`pagTipoInformacao${i}`);
+                if (tipoInformacao) {
+                    tipoInformacao.value = dados.tipoInformacao || 'total';
+                    
+                    if (typeof toggleTipoPagamento === 'function') toggleTipoPagamento(i);
+                }
+                
+                if (dados.tipoInformacao === 'total') {
                     const valorTotal = document.getElementById(`pagValorTotal${i}`);
-
+                    if (valorTotal) valorTotal.value = dados.valorTotal;
+                } else {
                     const valorPrincipal = document.getElementById(`pagValorPrincipal${i}`);
                     const valorJuros = document.getElementById(`pagValorJuros${i}`);
                     const selicValorRadio = document.getElementById(`pagSelicValor${i}`);
                     const selicPercentualRadio = document.getElementById(`pagSelicPercentual${i}`);
                     const valorSelic = document.getElementById(`pagValorSelic${i}`);
                     const percentualSelic = document.getElementById(`pagPercentualSelic${i}`);
-                    const selicReferencia = document.getElementById(`pagMesReferenciaSelic${i}`);
-
-                    if (beneficiario) beneficiario.value = dados.beneficiario;
-                    if (dataBase) dataBase.value = dados.dataBase;
-                    if (tipoInformacao) tipoInformacao.value = dados.tipoInformacao || 'total';
-                    if (dados.tipoInformacao === 'total') {
-                        if (valorTotal) valorTotal.value = dados.valorTotal;
-                    } else{
-                        if (valorPrincipal) valorPrincipal.value = dados.valorPrincipal;
-                        if (valorJuros) valorJuros.value = dados.valorJuros;
-                        
-                        if (dados.tipoSelic === 'valor') {
-                            if (selicValorRadio) selicValorRadio.checked = true;
-                            if (valorSelic) valorSelic.value = dados.valorSelic;
-                        } else {
-                            if (selicPercentualRadio) selicPercentualRadio.checked = true;
-                            if (percentualSelic) percentualSelic.value = dados.percentualSelic;
-                        }
-                    }
                     
-                    if (selicReferencia) selicReferencia.value = dados.selicReferencia;
+                    if (valorPrincipal) valorPrincipal.value = dados.valorPrincipal;
+                    if (valorJuros) valorJuros.value = dados.valorJuros;
+                    
+                    if (dados.tipoSelic === 'valor') {
+                        if (selicValorRadio) selicValorRadio.checked = true;
+                        if (valorSelic) valorSelic.value = dados.valorSelic;
+                    } else {
+                        if (selicPercentualRadio) selicPercentualRadio.checked = true;
+                        if (percentualSelic) percentualSelic.value = dados.percentualSelic;
+                    }
+                    if (typeof toggleSelicPagamento === 'function') toggleSelicPagamento(i);
                 }
-            }
+            },
+            
+            // Métodos públicos simplificados
+            salvar(tipo) {
+                if (tipo === 'todos') {
+                    this.salvarTodos();
+                } else {
+                    this.salvarTipo(tipo);
+                }
+            },
+            
+            salvarAdvogados() { this.salvarTipo('advogados'); },
+            salvarAdvogadosSucumbenciais() { this.salvarTipo('advogadosSucumbenciais'); },
+            salvarHerdeiros() { this.salvarTipo('herdeiros'); },
+            salvarSindicatos() { this.salvarTipo('sindicatos'); },
+            salvarCessoes() { this.salvarTipo('cessoes'); },
+            salvarPagamentos() { this.salvarTipo('pagamentos'); },
+            
+            salvarTodos() {
+                ['advogados', 'advogadosSucumbenciais', 'herdeiros', 'sindicatos', 'cessoes', 'pagamentos']
+                    .forEach(tipo => this.salvarTipo(tipo));
+            },
+            
+            restaurarAdvogados() { this.restaurarTipo('advogados'); },
+            restaurarAdvogadosSucumbenciais() { this.restaurarTipo('advogadosSucumbenciais'); },
+            restaurarHerdeiros() { this.restaurarTipo('herdeiros'); },
+            restaurarSindicatos() { this.restaurarTipo('sindicatos'); },
+            restaurarCessoes() { this.restaurarTipo('cessoes'); },
+            restaurarPagamentos() { this.restaurarTipo('pagamentos'); }
         };
         
         const FormCache = {
@@ -5261,15 +5187,12 @@
                 if (saldos.beneficiarioPrincipal && saldos.beneficiarioPrincipal.saldo > 0) {
                     resultadosAjustados.valorBeneficiarioAposCessoes = saldos.beneficiarioPrincipal.saldo;
                     
-                    // Distribuir proporcionalmente IR e Previdência para o beneficiário
-                    if (totalParaCalculo > 0) {
-                        const proporcaoBenef = saldos.beneficiarioPrincipal.saldo / totalParaCalculo;
-                        resultadosAjustados.valorPrevidenciaBeneficiario = saldos.previdenciaTotal * proporcaoBenef;
-                        resultadosAjustados.valorIRBeneficiario = saldos.irTotal * proporcaoBenef;
-                        resultadosAjustados.valorBeneficiarioFinal = saldos.beneficiarioPrincipal.saldo - 
-                            resultadosAjustados.valorPrevidenciaBeneficiario - 
-                            resultadosAjustados.valorIRBeneficiario;
-                    }
+                    resultadosAjustados.valorPrevidenciaBeneficiario = saldos.previdenciaTotal;
+                    resultadosAjustados.valorIRBeneficiario = saldos.irTotal;
+                    resultadosAjustados.valorBeneficiarioFinal = saldos.beneficiarioPrincipal.saldo - 
+                        resultadosAjustados.valorPrevidenciaBeneficiario - 
+                        resultadosAjustados.valorIRBeneficiario;
+                    
                 }
 
                 // Ajustar Advogados
