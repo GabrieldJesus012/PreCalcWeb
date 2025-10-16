@@ -416,14 +416,7 @@
         // ====================================
         // FUNÇÕES DE VISIBILIDADE
         // ====================================
-
-        function mostrarOcultar(elementId, mostrar) {
-            const element = document.getElementById(elementId);
-            if (element) {
-                element.style.display = mostrar ? 'block' : 'none';
-            }
-        }
-
+        
         function toggleDisplay(el, mostrar, tipo = 'block') {
             if (!el) return;
             el.style.display = mostrar ? tipo : 'none';
@@ -460,6 +453,27 @@
             document.querySelectorAll(`.pag-campo-separado-${index}`).forEach(el =>
                 toggleDisplay(el, tipo !== 'total')
             );
+        }
+
+        function toggleAbaPagamento() {
+            const houvePagamento = Cache.houvePagamento?.value === 'sim';
+            const tabPagamento = document.getElementById('tabPagamento');
+            
+            toggleDisplay(tabPagamento, houvePagamento);
+            
+            if (!houvePagamento) {
+                // Zerar quantidade se diferente de 0
+                if (Cache.quantidadePagamentos && Cache.quantidadePagamentos.value !== '0') {
+                    Cache.quantidadePagamentos.value = 0;
+                    Cache.quantidadePagamentos.dispatchEvent(new Event('change'));
+                }
+                
+                // Se aba de pagamento está ativa, volta pra tab1
+                const abaPagamentoAtiva = document.getElementById('tab9');
+                if (abaPagamentoAtiva?.classList.contains('active')) {
+                    showTab('tab1');
+                }
+            }
         }
 
         function toggleSelicPagamento(index) {
@@ -502,6 +516,25 @@
             }
         }
 
+        function toggleAbaAcordo() {
+            const tipoCalculo = Cache.tipoCalculo?.value;
+            const natureza = Cache.natureza?.value;
+            const isAcordo = tipoCalculo === 'acordo';
+            
+            toggleDisplay($('tetoPreferencia'), tipoCalculo === 'preferencia' && natureza === 'alimentar');
+            toggleDisplay($('percentualAcordo'), isAcordo)
+
+            const tabAcordo = $('tabAcordo');
+            toggleDisplay(tabAcordo, isAcordo);
+            
+            if (!isAcordo) {
+                const abaAcordoAtiva = $('tab6');
+                if (abaAcordoAtiva?.classList.contains('active')) {
+                    showTab('tab1');
+                }
+            }
+        }
+
         // ====================================
         // INICIALIZAÇÃO PRINCIPAL
         // ====================================
@@ -512,7 +545,6 @@
             $('anoOrcamento').value = anoAtual;
             
             Cache.init();
-            CessaoCache.init();
             Cache.init();
             initializeFormEventListeners();
             configureEventListeners();
@@ -1176,246 +1208,156 @@
         // CRIAÇÃO DE ELEMENTOS
         // ====================================
 
-        function criarElementosFormulario(config) {
-            const { container, quantidade, criarElementoFn, callback, tipo } = config;
+        const ConfigCampos = {
+            advogado: {
+                titulo: 'Advogado',
+                prefixo: 'adv',
+                campos: [
+                    { id: 'Nome', label: 'Nome', type: 'text', placeholder: 'Nome do advogado' },
+                    { id: 'Tipo', label: 'Tipo', type: 'select', options: [
+                        { value: 'PF', text: 'Pessoa Física' },
+                        { value: 'PJ', text: 'Pessoa Jurídica' }
+                    ]},
+                    { id: 'IncidenciaIR', label: 'Incidência de IR', type: 'select', options: [
+                        { value: 'sim', text: 'Sim', selected: true },
+                        { value: 'nao', text: 'Não' }
+                    ]},
+                    { id: 'Percentual', label: 'Percentual (ex: 0.1 para 10%)', type: 'number', step: '0.01', min: '0', max: '1', placeholder: '0.00' }
+                ]
+            },
             
-            if (!container) return;
+            advogadoSucumbencial: {
+                titulo: 'Advogado Sucumbencial',
+                prefixo: 'advSuc',
+                campos: [
+                    { id: 'Nome', label: 'Nome', type: 'text', placeholder: 'Nome do advogado' },
+                    { id: 'Tipo', label: 'Tipo', type: 'select', options: [
+                        { value: 'PF', text: 'Pessoa Física' },
+                        { value: 'PJ', text: 'Pessoa Jurídica' }
+                    ]},
+                    { id: 'IncidenciaIR', label: 'Incidência de IR', type: 'select', options: [
+                        { value: 'sim', text: 'Sim', selected: true },
+                        { value: 'nao', text: 'Não' }
+                    ]},
+                    { id: 'TipoHonorario', label: 'Tipo de Honorário', type: 'select', onChange: 'toggleCamposSucumbencial', options: [
+                        { value: 'percentual', text: 'Percentual' },
+                        { value: 'valorPrincipal', text: 'Valor Principal Próprio' }
+                    ]},
+                    { id: 'Percentual', label: 'Percentual (ex: 0.3 para 30%)', type: 'number', step: '0.01', min: '0', max: '1', placeholder: '0.00', containerId: 'Container' },
+                    { id: 'TemPreferencia', label: 'Tem Preferência?', type: 'select', condicional: 'preferencia', containerId: 'Container', options: [
+                        { value: 'nao', text: 'Não' },
+                        { value: 'sim', text: 'Sim' }
+                    ]}
+                ]
+            },
             
-            if (tipo) {
-                DadosFormulario.salvar(tipo);
+            sindicato: {
+                titulo: 'Sindicato',
+                prefixo: 'sind',
+                campos: [
+                    { id: 'Nome', label: 'Nome', type: 'text', placeholder: 'Nome do sindicato' },
+                    { id: 'Percentual', label: 'Percentual (ex: 0.1 para 10%)', type: 'number', step: '0.01', min: '0', max: '1', placeholder: '0.00' },
+                    { id: 'Trib', label: 'Tributação', type: 'select', onChange: 'toggleAliquotaSindicato', options: [
+                        { value: 'nao', text: 'Sem Tributação do IR' },
+                        { value: 'lei', text: 'Art. 27, da Lei nº 10.833/03' },
+                        { value: 'fixa', text: 'Alíquota Fixa' }
+                    ]},
+                    { id: 'aliquotaSind', label: 'Alíquota Fixa (ex: 0.015 para 1,5%)', type: 'number', step: '0.001', min: '0', max: '1', placeholder: '0.000', containerId: 'Container', hidden: true, semPrefixo: true }
+                ]
+            },
+            
+            herdeiro: {
+                titulo: 'Herdeiro',
+                prefixo: 'herd',
+                campos: [
+                    { id: 'Nome', label: 'Nome', type: 'text', placeholder: 'Nome do herdeiro' },
+                    { id: 'Percentual', label: 'Percentual (ex: 0.1 para 10%)', type: 'number', step: '0.01', min: '0', max: '1', placeholder: '0.00' },
+                    { id: 'Preferencia', label: 'Tem direito à preferência?', type: 'select', condicional: 'preferencia', containerId: 'Container', options: [
+                        { value: 'sim', text: 'Sim' },
+                        { value: 'nao', text: 'Não' }
+                    ]}
+                ]
             }
+        };
+        
+        function criarCampo(campo, prefixo, index) {
+            const id = campo.semPrefixo ? `${campo.id}${index}` : `${prefixo}${campo.id}${index}`;
+            const containerId = campo.containerId ? `${campo.semPrefixo ? campo.id : prefixo + campo.id}${campo.containerId}${index}` : null;
             
-            container.innerHTML = '';
-            
-            if (quantidade <= 0) {
-                callback && callback();
-                return;
-            }
-            
-            const fragment = document.createDocumentFragment();
-            
-            for (let i = 0; i < quantidade; i++) {
-                const elemento = criarElementoFn(i);
-                fragment.appendChild(elemento);
-            }
-            
-            container.appendChild(fragment);
-            
-            if (tipo) {
-                setTimeout(() => {
-                    switch(tipo) {
-                        case 'advogados':
-                            DadosFormulario.restaurarAdvogados();
-                            break;
-                        case 'herdeiros':
-                            DadosFormulario.restaurarHerdeiros();
-                            break;
-                        case 'sindicatos':
-                            DadosFormulario.restaurarSindicatos();
-                            break;
-                        case 'advogadosSucumbenciais':
-                            DadosFormulario.restaurarAdvogadosSucumbenciais();
-                            break;
-                        case 'pagamentos': 
-                            DadosFormulario.restaurarPagamentos();
-                            const quantPag = parseInt(document.getElementById('quantidadePagamentos')?.value) || 0;
-                            for (let i = 0; i < quantPag; i++) {
-                                toggleTipoPagamento(i);
-                            }
-                            break;
-                    }
-                    callback && callback();
-                }, 10);
-            } else {
-                callback && callback();
-            }
-        }
-
-        function criarElementoAdvogadoSucumbencial(index) {
             const tipoCalculo = Cache.tipoCalculo?.value;
             const mostraPreferencia = tipoCalculo === 'preferencia';
+            const isCondicional = campo.condicional === 'preferencia';
+            const display = (isCondicional && !mostraPreferencia) || campo.hidden ? 'display: none;' : '';
             
-            const advDiv = document.createElement('div');
-            advDiv.className = 'advogado-item';
-            advDiv.innerHTML = `
-                <div class="advogado-header">Advogado Sucumbencial ${index + 1}</div>
-                <div class="advogado-row">
-                    <!-- Nome -->
-                    <div class="input-group">
-                        <label>Nome ${index + 1}:</label>
-                        <input type="text" id="advSucNome${index}" placeholder="Nome do advogado">
-                    </div>
-                    
-                    <!-- Tipo de Pessoa -->
-                    <div class="input-group">
-                        <label>Tipo:</label>
-                        <select id="advSucTipo${index}">
-                            <option value="PF">Pessoa Física</option>
-                            <option value="PJ">Pessoa Jurídica</option>
-                        </select>
-                    </div>
-
-                    <!-- Incidência de IR -->
-                    <div class="input-group">
-                        <label>Incidência de IR:</label>
-                        <select id="advSucIncidenciaIR${index}">
-                            <option value="sim" selected>Sim</option>
-                            <option value="nao">Não</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Tipo de Honorário -->
-                    <div class="input-group">
-                        <label>Tipo de Honorário:</label>
-                        <select id="advSucTipoHonorario${index}" onchange="toggleCamposSucumbencial(${index})">
-                            <option value="percentual">Percentual</option>
-                            <option value="valorPrincipal">Valor Principal Próprio</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Campo Percentual (padrão visível) -->
-                    <div class="input-group" id="advSucPercentualContainer${index}">
-                        <label>Percentual (ex: 0.3 para 30%):</label>
-                        <input type="number" id="advSucPercentual${index}" step="0.01" min="0" max="1" placeholder="0.00">
-                    </div>
-                    
-                    <!-- PREFERÊNCIA - igual aos herdeiros -->
-                    <div class="input-group" style="${mostraPreferencia ? '' : 'display: none;'}" id="advSucPreferenciaContainer${index}">
-                        <label>Tem Preferência?</label>
-                        <select id="advSucTemPreferencia${index}">
-                            <option value="nao">Não</option>
-                            <option value="sim">Sim</option>
-                        </select>
-                    </div>
-                </div>
-            `;
+            let html = `<div class="input-group" ${containerId ? `id="${containerId}"` : ''} ${display ? `style="${display}"` : ''}>
+                <label>${campo.label}${campo.type !== 'select' && campo.type !== 'text' ? ':' : ''}</label>`;
             
-            // Adicionar evento para atualizar cessões quando nome mudar
-            const nomeInput = advDiv.querySelector(`#advSucNome${index}`);
-            if (nomeInput) {
-                nomeInput.addEventListener('change',atualizarOpcoesCessao);
+            if (campo.type === 'select') {
+                const onChange = campo.onChange ? ` onchange="${campo.onChange}(${index})"` : '';
+                html += `<select id="${id}"${onChange}>`;
+                campo.options.forEach(opt => {
+                    html += `<option value="${opt.value}"${opt.selected ? ' selected' : ''}>${opt.text}</option>`;
+                });
+                html += `</select>`;
+            } else {
+                const attrs = [];
+                if (campo.step) attrs.push(`step="${campo.step}"`);
+                if (campo.min) attrs.push(`min="${campo.min}"`);
+                if (campo.max) attrs.push(`max="${campo.max}"`);
+                if (campo.placeholder) attrs.push(`placeholder="${campo.placeholder}"`);
+                
+                html += `<input type="${campo.type}" id="${id}" ${attrs.join(' ')}>`;
             }
             
-            return advDiv;
+            html += `</div>`;
+            return html;
+        }
+
+        function criarElementoGenerico(tipo, index) {
+            const config = ConfigCampos[tipo];
+            if (!config) return null;
+            
+            const div = document.createElement('div');
+            div.className = 'advogado-item';
+            
+            let html = `<div class="advogado-header">${config.titulo} ${index + 1}</div><div class="advogado-row">`;
+            
+            config.campos.forEach(campo => {
+                html += criarCampo(campo, config.prefixo, index);
+            });
+            
+            html += `</div>`;
+            div.innerHTML = html;
+            
+            const nomeInput = div.querySelector(`#${config.prefixo}Nome${index}`);
+            if (nomeInput) {
+                nomeInput.addEventListener('change', atualizarOpcoesCessao);
+            }
+            
+            if (tipo === 'sindicato') {
+                const tribSelect = div.querySelector(`#sindTrib${index}`);
+                if (tribSelect) {
+                    tribSelect.addEventListener('change', () => toggleAliquotaSindicato(index));
+                }
+            }
+            
+            return div;
         }
 
         function criarElementoAdvogado(index) {
-            const advDiv = document.createElement('div');
-            advDiv.className = 'advogado-item';
-            advDiv.innerHTML = `
-                <div class="advogado-header">Advogado ${index + 1}</div>
-                <div class="advogado-row">
-                    <div class="input-group">
-                        <label>Nome ${index + 1}:</label>
-                        <input type="text" id="advNome${index}" placeholder="Nome do advogado">
-                    </div>
-                    <div class="input-group">
-                        <label>Tipo:</label>
-                        <select id="advTipo${index}">
-                            <option value="PF">Pessoa Física</option>
-                            <option value="PJ">Pessoa Jurídica</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>Incidência de IR:</label>
-                        <select id="advIncidenciaIR${index}">
-                            <option value="sim" selected>Sim</option>
-                            <option value="nao">Não</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>Percentual (ex: 0.1 para 10%):</label>
-                        <input type="number" id="advPercentual${index}" step="0.01" min="0" max="1" placeholder="0.00">
-                    </div>
-                </div>
-            `;
-            
-            const nomeInput = advDiv.querySelector(`#advNome${index}`);
-            if (nomeInput) {
-                nomeInput.addEventListener('change', atualizarOpcoesCessao);
-            }
-            
-            return advDiv;
+            return criarElementoGenerico('advogado', index);
+        }
+
+        function criarElementoAdvogadoSucumbencial(index) {
+            return criarElementoGenerico('advogadoSucumbencial', index);
         }
 
         function criarElementoSindicato(index) {
-            const sindDiv = document.createElement('div');
-            sindDiv.className = 'advogado-item';
-            sindDiv.innerHTML = `
-                <div class="advogado-header">Sindicato ${index + 1}</div>
-                <div class="advogado-row">
-                    <div class="input-group">
-                        <label>Nome ${index + 1}:</label>
-                        <input type="text" id="sindNome${index}" placeholder="Nome do sindicato">
-                    </div>
-                    <div class="input-group">
-                        <label>Percentual (ex: 0.1 para 10%):</label>
-                        <input type="number" id="sindPercentual${index}" step="0.01" min="0" max="1" placeholder="0.00">
-                    </div>
-                    <div class="input-group">
-                        <label>Tributação:</label>
-                        <select id="sindTrib${index}">
-                            <option value="nao">Sem Tributação do IR</option>
-                            <option value="lei">Art. 27, da Lei nº 10.833/03</option>
-                            <option value="fixa">Alíquota Fixa</option>
-                        </select>
-                    </div>
-                    <div class="input-group" id="aliquotaSindContainer${index}" style="display: none;">
-                        <label>Alíquota Fixa (ex: 0.015 para 1,5%):</label>
-                        <input type="number" id="aliquotaSind${index}" step="0.001" min="0" max="1" placeholder="0.000">
-                    </div>
-                </div>
-            `;
-            
-            const nomeInput = sindDiv.querySelector(`#sindNome${index}`);
-            const tribSelect = sindDiv.querySelector(`#sindTrib${index}`);
-            
-            if (nomeInput) {
-                nomeInput.addEventListener('change', atualizarOpcoesCessao);
-            }
-            
-            if (tribSelect) {
-                tribSelect.addEventListener('change', () => toggleAliquotaSindicato(index));
-            }
-            
-            return sindDiv;
+            return criarElementoGenerico('sindicato', index);
         }
 
         function criarElementoHerdeiro(index) {
-            const tipoCalculo = Cache.tipoCalculo?.value;
-            const mostraPreferencia = tipoCalculo === 'preferencia';
-            
-            const herdDiv = document.createElement('div');
-            herdDiv.className = 'advogado-item';
-            
-            let htmlHerdeiro = `
-                <div class="advogado-header">Herdeiro ${index + 1}</div>
-                <div class="advogado-row">
-                    <div class="input-group">
-                        <label>Nome ${index + 1}:</label>
-                        <input type="text" id="herdNome${index}" placeholder="Nome do herdeiro">
-                    </div>
-                    <div class="input-group">
-                        <label>Percentual (ex: 0.1 para 10%):</label>
-                        <input type="number" id="herdPercentual${index}" step="0.01" min="0" max="1" placeholder="0.00">
-                    </div>
-                    <div class="input-group" style="${mostraPreferencia ? '' : 'display: none;'}" id="herdPreferenciaContainer${index}">
-                        <label>Tem direito à preferência?</label>
-                        <select id="herdPreferencia${index}">
-                            <option value="sim">Sim</option>
-                            <option value="nao">Não</option>
-                        </select>
-                    </div>
-                </div>`;
-            
-            herdDiv.innerHTML = htmlHerdeiro;
-            
-            const nomeInput = herdDiv.querySelector(`#herdNome${index}`);
-            if (nomeInput) {
-                nomeInput.addEventListener('change', atualizarOpcoesCessao);
-            }
-            
-            return herdDiv;
+            return criarElementoGenerico('herdeiro', index);
         }
 
         function criarElementoPagamento(index) {
@@ -1509,108 +1451,110 @@
             if (!beneficiarioSelect) return;
             
             const valorAtual = beneficiarioSelect.value;
-            
             beneficiarioSelect.innerHTML = '<option value="">Selecione o beneficiário...</option>';
             
-            const { advogados, advogadosSucumbenciais, herdeiros, sindicatos } = CessaoCache.getQuantidades();
+            const { advogados, advogadosSucumbenciais, herdeiros, sindicatos } = getQuantidadesCessao();
             
-            // Beneficiário Principal
-            const beneficiario = document.getElementById('beneficiario')?.value?.trim();
-            if (beneficiario) {
-                beneficiarioSelect.innerHTML += `<option value="${beneficiario}">${beneficiario} (Beneficiário Principal)</option>`;
-            }
+            const tipos = [
+                { quant: 1, prefixo: '', sufixo: 'beneficiario', label: 'Beneficiário Principal', getId: () => document.getElementById('beneficiario')?.value?.trim() },
+                { quant: advogados, prefixo: 'advNome', label: 'Advogado' },
+                { quant: advogadosSucumbenciais, prefixo: 'advSucNome', label: 'Adv. Sucumbencial' },
+                { quant: herdeiros, prefixo: 'herdNome', label: 'Herdeiro' },
+                { quant: sindicatos, prefixo: 'sindNome', label: 'Sindicato' },
+                { quant: parseInt(document.getElementById('quantCessoes')?.value) || 0, prefixo: 'cessionarioNome', label: 'Cessionário' }
+            ];
             
-            // Advogados
-            for (let i = 0; i < advogados; i++) {
-                const nome = document.getElementById(`advNome${i}`)?.value?.trim();
-                if (nome) {
-                    beneficiarioSelect.innerHTML += `<option value="${nome}">${nome} (Advogado)</option>`;
+            tipos.forEach(tipo => {
+                for (let i = 0; i < tipo.quant; i++) {
+                    const nome = tipo.getId ? tipo.getId() : document.getElementById(`${tipo.prefixo}${i}`)?.value?.trim();
+                    if (nome) {
+                        beneficiarioSelect.innerHTML += `<option value="${nome}">${nome} (${tipo.label})</option>`;
+                    }
                 }
+            });
+            
+            if (valorAtual) beneficiarioSelect.value = valorAtual;
+        }
+
+        function criarElementosFormulario(config) {
+            const { container, quantidade, criarElementoFn, callback, tipo } = config;
+            
+            if (!container) return;
+            
+            if (tipo) DadosFormulario.salvar(tipo);
+            
+            container.innerHTML = '';
+            
+            if (quantidade <= 0) {
+                callback && callback();
+                return;
             }
             
-            // Advogados Sucumbenciais
-            for (let i = 0; i < advogadosSucumbenciais; i++) {
-                const nome = document.getElementById(`advSucNome${i}`)?.value?.trim();
-                if (nome) {
-                    beneficiarioSelect.innerHTML += `<option value="${nome}">${nome} (Adv. Sucumbencial)</option>`;
-                }
+            const fragment = document.createDocumentFragment();
+            
+            for (let i = 0; i < quantidade; i++) {
+                const elemento = criarElementoFn(i);
+                fragment.appendChild(elemento);
             }
             
-            // Herdeiros
-            for (let i = 0; i < herdeiros; i++) {
-                const nome = document.getElementById(`herdNome${i}`)?.value?.trim();
-                if (nome) {
-                    beneficiarioSelect.innerHTML += `<option value="${nome}">${nome} (Herdeiro)</option>`;
-                }
-            }
+            container.appendChild(fragment);
             
-            // Sindicatos
-            for (let i = 0; i < sindicatos; i++) {
-                const nome = document.getElementById(`sindNome${i}`)?.value?.trim();
-                if (nome) {
-                    beneficiarioSelect.innerHTML += `<option value="${nome}">${nome} (Sindicato)</option>`;
-                }
-            }
-            
-            // Cessionários 
-            const quantCessoes = parseInt(document.getElementById('quantCessoes')?.value) || 0;
-            for (let i = 0; i < quantCessoes; i++) {
-                const nome = document.getElementById(`cessionarioNome${i}`)?.value?.trim();
-                if (nome) {
-                    beneficiarioSelect.innerHTML += `<option value="${nome}">${nome} (Cessionário)</option>`;
-                }
-            }
-            
-            // Restaurar valor se ainda existir
-            if (valorAtual) {
-                beneficiarioSelect.value = valorAtual;
+            if (tipo) {
+                setTimeout(() => {
+                    // Chama função de restaurar genérica
+                    const funcaoRestaurar = `restaurar${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`;
+                    if (DadosFormulario[funcaoRestaurar]) {
+                        DadosFormulario[funcaoRestaurar]();
+                    }
+                    
+                    // Casos especiais
+                    if (tipo === 'pagamentos') {
+                        const quantPag = parseInt(document.getElementById('quantidadePagamentos')?.value) || 0;
+                        for (let i = 0; i < quantPag; i++) {
+                            toggleTipoPagamento(i);
+                        }
+                    }
+                    
+                    callback && callback();
+                }, 10);
+            } else {
+                callback && callback();
             }
         }
 
         function limparFormulario() {
-            // Limpar cache
-            DadosFormulario.advogados = [];
-            DadosFormulario.advogadosSucumbenciais = [];
-            DadosFormulario.herdeiros = [];
-            DadosFormulario.sindicatos = [];
-            DadosFormulario.cessoes = [];
-            DadosFormulario.pagamentos = [];
-
+            ['advogados', 'advogadosSucumbenciais', 'herdeiros', 'sindicatos', 'cessoes', 'pagamentos']
+            .forEach(tipo => DadosFormulario[tipo] = []);
+            
             valoresPrincipais = [];
-            const listaValoresPrincipais = document.getElementById('listaValoresPrincipais');
-            if (listaValoresPrincipais) {
-                listaValoresPrincipais.innerHTML = '';
-            }
+            $('listaValoresPrincipais').innerHTML = '';
             
             Cache.calculatorForm?.reset();
             
-            const containersConfig = [
-                { element: Cache.quantAdvogados, container: Cache.advogadosContainer },
-                { element: Cache.quantAdvogadosSucumbenciais, container: Cache.advogadosSucumbenciaisContainer },
-                { element: Cache.quantHerdeiros, container: Cache.herdeirosContainer },
-                { element: Cache.quantSindicatos, container: Cache.sindicatosContainer },
-                { element: Cache.quantCessoes, container: document.getElementById('cessaoContainer') },
-                { element: Cache.quantidadePagamentos, container: Cache.pagamentosContainer }
-            ];
-            
-            containersConfig.forEach(({ element, container }) => {
-                if (element) element.value = 0;
-                if (container) container.innerHTML = '';
+            [
+                ['quantAdvogados', 'advogadosContainer'],
+                ['quantAdvogadosSucumbenciais', 'advogadosSucumbenciaisContainer'],
+                ['quantHerdeiros', 'herdeirosContainer'],
+                ['quantSindicatos', 'sindicatosContainer'],
+                ['quantCessoes', 'cessaoContainer'],
+                ['quantidadePagamentos', 'pagamentosContainer']
+            ].forEach(([quant, container]) => {
+                const el = Cache[quant];
+                const cont = Cache[container] || $(container);
+                if (el) el.value = 0;
+                if (cont) cont.innerHTML = '';
             });
             
-            const resultadosContent = document.getElementById('resultadosContent');
-            if (resultadosContent) {
-                resultadosContent.innerHTML = '<p class="loading">Execute o cálculo para ver os resultados aqui...</p>';
-            }
-
-            document.getElementById('somenteHonorarioSucumbencial').checked = false;
-            document.getElementById('houvePagamento').value = 'nao';
-
-            // Limpar cache se necessário
-            if (Cache.elementos) {
-                Cache.elementos.somenteHonorarioSucumbencial.checked = false;
-                Cache.elementos.houvePagamento.value = 'nao';
-            }
+            $('resultadosContent').innerHTML = 
+            '<p class="loading">Execute o cálculo para ver os resultados aqui...</p>';
+    
+            [
+                ['somenteHonorarioSucumbencial', false, 'checked'],
+                ['houvePagamento', 'nao', 'value']
+            ].forEach(([id, valor, prop]) => {
+                const el = document.getElementById(id);
+                if (el) el[prop] = valor;
+            });
             
             limparNotasExplicativas();
 
@@ -1618,59 +1562,39 @@
             toggleAbaAcordo();
             toggleAbaPagamento();
 
-            document.getElementById('tipoCalculo').dispatchEvent(new Event('change'));
+            $('tipoCalculo').dispatchEvent(new Event('change'));
         }
 
-        //CESSAO
-        const CessaoCache = {
-            container: null,
-            beneficiario: null,
-            quantAdvogados: null,
-            quantAdvogadosSucumbenciais: null,
-            quantHerdeiros: null,
-            quantSindicatos: null,
-            quantCessoes: null,
-            
-            init() {
-                this.container = document.getElementById('cessaoContainer');
-                this.beneficiario = document.getElementById('beneficiario');
-                this.quantAdvogados = document.getElementById('quantAdvogados');
-                this.quantAdvogadosSucumbenciais = document.getElementById('quantAdvogadosSucumbenciais');
-                this.quantHerdeiros = document.getElementById('quantHerdeiros');  
-                this.quantSindicatos = document.getElementById('quantSindicatos');
-                this.quantCessoes = document.getElementById('quantCessoes');
-            },
-            
-            getQuantidades() {
-                return {
-                    advogados: parseInt(this.quantAdvogados?.value) || 0,
-                    advogadosSucumbenciais: parseInt(this.quantAdvogadosSucumbenciais?.value) || 0,
-                    herdeiros: parseInt(this.quantHerdeiros?.value) || 0,
-                    sindicatos: parseInt(this.quantSindicatos?.value) || 0,
-                    cessoes: parseInt(this.quantCessoes?.value) || 0,
-                };
-            }
-        };
+        // ====================================
+        // CESSAO
+        // ====================================
+
+        function getQuantidadesCessao() {
+            return {
+                advogados: parseInt(Cache.quantAdvogados?.value) || 0,
+                advogadosSucumbenciais: parseInt(Cache.quantAdvogadosSucumbenciais?.value) || 0,
+                herdeiros: parseInt(Cache.quantHerdeiros?.value) || 0,
+                sindicatos: parseInt(Cache.quantSindicatos?.value) || 0,
+                cessoes: parseInt(Cache.quantCessoes?.value) || 0
+            };
+        }
 
         function criarCessoes(quant) {
-            if (!CessaoCache.container) CessaoCache.init();
-            
+            const container = $('cessaoContainer');
+            if (!container) return;
+                
             DadosFormulario.salvarCessoes();
+            container.innerHTML = '';
             
-            CessaoCache.container.innerHTML = '';
-            
-            const { advogados,advogadosSucumbenciais, herdeiros, sindicatos } = CessaoCache.getQuantidades();
+            const { advogados, advogadosSucumbenciais, herdeiros, sindicatos } = getQuantidadesCessao();
             const opcoesTipo = criarOpcoesTipoCessao(advogados,advogadosSucumbenciais, herdeiros, sindicatos);
             const temUnicaOpcao = opcoesTipo.split('<option').length === 3;
             
             const fragment = document.createDocumentFragment();
-            
             for (let i = 0; i < quant; i++) {
-                const cessaoDiv = criarElementoCessao(i, opcoesTipo);
-                fragment.appendChild(cessaoDiv);
+                fragment.appendChild(criarElementoCessao(i, opcoesTipo));
             }
-            
-            CessaoCache.container.appendChild(fragment);
+            container.appendChild(fragment);
             
             setTimeout(() => {
                 if (DadosFormulario.cessoes.length > 0) {
@@ -1678,8 +1602,8 @@
                 }
                 
                 for (let i = 0; i < quant; i++) {
-                    const cessaoTipo = document.getElementById(`cessaoTipo${i}`);
-                    const cedenteSelect = document.getElementById(`cedenteNome${i}`);
+                    const cessaoTipo = $(`cessaoTipo${i}`);
+                    const cedenteSelect = $(`cedenteNome${i}`);
                     
                     if (i >= DadosFormulario.cessoes.length) {
                         if (temUnicaOpcao && cessaoTipo) {
@@ -1730,12 +1654,101 @@
             return cessaoDiv;
         }
 
+        function criarOpcoesTipoCessao(quantAdvogados,quantAdvogadosSucumbenciais, quantHerdeiros, quantSindicatos) {
+            if (quantAdvogados === undefined) {
+                const q = getQuantidadesCessao();
+                quantAdvogados = q.advogados;
+                quantAdvogadosSucumbenciais = q.advogadosSucumbenciais;
+                quantHerdeiros = q.herdeiros;
+                quantSindicatos = q.sindicatos;
+            }
+            
+            const opcoes = [['cessaobenPrincipal', 'Do Beneficiário Principal', true]];
+            const tiposDisponiveis = [
+                ['cessaoAdv', 'Do Advogado', quantAdvogados > 0],
+                ['cessaoAdvSuc', 'Do Advogado Sucumbencial', quantAdvogadosSucumbenciais > 0],
+                ['cessaoherdeiro', 'Do Herdeiro', quantHerdeiros > 0],
+                ['cessaoSindicato', 'Do Sindicato', quantSindicatos > 0]
+            ];
+            
+            tiposDisponiveis.forEach(([valor, texto, condicao]) => {
+                if (condicao) opcoes.push([valor, texto]);
+            });
+            
+            return opcoes.map(([valor, texto]) => `<option value="${valor}">${texto}</option>`).join('');
+        }
+
+        function criarOpcoesCedente(tipoCessao, index) {
+            const campobeneficiario = Cache.beneficiario?.value.trim();
+            const beneficiarioPrincipal = campobeneficiario || 'Beneficiário Principal';
+            const { advogados, advogadosSucumbenciais, herdeiros, sindicatos } = getQuantidadesCessao();
+            
+            const opcoes = ['<option value="">Selecione o cedente</option>'];
+            
+            const configTipos = {
+                'cessaobenPrincipal': {
+                    opcoes: [[beneficiarioPrincipal, beneficiarioPrincipal]]
+                },
+                'cessaoAdv': {
+                    quant: advogados,
+                    prefixo: 'advNome',
+                    label: 'Advogado'
+                },
+                'cessaoAdvSuc': {
+                    quant: advogadosSucumbenciais,
+                    prefixo: 'advSucNome',
+                    label: 'Adv. Sucumbencial'
+                },
+                'cessaoherdeiro': {
+                    quant: herdeiros,
+                    prefixo: 'herdNome',
+                    label: 'Herdeiro',
+                    fallback: herdeiros === 0 ? [[beneficiarioPrincipal, beneficiarioPrincipal]] : null
+                },
+                'cessaoSindicato': {
+                    quant: sindicatos,
+                    prefixo: 'sindNome',
+                    label: 'Sindicato'
+                }
+            };
+            
+            const config = configTipos[tipoCessao];
+            if (!config) return opcoes.join('');
+            
+            if (config.opcoes) {
+                config.opcoes.forEach(([valor, texto]) => {
+                    opcoes.push(`<option value="${valor}">${texto}</option>`);
+                });
+            }else if (config.fallback) {
+                config.fallback.forEach(([valor, texto]) => {
+                    opcoes.push(`<option value="${valor}">${texto}</option>`);
+                });
+            }else if (config.quant > 0) {
+                for (let i = 0; i < config.quant; i++) {
+                    const nome = document.getElementById(`${config.prefixo}${i}`)?.value.trim() || 
+                                `${config.label} ${i + 1}`;
+                    opcoes.push(`<option value="${nome}">${nome}</option>`);
+                }
+            }
+            
+            return opcoes.join('');
+        }
+
+        function atualizarCedentes(index) {
+            const tipoCessao = $(`cessaoTipo${index}`)?.value;
+            const cedenteSelect = $(`cedenteNome${index}`);
+            
+            if (tipoCessao && cedenteSelect) {
+                cedenteSelect.innerHTML = criarOpcoesCedente(tipoCessao, index);
+                
+                const opcoes = cedenteSelect.querySelectorAll('option');
+                if (opcoes.length === 2) cedenteSelect.selectedIndex = 1;
+            }
+        }
+
         function atualizarOpcoesCessao() {
-            if (!CessaoCache.container) CessaoCache.init();
+            const { cessoes } = getQuantidadesCessao();
             
-            const { cessoes } = CessaoCache.getQuantidades();
-            
-            // NÃO recriar cessões, apenas atualizar opções
             if (cessoes > 0) {
                 DadosFormulario.salvarCessoes();
                 
@@ -1751,8 +1764,7 @@
                                 const cedenteSelect = document.getElementById(`cedenteNome${i}`);
                                 if (cedenteSelect && cedenteAtual) {
                                     const opcoes = Array.from(cedenteSelect.options);
-                                    const opcaoExiste = opcoes.some(opt => opt.value === cedenteAtual);
-                                    if (opcaoExiste) {
+                                    if (opcoes.some(opt => opt.value === cedenteAtual)) {
                                         cedenteSelect.value = cedenteAtual;
                                     }
                                 }
@@ -1761,157 +1773,28 @@
                     }
                 });
             }
-
+            
             atualizarTodosBeneficiariosPagamentos();
         }
 
         function atualizarTodosBeneficiariosPagamentos() {
-            const quantPagamentos = parseInt(document.getElementById('quantidadePagamentos')?.value) || 0;
-            
+            const quantPagamentos = parseInt(Cache.quantidadePagamentos?.value) || 0;
             for (let i = 0; i < quantPagamentos; i++) {
                 popularBeneficiariosPagamento(i);
-            }
-        }   
-
-        function criarOpcoesTipoCessao(quantAdvogados,quantAdvogadosSucumbenciais, quantHerdeiros, quantSindicatos) {
-            if (quantAdvogados === undefined) {
-                const quantidades = CessaoCache.getQuantidades();
-                quantAdvogados = quantidades.advogados;
-                quantAdvogadosSucumbenciais = quantidades.advogadosSucumbenciais;
-                quantHerdeiros = quantidades.herdeiros;
-                quantSindicatos = quantidades.sindicatos;
-            }
-            
-            const opcoes = ['<option value="cessaobenPrincipal">Do Beneficiário Principal</option>'];
-            
-            if (quantAdvogados > 0) {
-                opcoes.push('<option value="cessaoAdv">Do Advogado</option>');
-            }
-            if (quantAdvogadosSucumbenciais > 0) {
-                opcoes.push('<option value="cessaoAdvSuc">Do Advogado Sucumbencial</option>');
-            }
-            if (quantHerdeiros > 0) {
-                opcoes.push('<option value="cessaoherdeiro">Do Herdeiro</option>');
-            }
-            if (quantSindicatos > 0) {
-                opcoes.push('<option value="cessaoSindicato">Do Sindicato</option>');
-            }
-            
-            return opcoes.join('');
-        }
-
-        function criarOpcoesCedente(tipoCessao, index) {
-            const campobeneficiario = document.getElementById('beneficiario')?.value.trim();
-            const beneficiarioPrincipal = campobeneficiario || 'Beneficiário Principal';
-            const { advogados,advogadosSucumbenciais ,herdeiros, sindicatos } = CessaoCache.getQuantidades();
-            const opcoes = ['<option value="">Selecione o cedente</option>'];
-            
-            switch(tipoCessao) {
-                case 'cessaobenPrincipal':
-                    opcoes.push(`<option value="${beneficiarioPrincipal}">${beneficiarioPrincipal}</option>`);
-                    break;
-                    
-                case 'cessaoAdv':
-                    for (let i = 0; i < advogados; i++) {
-                        const nomeAdv = document.getElementById(`advNome${i}`)?.value.trim() || `Advogado ${i + 1}`;
-                        opcoes.push(`<option value="${nomeAdv}">${nomeAdv}</option>`);
-                    }
-                    break;
-                case 'cessaoAdvSuc':
-                    for (let i = 0; i < advogadosSucumbenciais; i++) {
-                        const nomeAdvSuc = document.getElementById(`advSucNome${i}`)?.value.trim() || `Adv. Sucumbencial ${i + 1}`;
-                        opcoes.push(`<option value="${nomeAdvSuc}">${nomeAdvSuc}</option>`);
-                    }
-                    break;
-                case 'cessaoherdeiro':
-                    if (herdeiros > 0) {
-                        for (let i = 0; i < herdeiros; i++) {
-                            const nomeHerd = document.getElementById(`herdNome${i}`)?.value.trim() || `Herdeiro ${i + 1}`;
-                            opcoes.push(`<option value="${nomeHerd}">${nomeHerd}</option>`);
-                        }
-                    } else {
-                        opcoes.push(`<option value="${beneficiarioPrincipal}">${beneficiarioPrincipal}</option>`);
-                    }
-                    break;
-                case 'cessaoSindicato':
-                    for (let i = 0; i < sindicatos; i++) {
-                        const nomeSind = document.getElementById(`sindNome${i}`)?.value.trim() || `Sindicato ${i + 1}`;
-                        opcoes.push(`<option value="${nomeSind}">${nomeSind}</option>`);
-                    }
-                    break;
-            }
-            
-            return opcoes.join('');
-        }
-
-        function atualizarCedentes(index) {
-            const tipoCessao = document.getElementById(`cessaoTipo${index}`)?.value;
-            const cedenteSelect = document.getElementById(`cedenteNome${index}`);
-            
-            if (tipoCessao && cedenteSelect) {
-                const novasOpcoes = criarOpcoesCedente(tipoCessao, index);
-                cedenteSelect.innerHTML = novasOpcoes;
-                
-                const opcoes = cedenteSelect.querySelectorAll('option');
-                if (opcoes.length === 2) { // 1 vazia + 1 válida
-                    cedenteSelect.selectedIndex = 1; 
-                }
             }
         }
 
         function atualizarTodosCedentes() {
-            const { cessoes } = CessaoCache.getQuantidades();
-            
+            const { cessoes } = getQuantidadesCessao();
             for (let i = 0; i < cessoes; i++) {
                 const cessaoTipoElement = document.getElementById(`cessaoTipo${i}`);
-                if (cessaoTipoElement?.value) {
-                    atualizarCedentes(i);
-                }
+                if (cessaoTipoElement?.value) atualizarCedentes(i);
             }
         }
 
-        //pagamentos
-        function toggleAbaPagamento() {
-            const houvePagamento = document.getElementById('houvePagamento').value;
-            const tabPagamento = document.getElementById('tabPagamento');
-            
-            if (houvePagamento === 'sim') {
-                tabPagamento.style.display = 'block';
-            } else {
-                tabPagamento.style.display = 'none';
-
-                const quantPagamentos = document.getElementById('quantidadePagamentos');
-                if (quantPagamentos && quantPagamentos.value !== '0') {
-                    quantPagamentos.value = 0;
-                    quantPagamentos.dispatchEvent(new Event('change'));
-                }
-                
-                const abaPagamentoAtiva = document.getElementById('tab9');
-                if (abaPagamentoAtiva && abaPagamentoAtiva.classList.contains('active')) {
-                    showTab('tab1');
-                }
-            }
-        }
-
-        //acordo
-        function toggleAbaAcordo() {
-            const tipoCalculo = document.getElementById('tipoCalculo').value;
-            const tabAcordo = document.getElementById('tabAcordo');
-            const natureza = document.getElementById('natureza').value;
-            
-            mostrarOcultar('tetoPreferencia', tipoCalculo === 'preferencia' && natureza === 'alimentar');
-            mostrarOcultar('percentualAcordo', tipoCalculo === 'acordo');
-
-            if (tipoCalculo === 'acordo') {
-                tabAcordo.style.display = 'block';
-            } else {
-                tabAcordo.style.display = 'none';
-                const abaAcordoAtiva = document.getElementById('tab6');
-                if (abaAcordoAtiva && abaAcordoAtiva.classList.contains('active')) {
-                    showTab('tab1');
-                }
-            }
-        }
+        // ====================================
+        // Acordo
+        // ====================================
 
         function atualizarAdesaoAcordo() {
             const container = document.getElementById('acordoContainer');
