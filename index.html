@@ -2723,6 +2723,10 @@
             dados.quantidadePagamentos = dados.pagamentos.length; 
         }
 
+        // ====================================
+        // Validacao de dados
+        // ====================================
+
         function validarDados(dados) {
             const erros = [];
             
@@ -2773,7 +2777,10 @@
             });
         }
 
-        //Calculos:
+        // ====================================
+        // Calculos
+        // ====================================
+
         async function calcular() {
             if (!Cache.elementos) {
                 Cache.init();
