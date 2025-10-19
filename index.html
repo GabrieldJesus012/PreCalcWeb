@@ -3281,27 +3281,12 @@
         // ====================================
 
         function calcularGlobal(dados, valortotatt, percentualprinc, percentualjur,totaisPorTipo = null) {
-            let valorBase = valortotatt;
+            const valorBase = calcularValorBase(dados, valortotatt, totaisPorTipo);
 
-            if (dados.tipoCalculo === 'preferencia' && dados.natureza === 'alimentar') {
-                valorBase = Math.min(valortotatt, dados.tetoPreferencia);
-            } else if (dados.tipoCalculo === 'parcial') {
-                if (dados.honorarioSucumbencial && dados.honorarioSucumbencial.advogados && dados.honorarioSucumbencial.advogados.length > 0) {
-                    const dadosTemporarios = {...dados, tipoCalculo: 'ordem'};
-                    const resultadoSucumbencial = calcularHonorariosSucumbenciais(dadosTemporarios, valortotatt,totaisPorTipo);
-                    const valorTotalSucumbencial = resultadoSucumbencial.valorHonorarioTotal;
-                    const totalGeral = valortotatt + valorTotalSucumbencial;
-                    const proporcaoPrecatorio = valortotatt / totalGeral;
-                    valorBase = dados.saldoParcial * proporcaoPrecatorio;
-                } else {
-                    // Sem sucumbencial - lógica original
-                    valorBase = Math.min(valortotatt, dados.saldoParcial);
-                }
-            }
-
+            const temTributacaoIR = dados.valoresPrincipais?.some(item => item.tributacao?.ir) || false;
             let principal, jurosBase;
             
-            if (dados.tributacaoIR && dados.tributacaoPrevidencia) {
+            if (temTributacaoIR && dados.tributacaoIR) {
                 const percentualPrincipalTributadoIR = dados.tributacaoIR.percentuais?.principalTributado || 0;
                 const percentualJurosTributadoIR = dados.tributacaoIR.percentuais?.jurosTributado || 0;
                 
@@ -3312,83 +3297,57 @@
                 jurosBase = valorBase * percentualjur;
             }
 
-            let rrapagamento = dados.rra !== 0 ? arredondarRRA((valorBase * dados.rra) / valortotatt) : 0;
+            let rrapagamento = calcularRRAPonderado(dados, valorBase, valortotatt);
             
-            const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
-            const isPreferencia = dados.tipoCalculo === 'preferencia';
-            const isParcial = dados.tipoCalculo === 'parcial';
-
-            // CESSÕES DO BENEFICIÁRIO PRINCIPAL PARA BASE H.
-            const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
-                cessao.tipo === 'cessaobenPrincipal'
-            ) || [];
-
-            let valorBaseParaHonorarios = valorBase;
-            let valorBeneficiarioQueRecebeEfetivamente = valorBase;
-
-            if (cessoesBeneficiario.length > 0) {
-                const percentualBeneficiarioFinal = 1.0 - cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
-                
-                const direitoBeneficiarioTotal = valortotatt * percentualBeneficiarioFinal;
-                
-                valorBeneficiarioQueRecebeEfetivamente = isPreferenciasParcial ? 
-                    Math.min(direitoBeneficiarioTotal, valorBase) : direitoBeneficiarioTotal;
-
-                if (isPreferenciasParcial) {
-                    valorBaseParaHonorarios = valorBeneficiarioQueRecebeEfetivamente;
-                }else if (isParcial) {
-                    valorBaseParaHonorarios = valorBase; 
-                }else {
-                    valorBaseParaHonorarios = valorBase;
-                }
-            }
+            const cessoesBeneficiario = dados.cessoes?.filter(c => c.tipo === 'cessaobenPrincipal') || [];
+            const { 
+                valorBaseParaHonorarios, 
+                valorBeneficiarioQueRecebeEfetivamente 
+            } = calcularBasesComCessoes(dados, valorBase, valortotatt, cessoesBeneficiario);
+            
 
             // Honorários
-            const resultadoHonorarios = calcularHonorarios(dados, valorBaseParaHonorarios, valortotatt,dados.totaisPorTipo);
-            const { honorarios, valorHonorarioTotal } = resultadoHonorarios;
+            const { honorarios, valorHonorarioTotal } = calcularHonorarios(
+                dados, 
+                valorBaseParaHonorarios, 
+                valortotatt, 
+                totaisPorTipo
+            );
             
             // Sindicatos 
-            const resultadoSindicatos = calcularSindicatos(dados, valorBaseParaHonorarios, valortotatt);
-            const { sindicatos, valorSindicatoTotal } = resultadoSindicatos;
+            const { sindicatos, valorSindicatoTotal } = calcularSindicatos(
+                dados, 
+                valorBaseParaHonorarios, 
+                valortotatt
+            );
 
-            const valorSindicatoParaDescontar = isPreferencia ? 0 : valorSindicatoTotal;
-
-            const valorBeneficiarioBruto = valorBase - valorHonorarioTotal - valorSindicatoParaDescontar;
+            const valorSindicatoParaDescontar = dados.tipoCalculo === 'preferencia' ? 0 : valorSindicatoTotal;
 
             // RECÁLCULO PARA PREFERÊNCIA E PARCIAL 
+            const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
+            const isParcial = dados.tipoCalculo === 'parcial';
+
             if (isPreferenciasParcial) {
-                if (dados.tributacaoIR) {
+                if (temTributacaoIR && dados.tributacaoIR) {
                     const percentualPrincipalTributadoIR = dados.tributacaoIR.percentuais?.principalTributado || 0;
                     principal = valorBeneficiarioQueRecebeEfetivamente * (percentualPrincipalTributadoIR / 100);
                 } else {
                     principal = valorBeneficiarioQueRecebeEfetivamente * percentualprinc;
                 }
                 
-                if (dados.rra !== 0) {
-                    const rraCalculado = arredondarRRA((valorBeneficiarioQueRecebeEfetivamente * dados.rra) / valortotatt);
-                    rrapagamento = Math.max(1, rraCalculado); 
-                } else {
-                    rrapagamento = 0;
-                }
+                rrapagamento = calcularRRAPonderado(dados, valorBeneficiarioQueRecebeEfetivamente, valortotatt);
             } else if (isParcial) {
-                if (dados.tributacaoIR) {
-                    const principalTributadoTotal = dados.tributacaoIR.principalTributado;
-                    const proporcaoParcial = valorBase / valortotatt;
-                    principal = principalTributadoTotal * proporcaoParcial;
-                    
-                    const jurosTributadoTotal = dados.tributacaoIR.jurosTributado;
-                    jurosBase = jurosTributadoTotal * proporcaoParcial;
+                const proporcaoParcial = valorBase / valortotatt;
+                if (temTributacaoIR && dados.tributacaoIR) {
+                    principal = dados.tributacaoIR.principalTributado * proporcaoParcial;
+                    jurosBase = dados.tributacaoIR.jurosTributado * proporcaoParcial;
                 } else {
                     principal = valorBase * percentualprinc;
                     jurosBase = valorBase * percentualjur;
                 }
                 
-                if (dados.rra !== 0) {
-                    const proporcaoParcial = valorBase / valortotatt;
-                    rrapagamento = dados.rra !== 0 ? arredondarRRA((valorBase * dados.rra) / valortotatt) : 0;
-                } else {
-                    rrapagamento = 0;
-                }
+                // Recalcular RRA proporcional
+                rrapagamento = calcularRRAPonderado(dados, valorBase, valortotatt);
             }
 
             // PREVIDÊNCIA      
@@ -3429,22 +3388,23 @@
             } = resultadoCessoes;
 
             return {
+                // Base
                 valorBase,
                 principal,
                 jurosBase,
                 rrapagamento,
-
+                // Honorários
                 honorarios,
                 valorHonorarioTotal,
-
+                // Sindicatos
                 sindicatos,
                 valorSindicatoTotal,
-
+                // Previdência
                 valorPrevidencia,
                 aliquotaEfetiva,
                 valorDesagioPrevidencia,   
                 percentualDesagioPrevidencia,
-
+                // Imposto de Renda
                 valorIR,
                 aliquotaIR,
                 baseIRHonora,
@@ -3455,7 +3415,7 @@
                 rraComDesagio,
                 baseIRRRA,
                 valorIRUnitario,
-                
+                // Beneficiário e Cessões
                 valorBeneficiarioBruto: resultadoCessoes.valorBeneficiarioBruto,
                 valorCessoesBeneficiario,
                 percentualBeneficiarioFinal,
@@ -3465,8 +3425,89 @@
                 valorBeneficiarioFinal,
                 cessoesBeneficiarioCalculadas,
                 cessoesBeneficiarioFinais,
+                // Flags
                 isPreferenciasParcial
             };
+        }
+
+        // ====================================
+        // FUNÇÕES AUXILIARES DE CALCULAR GLOBAL
+        // ====================================
+
+        function calcularValorBase(dados, valortotatt, totaisPorTipo) {
+            let valorBase = valortotatt;
+            
+            if (dados.tipoCalculo === 'preferencia' && dados.natureza === 'alimentar') {
+                valorBase = Math.min(valortotatt, dados.tetoPreferencia);
+            } else if (dados.tipoCalculo === 'parcial') {
+                // Verificar se há honorário sucumbencial
+                if (dados.honorarioSucumbencial?.advogados?.length > 0) {
+                    // Calcular proporção considerando sucumbencial
+                    const dadosTemporarios = { ...dados, tipoCalculo: 'ordem' };
+                    const resultadoSucumbencial = calcularHonorariosSucumbenciais(
+                        dadosTemporarios, 
+                        valortotatt, 
+                        totaisPorTipo
+                    );
+                    
+                    const valorTotalSucumbencial = resultadoSucumbencial.valorHonorarioTotal;
+                    const totalGeral = valortotatt + valorTotalSucumbencial;
+                    const proporcaoPrecatorio = valortotatt / totalGeral;
+                    
+                    valorBase = dados.saldoParcial * proporcaoPrecatorio;
+                } else {
+                    // Sem sucumbencial - lógica simples
+                    valorBase = Math.min(valortotatt, dados.saldoParcial);
+                }
+            }
+            
+            return valorBase;
+        }
+
+        function calcularRRAPonderado(dados, valorBase, valortotatt) {
+            if (!dados.valoresPrincipais?.length) return 0;
+            
+            // Somar TODOS os RRAs dos itens
+            let rraTotal = 0;
+            
+            for (const item of dados.valoresPrincipais) {
+                const rraItem = item.tributacao?.rra || 0;
+                rraTotal += rraItem;
+            }
+            
+            if (rraTotal === 0) return 0;
+            
+            return arredondarRRA((valorBase * rraTotal) / valortotatt);
+        }
+
+        function calcularBasesComCessoes(dados, valorBase, valortotatt, cessoesBeneficiario) {
+            let valorBaseParaHonorarios = valorBase;
+            let valorBeneficiarioQueRecebeEfetivamente = valorBase;
+            
+            if (cessoesBeneficiario.length > 0) {
+                const percentualBeneficiarioFinal = 1.0 - cessoesBeneficiario.reduce(
+                    (total, cessao) => total + cessao.percentual, 
+                    0
+                );
+                
+                const direitoBeneficiarioTotal = valortotatt * percentualBeneficiarioFinal;
+                
+                const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
+                const isParcial = dados.tipoCalculo === 'parcial';
+                
+                valorBeneficiarioQueRecebeEfetivamente = isPreferenciasParcial 
+                    ? Math.min(direitoBeneficiarioTotal, valorBase) 
+                    : direitoBeneficiarioTotal;
+                
+                if (isPreferenciasParcial) {
+                    valorBaseParaHonorarios = valorBeneficiarioQueRecebeEfetivamente;
+                } else {
+                    // Ordem cronológica ou parcial
+                    valorBaseParaHonorarios = valorBase;
+                }
+            }
+            
+            return { valorBaseParaHonorarios, valorBeneficiarioQueRecebeEfetivamente };
         }
 
         function calcularCessoesBeneficiarioPrincipal(dados, valorBase, valortotatt, valorHonorarioTotal, valorSindicatoParaDescontar, valorPrevidencia, valorIR) {
