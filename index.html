@@ -5208,7 +5208,7 @@
                 };
             }, 100);
         }
-        //${gerarIndicesUtilizados(dados, resultados, inicioGraca, fimGraca)} - tirei para melhorar apresentação
+
         function obterDataAtual() {
             const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
             const [ano, mes, dia] = dataAtualizacaoInput.split('-');
@@ -5356,48 +5356,6 @@
                 </div>
             `;
         }
-
-        /*function gerarIndicesUtilizados(dados, resultados, inicioGraca, fimGraca) {
-            const inicioGracaFormatado = formatarData(inicioGraca);
-            const fimGracaFormatado = formatarData(fimGraca);
-            
-            let linhasSelicHTML = '';
-            if (resultados.dadosSelic.temSelicAntes) {
-                linhasSelicHTML += `
-                <tr>
-                    <td>SELIC Antes da Graça</td>
-                    <td>${resultados.dadosSelic.indiceSelicAntes.toFixed(6)}</td>
-                    <td>${resultados.dadosSelic.periodoAntesGraca}</td>
-                </tr>`;
-            }
-            if (resultados.dadosSelic.temSelicApos) {
-                linhasSelicHTML += `
-                <tr>
-                    <td>SELIC Após a Graça</td>
-                    <td>${resultados.dadosSelic.indiceSelicApos.toFixed(6)}</td>
-                    <td>${resultados.dadosSelic.periodoAposGraca}</td>
-                </tr>`;
-            }
-            linhasSelicHTML += `
-            <tr class="selic-acumulada">
-                <td>SELIC Acumulada</td>
-                <td>${resultados.dadosSelic.indiceselic.toFixed(6)}</td>
-                <td>Total dos períodos aplicáveis</td>
-            </tr>`;
-            
-            return `
-                <div class="table-container">
-                    <h3>📊 Índices Utilizados</h3>
-                    <table>
-                        <tr><th>Índice</th><th>Valor</th><th>Período/Observação</th></tr>
-                        <tr><td>Índice CNJ</td><td>${resultados.indicesCNJ.toFixed(6)}</td><td>${dados.mesBase}/${dados.anoBase}</td></tr>
-                        ${linhasSelicHTML}
-                        <tr><td>IPCA-e Acumulado</td><td>${resultados.indiceipca.toFixed(6)}</td><td>Período de Graça: ${inicioGracaFormatado} - ${fimGracaFormatado}</td></tr>
-                        <tr><td>Juros de Mora</td><td>${resultados.jurosmora.toFixed(6)}</td><td>Natureza: ${dados.natureza}</td></tr>
-                    </table>
-                </div>
-            `;
-        }*/
 
         function gerarCalculos(dados, resultados, inicioGraca, fimGraca) {
             const inicioGracaFormatado = formatarData(inicioGraca);
