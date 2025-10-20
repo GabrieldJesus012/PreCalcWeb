@@ -3977,318 +3977,260 @@
             };
         }
 
-        //Herdeiros
+        // ====================================
+        // HERDEIROS
+        // ====================================
+
         function calcularTotaisParaHerdeiros(dados, valortotatt, percentualprinc, percentualjur,totaisPorTipo = null) {
             const dadosOrdem = { ...dados, tipoCalculo: 'ordem' };
             return calcularGlobal(dadosOrdem, valortotatt, percentualprinc, percentualjur,totaisPorTipo);
         }
 
-        function calcularHerdeiros(dados, valortotatt, valorprincatt, valorjurosatt, detalhamento,totaisPorTipo = null) {
-            if (!dados.herdeiros || dados.herdeiros.length === 0) {
-                return [];
-            }
-
+        function calcularHerdeiros(dados, valortotatt, valorprincatt, valorjurosatt, detalhamento, totaisPorTipo = null) {
+            if (!dados.herdeiros?.length) return [];
+            
             const percentualprinc = valorprincatt / valortotatt;
             const percentualjur = valorjurosatt / valortotatt;
-            const detalhamentoTotal = calcularTotaisParaHerdeiros(dados, valortotatt, percentualprinc, percentualjur,totaisPorTipo);
-
-            const herdeirosCalculados = [];
-
-            // Para cada herdeiro
-            dados.herdeiros.forEach((herdeiro, index) => {
+            const detalhamentoTotal = calcularTotaisParaHerdeiros(dados, valortotatt, percentualprinc, percentualjur, totaisPorTipo);
+            
+            const contexto = {
+                percentualprinc,
+                percentualjur,
+                percentualBeneficiarioFinal: detalhamentoTotal.percentualBeneficiarioFinal,
+                valorDisponivelParaHerdeiros: valortotatt * detalhamentoTotal.percentualBeneficiarioFinal,
+                isPreferencia: dados.tipoCalculo === 'preferencia',
+                isParcial: dados.tipoCalculo === 'parcial',
+                temTributacaoIR: dados.valoresPrincipais?.some(item => item.tributacao?.ir) || false,
+                rraTotal: dados.valoresPrincipais?.reduce((sum, item) => sum + (item.tributacao?.rra || 0), 0) || 0
+            };
+            
+            return dados.herdeiros.map((herdeiro, index) => {
                 const percentualHerdeiro = herdeiro.percentual;
-
-                // 1. VALORES BÁSICOS DO HERDEIRO
                 const valorTotalHerdeiro = valortotatt * percentualHerdeiro;
-                const principalHerdeiro = valorprincatt * percentualHerdeiro;
-                const jurosBaseHerdeiro = valorjurosatt * percentualHerdeiro;
-                const rrapagamentoHerdeiro = dados.rra !== 0 ? arredondarRRA(dados.rra * percentualHerdeiro) : 0;
-
-                // 2. CESSÕES DO BENEFICIÁRIO PRINCIPAL
-                const percentualBeneficiarioFinal = detalhamentoTotal.percentualBeneficiarioFinal;
-                const valorDisponivelParaHerdeiros = valortotatt * percentualBeneficiarioFinal;
-                const valorHerdeiroPoscessaoBeneficiario = valorDisponivelParaHerdeiros * percentualHerdeiro;
-
-                // 3. CESSÕES DO PRÓPRIO HERDEIRO
-                const cessoesHerdeiro = (dados.cessoes || []).filter(cessao => 
-                    cessao.tipo === 'cessaoHerdeiro' && cessao.cedente === herdeiro.nome
-                );
-
-                let valorAposCessoesHerdeiro = valorHerdeiroPoscessaoBeneficiario;
-                if (cessoesHerdeiro.length > 0) {
-                    const percentualCedido = cessoesHerdeiro.reduce((total, cessao) => total + cessao.percentual, 0);
-                    valorAposCessoesHerdeiro = valorHerdeiroPoscessaoBeneficiario * (1.0 - percentualCedido);
-                }
-
-                // 4. VALOR BASE CONFORME TIPO DE CÁLCULO
-                let valorBaseHerdeiro = valorAposCessoesHerdeiro;
                 
+                // Cessões do beneficiário principal
+                const valorHerdeiroPoscessaoBeneficiario = contexto.valorDisponivelParaHerdeiros * percentualHerdeiro;
+                
+                // Cessões do próprio herdeiro
+                const cessoesHerdeiro = dados.cessoes?.filter(c => 
+                    c.tipo === 'cessaoHerdeiro' && c.cedente === herdeiro.nome
+                ) || [];
+                
+                const percentualCedido = cessoesHerdeiro.reduce((sum, c) => sum + c.percentual, 0);
+                const valorAposCessoesHerdeiro = valorHerdeiroPoscessaoBeneficiario * (1.0 - percentualCedido);
+                
+                // Valor base conforme tipo de cálculo
+                let valorBaseHerdeiro;
                 if (dados.tipoCalculo === 'preferencia' && dados.natureza === 'alimentar' && herdeiro.temPreferencia) {
                     valorBaseHerdeiro = Math.min(valorAposCessoesHerdeiro, dados.tetoPreferencia);
-                }else if (dados.tipoCalculo === 'parcial') {
-                    const proporcaoParcial = dados.saldoParcial / valortotatt;
-                    valorBaseHerdeiro = valorAposCessoesHerdeiro * proporcaoParcial;
-                }
-
-                // 5. COMPOSIÇÃO INICIAL - Usar percentuais tributáveis quando disponível
-                let principalHerdeiroBase, jurosBaseHerdeiroFinal;
-                
-                if (dados.tributacaoIR && dados.tributacaoPrevidencia) {
-                    const percentualPrincipalTributado = dados.tributacaoIR.percentuais?.principalTributado || 0;
-                    const percentualJurosTributado = dados.tributacaoIR.percentuais?.jurosTributado || 0;
-                    
-                    principalHerdeiroBase = valorBaseHerdeiro * (percentualPrincipalTributado / 100);
-                    jurosBaseHerdeiroFinal = valorBaseHerdeiro * (percentualJurosTributado / 100);
+                } else if (contexto.isParcial) {
+                    valorBaseHerdeiro = valorAposCessoesHerdeiro * (dados.saldoParcial / valortotatt);
                 } else {
-                    principalHerdeiroBase = valorBaseHerdeiro * percentualprinc;
-                    jurosBaseHerdeiroFinal = valorBaseHerdeiro * percentualjur;
+                    valorBaseHerdeiro = valorAposCessoesHerdeiro;
                 }
                 
-                let rrapagamentoHerdeiroBase;
-                if (dados.tipoCalculo === 'parcial') {
-                    const proporcaoParcial = valorBaseHerdeiro / valorTotalHerdeiro;
-                    rrapagamentoHerdeiroBase = dados.rra !== 0 ? arredondarRRA(dados.rra * percentualHerdeiro * proporcaoParcial) : 0;
-                } else {
-                    rrapagamentoHerdeiroBase = dados.rra !== 0 ? arredondarRRA(dados.rra * percentualHerdeiro) : 0;
-                }
-
-                // 6. VERIFICAÇÕES
                 const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && valorBaseHerdeiro < valorTotalHerdeiro;
-                const isPreferencia = dados.tipoCalculo === 'preferencia';
-                const isParcial = dados.tipoCalculo === 'parcial';
-                let valorBaseParaHonorarios = valorBaseHerdeiro;
-                let valorHerdeiroQueRecebeEfetivamente = valorBaseHerdeiro;
-
-                // 7. HONORÁRIOS
-                const resultadoHonorarios = calcularHonorarios(dados, valorBaseParaHonorarios, valorTotalHerdeiro,totaisPorTipo);
-                const { honorarios: honorariosHerdeiro, valorHonorarioTotal: valorHonorarioTotalHerdeiro } = resultadoHonorarios;
-
-                // 8. SINDICATOS
-                const resultadoSindicatos = calcularSindicatos(dados, valorBaseParaHonorarios, valorTotalHerdeiro);
-                const { sindicatos: sindicatosHerdeiro, valorSindicatoTotal: valorSindicatoTotalHerdeiro } = resultadoSindicatos;
                 
-                const valorSindicatoParaDescontar = isPreferencia ? 0 : valorSindicatoTotalHerdeiro;
-                const valorBeneficiarioBrutoHerdeiro = valorBaseHerdeiro - valorHonorarioTotalHerdeiro - valorSindicatoParaDescontar;
-                
-                // 9. RECÁLCULO PARA PREFERÊNCIA PARCIAL - Usar percentuais tributáveis
-                let principalHerdeiroEfetivo = principalHerdeiroBase;
-                let rrapagamentoHerdeiroEfetivo = rrapagamentoHerdeiroBase;
-
-                if (isPreferenciaParcial) {
-                    if (dados.tributacaoIR) {
-                        const percentualPrincipalTributado = dados.tributacaoIR.percentuais?.principalTributado || 0;
-                        principalHerdeiroEfetivo = valorHerdeiroQueRecebeEfetivamente * (percentualPrincipalTributado / 100);
-                    } else {
-                        principalHerdeiroEfetivo = valorHerdeiroQueRecebeEfetivamente * percentualprinc;
-                    }
-                    
-                    if (dados.rra !== 0) {
-                        const rraCalculado = arredondarRRA((valorBaseHerdeiro * rrapagamentoHerdeiro)/ valorTotalHerdeiro);
-                        rrapagamentoHerdeiroEfetivo = Math.max(1, rraCalculado);
-                    } else {
-                        rrapagamentoHerdeiroEfetivo = 0;
-                    }
-                } else if (isParcial) {
-                    if (dados.tributacaoIR) {
-                        const principalTributadoTotal = dados.tributacaoIR.principalTributado;
-                        const jurosTributadoTotal = dados.tributacaoIR.jurosTributado;
-                        
-                        const proporcaoParcial = valorBaseHerdeiro / valorTotalHerdeiro;
-                        
-                        principalHerdeiroEfetivo = principalTributadoTotal * percentualHerdeiro * proporcaoParcial;
-                        jurosBaseHerdeiroFinal = jurosTributadoTotal * percentualHerdeiro * proporcaoParcial;
-                    } else {
-                        principalHerdeiroEfetivo = valorBaseHerdeiro * percentualprinc;
-                        jurosBaseHerdeiroFinal = valorBaseHerdeiro * percentualjur;
-                    }
-                    
-                    if (dados.rra !== 0) {
-                        const proporcaoParcial = valorBaseHerdeiro / valorTotalHerdeiro;
-                        rrapagamentoHerdeiroEfetivo = arredondarRRA(dados.rra * percentualHerdeiro * proporcaoParcial);
-                    } else {
-                        rrapagamentoHerdeiroEfetivo = 0;
-                    }
-                }
-
-                // 10. PREVIDÊNCIA
-                const resultadoPrevidencia = calcularPrevidenciaIsolada(dados, principalHerdeiroEfetivo, rrapagamentoHerdeiroEfetivo);
-                const {
-                    valorPrevidencia: valorPrevidenciaHerdeiro,
-                    aliquotaEfetiva: aliquotaEfetivaHerdeiro,
-                    valorDesagioPrevidencia: valorDesagioPrevidenciaHerdeiro,
-                    percentualDesagioPrevidencia: percentualDesagioPrevidenciaHerdeiro
-                } = resultadoPrevidencia;
-
-                // 11. IR 
-                const resultadoIR = calcularIRIsolado(
-                    dados, 
-                    valorTotalHerdeiro,
-                    valorBaseHerdeiro,
-                    principalHerdeiroEfetivo,
-                    valorPrevidenciaHerdeiro,
-                    rrapagamentoHerdeiroEfetivo  
+                // Composição inicial
+                const { principal, juros, rra } = calcularComposicaoInicialHerdeiro(
+                    dados, valorBaseHerdeiro, valorTotalHerdeiro, percentualHerdeiro, contexto
                 );
                 
-                const {
-                    valorIR: valorIRHerdeiro,
-                    aliquotaIR: aliquotaIRHerdeiro,
-                    baseIRHonora: baseIRHonoraHerdeiro,
-                    baseIRSindi: baseIRSindiHerdeiro,
-                    baseIRPrev: baseIRPrevHerdeiro,
-                    baseIRRRA: baseIRRRAHerdeiro,
-                    valorIRUnitario: valorIRUnitarioHerdeiro,
-                    principalComDesagio: principalComDesagioHerdeiro,
-                    percentualDesagioIR: percentualDesagioIRHerdeiro,
-                    rraComDesagio: rraComDesagioHerdeiro  
-                } = resultadoIR;
-
-                // 12. CESSÕES FINAIS
-                const resultadoCessoes = calcularCessoesHerdeiro(
-                    dados, 
-                    herdeiro,
-                    valorBaseHerdeiro, 
-                    valorTotalHerdeiro, 
-                    valorHonorarioTotalHerdeiro, 
-                    valorSindicatoParaDescontar, 
-                    valorPrevidenciaHerdeiro, 
-                    valorIRHerdeiro
-                );
+                // Honorários e Sindicatos
+                const { honorarios, valorHonorarioTotal } = calcularHonorarios(dados, valorBaseHerdeiro, valorTotalHerdeiro, totaisPorTipo);
+                const { sindicatos, valorSindicatoTotal } = calcularSindicatos(dados, valorBaseHerdeiro, valorTotalHerdeiro);
+                const valorSindicatoParaDescontar = contexto.isPreferencia ? 0 : valorSindicatoTotal;
+                const valorBruto = valorBaseHerdeiro - valorHonorarioTotal - valorSindicatoParaDescontar;
                 
-                const {
-                    valorCessoesHerdeiro,
-                    cessoesHerdeiroCalculadas,
-                    percentualHerdeiroFinal,
-                    valorHerdeiroAposCessoes,
-                    valorPrevidenciaHerdeiroFinal,
-                    valorIRHerdeiroFinal,
-                    valorHerdeiroLiquido,
-                    cessoesHerdeiroFinais
-                } = resultadoCessoes;
-
-                // 13. PREFERÊNCIA PARCIAL - SALDO DEVEDOR
-                let valorHerdeiroRecebePorPreferencia = valorHerdeiroLiquido;
-                let valorHerdeiroSaldoDevedor = 0;
-
-                if (isPreferenciaParcial) {
-                    valorHerdeiroRecebePorPreferencia = valorBaseHerdeiro - 
-                        (valorPrevidenciaHerdeiroFinal + valorIRHerdeiroFinal + valorHonorarioTotalHerdeiro);
-                    valorHerdeiroSaldoDevedor = valorHerdeiroPoscessaoBeneficiario - valorBaseHerdeiro;
+                // Recálculo para preferência parcial e parcial
+                let principalFinal = principal;
+                let jurosFinal = juros;
+                let rraFinal = rra;
+                
+                if (isPreferenciaParcial || contexto.isParcial) {
+                    const recalculo = recalcularPrincipalJurosRRAHerdeiro(
+                        dados, valorBaseHerdeiro, valorTotalHerdeiro, percentualHerdeiro, 
+                        isPreferenciaParcial, contexto
+                    );
+                    principalFinal = recalculo.principal;
+                    jurosFinal = recalculo.juros ?? jurosFinal;
+                    rraFinal = recalculo.rra;
                 }
                 
-                // 14. MONTAR RESULTADO
-                const herdeiroDados = {
+                // Tributos
+                const previdencia = calcularPrevidenciaIsolada(dados, principalFinal, rraFinal);
+                const ir = calcularIRIsolado(dados, valorTotalHerdeiro, valorBaseHerdeiro, principalFinal, previdencia.valorPrevidencia, rraFinal);
+                
+                // Cessões finais
+                const cessoes = calcularCessoesHerdeiro(
+                    dados, herdeiro, valorBaseHerdeiro, valorTotalHerdeiro,
+                    valorHonorarioTotal, valorSindicatoParaDescontar,
+                    previdencia.valorPrevidencia, ir.valorIR
+                );
+                
+                // Preferência parcial - saldo devedor
+                let valorRecebePorPreferencia = cessoes.valorHerdeiroLiquido;
+                let valorSaldoDevedor = 0;
+                
+                if (isPreferenciaParcial) {
+                    valorRecebePorPreferencia = valorBaseHerdeiro - 
+                        (cessoes.valorPrevidenciaHerdeiroFinal + cessoes.valorIRHerdeiroFinal + valorHonorarioTotal);
+                    valorSaldoDevedor = valorHerdeiroPoscessaoBeneficiario - valorBaseHerdeiro;
+                }
+                
+                // Valores originais
+                const valorOriginal = {
+                    valorTotal: valorTotalHerdeiro,
+                    principal: valorprincatt * percentualHerdeiro,
+                    juros: valorjurosatt * percentualHerdeiro,
+                    rra: contexto.rraTotal !== 0 ? arredondarRRA(contexto.rraTotal * percentualHerdeiro) : 0
+                };
+                
+                return {
                     ...herdeiro,
                     indice: index,
-                    
-                    // Valores originais
-                    valorTotalOriginal: valorTotalHerdeiro,
-                    principalOriginal: principalHerdeiro,
-                    jurosOriginal: jurosBaseHerdeiro,
-                    rrapagamentoOriginal: rrapagamentoHerdeiro,
-                    
-                    // Valores efetivos
+                    valorTotalOriginal: valorOriginal.valorTotal,
+                    principalOriginal: valorOriginal.principal,
+                    jurosOriginal: valorOriginal.juros,
+                    rrapagamentoOriginal: valorOriginal.rra,
                     valorTotal: valorBaseHerdeiro,
-                    principal: principalHerdeiroEfetivo,
-                    jurosBase: jurosBaseHerdeiroFinal,
-                    rrapagamento: rrapagamentoHerdeiroEfetivo,  
-                    rraComDesagio: rraComDesagioHerdeiro,      
-                    
-                    // Descontos
-                    honorarios: honorariosHerdeiro,
-                    valorHonorarioTotal: valorHonorarioTotalHerdeiro,
-                    sindicatos: sindicatosHerdeiro,
-                    valorSindicatoTotal: valorSindicatoTotalHerdeiro,
-                    
-                    // Tributos
-                    valorPrevidencia: valorPrevidenciaHerdeiro,
-                    aliquotaEfetiva: aliquotaEfetivaHerdeiro,
-                    valorDesagioPrevidencia: valorDesagioPrevidenciaHerdeiro,
-                    percentualDesagioPrevidencia: percentualDesagioPrevidenciaHerdeiro,
-                    
-                    valorIR: valorIRHerdeiro,
-                    aliquotaIR: aliquotaIRHerdeiro,
-                    baseIRHonora: baseIRHonoraHerdeiro,
-                    baseIRSindi: baseIRSindiHerdeiro,
-                    baseIRPrev: baseIRPrevHerdeiro,
-                    baseIRRRA: baseIRRRAHerdeiro,
-                    valorIRUnitario: valorIRUnitarioHerdeiro,
-                    principalComDesagio: principalComDesagioHerdeiro,
-                    percentualDesagioIR: percentualDesagioIRHerdeiro,
-                    
-                    valorPrevidenciaFinal: valorPrevidenciaHerdeiroFinal,
-                    valorIRFinal: valorIRHerdeiroFinal,
-                    
-                    // Cessões
+                    principal: principalFinal,
+                    jurosBase: jurosFinal,
+                    rrapagamento: rraFinal,
+                    rraComDesagio: ir.rraComDesagio,
+                    honorarios,
+                    valorHonorarioTotal,
+                    sindicatos,
+                    valorSindicatoTotal,
+                    valorPrevidencia: previdencia.valorPrevidencia,
+                    aliquotaEfetiva: previdencia.aliquotaEfetiva,
+                    valorDesagioPrevidencia: previdencia.valorDesagioPrevidencia,
+                    percentualDesagioPrevidencia: previdencia.percentualDesagioPrevidencia,
+                    valorIR: ir.valorIR,
+                    aliquotaIR: ir.aliquotaIR,
+                    baseIRHonora: ir.baseIRHonora,
+                    baseIRSindi: ir.baseIRSindi,
+                    baseIRPrev: ir.baseIRPrev,
+                    baseIRRRA: ir.baseIRRRA,
+                    valorIRUnitario: ir.valorIRUnitario,
+                    principalComDesagio: ir.principalComDesagio,
+                    percentualDesagioIR: ir.percentualDesagioIR,
+                    valorPrevidenciaFinal: cessoes.valorPrevidenciaHerdeiroFinal,
+                    valorIRFinal: cessoes.valorIRHerdeiroFinal,
                     percentualBeneficiarioFinal: detalhamentoTotal.percentualBeneficiarioFinal,
                     valorAposCessoesBeneficiario: valorHerdeiroPoscessaoBeneficiario,
-                    cessoesHerdeiro: cessoesHerdeiroFinais,
-                    valorCessoesHerdeiro,
-                    percentualHerdeiroFinal,
-                    
-                    // Valores finais
-                    valorBruto: valorBeneficiarioBrutoHerdeiro,
-                    valorFinalAposCessoes: valorHerdeiroAposCessoes,
-                    valorLiquido: valorHerdeiroLiquido,
-                    
-                    // Preferência
+                    cessoesHerdeiro: cessoes.cessoesHerdeiroFinais,
+                    valorCessoesHerdeiro: cessoes.valorCessoesHerdeiro,
+                    percentualHerdeiroFinal: cessoes.percentualHerdeiroFinal,
+                    valorBruto,
+                    valorFinalAposCessoes: cessoes.valorHerdeiroAposCessoes,
+                    valorLiquido: cessoes.valorHerdeiroLiquido,
                     isPreferenciaParcial,
-                    valorRecebePorPreferencia: valorHerdeiroRecebePorPreferencia,
-                    valorSaldoDevedor: valorHerdeiroSaldoDevedor,
-                    
-                    // Flags
+                    valorRecebePorPreferencia,
+                    valorSaldoDevedor,
                     temCessoes: cessoesHerdeiro.length > 0,
                     temCessoesBeneficiario: detalhamentoTotal.percentualBeneficiarioFinal < 1.0
                 };
-                herdeirosCalculados.push(herdeiroDados);
             });
-            return herdeirosCalculados;
         }
+
+        // ====================================
+        // FUNÇÕES AUXILIARES HERDEIROS
+        // ====================================
+
+        function calcularComposicaoInicialHerdeiro(dados, valorBase, valorTotal, percentualHerdeiro, ctx) {
+            let principal, juros;
+            
+            if (ctx.temTributacaoIR && dados.tributacaoIR) {
+                principal = valorBase * (dados.tributacaoIR.percentuais.principalTributado / 100);
+                juros = valorBase * (dados.tributacaoIR.percentuais.jurosTributado / 100);
+            } else {
+                principal = valorBase * ctx.percentualprinc;
+                juros = valorBase * ctx.percentualjur;
+            }
+            
+            // RRA: proporcional ao percentual do herdeiro
+            let rra;
+            if (ctx.isParcial) {
+                const proporcao = valorBase / valorTotal;
+                rra = ctx.rraTotal !== 0 ? arredondarRRA(ctx.rraTotal * percentualHerdeiro * proporcao) : 0;
+            } else {
+                rra = ctx.rraTotal !== 0 ? arredondarRRA(ctx.rraTotal * percentualHerdeiro) : 0;
+            }
+            
+            return { principal, juros, rra };
+        }
+
+        function recalcularPrincipalJurosRRAHerdeiro(dados, valorBase, valorTotal, percentualHerdeiro, isPreferenciaParcial, ctx) {
+            let principal, juros, rra;
+            
+            if (isPreferenciaParcial) {
+                if (ctx.temTributacaoIR && dados.tributacaoIR) {
+                    principal = valorBase * (dados.tributacaoIR.percentuais.principalTributado / 100);
+                } else {
+                    principal = valorBase * ctx.percentualprinc;
+                }
+                
+                const proporcao = valorBase / valorTotal;
+                rra = ctx.rraTotal !== 0 ? arredondarRRA(ctx.rraTotal * percentualHerdeiro * proporcao) : 0;
+                juros = undefined;
+                
+            } else if (ctx.isParcial) {
+                const proporcao = valorBase / valorTotal;
+                
+                if (ctx.temTributacaoIR && dados.tributacaoIR) {
+                    principal = dados.tributacaoIR.principalTributado * percentualHerdeiro * proporcao;
+                    juros = dados.tributacaoIR.jurosTributado * percentualHerdeiro * proporcao;
+                } else {
+                    principal = valorBase * ctx.percentualprinc;
+                    juros = valorBase * ctx.percentualjur;
+                }
+                
+                rra = ctx.rraTotal !== 0 ? arredondarRRA(ctx.rraTotal * percentualHerdeiro * proporcao) : 0;
+            }
+            
+            return { principal, juros, rra };
+        }
+
+        // ====================================
+        // CESSOES HERDEIROS
+        // ====================================
 
         function calcularCessoesHerdeiro(dados, herdeiro, valorBaseHerdeiro, valorTotalHerdeiro, valorHonorarioTotal, valorSindicatoParaDescontar, valorPrevidenciaHerdeiro, valorIRHerdeiro) {
             const valorHerdeiroBruto = valorBaseHerdeiro - valorHonorarioTotal - valorSindicatoParaDescontar;
-
-            const cessoesHerdeiro = dados.cessoes?.filter(cessao => 
-                cessao.tipo === 'cessaoherdeiro' && cessao.cedente === herdeiro.nome
+            const cessoesHerdeiro = dados.cessoes?.filter(c => 
+                c.tipo === 'cessaoherdeiro' && c.cedente === herdeiro.nome
             ) || [];
-
-            const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && valorBaseHerdeiro < valorTotalHerdeiro;
             
-            let valorCessoesHerdeiro = 0;
-            let cessoesHerdeiroCalculadas = [];
-            let percentualHerdeiroFinal = 1.0;
-            let valorHerdeiroAposCessoes = valorHerdeiroBruto;
-            let valorPrevidenciaHerdeiroFinal = valorPrevidenciaHerdeiro;
-            let valorIRHerdeiroFinal = valorIRHerdeiro;
-            let valorHerdeiroLiquido = valorHerdeiroBruto - valorPrevidenciaHerdeiro - valorIRHerdeiro;
-            let cessoesHerdeiroFinais = [];
-
             if (cessoesHerdeiro.length === 0) {
                 return {
                     valorHerdeiroBruto,
-                    valorCessoesHerdeiro,
-                    cessoesHerdeiroCalculadas,
-                    percentualHerdeiroFinal,
-                    valorHerdeiroAposCessoes,
-                    valorPrevidenciaHerdeiroFinal,
-                    valorIRHerdeiroFinal,
-                    valorHerdeiroLiquido,
-                    cessoesHerdeiroFinais
+                    valorCessoesHerdeiro: 0,
+                    cessoesHerdeiroCalculadas: [],
+                    percentualHerdeiroFinal: 1.0,
+                    valorHerdeiroAposCessoes: valorHerdeiroBruto,
+                    valorPrevidenciaHerdeiroFinal: valorPrevidenciaHerdeiro,
+                    valorIRHerdeiroFinal: valorIRHerdeiro,
+                    valorHerdeiroLiquido: valorHerdeiroBruto - valorPrevidenciaHerdeiro - valorIRHerdeiro,
+                    cessoesHerdeiroFinais: []
                 };
             }
-
-            const totalPercentualCessoes = cessoesHerdeiro.reduce((total, cessao) => total + cessao.percentual, 0);
-            percentualHerdeiroFinal = 1.0 - totalPercentualCessoes;
             
-            const percentualAdvogados = dados.advogados.length > 0 ? 
-                dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0) : 0;
-            const valorTotalSemAdvogados = valorTotalHerdeiro - (valorTotalHerdeiro * percentualAdvogados);
-
+            const totalPercentualCessoes = cessoesHerdeiro.reduce((sum, c) => sum + c.percentual, 0);
+            const percentualHerdeiroFinal = 1.0 - totalPercentualCessoes;
+            const isPreferenciaParcial = dados.tipoCalculo === 'preferencia' && valorBaseHerdeiro < valorTotalHerdeiro;
+            
+            const percentualAdvogados = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
+            const valorTotalSemAdvogados = valorTotalHerdeiro * (1 - percentualAdvogados);
+            
+            let valorCessoesHerdeiro = 0;
+            const cessoesHerdeiroCalculadas = [];
+            const cessoesHerdeiroFinais = [];
+            
             if (isPreferenciaParcial) {
+                // PREFERÊNCIA PARCIAL: cessionários não recebem agora
                 const parteHerdeiroNaDividaTotal = valorTotalSemAdvogados * percentualHerdeiroFinal;
                 const maxQueHerdeiroPodeReceber = Math.min(parteHerdeiroNaDividaTotal, valorHerdeiroBruto);
-                
-                cessoesHerdeiroCalculadas = [];
-                cessoesHerdeiroFinais = [];
                 
                 for (const cessao of cessoesHerdeiro) {
                     const parteCessionarioNaDividaTotal = valorTotalSemAdvogados * cessao.percentual;
@@ -4313,68 +4255,65 @@
                     cessoesHerdeiroCalculadas.push(cessaoCalculada);
                     cessoesHerdeiroFinais.push(cessaoFinal);
                 }
-
-                valorCessoesHerdeiro = 0; 
-                valorHerdeiroAposCessoes = maxQueHerdeiroPodeReceber;
                 
-                valorPrevidenciaHerdeiroFinal = valorPrevidenciaHerdeiro;
-                valorIRHerdeiroFinal = valorIRHerdeiro;
-                valorHerdeiroLiquido = maxQueHerdeiroPodeReceber - valorPrevidenciaHerdeiroFinal - valorIRHerdeiroFinal;
-                
-            } else {
-                const valorPrevidenciaPorPercentual = valorPrevidenciaHerdeiro; 
-                const valorIRPorPercentual = valorIRHerdeiro; 
-                
-                valorCessoesHerdeiro = 0;
-                
-                cessoesHerdeiroCalculadas = [];
-                cessoesHerdeiroFinais = [];
-                
-                for (const cessao of cessoesHerdeiro) {
-                    const valorBrutoCessao = valorHerdeiroBruto * cessao.percentual;
-                    valorCessoesHerdeiro += valorBrutoCessao;
-                    
-                    const cessaoCalculada = {
-                        tipo: cessao.tipo,
-                        cedente: cessao.cedente,
-                        cessionario: cessao.cessionario,
-                        percentual: cessao.percentual,
-                        valorBruto: valorBrutoCessao
-                    };
-                    
-                    const previdenciaCessao = valorPrevidenciaPorPercentual * cessao.percentual;
-                    const irCessao = valorIRPorPercentual * cessao.percentual;
-                    const valorLiquidoCessao = valorBrutoCessao - previdenciaCessao - irCessao;
-                    
-                    const cessaoFinal = {
-                        ...cessaoCalculada,
-                        previdenciaCessao,
-                        irCessao,
-                        valorLiquido: valorLiquidoCessao
-                    };
-                    
-                    cessoesHerdeiroCalculadas.push(cessaoCalculada);
-                    cessoesHerdeiroFinais.push(cessaoFinal);
-                }
-                
-                valorHerdeiroAposCessoes = valorHerdeiroBruto * percentualHerdeiroFinal;
-                valorPrevidenciaHerdeiroFinal = valorPrevidenciaHerdeiro * percentualHerdeiroFinal;
-                valorIRHerdeiroFinal = valorIRHerdeiro * percentualHerdeiroFinal;
-                valorHerdeiroLiquido = valorHerdeiroAposCessoes - valorPrevidenciaHerdeiroFinal - valorIRHerdeiroFinal;
+                return {
+                    valorHerdeiroBruto,
+                    valorCessoesHerdeiro: 0,
+                    cessoesHerdeiroCalculadas,
+                    percentualHerdeiroFinal,
+                    valorHerdeiroAposCessoes: maxQueHerdeiroPodeReceber,
+                    valorPrevidenciaHerdeiroFinal: valorPrevidenciaHerdeiro,
+                    valorIRHerdeiroFinal: valorIRHerdeiro,
+                    valorHerdeiroLiquido: maxQueHerdeiroPodeReceber - valorPrevidenciaHerdeiro - valorIRHerdeiro,
+                    cessoesHerdeiroFinais
+                };
             }
-
+            
+            // ORDEM CRONOLÓGICA OU PARCIAL: distribuição proporcional
+            for (const cessao of cessoesHerdeiro) {
+                const valorBrutoCessao = valorHerdeiroBruto * cessao.percentual;
+                valorCessoesHerdeiro += valorBrutoCessao;
+                
+                const cessaoCalculada = {
+                    tipo: cessao.tipo,
+                    cedente: cessao.cedente,
+                    cessionario: cessao.cessionario,
+                    percentual: cessao.percentual,
+                    valorBruto: valorBrutoCessao
+                };
+                
+                const previdenciaCessao = valorPrevidenciaHerdeiro * cessao.percentual;
+                const irCessao = valorIRHerdeiro * cessao.percentual;
+                
+                const cessaoFinal = {
+                    ...cessaoCalculada,
+                    previdenciaCessao,
+                    irCessao,
+                    valorLiquido: valorBrutoCessao - previdenciaCessao - irCessao
+                };
+                
+                cessoesHerdeiroCalculadas.push(cessaoCalculada);
+                cessoesHerdeiroFinais.push(cessaoFinal);
+            }
+            
             return {
                 valorHerdeiroBruto,
                 valorCessoesHerdeiro,
                 cessoesHerdeiroCalculadas,
                 percentualHerdeiroFinal,
-                valorHerdeiroAposCessoes,
-                valorPrevidenciaHerdeiroFinal,
-                valorIRHerdeiroFinal,
-                valorHerdeiroLiquido,
+                valorHerdeiroAposCessoes: valorHerdeiroBruto * percentualHerdeiroFinal,
+                valorPrevidenciaHerdeiroFinal: valorPrevidenciaHerdeiro * percentualHerdeiroFinal,
+                valorIRHerdeiroFinal: valorIRHerdeiro * percentualHerdeiroFinal,
+                valorHerdeiroLiquido: (valorHerdeiroBruto * percentualHerdeiroFinal) - 
+                                    (valorPrevidenciaHerdeiro * percentualHerdeiroFinal) - 
+                                    (valorIRHerdeiro * percentualHerdeiroFinal),
                 cessoesHerdeiroFinais
             };
         }
+
+        // ====================================
+        // PAGAMENTOS - Ajustes 
+        // ====================================
 
         function calcularSaldoFinalComPagamentos(resultados, pagamentosCalculados, dados) {
             if (!pagamentosCalculados || pagamentosCalculados.length === 0) {
