@@ -4316,9 +4316,7 @@
         // ====================================
 
         function calcularSaldoFinalComPagamentos(resultados, pagamentosCalculados, dados) {
-            if (!pagamentosCalculados || pagamentosCalculados.length === 0) {
-                return null;
-            }
+            if (!pagamentosCalculados?.length) return null;
             
             // 1. Mapear pagamentos por beneficiário
             const pagamentosPorBeneficiario = {};
@@ -4342,6 +4340,26 @@
             };
             
             // 3. Identificar cessões de 100%
+            const cessoes100 = identificarCessoes100(resultados);
+            
+            // 4. Calcular saldos de cada grupo
+            calcularSaldosBeneficiarioOuHerdeiros(resultados, dados, pagamentosPorBeneficiario, saldosFinais);
+            calcularSaldosAdvogados(resultados.honorarios, pagamentosPorBeneficiario, cessoes100.advogados, saldosFinais, 'advogados');
+            calcularSaldosAdvogados(resultados.honorariosSucumbenciais?.honorarios, pagamentosPorBeneficiario, cessoes100.advogadosSucumbenciais, saldosFinais, 'advogadosSucumbenciais');
+            calcularSaldosSindicatos(resultados, pagamentosPorBeneficiario, cessoes100.sindicatos, saldosFinais);
+            calcularSaldosCessionarios(resultados, pagamentosPorBeneficiario, cessoes100, saldosFinais);
+            
+            // 5. Calcular totais e tributos finais
+            calcularTotaisETributos(resultados, dados, saldosFinais);
+            
+            return saldosFinais;
+        }
+
+        // ====================================
+        // FUNÇÕES AUXILIARES
+        // ====================================
+
+        function identificarCessoes100(resultados) {
             const cessoes100 = {
                 advogados: {},
                 advogadosSucumbenciais: {},
@@ -4349,804 +4367,555 @@
                 beneficiarioPrincipal: false
             };
             
-            // Mapear cessões de advogados
-            if (resultados.honorarios) {
-                resultados.honorarios.forEach(adv => {
-                    if (adv.cessionarios && adv.cessionarios.length > 0) {
-                        const percentualCedido = adv.cessionarios.reduce((sum, c) => sum + c.percentual, 0);
-                        if (percentualCedido >= 1.0) {
-                            cessoes100.advogados[adv.nome] = adv.cessionarios;
-                        }
+            // Advogados
+            resultados.honorarios?.forEach(adv => {
+                if (adv.cessionarios?.length > 0) {
+                    const percentualCedido = adv.cessionarios.reduce((sum, c) => sum + c.percentual, 0);
+                    if (percentualCedido >= 1.0) {
+                        cessoes100.advogados[adv.nome] = adv.cessionarios;
                     }
-                });
-            }
+                }
+            });
             
-            // Mapear cessões de advogados sucumbenciais
-            if (resultados.honorariosSucumbenciais?.honorarios) {
-                resultados.honorariosSucumbenciais.honorarios.forEach(advSuc => {
-                    if (advSuc.cessionarios && advSuc.cessionarios.length > 0) {
-                        const percentualCedido = advSuc.cessionarios.reduce((sum, c) => sum + c.percentual, 0);
-                        if (percentualCedido >= 1.0) {
-                            cessoes100.advogadosSucumbenciais[advSuc.nome] = advSuc.cessionarios;
-                        }
+            // Advogados Sucumbenciais
+            resultados.honorariosSucumbenciais?.honorarios?.forEach(advSuc => {
+                if (advSuc.cessionarios?.length > 0) {
+                    const percentualCedido = advSuc.cessionarios.reduce((sum, c) => sum + c.percentual, 0);
+                    if (percentualCedido >= 1.0) {
+                        cessoes100.advogadosSucumbenciais[advSuc.nome] = advSuc.cessionarios;
                     }
-                });
-            }
+                }
+            });
             
-            // Mapear cessões de sindicatos
-            if (resultados.sindicatos) {
-                resultados.sindicatos.forEach(sind => {
-                    if (sind.cessionarios && sind.cessionarios.length > 0) {
-                        const percentualCedido = sind.cessionarios.reduce((sum, c) => sum + c.percentual, 0);
-                        if (percentualCedido >= 1.0) {
-                            cessoes100.sindicatos[sind.nome] = sind.cessionarios;
-                        }
+            // Sindicatos
+            resultados.sindicatos?.forEach(sind => {
+                if (sind.cessionarios?.length > 0) {
+                    const percentualCedido = sind.cessionarios.reduce((sum, c) => sum + c.percentual, 0);
+                    if (percentualCedido >= 1.0) {
+                        cessoes100.sindicatos[sind.nome] = sind.cessionarios;
                     }
-                });
+                }
+            });
+            
+            // Beneficiário Principal
+            if (resultados.cessoesBeneficiarioFinais?.length > 0) {
+                const percentualCedido = resultados.cessoesBeneficiarioFinais.reduce((sum, c) => sum + c.percentual, 0);
+                cessoes100.beneficiarioPrincipal = percentualCedido >= 1.0;
             }
             
-            // Verificar cessão 100% do beneficiário principal
-            if (resultados.cessoesBeneficiarioFinais && resultados.cessoesBeneficiarioFinais.length > 0) {
-                const percentualCedidoBenef = resultados.cessoesBeneficiarioFinais.reduce((sum, c) => sum + c.percentual, 0);
-                cessoes100.beneficiarioPrincipal = percentualCedidoBenef >= 1.0;
-            }
-            
-            // 4. Beneficiário Principal ou Herdeiros
+            return cessoes100;
+        }
+
+        function calcularSaldosBeneficiarioOuHerdeiros(resultados, dados, pagamentosPorBeneficiario, saldosFinais) {
             const nomeBeneficiario = dados.beneficiario;
             const pagamentoBeneficiario = pagamentosPorBeneficiario[nomeBeneficiario]?.totalPago || 0;
             
-            if (resultados.temHerdeiros && resultados.herdeiros && resultados.herdeiros.length > 0) {
-                // TEM HERDEIROS: Dividir pagamento do beneficiário proporcionalmente
+            if (resultados.temHerdeiros && resultados.herdeiros?.length > 0) {
+                // COM HERDEIROS
                 resultados.herdeiros.forEach(herdeiro => {
-                    const pagamentoDiretoHerdeiro = pagamentosPorBeneficiario[herdeiro.nome]?.totalPago || 0;
-                    const pagamentoDoBeneficiarioParaHerdeiro = pagamentoBeneficiario * herdeiro.percentual;
-                    const totalPagamentoHerdeiro = pagamentoDiretoHerdeiro + pagamentoDoBeneficiarioParaHerdeiro;
+                    const pagamentoDireto = pagamentosPorBeneficiario[herdeiro.nome]?.totalPago || 0;
+                    const pagamentoDoBeneficiario = pagamentoBeneficiario * herdeiro.percentual;
+                    const totalPagamento = pagamentoDireto + pagamentoDoBeneficiario;
                     
                     const valorBruto = herdeiro.valorBruto || 0;
-                    const saldoBruto = valorBruto - totalPagamentoHerdeiro;
+                    const saldo = valorBruto - totalPagamento;
                     
                     saldosFinais.herdeiros.push({
                         nome: herdeiro.nome,
-                        valorBruto: valorBruto,
-                        pagamento: totalPagamentoHerdeiro,
-                        pagamentoDireto: pagamentoDiretoHerdeiro,
-                        pagamentoDoBeneficiario: pagamentoDoBeneficiarioParaHerdeiro,
-                        saldo: saldoBruto
+                        valorBruto,
+                        pagamento: totalPagamento,
+                        pagamentoDireto,
+                        pagamentoDoBeneficiario,
+                        saldo
                     });
                     
-                    saldosFinais.totalGeralBruto += saldoBruto;
+                    saldosFinais.totalGeralBruto += saldo;
                     saldosFinais.totalGeralOriginal += valorBruto;
                 });
             } else {
-                // NÃO TEM HERDEIROS: Beneficiário Principal normal
-                if (resultados.valorBeneficiarioAposCessoes && resultados.valorBeneficiarioAposCessoes > 0) {
+                // SEM HERDEIROS
+                if (resultados.valorBeneficiarioAposCessoes > 0) {
                     const valorBruto = resultados.valorBeneficiarioAposCessoes;
-                    const saldoBruto = valorBruto - pagamentoBeneficiario;
+                    const saldo = valorBruto - pagamentoBeneficiario;
                     
                     saldosFinais.beneficiarioPrincipal = {
                         nome: nomeBeneficiario,
-                        valorBruto: valorBruto,
+                        valorBruto,
                         pagamento: pagamentoBeneficiario,
-                        saldo: saldoBruto
+                        saldo
                     };
                     
-                    saldosFinais.totalGeralBruto += saldoBruto;
+                    saldosFinais.totalGeralBruto += saldo;
                     saldosFinais.totalGeralOriginal += valorBruto;
                 }
             }
+        }
+
+        function calcularSaldosAdvogados(advogados, pagamentosPorBeneficiario, cessoes100, saldosFinais, chave) {
+            if (!advogados?.length) return;
             
-            // 5. Advogados
-            if (resultados.honorarios && resultados.honorarios.length > 0) {
-                resultados.honorarios.forEach(adv => {
-                    const pagamentoDireto = pagamentosPorBeneficiario[adv.nome]?.totalPago || 0;
-                    const valorBruto = adv.valorBruto || adv.valorBrutoAdvogado || 0;
-                    
-                    // Se cessão é 100%, NÃO mostrar advogado (pagamento vai para cessionário)
-                    if (!cessoes100.advogados[adv.nome]) {
-                        const saldoBruto = valorBruto - pagamentoDireto;
-                        
-                        saldosFinais.advogados.push({
-                            nome: adv.nome,
-                            tipo: adv.tipo,
-                            valorBruto: valorBruto,
-                            pagamento: pagamentoDireto,
-                            saldo: saldoBruto
-                        });
-                        
-                        saldosFinais.totalGeralBruto += saldoBruto;
-                        saldosFinais.totalGeralOriginal += valorBruto;
-                    }
+            advogados.forEach(adv => {
+                // Se cessão é 100%, não mostrar advogado
+                if (cessoes100[adv.nome]) return;
+                
+                const pagamentoDireto = pagamentosPorBeneficiario[adv.nome]?.totalPago || 0;
+                const valorBruto = adv.valorBruto || adv.valorBrutoAdvogado || 0;
+                const saldo = valorBruto - pagamentoDireto;
+                
+                saldosFinais[chave].push({
+                    nome: adv.nome,
+                    tipo: adv.tipo,
+                    valorBruto,
+                    pagamento: pagamentoDireto,
+                    saldo
                 });
-            }
+                
+                saldosFinais.totalGeralBruto += saldo;
+                saldosFinais.totalGeralOriginal += valorBruto;
+            });
+        }
+
+        function calcularSaldosSindicatos(resultados, pagamentosPorBeneficiario, cessoes100, saldosFinais) {
+            if (!resultados.sindicatos?.length) return;
             
-            // 6. Advogados Sucumbenciais
-            if (resultados.honorariosSucumbenciais?.honorarios) {
-                resultados.honorariosSucumbenciais.honorarios.forEach(advSuc => {
-                    const pagamentoDireto = pagamentosPorBeneficiario[advSuc.nome]?.totalPago || 0;
-                    const valorBruto = advSuc.valorBruto || 0;
-                    
-                    // Se cessão é 100%, NÃO mostrar advogado (pagamento vai para cessionário)
-                    if (!cessoes100.advogadosSucumbenciais[advSuc.nome]) {
-                        const saldoBruto = valorBruto - pagamentoDireto;
-                        
-                        saldosFinais.advogadosSucumbenciais.push({
-                            nome: advSuc.nome,
-                            tipo: advSuc.tipo,
-                            valorBruto: valorBruto,
-                            pagamento: pagamentoDireto,
-                            saldo: saldoBruto
-                        });
-                        
-                        saldosFinais.totalGeralBruto += saldoBruto;
-                        saldosFinais.totalGeralOriginal += valorBruto;
-                    }
+            resultados.sindicatos.forEach(sind => {
+                // Se cessão é 100%, não mostrar sindicato
+                if (cessoes100[sind.nome]) return;
+                
+                const pagamentoDireto = pagamentosPorBeneficiario[sind.nome]?.totalPago || 0;
+                const valorBruto = sind.valorBrutoSindicato || 0;
+                const saldo = valorBruto - pagamentoDireto;
+                
+                saldosFinais.sindicatos.push({
+                    nome: sind.nome,
+                    valorBruto,
+                    pagamento: pagamentoDireto,
+                    saldo
                 });
-            }
+                
+                saldosFinais.totalGeralBruto += saldo;
+                saldosFinais.totalGeralOriginal += valorBruto;
+            });
+        }
+
+        function calcularSaldosCessionarios(resultados, pagamentosPorBeneficiario, cessoes100, saldosFinais) {
+            const nomeBeneficiario = resultados.beneficiario || '';
+            const pagamentoBeneficiario = pagamentosPorBeneficiario[nomeBeneficiario]?.totalPago || 0;
             
-            // 7. Sindicatos
-            if (resultados.sindicatos && resultados.sindicatos.length > 0) {
-                resultados.sindicatos.forEach(sind => {
-                    const pagamentoDireto = pagamentosPorBeneficiario[sind.nome]?.totalPago || 0;
-                    const valorBruto = sind.valorBrutoSindicato || 0;
-                    
-                    // Se cessão é 100%, NÃO mostrar sindicato (pagamento vai para cessionário)
-                    if (!cessoes100.sindicatos[sind.nome]) {
-                        const saldoBruto = valorBruto - pagamentoDireto;
-                        
-                        saldosFinais.sindicatos.push({
-                            nome: sind.nome,
-                            valorBruto: valorBruto,
-                            pagamento: pagamentoDireto,
-                            saldo: saldoBruto
-                        });
-                        
-                        saldosFinais.totalGeralBruto += saldoBruto;
-                        saldosFinais.totalGeralOriginal += valorBruto;
-                    }
-                });
-            }
-            
-            // 8. Cessionários do Beneficiário Principal
-            if (resultados.cessoesBeneficiarioFinais && resultados.cessoesBeneficiarioFinais.length > 0) {
+            // Cessionários do Beneficiário Principal
+            if (resultados.cessoesBeneficiarioFinais?.length > 0) {
                 resultados.cessoesBeneficiarioFinais.forEach(cess => {
                     const pagamentoDireto = pagamentosPorBeneficiario[cess.cessionario]?.totalPago || 0;
-                    const valorBruto = cess.valorBruto || 0;
-                    
                     let pagamentoTotal = pagamentoDireto;
                     
-                    // Se cessão é 100%, redirecionar pagamento do beneficiário
                     if (cessoes100.beneficiarioPrincipal) {
-                        const pagamentoDoBeneficiario = pagamentoBeneficiario * cess.percentual;
-                        pagamentoTotal += pagamentoDoBeneficiario;
+                        pagamentoTotal += pagamentoBeneficiario * cess.percentual;
                     }
                     
-                    const saldoBruto = valorBruto - pagamentoTotal;
+                    const valorBruto = cess.valorBruto || 0;
+                    const saldo = valorBruto - pagamentoTotal;
                     
                     saldosFinais.cessionarios.push({
                         nome: cess.cessionario,
                         tipo: 'Cessionário do Beneficiário',
-                        valorBruto: valorBruto,
+                        valorBruto,
                         pagamento: pagamentoTotal,
-                        pagamentoDireto: pagamentoDireto,
-                        saldo: saldoBruto
+                        pagamentoDireto,
+                        saldo
                     });
                     
-                    saldosFinais.totalGeralBruto += saldoBruto;
+                    saldosFinais.totalGeralBruto += saldo;
                     saldosFinais.totalGeralOriginal += valorBruto;
                 });
             }
-
-            // 9. Cessionários dos Herdeiros
-            if (resultados.temHerdeiros && resultados.herdeiros && resultados.herdeiros.length > 0) {
+            
+            // Cessionários de Herdeiros
+            if (resultados.herdeiros?.length > 0) {
                 resultados.herdeiros.forEach(herdeiro => {
-                    if (herdeiro.cessoesHerdeiroFinais && herdeiro.cessoesHerdeiroFinais.length > 0) {
+                    if (herdeiro.cessoesHerdeiroFinais?.length > 0) {
                         herdeiro.cessoesHerdeiroFinais.forEach(cess => {
                             const pagamentoDireto = pagamentosPorBeneficiario[cess.cessionario]?.totalPago || 0;
                             const valorBruto = cess.valorBruto || 0;
-                            const saldoBruto = valorBruto - pagamentoDireto;
+                            const saldo = valorBruto - pagamentoDireto;
                             
                             saldosFinais.cessionarios.push({
                                 nome: cess.cessionario,
                                 cedente: herdeiro.nome,
                                 tipo: 'Cessionário de Herdeiro',
-                                valorBruto: valorBruto,
+                                valorBruto,
                                 pagamento: pagamentoDireto,
-                                saldo: saldoBruto
+                                saldo
                             });
                             
-                            saldosFinais.totalGeralBruto += saldoBruto;
-                            saldosFinais.totalGeralOriginal += valorBruto;
-                        });
-                    }
-                });
-            }
-
-            // 10. Cessionários dos Advogados
-            if (resultados.honorarios && resultados.honorarios.length > 0) {
-                resultados.honorarios.forEach(adv => {
-                    if (adv.cessionarios && adv.cessionarios.length > 0) {
-                        const pagamentoCedente = pagamentosPorBeneficiario[adv.nome]?.totalPago || 0;
-                        const cedeu100 = cessoes100.advogados[adv.nome];
-                        
-                        adv.cessionarios.forEach(cess => {
-                            const pagamentoDireto = pagamentosPorBeneficiario[cess.nome]?.totalPago || 0;
-                            const valorBruto = cess.valorBruto || 0;
-                            
-                            let pagamentoTotal = pagamentoDireto;
-                            
-                            // Se cessão é 100%, redirecionar pagamento do cedente
-                            if (cedeu100) {
-                                const pagamentoDoCedente = pagamentoCedente * cess.percentual;
-                                pagamentoTotal += pagamentoDoCedente;
-                            }
-                            
-                            const saldoBruto = valorBruto - pagamentoTotal;
-                            
-                            saldosFinais.cessionarios.push({
-                                nome: cess.nome,
-                                cedente: adv.nome,
-                                tipo: 'Cessionário de Advogado',
-                                valorBruto: valorBruto,
-                                pagamento: pagamentoTotal,
-                                pagamentoDireto: pagamentoDireto,
-                                saldo: saldoBruto
-                            });
-                            
-                            saldosFinais.totalGeralBruto += saldoBruto;
-                            saldosFinais.totalGeralOriginal += valorBruto;
-                        });
-                    }
-                });
-            }
-
-            // 11. Cessionários dos Advogados Sucumbenciais
-            if (resultados.honorariosSucumbenciais?.honorarios) {
-                resultados.honorariosSucumbenciais.honorarios.forEach(advSuc => {
-                    if (advSuc.cessionarios && advSuc.cessionarios.length > 0) {
-                        const pagamentoCedente = pagamentosPorBeneficiario[advSuc.nome]?.totalPago || 0;
-                        const cedeu100 = cessoes100.advogadosSucumbenciais[advSuc.nome];
-                        
-                        advSuc.cessionarios.forEach(cess => {
-                            const pagamentoDireto = pagamentosPorBeneficiario[cess.nome]?.totalPago || 0;
-                            const valorBruto = cess.valorBruto || 0;
-                            
-                            let pagamentoTotal = pagamentoDireto;
-                            
-                            // Se cessão é 100%, redirecionar pagamento do cedente
-                            if (cedeu100) {
-                                const pagamentoDoCedente = pagamentoCedente * cess.percentual;
-                                pagamentoTotal += pagamentoDoCedente;
-                            }
-                            
-                            const saldoBruto = valorBruto - pagamentoTotal;
-                            
-                            saldosFinais.cessionarios.push({
-                                nome: cess.nome,
-                                cedente: advSuc.nome,
-                                tipo: 'Cessionário de Adv. Sucumbencial',
-                                valorBruto: valorBruto,
-                                pagamento: pagamentoTotal,
-                                pagamentoDireto: pagamentoDireto,
-                                saldo: saldoBruto
-                            });
-                            
-                            saldosFinais.totalGeralBruto += saldoBruto;
-                            saldosFinais.totalGeralOriginal += valorBruto;
-                        });
-                    }
-                });
-            }
-
-            // 12. Cessionários dos Sindicatos
-            if (resultados.sindicatos && resultados.sindicatos.length > 0) {
-                resultados.sindicatos.forEach(sind => {
-                    if (sind.cessionarios && sind.cessionarios.length > 0) {
-                        const pagamentoCedente = pagamentosPorBeneficiario[sind.nome]?.totalPago || 0;
-                        const cedeu100 = cessoes100.sindicatos[sind.nome];
-                        
-                        sind.cessionarios.forEach(cess => {
-                            const pagamentoDireto = pagamentosPorBeneficiario[cess.nome]?.totalPago || 0;
-                            const valorBruto = cess.valorBruto || 0;
-                            
-                            let pagamentoTotal = pagamentoDireto;
-                            
-                            // Se cessão é 100%, redirecionar pagamento do cedente
-                            if (cedeu100) {
-                                const pagamentoDoCedente = pagamentoCedente * cess.percentual;
-                                pagamentoTotal += pagamentoDoCedente;
-                            }
-                            
-                            const saldoBruto = valorBruto - pagamentoTotal;
-                            
-                            saldosFinais.cessionarios.push({
-                                nome: cess.nome,
-                                cedente: sind.nome,
-                                tipo: 'Cessionário de Sindicato',
-                                valorBruto: valorBruto,
-                                pagamento: pagamentoTotal,
-                                pagamentoDireto: pagamentoDireto,
-                                saldo: saldoBruto
-                            });
-                            
-                            saldosFinais.totalGeralBruto += saldoBruto;
+                            saldosFinais.totalGeralBruto += saldo;
                             saldosFinais.totalGeralOriginal += valorBruto;
                         });
                     }
                 });
             }
             
-            // 13. Calcular Principal e Juros do TOTAL (SEM honorários sucumbenciais)
-            let totalSemHonorariosSucumbenciais = saldosFinais.totalGeralBruto;
-
-            // Subtrair honorários sucumbenciais
-            if (saldosFinais.advogadosSucumbenciais && saldosFinais.advogadosSucumbenciais.length > 0) {
-                const totalHonorariosSucumbenciais = saldosFinais.advogadosSucumbenciais.reduce((sum, adv) => sum + adv.saldo, 0);
-                totalSemHonorariosSucumbenciais -= totalHonorariosSucumbenciais;
-            }
-
-            // Subtrair cessionários de honorários sucumbenciais
-            if (saldosFinais.cessionarios && saldosFinais.cessionarios.length > 0) {
-                const totalCessionariosSucumbenciais = saldosFinais.cessionarios
-                    .filter(c => c.tipo === 'Cessionário de Adv. Sucumbencial')
-                    .reduce((sum, c) => sum + c.saldo, 0);
-                totalSemHonorariosSucumbenciais -= totalCessionariosSucumbenciais;
-            }
-
-            // Salvar total sem honorários sucumbenciais
-            saldosFinais.totalSemHonorariosSucumbenciais = totalSemHonorariosSucumbenciais;
-
-            saldosFinais.principalTotal = totalSemHonorariosSucumbenciais * (resultados.percentualprinc || 0.5);
-            saldosFinais.jurosTotal = totalSemHonorariosSucumbenciais * (resultados.percentualjur || 0.5);
-
-            // 14. RRA ajustado (baseado no total SEM honorários sucumbenciais)
-            const rraOriginal = resultados.rrapagamento || resultados.rraTotal || 0;
-
-            // Calcular valor original sem honorários sucumbenciais
-            let totalOriginalSemHonorariosSucumbenciais = saldosFinais.totalGeralOriginal;
-            if (saldosFinais.advogadosSucumbenciais && saldosFinais.advogadosSucumbenciais.length > 0) {
-                const totalOriginalHonSuc = saldosFinais.advogadosSucumbenciais.reduce((sum, adv) => sum + adv.valorBruto, 0);
-                totalOriginalSemHonorariosSucumbenciais -= totalOriginalHonSuc;
-            }
-            if (saldosFinais.cessionarios && saldosFinais.cessionarios.length > 0) {
-                const totalOriginalCessSuc = saldosFinais.cessionarios
-                    .filter(c => c.tipo === 'Cessionário de Adv. Sucumbencial')
-                    .reduce((sum, c) => sum + c.valorBruto, 0);
-                totalOriginalSemHonorariosSucumbenciais -= totalOriginalCessSuc;
-            }
-
-            const proporcao = totalOriginalSemHonorariosSucumbenciais > 0 ? 
-                (totalSemHonorariosSucumbenciais / totalOriginalSemHonorariosSucumbenciais) : 0;
-
-            saldosFinais.rraOriginal = rraOriginal;
-            saldosFinais.rraAjustado = rraOriginal > 0 ? Math.max(1, arredondarRRA(proporcao * rraOriginal)) : 0;
-
-            // 15. IR e Previdência recalculados (sobre o total SEM honorários sucumbenciais)
-            const resultadoPrevidencia = calcularPrevidenciaIsolada(dados, saldosFinais.principalTotal, saldosFinais.rraAjustado);
-            saldosFinais.previdenciaTotal = resultadoPrevidencia.valorPrevidencia;
-            saldosFinais.aliquotaEfetiva = resultadoPrevidencia.aliquotaEfetiva;
-            saldosFinais.valorDesagioPrevidencia = resultadoPrevidencia.valorDesagioPrevidencia;
-            saldosFinais.percentualDesagioPrevidencia = resultadoPrevidencia.percentualDesagioPrevidencia;
-
-            const resultadoIR = calcularIRIsolado(dados, totalSemHonorariosSucumbenciais, totalSemHonorariosSucumbenciais, saldosFinais.principalTotal, saldosFinais.previdenciaTotal, saldosFinais.rraAjustado);
-            saldosFinais.irTotal = resultadoIR.valorIR;
-            saldosFinais.aliquotaIR = resultadoIR.aliquotaIR;
-            saldosFinais.baseIRHonora = resultadoIR.baseIRHonora;
-            saldosFinais.baseIRSindi = resultadoIR.baseIRSindi;
-            saldosFinais.baseIRPrev = resultadoIR.baseIRPrev;
-            saldosFinais.baseIRRRA = resultadoIR.baseIRRRA;
-            saldosFinais.valorIRUnitario = resultadoIR.valorIRUnitario;
-            saldosFinais.principalComDesagio = resultadoIR.principalComDesagio;
-            saldosFinais.percentualDesagioIR = resultadoIR.percentualDesagioIR;
-            saldosFinais.rraComDesagio = resultadoIR.rraComDesagio;
-
-            saldosFinais.totalLiquido = totalSemHonorariosSucumbenciais - saldosFinais.previdenciaTotal - saldosFinais.irTotal;
-
-            return saldosFinais;
+            // Cessionários de Advogados, Advogados Sucumbenciais e Sindicatos
+            processarCessionariosDeCedentes(resultados.honorarios, pagamentosPorBeneficiario, cessoes100.advogados, saldosFinais, 'Cessionário de Advogado');
+            processarCessionariosDeCedentes(resultados.honorariosSucumbenciais?.honorarios, pagamentosPorBeneficiario, cessoes100.advogadosSucumbenciais, saldosFinais, 'Cessionário de Adv. Sucumbencial');
+            processarCessionariosDeCedentes(resultados.sindicatos, pagamentosPorBeneficiario, cessoes100.sindicatos, saldosFinais, 'Cessionário de Sindicato');
         }
 
-        function ajustarResultadosComPagamentos(resultados, dados) {
-            if (!resultados.saldosFinais) {
-                return resultados;
+        function processarCessionariosDeCedentes(cedentes, pagamentosPorBeneficiario, cessoes100, saldosFinais, tipoCessionario) {
+            if (!cedentes?.length) return;
+            
+            cedentes.forEach(cedente => {
+                if (!cedente.cessionarios?.length) return;
+                
+                const pagamentoCedente = pagamentosPorBeneficiario[cedente.nome]?.totalPago || 0;
+                const cedeu100 = cessoes100[cedente.nome];
+                
+                cedente.cessionarios.forEach(cess => {
+                    const pagamentoDireto = pagamentosPorBeneficiario[cess.nome]?.totalPago || 0;
+                    let pagamentoTotal = pagamentoDireto;
+                    
+                    if (cedeu100) {
+                        pagamentoTotal += pagamentoCedente * cess.percentual;
+                    }
+                    
+                    const valorBruto = cess.valorBruto || 0;
+                    const saldo = valorBruto - pagamentoTotal;
+                    
+                    saldosFinais.cessionarios.push({
+                        nome: cess.nome,
+                        cedente: cedente.nome,
+                        tipo: tipoCessionario,
+                        valorBruto,
+                        pagamento: pagamentoTotal,
+                        pagamentoDireto,
+                        saldo
+                    });
+                    
+                    saldosFinais.totalGeralBruto += saldo;
+                    saldosFinais.totalGeralOriginal += valorBruto;
+                });
+            });
+        }
+
+        function calcularTotaisETributos(resultados, dados, saldosFinais) {
+            // Total sem honorários sucumbenciais
+            let totalSemHonSuc = saldosFinais.totalGeralBruto;
+            
+            if (saldosFinais.advogadosSucumbenciais?.length > 0) {
+                totalSemHonSuc -= saldosFinais.advogadosSucumbenciais.reduce((sum, adv) => sum + adv.saldo, 0);
             }
+            
+            if (saldosFinais.cessionarios?.length > 0) {
+                totalSemHonSuc -= saldosFinais.cessionarios
+                    .filter(c => c.tipo === 'Cessionário de Adv. Sucumbencial')
+                    .reduce((sum, c) => sum + c.saldo, 0);
+            }
+            
+            saldosFinais.totalSemHonorariosSucumbenciais = totalSemHonSuc;
+            saldosFinais.principalTotal = totalSemHonSuc * (resultados.percentualprinc || 0.5);
+            saldosFinais.jurosTotal = totalSemHonSuc * (resultados.percentualjur || 0.5);
+            
+            // RRA ajustado
+            const rraOriginal = resultados.rrapagamento || resultados.rraTotal || 0;
+            let totalOriginalSemHonSuc = saldosFinais.totalGeralOriginal;
+            
+            if (saldosFinais.advogadosSucumbenciais?.length > 0) {
+                totalOriginalSemHonSuc -= saldosFinais.advogadosSucumbenciais.reduce((sum, adv) => sum + adv.valorBruto, 0);
+            }
+            
+            if (saldosFinais.cessionarios?.length > 0) {
+                totalOriginalSemHonSuc -= saldosFinais.cessionarios
+                    .filter(c => c.tipo === 'Cessionário de Adv. Sucumbencial')
+                    .reduce((sum, c) => sum + c.valorBruto, 0);
+            }
+            
+            const proporcao = totalOriginalSemHonSuc > 0 ? (totalSemHonSuc / totalOriginalSemHonSuc) : 0;
+            saldosFinais.rraOriginal = rraOriginal;
+            saldosFinais.rraAjustado = rraOriginal > 0 ? Math.max(1, arredondarRRA(proporcao * rraOriginal)) : 0;
+            
+            // Previdência
+            const resultadoPrev = calcularPrevidenciaIsolada(dados, saldosFinais.principalTotal, saldosFinais.rraAjustado);
+            Object.assign(saldosFinais, {
+                previdenciaTotal: resultadoPrev.valorPrevidencia,
+                aliquotaEfetiva: resultadoPrev.aliquotaEfetiva,
+                valorDesagioPrevidencia: resultadoPrev.valorDesagioPrevidencia,
+                percentualDesagioPrevidencia: resultadoPrev.percentualDesagioPrevidencia
+            });
+            
+            // IR
+            const resultadoIR = calcularIRIsolado(dados, totalSemHonSuc, totalSemHonSuc, saldosFinais.principalTotal, saldosFinais.previdenciaTotal, saldosFinais.rraAjustado);
+            Object.assign(saldosFinais, {
+                irTotal: resultadoIR.valorIR,
+                aliquotaIR: resultadoIR.aliquotaIR,
+                baseIRHonora: resultadoIR.baseIRHonora,
+                baseIRSindi: resultadoIR.baseIRSindi,
+                baseIRPrev: resultadoIR.baseIRPrev,
+                baseIRRRA: resultadoIR.baseIRRRA,
+                valorIRUnitario: resultadoIR.valorIRUnitario,
+                principalComDesagio: resultadoIR.principalComDesagio,
+                percentualDesagioIR: resultadoIR.percentualDesagioIR,
+                rraComDesagio: resultadoIR.rraComDesagio
+            });
+            
+            saldosFinais.totalLiquido = totalSemHonSuc - saldosFinais.previdenciaTotal - saldosFinais.irTotal;
+        }
+
+        // ====================================
+        // AJUSTAR EXIBICAO COM PAGAMENTOS
+        // ====================================
+
+        function ajustarResultadosComPagamentos(resultados, dados) {
+            if (!resultados.saldosFinais) return resultados;
             
             const saldos = resultados.saldosFinais;
             const resultadosAjustados = JSON.parse(JSON.stringify(resultados));
             
-            if (saldos.totalGeralBruto > 0 && saldos.totalGeralOriginal > 0) {
-                // Usar o total SEM honorários sucumbenciais para os cálculos principais
-                const totalParaCalculo = saldos.totalSemHonorariosSucumbenciais || saldos.totalGeralBruto;
-                
-                // Ajustar valores globais USANDO os valores já calculados
-                resultadosAjustados.principal = saldos.principalTotal;
-                resultadosAjustados.valorBase = totalParaCalculo;
-                resultadosAjustados.valortotatt = totalParaCalculo;
-                resultadosAjustados.rrapagamento = saldos.rraAjustado || saldos.rraOriginal;
-                
-                // USAR Previdência já calculada (NÃO recalcular)
-                resultadosAjustados.valorPrevidencia = saldos.previdenciaTotal;
-                resultadosAjustados.aliquotaEfetiva = saldos.aliquotaEfetiva;
-                resultadosAjustados.valorDesagioPrevidencia = saldos.valorDesagioPrevidencia;
-                resultadosAjustados.percentualDesagioPrevidencia = saldos.percentualDesagioPrevidencia;
-                
-                // USAR IR já calculado (NÃO recalcular)
-                resultadosAjustados.valorIR = saldos.irTotal;
-                resultadosAjustados.aliquotaIR = saldos.aliquotaIR;
-                resultadosAjustados.baseIRHonora = saldos.baseIRHonora;
-                resultadosAjustados.baseIRSindi = saldos.baseIRSindi;
-                resultadosAjustados.baseIRPrev = saldos.baseIRPrev;
-                resultadosAjustados.baseIRRRA = saldos.baseIRRRA;
-                resultadosAjustados.valorIRUnitario = saldos.valorIRUnitario;
-                resultadosAjustados.principalComDesagio = saldos.principalComDesagio;
-                resultadosAjustados.percentualDesagioIR = saldos.percentualDesagioIR;
-                resultadosAjustados.rraComDesagio = saldos.rraComDesagio;
-                
-                // Ajustar Beneficiário Principal
-                if (saldos.beneficiarioPrincipal && saldos.beneficiarioPrincipal.saldo > 0) {
-                    resultadosAjustados.valorBeneficiarioAposCessoes = saldos.beneficiarioPrincipal.saldo;
-                    
-                    resultadosAjustados.valorPrevidenciaBeneficiario = saldos.previdenciaTotal;
-                    resultadosAjustados.valorIRBeneficiario = saldos.irTotal;
-                    resultadosAjustados.valorBeneficiarioFinal = saldos.beneficiarioPrincipal.saldo - 
-                        resultadosAjustados.valorPrevidenciaBeneficiario - 
-                        resultadosAjustados.valorIRBeneficiario;
-                    
-                }
-
-                // Ajustar Advogados
-                if (saldos.advogados && saldos.advogados.length > 0 && resultadosAjustados.honorarios) {
-                    resultadosAjustados.honorarios = resultadosAjustados.honorarios.map(adv => {
-                        const saldoAdv = saldos.advogados.find(a => a.nome === adv.nome);
-                        
-                        if (!saldoAdv || saldoAdv.saldo <= 0) {
-                            return adv;
-                        }
-                        
-                        // RECALCULAR IR respeitando incidenciaIR
-                        let novoIR = 0;
-                        if (adv.incidenciaIR && saldoAdv.saldo > 0) {
-                            novoIR = adv.tipo === 'PF' ? calcularIR(saldoAdv.saldo) : saldoAdv.saldo * 0.015;
-                        }
-                        
-                        return {
-                            ...adv,
-                            valorBrutoAdvogado: saldoAdv.saldo,
-                            irAdvogado: novoIR,
-                            valorLiquidoAdvogado: saldoAdv.saldo - novoIR
-                        };
-                    });
-                }
-
-                // Ajustar Advogados Sucumbenciais
-                if (saldos.advogadosSucumbenciais && saldos.advogadosSucumbenciais.length > 0 && 
-                    resultadosAjustados.honorariosSucumbenciais?.honorarios) {
-                    resultadosAjustados.honorariosSucumbenciais.honorarios = resultadosAjustados.honorariosSucumbenciais.honorarios.map(advSuc => {
-                        const saldoAdvSuc = saldos.advogadosSucumbenciais.find(a => a.nome === advSuc.nome);
-                        
-                        if (!saldoAdvSuc || saldoAdvSuc.saldo <= 0) {
-                            return advSuc;
-                        }
-                        
-                        // RECALCULAR IR respeitando incidenciaIR
-                        let novoIR = 0;
-                        if (advSuc.incidenciaIR && saldoAdvSuc.saldo > 0) {
-                            novoIR = advSuc.tipo === 'PF' ? calcularIR(saldoAdvSuc.saldo) : saldoAdvSuc.saldo * 0.015;
-                        }
-                        
-                        return {
-                            ...advSuc,
-                            valorBrutoAdvogado: saldoAdvSuc.saldo,
-                            irAdvogado: novoIR,
-                            valorLiquidoAdvogado: saldoAdvSuc.saldo - novoIR
-                        };
-                    });
-                }
-
-                // Ajustar Sindicatos
-                if (saldos.sindicatos && saldos.sindicatos.length > 0 && resultadosAjustados.sindicatos) {
-                    resultadosAjustados.sindicatos = resultadosAjustados.sindicatos.map(sind => {
-                        const saldoSind = saldos.sindicatos.find(s => s.nome === sind.nome);
-                        
-                        if (!saldoSind || saldoSind.saldo <= 0) {
-                            return sind;
-                        }
-                        
-                        // RECALCULAR IR do sindicato (usar a lógica original)
-                        let novoIR = 0;
-                        if (sind.tipoTributacao === 'pj') {
-                            novoIR = saldoSind.saldo * 0.015; // PJ: 1,5%
-                        } else if (sind.aliquotaFixaIR) {
-                            novoIR = saldoSind.saldo * sind.aliquotaFixaIR; // Alíquota fixa
-                        } else {
-                            novoIR = saldoSind.saldo * 0.015; // Padrão: 1,5%
-                        }
-                        
-                        return {
-                            ...sind,
-                            valorBrutoSindicato: saldoSind.saldo,
-                            irSindicato: novoIR,
-                            valorLiquidoSindicato: saldoSind.saldo - novoIR
-                        };
-                    });
-                }
-                
-                // Ajustar Herdeiros
-                if (saldos.herdeiros && saldos.herdeiros.length > 0 && resultadosAjustados.herdeiros) {
-                    resultadosAjustados.herdeiros = resultadosAjustados.herdeiros.map((herd, index) => {
-                        const saldoHerd = saldos.herdeiros[index];
-                        
-                        if (!saldoHerd || saldoHerd.saldo <= 0) {
-                            return herd;
-                        }
-                        
-                        const proporcaoHerd = saldoHerd.saldo / saldoHerd.valorBruto;
-                        
-                        const herdAjustado = {
-                            ...herd,
-                            principal: herd.principal * proporcaoHerd,
-                            valorTotal: saldoHerd.saldo,
-                            valorBruto: saldoHerd.saldo,
-                            valorLiquido: herd.valorLiquido ? herd.valorLiquido * proporcaoHerd : saldoHerd.saldo
-                        };
-                        
-                        if (dados.incidenciaPrevidencia || 
-                            (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.previdencia))) {
-                            
-                            const resultadoPrevHerd = calcularPrevidenciaIsolada(
-                                dados,
-                                herdAjustado.principal,
-                                herd.rrapagamento
-                            );
-                            
-                            herdAjustado.valorPrevidencia = resultadoPrevHerd.valorPrevidencia;
-                            herdAjustado.aliquotaEfetiva = resultadoPrevHerd.aliquotaEfetiva;
-                            herdAjustado.valorDesagioPrevidencia = resultadoPrevHerd.valorDesagioPrevidencia;
-                            herdAjustado.percentualDesagioPrevidencia = resultadoPrevHerd.percentualDesagioPrevidencia;
-                        }
-                        
-                        if (temIR && herd.rrapagamento !== 0) {
-                            const resultadoIRHerd = calcularIRIsolado(
-                                dados,
-                                herdAjustado.valorTotal,
-                                herdAjustado.valorTotal,
-                                herdAjustado.principal,
-                                herdAjustado.valorPrevidencia,
-                                herd.rrapagamento
-                            );
-                            
-                            herdAjustado.valorIR = resultadoIRHerd.valorIR;
-                            herdAjustado.aliquotaIR = resultadoIRHerd.aliquotaIR;
-                            herdAjustado.baseIRHonora = resultadoIRHerd.baseIRHonora;
-                            herdAjustado.baseIRSindi = resultadoIRHerd.baseIRSindi;
-                            herdAjustado.baseIRPrev = resultadoIRHerd.baseIRPrev;
-                            herdAjustado.baseIRRRA = resultadoIRHerd.baseIRRRA;
-                            herdAjustado.valorIRUnitario = resultadoIRHerd.valorIRUnitario;
-                        }
-                        
-                        return herdAjustado;
-                    });
-                }
-
-                if (saldos.cessionarios && saldos.cessionarios.length > 0) {
-                    // Cessionários do Beneficiário
-                    if (resultadosAjustados.cessoesBeneficiarioFinais) {
-                        resultadosAjustados.cessoesBeneficiarioFinais = resultadosAjustados.cessoesBeneficiarioFinais.map(cess => {
-                            const saldoCess = saldos.cessionarios.find(c => 
-                                c.nome === cess.cessionario && 
-                                c.tipo === 'Cessionário do Beneficiário'
-                            );
-                            
-                            if (!saldoCess || saldoCess.saldo <= 0) {
-                                return cess; // Não teve pagamento, mantém original
-                            }
-                            
-                            // RECALCULAR Previdência sobre o novo valor
-                            const principalCess = saldoCess.saldo * (resultados.percentualprinc || 0.5);
-                            const rraCess = resultadosAjustados.rrapagamento || resultados.rrapagamento;
-                            
-                            const resultadoPrevCess = calcularPrevidenciaIsolada(dados, principalCess, rraCess);
-                            const novaPrevidencia = resultadoPrevCess.valorPrevidencia;
-                            
-                            // RECALCULAR IR sobre o novo valor
-                            const temIR = dados.incidenciaIR || 
-                                (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.ir === true));
-                            
-                            let novoIR = 0;
-                            if (temIR && rraCess !== 0) {
-                                const resultadoIRCess = calcularIRIsolado(
-                                    dados,
-                                    saldoCess.saldo,
-                                    saldoCess.saldo,
-                                    principalCess,
-                                    novaPrevidencia,
-                                    rraCess
-                                );
-                                novoIR = resultadoIRCess.valorIR;
-                            }
-                            
-                            return {
-                                ...cess,
-                                valorBruto: saldoCess.saldo,
-                                previdenciaCessao: novaPrevidencia,
-                                irCessao: novoIR,
-                                valorLiquido: saldoCess.saldo - novaPrevidencia - novoIR
-                            };
-                        });
-                    }
-                    
-                    // Cessionários de Advogados
-                    if (resultadosAjustados.honorarios) {
-                        resultadosAjustados.honorarios = resultadosAjustados.honorarios.map(adv => {
-                            if (!adv.cessionarios || adv.cessionarios.length === 0) {
-                                return adv;
-                            }
-                            
-                            return {
-                                ...adv,
-                                cessionarios: adv.cessionarios.map(cess => {
-                                    const saldoCess = saldos.cessionarios.find(c => 
-                                        c.nome === cess.nome && 
-                                        c.cedente === adv.nome &&
-                                        (c.tipo === 'Cessionário de Advogado' || c.tipo.includes('Advogado'))
-                                    );
-                                    
-                                    if (!saldoCess || saldoCess.saldo <= 0) {
-                                        return cess; // Não teve pagamento, mantém original
-                                    }
-                                    
-                                    // RECALCULAR IR 
-                                    const novoIRCess =0
-                                    if (adv.incidenciaIR && saldoCess.saldo > 0) {  
-                                        novoIRCess = adv.tipo === 'PF' ? calcularIR(saldoCess.saldo) : saldoCess.saldo * 0.015;
-                                    } 
-                                    
-                                    return {
-                                        ...cess,
-                                        valorBruto: saldoCess.saldo,
-                                        ir: novoIRCess,
-                                        valorLiquido: saldoCess.saldo - novoIRCess
-                                    };
-                                })
-                            };
-                        });
-                    }
-                    
-                    // Cessionários de Advogados Sucumbenciais
-                    if (resultadosAjustados.honorariosSucumbenciais?.honorarios) {
-                        resultadosAjustados.honorariosSucumbenciais.honorarios = resultadosAjustados.honorariosSucumbenciais.honorarios.map(advSuc => {
-                            if (!advSuc.cessionarios || advSuc.cessionarios.length === 0) {
-                                return advSuc;
-                            }
-                            
-                            return {
-                                ...advSuc,
-                                cessionarios: advSuc.cessionarios.map(cess => {
-                                    const saldoCess = saldos.cessionarios.find(c => 
-                                        c.nome === cess.nome && 
-                                        c.cedente === advSuc.nome &&
-                                        c.tipo === 'Cessionário de Adv. Sucumbencial'
-                                    );
-                                    
-                                    if (!saldoCess || saldoCess.saldo <= 0) {
-                                        return cess; // Não teve pagamento, mantém original
-                                    }
-                                    
-                                    // RECALCULAR IR respeitando incidenciaIR
-                                    let novoIRCess = 0;
-                                    if (advSuc.incidenciaIR && saldoCess.saldo > 0) {
-                                        novoIRCess = advSuc.tipo === 'PF' ? calcularIR(saldoCess.saldo) : saldoCess.saldo * 0.015;
-                                    }
-                                    
-                                    return {
-                                        ...cess,
-                                        valorBruto: saldoCess.saldo,
-                                        ir: novoIRCess,
-                                        valorLiquido: saldoCess.saldo - novoIRCess
-                                    };
-                                })
-                            };
-                        });
-                    }
-                    
-                    // Cessionários de Sindicatos
-                    if (resultadosAjustados.sindicatos) {
-                        resultadosAjustados.sindicatos = resultadosAjustados.sindicatos.map(sind => {
-                            if (!sind.cessionarios || sind.cessionarios.length === 0) {
-                                return sind;
-                            }
-                            
-                            return {
-                                ...sind,
-                                cessionarios: sind.cessionarios.map(cess => {
-                                    const saldoCess = saldos.cessionarios.find(c => 
-                                        c.nome === cess.nome && 
-                                        c.cedente === sind.nome &&
-                                        c.tipo === 'Cessionário de Sindicato'
-                                    );
-                                    
-                                    if (!saldoCess || saldoCess.saldo <= 0) {
-                                        return cess; // Não teve pagamento, mantém original
-                                    }
-                                    
-                                    // RECALCULAR IR do cessionário (mesma regra do sindicato)
-                                    let novoIRCess = 0;
-                                    if (sind.tipoTributacao === 'pj') {
-                                        novoIRCess = saldoCess.saldo * 0.015;
-                                    } else if (sind.aliquotaFixaIR) {
-                                        novoIRCess = saldoCess.saldo * sind.aliquotaFixaIR;
-                                    } else {
-                                        novoIRCess = saldoCess.saldo * 0.015;
-                                    }
-                                    
-                                    return {
-                                        ...cess,
-                                        valorBruto: saldoCess.saldo,
-                                        ir: novoIRCess,
-                                        valorLiquido: saldoCess.saldo - novoIRCess
-                                    };
-                                })
-                            };
-                        });
-                    }
-                    
-                    // Cessionários de Herdeiros
-                    if (resultadosAjustados.herdeiros) {
-                        resultadosAjustados.herdeiros = resultadosAjustados.herdeiros.map(herd => {
-                            if (!herd.cessoesHerdeiroFinais || herd.cessoesHerdeiroFinais.length === 0) {
-                                return herd;
-                            }
-                            
-                            return {
-                                ...herd,
-                                cessoesHerdeiroFinais: herd.cessoesHerdeiroFinais.map(cess => {
-                                    const saldoCess = saldos.cessionarios.find(c => 
-                                        c.nome === cess.cessionario && 
-                                        c.cedente === herd.nome &&
-                                        c.tipo === 'Cessionário de Herdeiro'
-                                    );
-                                    
-                                    if (!saldoCess || saldoCess.saldo <= 0) {
-                                        return cess; // Não teve pagamento, mantém original
-                                    }
-                                    
-                                    // RECALCULAR Previdência sobre o novo valor
-                                    const principalCessHerd = saldoCess.saldo * (resultados.percentualprinc || 0.5);
-                                    const rraCessHerd = herd.rrapagamento;
-                                    
-                                    const resultadoPrevCessHerd = calcularPrevidenciaIsolada(dados, principalCessHerd, rraCessHerd);
-                                    const novaPrevidenciaHerd = resultadoPrevCessHerd.valorPrevidencia;
-                                    
-                                    // RECALCULAR IR sobre o novo valor
-                                    const temIR = dados.incidenciaIR || 
-                                        (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.ir === true));
-                                    
-                                    let novoIRHerd = 0;
-                                    if (temIR && rraCessHerd !== 0) {
-                                        const resultadoIRCessHerd = calcularIRIsolado(
-                                            dados,
-                                            saldoCess.saldo,
-                                            saldoCess.saldo,
-                                            principalCessHerd,
-                                            novaPrevidenciaHerd,
-                                            rraCessHerd
-                                        );
-                                        novoIRHerd = resultadoIRCessHerd.valorIR;
-                                    }
-                                    
-                                    return {
-                                        ...cess,
-                                        valorBruto: saldoCess.saldo,
-                                        previdenciaCessao: novaPrevidenciaHerd,
-                                        irCessao: novoIRHerd,
-                                        valorLiquido: saldoCess.saldo - novaPrevidenciaHerd - novoIRHerd
-                                    };
-                                })
-                            };
-                        });
-                    }
-                }
+            if (saldos.totalGeralBruto <= 0) return resultadosAjustados;
+            
+            const totalParaCalculo = saldos.totalSemHonorariosSucumbenciais || saldos.totalGeralBruto;
+            
+            // Ajustar valores globais
+            Object.assign(resultadosAjustados, {
+                principal: saldos.principalTotal,
+                valorBase: totalParaCalculo,
+                valortotatt: totalParaCalculo,
+                rrapagamento: saldos.rraAjustado || saldos.rraOriginal,
+                valorPrevidencia: saldos.previdenciaTotal,
+                aliquotaEfetiva: saldos.aliquotaEfetiva,
+                valorDesagioPrevidencia: saldos.valorDesagioPrevidencia,
+                percentualDesagioPrevidencia: saldos.percentualDesagioPrevidencia,
+                valorIR: saldos.irTotal,
+                aliquotaIR: saldos.aliquotaIR,
+                baseIRHonora: saldos.baseIRHonora,
+                baseIRSindi: saldos.baseIRSindi,
+                baseIRPrev: saldos.baseIRPrev,
+                baseIRRRA: saldos.baseIRRRA,
+                valorIRUnitario: saldos.valorIRUnitario,
+                principalComDesagio: saldos.principalComDesagio,
+                percentualDesagioIR: saldos.percentualDesagioIR,
+                rraComDesagio: saldos.rraComDesagio
+            });
+            
+            // Ajustar Beneficiário Principal
+            if (saldos.beneficiarioPrincipal?.saldo > 0) {
+                resultadosAjustados.valorBeneficiarioAposCessoes = saldos.beneficiarioPrincipal.saldo;
+                resultadosAjustados.valorPrevidenciaBeneficiario = saldos.previdenciaTotal;
+                resultadosAjustados.valorIRBeneficiario = saldos.irTotal;
+                resultadosAjustados.valorBeneficiarioFinal = saldos.beneficiarioPrincipal.saldo - 
+                    resultadosAjustados.valorPrevidenciaBeneficiario - resultadosAjustados.valorIRBeneficiario;
             }
             
+            // Ajustar Advogados, Advogados Sucumbenciais, Sindicatos
+            ajustarGrupoComIR(resultadosAjustados, 'honorarios', saldos.advogados, calcularIRAdvogado);
+            ajustarGrupoComIR(resultadosAjustados.honorariosSucumbenciais, 'honorarios', saldos.advogadosSucumbenciais, calcularIRAdvogado);
+            ajustarGrupoComIR(resultadosAjustados, 'sindicatos', saldos.sindicatos, calcularIRSindicato);
+            
+            // Ajustar Herdeiros
+            ajustarHerdeiros(resultadosAjustados, saldos, dados, resultados);
+            
+            // Ajustar Cessionários
+            ajustarCessionarios(resultadosAjustados, saldos, dados, resultados);
+            
             return resultadosAjustados;
+        }
+
+        function calcularIRAdvogado(item, saldo) {
+            if (!item.incidenciaIR || saldo <= 0) return 0;
+            return item.tipo === 'PF' ? calcularIR(saldo) : saldo * 0.015;
+        }
+
+        function calcularIRSindicato(item, saldo) {
+            if (item.tipoTributacao === 'pj') return saldo * 0.015;
+            if (item.aliquotaFixaIR) return saldo * item.aliquotaFixaIR;
+            return saldo * 0.015;
+        }
+
+        function ajustarGrupoComIR(container, chave, saldos, calcularIRFn) {
+            if (!saldos?.length || !container?.[chave]) return;
+            
+            container[chave] = container[chave].map(item => {
+                const saldo = saldos.find(s => s.nome === item.nome);
+                if (!saldo || saldo.saldo <= 0) return item;
+                
+                const novoIR = calcularIRFn(item, saldo.saldo);
+                
+                return {
+                    ...item,
+                    valorBrutoAdvogado: saldo.saldo,
+                    valorBrutoSindicato: saldo.saldo,
+                    irAdvogado: novoIR,
+                    irSindicato: novoIR,
+                    valorLiquidoAdvogado: saldo.saldo - novoIR,
+                    valorLiquidoSindicato: saldo.saldo - novoIR
+                };
+            });
+        }
+
+        function ajustarHerdeiros(resultadosAjustados, saldos, dados, resultados) {
+            if (!saldos.herdeiros?.length || !resultadosAjustados.herdeiros) return;
+            
+            const temIR = dados.valoresPrincipais?.some(item => item.tributacao?.ir);
+            
+            resultadosAjustados.herdeiros = resultadosAjustados.herdeiros.map((herd, index) => {
+                const saldo = saldos.herdeiros[index];
+                if (!saldo || saldo.saldo <= 0) return herd;
+                
+                const proporcao = saldo.saldo / saldo.valorBruto;
+                const herdAjustado = {
+                    ...herd,
+                    principal: herd.principal * proporcao,
+                    valorTotal: saldo.saldo,
+                    valorBruto: saldo.saldo,
+                    valorLiquido: herd.valorLiquido ? herd.valorLiquido * proporcao : saldo.saldo
+                };
+                
+                // Recalcular Previdência
+                if (dados.valoresPrincipais?.some(item => item.tributacao?.previdencia)) {
+                    const resultadoPrev = calcularPrevidenciaIsolada(dados, herdAjustado.principal, herd.rrapagamento);
+                    Object.assign(herdAjustado, {
+                        valorPrevidencia: resultadoPrev.valorPrevidencia,
+                        aliquotaEfetiva: resultadoPrev.aliquotaEfetiva,
+                        valorDesagioPrevidencia: resultadoPrev.valorDesagioPrevidencia,
+                        percentualDesagioPrevidencia: resultadoPrev.percentualDesagioPrevidencia
+                    });
+                }
+                
+                // Recalcular IR
+                if (temIR && herd.rrapagamento !== 0) {
+                    const resultadoIR = calcularIRIsolado(dados, herdAjustado.valorTotal, herdAjustado.valorTotal, 
+                        herdAjustado.principal, herdAjustado.valorPrevidencia, herd.rrapagamento);
+                    Object.assign(herdAjustado, {
+                        valorIR: resultadoIR.valorIR,
+                        aliquotaIR: resultadoIR.aliquotaIR,
+                        baseIRHonora: resultadoIR.baseIRHonora,
+                        baseIRSindi: resultadoIR.baseIRSindi,
+                        baseIRPrev: resultadoIR.baseIRPrev,
+                        baseIRRRA: resultadoIR.baseIRRRA,
+                        valorIRUnitario: resultadoIR.valorIRUnitario
+                    });
+                }
+                
+                return herdAjustado;
+            });
+        }
+
+        function ajustarCessionarios(resultadosAjustados, saldos, dados, resultados) {
+            if (!saldos.cessionarios?.length) return;
+            
+            const temIR = dados.valoresPrincipais?.some(item => item.tributacao?.ir);
+            
+            // Cessionários do Beneficiário
+            if (resultadosAjustados.cessoesBeneficiarioFinais) {
+                resultadosAjustados.cessoesBeneficiarioFinais = ajustarCessionariosBeneficiario(
+                    resultadosAjustados.cessoesBeneficiarioFinais, 
+                    saldos.cessionarios, 
+                    dados, 
+                    resultados,
+                    temIR
+                );
+            }
+            
+            // Cessionários de outros grupos
+            ajustarCessionariosDeGrupo(resultadosAjustados, 'honorarios', saldos.cessionarios, 'Advogado', calcularIRAdvogado);
+            ajustarCessionariosDeGrupo(resultadosAjustados.honorariosSucumbenciais, 'honorarios', saldos.cessionarios, 'Adv. Sucumbencial', calcularIRAdvogado);
+            ajustarCessionariosDeGrupo(resultadosAjustados, 'sindicatos', saldos.cessionarios, 'Sindicato', calcularIRSindicato);
+            ajustarCessionariosHerdeiros(resultadosAjustados, saldos.cessionarios, dados, temIR);
+        }
+
+        function ajustarCessionariosBeneficiario(cessionarios, saldosCessionarios, dados, resultados, temIR) {
+            return cessionarios.map(cess => {
+                const saldoCess = saldosCessionarios.find(c => 
+                    c.nome === cess.cessionario && c.tipo === 'Cessionário do Beneficiário'
+                );
+                
+                if (!saldoCess || saldoCess.saldo <= 0) return cess;
+                
+                const principalCess = saldoCess.saldo * (resultados.percentualprinc || 0.5);
+                const rraCess = resultados.rrapagamento || 0;
+                
+                const resultadoPrev = calcularPrevidenciaIsolada(dados, principalCess, rraCess);
+                let novoIR = 0;
+                
+                if (temIR && rraCess !== 0) {
+                    const resultadoIR = calcularIRIsolado(dados, saldoCess.saldo, saldoCess.saldo, 
+                        principalCess, resultadoPrev.valorPrevidencia, rraCess);
+                    novoIR = resultadoIR.valorIR;
+                }
+                
+                return {
+                    ...cess,
+                    valorBruto: saldoCess.saldo,
+                    previdenciaCessao: resultadoPrev.valorPrevidencia,
+                    irCessao: novoIR,
+                    valorLiquido: saldoCess.saldo - resultadoPrev.valorPrevidencia - novoIR
+                };
+            });
+        }
+
+        function ajustarCessionariosDeGrupo(container, chave, saldosCessionarios, tipoGrupo, calcularIRFn) {
+            if (!container?.[chave]) return;
+            
+            container[chave] = container[chave].map(item => {
+                if (!item.cessionarios?.length) return item;
+                
+                return {
+                    ...item,
+                    cessionarios: item.cessionarios.map(cess => {
+                        const saldoCess = saldosCessionarios.find(c => 
+                            c.nome === cess.nome && c.cedente === item.nome && c.tipo.includes(tipoGrupo)
+                        );
+                        
+                        if (!saldoCess || saldoCess.saldo <= 0) return cess;
+                        
+                        const novoIR = calcularIRFn(item, saldoCess.saldo);
+                        
+                        return {
+                            ...cess,
+                            valorBruto: saldoCess.saldo,
+                            ir: novoIR,
+                            valorLiquido: saldoCess.saldo - novoIR
+                        };
+                    })
+                };
+            });
+        }
+
+        function ajustarCessionariosHerdeiros(resultadosAjustados, saldosCessionarios, dados, temIR) {
+            if (!resultadosAjustados.herdeiros) return;
+            
+            resultadosAjustados.herdeiros = resultadosAjustados.herdeiros.map(herd => {
+                if (!herd.cessoesHerdeiroFinais?.length) return herd;
+                
+                return {
+                    ...herd,
+                    cessoesHerdeiroFinais: herd.cessoesHerdeiroFinais.map(cess => {
+                        const saldoCess = saldosCessionarios.find(c => 
+                            c.nome === cess.cessionario && c.cedente === herd.nome && c.tipo === 'Cessionário de Herdeiro'
+                        );
+                        
+                        if (!saldoCess || saldoCess.saldo <= 0) return cess;
+                        
+                        const principalCess = saldoCess.saldo * 0.5; // Usar proporção padrão
+                        const rraCess = herd.rrapagamento;
+                        
+                        const resultadoPrev = calcularPrevidenciaIsolada(dados, principalCess, rraCess);
+                        let novoIR = 0;
+                        
+                        if (temIR && rraCess !== 0) {
+                            const resultadoIR = calcularIRIsolado(dados, saldoCess.saldo, saldoCess.saldo, 
+                                principalCess, resultadoPrev.valorPrevidencia, rraCess);
+                            novoIR = resultadoIR.valorIR;
+                        }
+                        
+                        return {
+                            ...cess,
+                            valorBruto: saldoCess.saldo,
+                            previdenciaCessao: resultadoPrev.valorPrevidencia,
+                            irCessao: novoIR,
+                            valorLiquido: saldoCess.saldo - resultadoPrev.valorPrevidencia - novoIR
+                        };
+                    })
+                };
+            });
         }
 
         function calcularIRIsolado(dados, valortotatt, valorBase, principalBase, valorPrevidencia, rrapagamentoRecalculado) {
