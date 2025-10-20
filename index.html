@@ -5143,71 +5143,90 @@
             const container = document.getElementById('resultadosContent');
             const dataAtual = obterDataAtual();
             const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
+            
+            const contexto = {
+                dataAtual,
+                inicioGraca,
+                fimGraca,
+                temHerdeiros: resultados.temHerdeiros && resultados.herdeiros.length > 0,
+                somenteHonorarioSucumbencial: dados.somenteHonorarioSucumbencial
+            };
+            
+            const html = contexto.somenteHonorarioSucumbencial 
+                ? gerarVisualizacaoSucumbencial(resultados, dados, contexto)
+                : gerarVisualizacaoCompleta(resultados, dados, contexto);
+            
+            container.innerHTML = html;
+            navegarParaResultados();
+        }
 
-            const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
-            const somenteHonorarioSucumbencial = dados.somenteHonorarioSucumbencial;
-
-            let html = `
-                ${gerarCabecalhoProcesso(dados, resultados, dataAtual)}
-                ${gerarDemonstrativoValores(dados, resultados, dataAtual)}
-                ${gerarCalculos(dados, resultados, inicioGraca, fimGraca)}
-                ${gerarResumoCalculos(resultados,dados)}
-            `;
-
-            if (somenteHonorarioSucumbencial) {
-                // Exibição específica para sucumbencial
-                html += `
-                    ${gerarSecaoHonorariosSucumbenciais(resultados, dados)}
-                    ${gerarSecaoCessoesHonorariosSucumbenciais(resultados, dados)}
-                    ${gerarSecaoPagamentosOcorridos(resultados, dados)}
-                    ${gerarDemonstrativoSaldoRemanescente(resultados)}
-                    ${gerarTabelaHonorariosSucumbenciais(resultados, dados)}
-                    <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
-                        <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-                        <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nº 15.191, DE 11 DE AGOSTO DE 2025</p>
-                        <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, ART 714</p>
-                    </div>
-                `;
-            } else {
-                // Exibição normal (beneficiário, herdeiros, etc.)
-                html += `
-                    ${gerarSecaoHonorariosSucumbenciais(resultados, dados)}
-                    ${gerarSecaoCessoesHonorariosSucumbenciais(resultados, dados)}
-
-                    ${gerarSecaoDeducoesAcessorias(resultados, dados)}
-                    ${gerarSecaoCessoesSindicatos(resultados, dados)}
-                    ${gerarSecaoCessoesAdvogados(resultados, dados)}
-
-                    ${gerarSecaoPagamentosOcorridos(resultados, dados)}
-                    ${gerarDemonstrativoSaldoRemanescente(resultados)}
-
-                    ${gerarSecaoCessoesBeneficiario(resultados, dados)}
-                    ${temHerdeiros ? gerarSecaoHerdeiros(resultados, dados) : ''}
-                    ${gerarSecaoCessoesHerdeiros(resultados, dados)} 
-                    
-                    ${gerarSecaoDeducoes(resultados, dados)}
-                    ${gerarSecoesPagamentos(resultados, dados)}
-                `;
-            }
-
-            html += `
+        function gerarVisualizacaoSucumbencial(resultados, dados, contexto) {
+            return `
+                ${gerarCabecalhoProcesso(dados, resultados, contexto.dataAtual)}
+                ${gerarDemonstrativoValores(dados, resultados, contexto.dataAtual)}
+                ${gerarCalculos(dados, resultados, contexto.inicioGraca, contexto.fimGraca)}
+                ${gerarResumoCalculos(resultados, dados)}
+                
+                ${gerarSecaoHonorariosSucumbenciais(resultados, dados)}
+                ${gerarSecaoCessoesHonorariosSucumbenciais(resultados, dados)}
+                ${gerarSecaoPagamentosOcorridos(resultados, dados)}
+                ${gerarDemonstrativoSaldoRemanescente(resultados)}
+                ${gerarTabelaHonorariosSucumbenciais(resultados, dados)}
+                ${gerarNotasTributacao()}
+                
                 ${gerarSecaoNotasExplicativas()}
                 ${gerarBotaoImprimir()}
             `;
-            
-            container.innerHTML = html;
-            showTab('tab7');
+        }
 
+        function gerarVisualizacaoCompleta(resultados, dados, contexto) {
+            return `
+                ${gerarCabecalhoProcesso(dados, resultados, contexto.dataAtual)}
+                ${gerarDemonstrativoValores(dados, resultados, contexto.dataAtual)}
+                ${gerarCalculos(dados, resultados, contexto.inicioGraca, contexto.fimGraca)}
+                ${gerarResumoCalculos(resultados, dados)}
+                
+                ${gerarSecaoHonorariosSucumbenciais(resultados, dados)}
+                ${gerarSecaoCessoesHonorariosSucumbenciais(resultados, dados)}
+                ${gerarSecaoDeducoesAcessorias(resultados, dados)}
+                ${gerarSecaoCessoesSindicatos(resultados, dados)}
+                ${gerarSecaoCessoesAdvogados(resultados, dados)}
+                ${gerarSecaoPagamentosOcorridos(resultados, dados)}
+                ${gerarDemonstrativoSaldoRemanescente(resultados)}
+                ${gerarSecaoCessoesBeneficiario(resultados, dados)}
+                ${contexto.temHerdeiros ? gerarSecaoHerdeiros(resultados, dados) : ''}
+                ${gerarSecaoCessoesHerdeiros(resultados, dados)} 
+                ${gerarSecaoDeducoes(resultados, dados)}
+                ${gerarSecoesPagamentos(resultados, dados)}
+                
+                ${gerarSecaoNotasExplicativas()}
+                ${gerarBotaoImprimir()}
+            `;
+        }
+
+        function gerarNotasTributacao() {
+            return `
+                <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
+                    <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
+                    <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nº 15.191, DE 11 DE AGOSTO DE 2025</p>
+                    <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, ART 714</p>
+                </div>
+            `;
+        }
+
+        function navegarParaResultados() {
+            showTab('tab7');
             setTimeout(() => {
-                const tabResultados = document.getElementById('tab7');
-                if (tabResultados) {
-                    tabResultados.scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'start' 
-                    });
-                };
+                document.getElementById('tab7')?.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
             }, 100);
         }
+
+        // ====================================
+        // EXIBICAO DE RESULTADOS - Alguma fun. Aux (HTML)
+        // ====================================
 
         function obterDataAtual() {
             const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
@@ -5229,6 +5248,10 @@
             const numeroValido = parseFloat(valor) || 0;
             return `${numeroValido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         }
+
+        // ====================================
+        // EXIBICAO DE RESULTADOS (HTML)
+        // ====================================
 
         function gerarCabecalhoProcesso(dados, resultados, dataAtual) {
             const secaoRRA = resultados.rraTotal && resultados.rraTotal !== 0 
