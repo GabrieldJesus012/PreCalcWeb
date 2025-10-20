@@ -4918,6 +4918,10 @@
             });
         }
 
+        // ====================================
+        // IR
+        // ====================================
+
         function calcularIRIsolado(dados, valortotatt, valorBase, principalBase, valorPrevidencia, rrapagamentoRecalculado) {
             let valorIR = 0;
             let aliquotaIR = 0;
@@ -5068,6 +5072,10 @@
             return parseFloat(`${parteInteira}.${novaParteDecimal}`);
         }
 
+        // ====================================
+        // PREVIDENCIA
+        // ====================================
+
         function calcularPrevidenciaIsolada(dados, principalBase, rrapagamento) {
             let valorPrevidencia = 0;
             let aliquotaEfetiva = 0;
@@ -5126,6 +5134,10 @@
             else if (base <= 8157.41) return 1518 * 0.075 + 1275.88 * 0.09 + 1396.95 * 0.12 + (base - 4190.83) * 0.14;
             else return 951.63; // Teto
         }
+
+        // ====================================
+        // EXIBICAO DE RESULTADOS (HTML)
+        // ====================================
 
         function exibirResultados(resultados, dados) {
             const container = document.getElementById('resultadosContent');
