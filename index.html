@@ -4923,69 +4923,71 @@
         // ====================================
 
         function calcularIRIsolado(dados, valortotatt, valorBase, principalBase, valorPrevidencia, rrapagamentoRecalculado) {
-            let valorIR = 0;
-            let aliquotaIR = 0;
-            let baseIRHonora = 0;
-            let baseIRSindi = 0;
-            let baseIRPrev = 0;
-            let baseIRRRA = 0;
-            let valorIRUnitario = 0;
-            let principalComDesagio =0;
-            let valorDesagioIR = 0;
-            let percentualDesagioIR = 0;
-            let rraComDesagio = 0;
-
-            const temIR = (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.ir === true));
-
+            const resultadoVazio = {
+                valorIR: 0,
+                aliquotaIR: 0,
+                baseIRHonora: 0,
+                baseIRSindi: 0,
+                baseIRPrev: 0,
+                principalComDesagio: 0,
+                percentualDesagioIR: 0,
+                rraComDesagio: 0,
+                baseIRRRA: 0,
+                valorIRUnitario: 0
+            };
+            
+            const temIR = dados.valoresPrincipais?.some(item => item.tributacao?.ir === true);
+            
+            // Early return - sem IR ou sem RRA (PF)
             if (!temIR || (dados.tipoBeneficiario !== 'pj' && rrapagamentoRecalculado === 0)) {
-                return { valorIR, aliquotaIR, baseIRHonora, baseIRSindi, baseIRPrev, principalComDesagio, percentualDesagioIR, rraComDesagio, baseIRRRA, valorIRUnitario };
+                return resultadoVazio;
             }
-
+            
             const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
             const percentualTotalSind = dados.tipoCalculo === 'preferencia' ? 0 : 
                 dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
-
+            
+            // PESSOA JURÍDICA
             if (dados.natureza === 'comum' && dados.tipoBeneficiario === 'pj') {
-                // PESSOA JURÍDICA
-                const baseIRPJ = valortotatt - (valortotatt * percentualTotalAdv) - (valortotatt * percentualTotalSind);
-                valorIR = baseIRPJ * 0.03;
-                aliquotaIR = 0.03;
-                valorIRUnitario = valorIR; 
+                const baseIRPJ = valortotatt * (1 - percentualTotalAdv - percentualTotalSind);
+                let valorIR = baseIRPJ * 0.03;
+                const percentualDesagio = dados.percentualAcordo || 0;
                 
                 if (dados.tipoCalculo === 'acordo') {
-                    percentualDesagioIR = dados.percentualAcordo || 0;
-                    const valorDesagioIR = valorIR * percentualDesagioIR;
-                    valorIR = valorIR - valorDesagioIR;
-                    valorIRUnitario = valorIR;
+                    valorIR = valorIR * (1 - percentualDesagio);
                 }
                 
-                baseIRHonora = baseIRSindi = baseIRPrev = baseIRRRA = 1;
-            } else {
-                // PESSOA FÍSICA
-                baseIRHonora = principalBase - (principalBase * percentualTotalAdv);
-                // Base 2: Sem sindicatos
-                baseIRSindi = baseIRHonora - (principalBase * percentualTotalSind);
-                // Base 3: Com deságio (se acordo)
-                principalComDesagio = baseIRSindi;
-                if (dados.tipoCalculo === 'acordo') {
-                    percentualDesagioIR = dados.percentualAcordo || 0;
-                    const valorDesagioIR = baseIRSindi * percentualDesagioIR;
-                    principalComDesagio = baseIRSindi - valorDesagioIR;
-                }
-
-                // Recalcular RRA baseado no deságio
-                percentualDesagioIR = dados.percentualAcordo || 0;
-                //const proporcaoSemDesagio = 1 - percentualDesagioIR; sem desagio no rra.
-                rraComDesagio = dados.rra !== 0 ? Math.max(1, rrapagamentoRecalculado) : 0;
-                // Base 4: Sem previdência
-                baseIRPrev = principalComDesagio - valorPrevidencia;
-                // Base 5: Por RRA
-                baseIRRRA = baseIRPrev / rraComDesagio;
-                // Calcular IR final
-                valorIRUnitario = calcularIR(baseIRRRA);
-                valorIR = valorIRUnitario * rraComDesagio;
-                aliquotaIR = obterAliquotaIR(baseIRRRA);
+                return {
+                    ...resultadoVazio,
+                    valorIR,
+                    aliquotaIR: 0.03,
+                    valorIRUnitario: valorIR,
+                    percentualDesagioIR: percentualDesagio,
+                    baseIRHonora: 1,
+                    baseIRSindi: 1,
+                    baseIRPrev: 1,
+                    baseIRRRA: 1
+                };
             }
+            
+            // PESSOA FÍSICA
+            const baseIRHonora = principalBase * (principalBase * percentualTotalAdv);
+            const baseIRSindi = baseIRHonora - (principalBase * percentualTotalSind);
+            
+            // Aplicar deságio se for acordo
+            const percentualDesagioIR = dados.percentualAcordo || 0;
+            const principalComDesagio = dados.tipoCalculo === 'acordo' 
+                ? baseIRSindi * (1 - percentualDesagioIR)
+                : baseIRSindi;
+            
+            const rraComDesagio = rrapagamentoRecalculado > 0 ? Math.max(1, rrapagamentoRecalculado) : 0;
+            const baseIRPrev = principalComDesagio - valorPrevidencia;
+            const baseIRRRA = baseIRPrev / rraComDesagio;
+            
+            const valorIRUnitario = calcularIR(baseIRRRA);
+            const valorIR = valorIRUnitario * rraComDesagio;
+            const aliquotaIR = obterAliquotaIR(baseIRRRA);
+            
             return {
                 valorIR,
                 aliquotaIR,
@@ -4993,10 +4995,10 @@
                 baseIRSindi,
                 baseIRPrev,
                 principalComDesagio,
-                percentualDesagioIR, 
+                percentualDesagioIR,
                 rraComDesagio,
                 baseIRRRA,
-                valorIRUnitario,
+                valorIRUnitario
             };
         }
 
