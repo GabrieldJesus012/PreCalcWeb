@@ -3510,52 +3510,44 @@
             return { valorBaseParaHonorarios, valorBeneficiarioQueRecebeEfetivamente };
         }
 
+        // ====================================
+        // CESSOES BEN. PRINCIPAL
+        // ====================================
+
         function calcularCessoesBeneficiarioPrincipal(dados, valorBase, valortotatt, valorHonorarioTotal, valorSindicatoParaDescontar, valorPrevidencia, valorIR) {
             const valorBeneficiarioBruto = valorBase - valorHonorarioTotal - valorSindicatoParaDescontar;
-
-            const cessoesBeneficiario = dados.cessoes?.filter(cessao => 
-                cessao.tipo === 'cessaobenPrincipal'
-            ) || [];
-
-            const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
-            const isParcial = dados.tipoCalculo === 'parcial';
+            const cessoesBeneficiario = dados.cessoes?.filter(c => c.tipo === 'cessaobenPrincipal') || [];
             
-            let valorCessoesBeneficiario = 0;
-            let cessoesBeneficiarioCalculadas = [];
-            let percentualBeneficiarioFinal = 1.0;
-            let valorBeneficiarioAposCessoes = valorBeneficiarioBruto;
-            let valorPrevidenciaBeneficiario = valorPrevidencia;
-            let valorIRBeneficiario = valorIR;
-            let valorBeneficiarioFinal = valorBeneficiarioBruto - valorPrevidencia - valorIR;
-            let cessoesBeneficiarioFinais = [];
-
             if (cessoesBeneficiario.length === 0) {
                 return {
                     valorBeneficiarioBruto,
-                    valorCessoesBeneficiario,
-                    cessoesBeneficiarioCalculadas,
-                    percentualBeneficiarioFinal,
-                    valorBeneficiarioAposCessoes,
-                    valorPrevidenciaBeneficiario,
-                    valorIRBeneficiario,
-                    valorBeneficiarioFinal,
-                    cessoesBeneficiarioFinais
+                    valorCessoesBeneficiario: 0,
+                    cessoesBeneficiarioCalculadas: [],
+                    percentualBeneficiarioFinal: 1.0,
+                    valorBeneficiarioAposCessoes: valorBeneficiarioBruto,
+                    valorPrevidenciaBeneficiario: valorPrevidencia,
+                    valorIRBeneficiario: valorIR,
+                    valorBeneficiarioFinal: valorBeneficiarioBruto - valorPrevidencia - valorIR,
+                    cessoesBeneficiarioFinais: []
                 };
             }
 
-            const totalPercentualCessoes = cessoesBeneficiario.reduce((total, cessao) => total + cessao.percentual, 0);
+            const totalPercentualCessoes = cessoesBeneficiario.reduce((sum, c) => sum + c.percentual, 0);
             percentualBeneficiarioFinal = 1.0 - totalPercentualCessoes;
             
             const percentualAdvogados = dados.advogados.length > 0 ? 
                 dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0) : 0;
             const valortotattSemAdvogados = valortotatt - (valortotatt * percentualAdvogados);
 
+            const isPreferenciasParcial = dados.tipoCalculo === 'preferencia' && valorBase < valortotatt;
             const deveReceberAgora = !isPreferenciasParcial;
+
             const valorPrevidenciaBase = deveReceberAgora ? valorPrevidencia : 0;
             const valorIRBase = deveReceberAgora ? valorIR : 0;
 
-            cessoesBeneficiarioCalculadas = [];
-            cessoesBeneficiarioFinais = [];
+            let valorCessoesBeneficiario = 0;
+            const cessoesBeneficiarioCalculadas = [];
+            const cessoesBeneficiarioFinais = [];
 
             for (const cessao of cessoesBeneficiario) {
                 // Valor bruto da cessão
@@ -3576,18 +3568,19 @@
                 
                 const previdenciaCessao = valorPrevidenciaBase * cessao.percentual;
                 const irCessao = valorIRBase * cessao.percentual;
-                const valorLiquidoCessao = valorBrutoCessao - previdenciaCessao - irCessao;
                 
                 const cessaoFinal = {
                     ...cessaoCalculada,
                     previdenciaCessao,
                     irCessao,
-                    valorLiquido: valorLiquidoCessao
+                    valorLiquido: valorBrutoCessao - previdenciaCessao - irCessao
                 };
                 
                 cessoesBeneficiarioCalculadas.push(cessaoCalculada);
                 cessoesBeneficiarioFinais.push(cessaoFinal);
             }
+
+            let valorBeneficiarioAposCessoes, valorPrevidenciaBeneficiario, valorIRBeneficiario;
 
             if (isPreferenciasParcial) {
                 // PREFERÊNCIA PARCIAL: beneficiário limitado pelo teto
@@ -3601,7 +3594,7 @@
                 valorIRBeneficiario = valorIR * percentualBeneficiarioFinal;
             }
 
-            valorBeneficiarioFinal = valorBeneficiarioAposCessoes - valorPrevidenciaBeneficiario - valorIRBeneficiario;
+            const valorBeneficiarioFinal = valorBeneficiarioAposCessoes - valorPrevidenciaBeneficiario - valorIRBeneficiario;
 
             return {
                 valorBeneficiarioBruto,
