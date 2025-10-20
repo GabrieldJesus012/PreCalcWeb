@@ -3713,6 +3713,10 @@
             return { honorarios, valorHonorarioTotal };
         }
 
+        // ====================================
+        // Honorarios Sucumbencial
+        // ====================================
+
         function calcularHonorariosSucumbenciais(dados, valorTotalDivida,totaisPorTipo = null) {
             if (!dados.honorarioSucumbencial || !dados.honorarioSucumbencial.advogados || dados.honorarioSucumbencial.advogados.length === 0) {
                 return { 
