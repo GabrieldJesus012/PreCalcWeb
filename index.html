@@ -3883,11 +3883,13 @@
             };
         }
 
+        // ====================================
+        // SINDICATOS
+        // ====================================
+
         function calcularSindicatos(dados, valorBase, valortotatt) {
-            let valorSindicatoTotal = 0;
             const isAcordo = dados.tipoCalculo === 'acordo';
             const percentualDesagio = dados.percentualAcordo || 0;
-            
             const isPreferencia = dados.tipoCalculo === 'preferencia';
             const isParcial = dados.tipoCalculo === 'parcial';
 
@@ -3897,6 +3899,8 @@
                 if (tributacao === 'fixa') return valor * aliquotaPersonalizada;
                 return 0;
             };
+
+            let valorSindicatoTotal = 0;
             
             const sindicatos = dados.sindicatos.map(sind => {
                 const percentualTotalSindicato = sind.percentual;
