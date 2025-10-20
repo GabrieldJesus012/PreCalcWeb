@@ -5079,54 +5079,52 @@
         // ====================================
 
         function calcularPrevidenciaIsolada(dados, principalBase, rrapagamento) {
-            let valorPrevidencia = 0;
-            let aliquotaEfetiva = 0;
+            const resultadoVazio = {
+                valorPrevidencia: 0,
+                aliquotaEfetiva: 0,
+                valorDesagioPrevidencia: 0,
+                percentualDesagioPrevidencia: 0
+            };
+            
+            // PJ não tem previdência
+            if (dados.tipoBeneficiario === 'pj') return resultadoVazio;
+            
+            const deveCalcularPrevidencia = dados.incidenciaPrevidencia || 
+                dados.valoresPrincipais?.some(item => item.tributacao?.previdencia);
+            
+            if (!deveCalcularPrevidencia) return resultadoVazio;
+
+            const itemComPrevidencia = dados.valoresPrincipais?.find(item => item.tributacao?.previdencia);
+            const tipoPrevidencia = itemComPrevidencia?.tributacao.tipoPrevidencia || dados.tipoPrevidencia || 'inss';
+            const aliquotaFixa = itemComPrevidencia?.tributacao.aliquotaFixa || dados.aliquotaFixa || 0;
+
+            let valorPrevidencia, aliquotaEfetiva;
+
+            if (tipoPrevidencia === 'fixa') {
+                valorPrevidencia = principalBase * aliquotaFixa;
+                aliquotaEfetiva = aliquotaFixa;
+            } else {
+                const base = rrapagamento === 0 ? principalBase : principalBase / rrapagamento;
+                const resultadoINSS = calcularINSS(base);
+                valorPrevidencia = resultadoINSS * (rrapagamento || 1);
+                aliquotaEfetiva = base > 0 ? resultadoINSS / base : 0;
+            }
+
             let valorDesagioPrevidencia = 0;
             let percentualDesagioPrevidencia = 0;
 
-            if (dados.tipoBeneficiario === 'pj') {
-                return { 
-                    valorPrevidencia: 0, 
-                    aliquotaEfetiva: 0,
-                    valorDesagioPrevidencia: 0,
-                    percentualDesagioPrevidencia: 0
-                };
+            if (dados.tipoCalculo === 'acordo') {
+                percentualDesagioPrevidencia = dados.percentualAcordo || 0;
+                valorDesagioPrevidencia = valorPrevidencia * percentualDesagioPrevidencia;
+                valorPrevidencia = valorPrevidencia - valorDesagioPrevidencia;
             }
             
-            const deveCalcularPrevidencia = dados.incidenciaPrevidencia || 
-                (dados.valoresPrincipais && dados.valoresPrincipais.some(item => item.tributacao?.previdencia));
-            
-            if (deveCalcularPrevidencia) {
-                let tipoPrevidencia = 'inss'; 
-                let aliquotaFixa = 0;
-
-                const itemComPrevidencia = dados.valoresPrincipais.find(item => item.tributacao?.previdencia);
-
-                if (itemComPrevidencia) {
-                    tipoPrevidencia = itemComPrevidencia.tributacao.tipoPrevidencia || 'inss';
-                    aliquotaFixa = itemComPrevidencia.tributacao.aliquotaFixa || 0;
-                } else {
-                    tipoPrevidencia = dados.tipoPrevidencia || 'inss';
-                    aliquotaFixa = dados.aliquotaFixa || 0;
-                }
-
-                if (tipoPrevidencia === 'fixa') {
-                    valorPrevidencia = principalBase * aliquotaFixa;
-                    aliquotaEfetiva = aliquotaFixa;
-                } else {
-                    const base = rrapagamento === 0 ? principalBase : principalBase / rrapagamento;
-                    const resultadoINSS = calcularINSS(base);
-                    valorPrevidencia = resultadoINSS * (rrapagamento || 1);
-                    aliquotaEfetiva = base > 0 ? resultadoINSS / base : 0;
-                }
-
-                if (dados.tipoCalculo === 'acordo') {
-                    percentualDesagioPrevidencia = dados.percentualAcordo || 0;
-                    valorDesagioPrevidencia = valorPrevidencia * percentualDesagioPrevidencia;
-                    valorPrevidencia = valorPrevidencia - valorDesagioPrevidencia;
-                }
-            }
-            return { valorPrevidencia, aliquotaEfetiva, valorDesagioPrevidencia, percentualDesagioPrevidencia };
+            return {
+                valorPrevidencia,
+                aliquotaEfetiva,
+                valorDesagioPrevidencia,
+                percentualDesagioPrevidencia
+            };
         }
 
         function calcularINSS(base) {
