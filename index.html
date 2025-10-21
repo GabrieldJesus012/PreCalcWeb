@@ -5306,37 +5306,31 @@
 
         function gerarDemonstrativoValores(dados, resultados, dataAtual) {
             const indiceTotal = isNaN(resultados.indiceTotal) ? '1' : resultados.indiceTotal.toFixed(6);
-    
-            //  Calcular valores originais totais - EXCLUINDO valores negativos
-            const valorPrincipalOriginal = (dados.valoresPrincipais || []).reduce((sum, item) => {
-                const valor = parseFloat(item.valorPrincipal) || 0;
-                return sum + (valor > 0 ? valor : 0); 
-            }, 0);
+
+            // Calcular valores originais totais - EXCLUINDO valores negativos
+            const valorPrincipalOriginal = (dados.valoresPrincipais || [])
+                .reduce((sum, item) => {
+                    const valor = parseFloat(item.valorPrincipal) || 0;
+                    return sum + (valor > 0 ? valor : 0);
+                }, 0);
             
-            const valorJurosOriginal = (dados.valoresPrincipais || []).reduce((sum, item) => {
-                const valor = parseFloat(item.valorJuros) || 0;
-                return sum + (valor > 0 ? valor : 0);
-            }, 0);
+            const valorJurosOriginal = (dados.valoresPrincipais || [])
+                .reduce((sum, item) => {
+                    const valor = parseFloat(item.valorJuros) || 0;
+                    return sum + (valor > 0 ? valor : 0);
+                }, 0);
             
             const valorTotalOriginal = valorPrincipalOriginal + valorJurosOriginal;
 
-            let textoDataBase = 'Não informado';
-            if (dados.valoresPrincipais && dados.valoresPrincipais.length > 0) {
-                const datasBase = new Set();
-                dados.valoresPrincipais.forEach(item => {
-                    if (item.mesBase && item.anoBase) {
-                        datasBase.add(`${item.mesBase}/${item.anoBase}`);
-                    }
-                });
-                
-                const datasUnicas = Array.from(datasBase);
-                
-                if (datasUnicas.length === 1) {
-                    textoDataBase = datasUnicas[0];
-                } else if (datasUnicas.length > 1) {
-                    textoDataBase = datasUnicas.join(', ');
-                }
-            }
+            const datasUnicas = [...new Set(
+                (dados.valoresPrincipais || [])
+                    .filter(item => item.mesBase && item.anoBase)
+                    .map(item => `${item.mesBase}/${item.anoBase}`)
+            )];
+            
+            const textoDataBase = datasUnicas.length > 0 
+                ? datasUnicas.join(', ') 
+                : 'Não informado';
 
             return `
                 <div class="table-container">
