@@ -5368,6 +5368,8 @@
             `;
         }
 
+        //HTML DA PARTE DE CALCULO
+
         function gerarCalculos(dados, resultados, inicioGraca, fimGraca) {
             const inicioGracaFormatado = formatarData(inicioGraca);
             const fimGracaFormatado = formatarData(fimGraca);
@@ -5611,60 +5613,22 @@
             return `*${notasItens}.<br>`;
         }
 
+        // RESUMO DO CALCULO
+        
         function gerarResumoCalculos(resultados, dados) {
             const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
+            const temTributacaoMista = resultados.tributacaoIR?.isento > 0 && 
+                                    resultados.tributacaoIR?.principalTributado > 0;
 
-            const temTributacaoMista = resultados.tributacaoIR && 
-                resultados.tributacaoIR.isento > 0 && 
-                resultados.tributacaoIR.principalTributado > 0;
-
-            let basesPagamento = '';
-
-            if (dados.somenteHonorarioSucumbencial && dados.tipoCalculo === 'parcial') {
-                // Quando é somente honorário sucumbencial no pagamento parcial
-                basesPagamento = `
-                    <tr class="highlight">
-                        <td><strong>Valor Disponível para Pagamento</strong></td>
-                        <td><strong>R$ ${formatarMoeda(dados.saldoParcial)}</strong></td>
-                        <td><strong>100,00%</strong></td>
-                    </tr>
-                `;
-            } else if (temHerdeiros && dados.tipoCalculo === 'preferencia') {
-                // Preferência → discrimina os herdeiros
-                const herdeirosParaMostrar = resultados.herdeiros.filter(h => h.temPreferencia);
-                if (herdeirosParaMostrar.length > 0) {
-                    basesPagamento = `
-                        <tr class="highlight">
-                            <td colspan="3"><strong>Base para Pagamento</strong></td>
-                        </tr>
-                        ${herdeirosParaMostrar.map(h => `
-                            <tr class="highlight">
-                                <td><strong>${h.nome}</strong></td>
-                                <td><strong>R$ ${formatarMoeda(h.valorTotal)}</strong></td>
-                                <td><strong>${((h.valorTotal / resultados.valortotatt) * 100).toFixed(2)}%</strong></td>
-                            </tr>
-                        `).join('')}
-                    `;
-                }
-            } else {
-                // Ordem ou sem herdeiros → apenas a base do beneficiário principal
-                basesPagamento = `
-                    <tr class="highlight">
-                        <td><strong>Base para Pagamento</strong></td>
-                        <td><strong>R$ ${formatarMoeda(resultados.valorBase)}</strong></td>
-                        <td><strong>${((resultados.valorBase / resultados.valortotatt) * 100).toFixed(2)}%</strong></td>
-                    </tr>
-                `;
-            }
-
-            let linhasPrincipais = `
+            // Linhas principais (sempre aparecem)
+            const linhasPrincipais = `
                 <tr>
                     <td>Valor Principal Atualizado</td>
                     <td>R$ ${formatarMoeda(resultados.valorprincatt)}</td>
                     <td>${(resultados.percentualprinc * 100).toFixed(4)}%</td>
                 </tr>
                 ${temTributacaoMista ? `
-                <tr style="color: #666;font-size: 0.92em;">
+                <tr style="color: #666; font-size: 0.92em;">
                     <td style="padding-left: 20px;">↳ Principal Tributável</td>
                     <td>↳ R$ ${formatarMoeda(resultados.tributacaoIR.principalTributado)} (${((resultados.tributacaoIR.principalTributado / resultados.valortotatt) * 100).toFixed(4)}%)</td>
                     <td>-</td>
@@ -5676,6 +5640,47 @@
                     <td>${(resultados.percentualjur * 100).toFixed(4)}%</td>
                 </tr>
             `;
+
+            // Base de pagamento (varia conforme o tipo)
+            let basesPagamento = '';
+
+            if (dados.somenteHonorarioSucumbencial && dados.tipoCalculo === 'parcial') {
+                // Caso 1: Honorário sucumbencial em pagamento parcial
+                basesPagamento = `
+                    <tr class="highlight">
+                        <td><strong>Valor Disponível para Pagamento</strong></td>
+                        <td><strong>R$ ${formatarMoeda(dados.saldoParcial)}</strong></td>
+                        <td><strong>100,00%</strong></td>
+                    </tr>
+                `;
+            } else if (temHerdeiros && dados.tipoCalculo === 'preferencia') {
+                // Caso 2: Preferência com herdeiros
+                const herdeirosPreferenciais = resultados.herdeiros.filter(h => h.temPreferencia);
+                
+                if (herdeirosPreferenciais.length > 0) {
+                    basesPagamento = `
+                        <tr class="highlight">
+                            <td colspan="3"><strong>Base para Pagamento</strong></td>
+                        </tr>
+                        ${herdeirosPreferenciais.map(h => `
+                            <tr class="highlight">
+                                <td><strong>${h.nome}</strong></td>
+                                <td><strong>R$ ${formatarMoeda(h.valorTotal)}</strong></td>
+                                <td><strong>${((h.valorTotal / resultados.valortotatt) * 100).toFixed(2)}%</strong></td>
+                            </tr>
+                        `).join('')}
+                    `;
+                }
+            } else {
+                // Caso 3: Ordem cronológica ou sem herdeiros
+                basesPagamento = `
+                    <tr class="highlight">
+                        <td><strong>Base para Pagamento</strong></td>
+                        <td><strong>R$ ${formatarMoeda(resultados.valorBase)}</strong></td>
+                        <td><strong>${((resultados.valorBase / resultados.valortotatt) * 100).toFixed(2)}%</strong></td>
+                    </tr>
+                `;
+            }
 
             return `
                 <div class="table-container">
