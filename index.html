@@ -5254,41 +5254,35 @@
         // ====================================
 
         function gerarCabecalhoProcesso(dados, resultados, dataAtual) {
-            const secaoRRA = resultados.rraTotal && resultados.rraTotal !== 0 
+            const secaoRRA = (resultados.rraTotal && resultados.rraTotal !== 0)
                 ? `<tr><td>Rendimentos Recebidos Acumuladamente Total (RRA):</td><td>${resultados.rraTotal} meses</td></tr>`
                 : '';
 
-                const tipos = {
+            const tipos = {
                 ordem: "Ordem Cronológica",
                 preferencia: "Preferencial",
                 acordo: "Acordo",
                 parcial: "Parcial"
             };
-
             const tipoCalculo = tipos[dados.tipoCalculo] || "Não definido";
 
-            let secaoDataBase = '';
+            const natureza = dados.natureza === 'alimentar' ? '⚖️ Alimentar' : '⚖️ Comum';
+
+            let secaoDataBase = '<tr><td>Data-base do cálculo homologado na execução</td><td>Não informado</td></tr>';
+            
             if (dados.valoresPrincipais && dados.valoresPrincipais.length > 0) {
-                const datasBase = new Set();
-                dados.valoresPrincipais.forEach(item => {
-                    if (item.mesBase && item.anoBase) {
-                        datasBase.add(`${item.mesBase}/${item.anoBase}`);
-                    }
-                });
+                const datasUnicas = [...new Set(
+                    dados.valoresPrincipais
+                        .filter(item => item.mesBase && item.anoBase)
+                        .map(item => `${item.mesBase}/${item.anoBase}`)
+                )];
                 
-                const datasUnicas = Array.from(datasBase);
-                
-                if (datasUnicas.length === 1) {
-                    // Uma única data base
-                    secaoDataBase = `<tr><td>Data-base do cálculo homologado na execução</td><td>${datasUnicas[0]}</td></tr>`;
-                } else if (datasUnicas.length > 1) {
-                    // Múltiplas datas base
-                    secaoDataBase = `<tr><td>Datas-base dos cálculos homologados</td><td>${datasUnicas.join(', ')}</td></tr>`;
-                } else {
-                    secaoDataBase = `<tr><td>Data-base do cálculo homologado na execução</td><td>Não informado</td></tr>`;
+                if (datasUnicas.length > 0) {
+                    const label = datasUnicas.length === 1 
+                        ? 'Data-base do cálculo homologado na execução'
+                        : 'Datas-base dos cálculos homologados';
+                    secaoDataBase = `<tr><td>${label}</td><td>${datasUnicas.join(', ')}</td></tr>`;
                 }
-            } else {
-                secaoDataBase = `<tr><td>Data-base do cálculo homologado na execução</td><td>Não informado</td></tr>`;
             }
             
             return `
@@ -5298,7 +5292,7 @@
                         <tr><th>Descrição</th><th>Informação</th></tr>
                         <tr><td>Número do Processo</td><td>${dados.numProcesso || 'Não informado'}</td></tr>
                         <tr><td>Ano do orçamento do Precatório</td><td>${dados.anoOrcamento || 'Não informado'}</td></tr>
-                        <tr><td>Natureza do Processo</td><td>${dados.natureza === 'alimentar' ? '⚖️ Alimentar' : '⚖️ Comum'}</td></tr>
+                        <tr><td>Natureza do Processo</td><td>${natureza}</td></tr>
                         ${secaoRRA}
                         ${secaoDataBase}
                         <tr><td>Beneficiário Principal</td><td>${dados.beneficiario || 'Não informado'}</td></tr>
