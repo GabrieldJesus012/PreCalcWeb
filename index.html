@@ -5614,7 +5614,7 @@
         }
 
         // RESUMO DO CALCULO
-        
+
         function gerarResumoCalculos(resultados, dados) {
             const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
             const temTributacaoMista = resultados.tributacaoIR?.isento > 0 && 
@@ -5699,6 +5699,8 @@
             `;
         }
 
+        //Honorarios sucumbencias
+
         function gerarSecaoHonorariosSucumbenciais(resultados, dados) {
             if (!resultados.honorariosSucumbenciais?.temHonorariosSucumbenciais || 
                 !resultados.honorariosSucumbenciais?.honorarios?.length) {
@@ -5712,33 +5714,28 @@
             const honorarios = resultados.honorariosSucumbenciais.honorarios;
             const valorBaseSucumbencial = resultados.honorariosSucumbenciais.valorBaseSucumbencial;
 
-            let linhasAdvogados = '';
             let totalHonorariosBrutos = 0;
             
-            honorarios.forEach((adv, index) => {
+            const linhasAdvogados = honorarios.map(adv => {
                 const percentualExibicao = adv.tipoHonorario === 'percentual' 
                     ? `${(adv.percentual * 100).toFixed(2)}%`
                     : '100,00%';
-                    
-                // Calcular valor bruto original (antes da preferência)
-                let valorBrutoOriginal = 0;
-                if (adv.tipoHonorario === 'percentual') {
-                    valorBrutoOriginal = valorBaseSucumbencial * adv.percentual;
-                } else if (adv.tipoHonorario === 'valorPrincipal') {
-                    valorBrutoOriginal = valorBaseSucumbencial;
-                }
                 
-                totalHonorariosBrutos += valorBrutoOriginal;
+                const valorBruto = adv.tipoHonorario === 'percentual'
+                    ? valorBaseSucumbencial * adv.percentual
+                    : valorBaseSucumbencial;
                 
-                linhasAdvogados += `
+                totalHonorariosBrutos += valorBruto;
+                
+                return `
                     <tr>
                         <td>${adv.nome}</td>
                         <td>R$ ${formatarMoeda(valorBaseSucumbencial)}</td>
                         <td>${percentualExibicao}</td>
-                        <td>R$ ${formatarMoeda(valorBrutoOriginal)}</td>
+                        <td>R$ ${formatarMoeda(valorBruto)}</td>
                     </tr>
                 `;
-            });
+            }).join('');
 
             return `
                 <div class="table-container">
@@ -5760,6 +5757,8 @@
                 </div>
             `;
         }
+
+        //Cessoes de sucumbencias
 
         function gerarSecaoCessoesHonorariosSucumbenciais(resultados, dados) {
             // Verificar se tem honorários sucumbenciais
