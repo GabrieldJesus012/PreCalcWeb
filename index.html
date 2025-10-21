@@ -5372,8 +5372,6 @@
             const inicioGracaFormatado = formatarData(inicioGraca);
             const fimGracaFormatado = formatarData(fimGraca);
             
-            let memoriaisCalculos = '';
-
             const temSelicInformado = dados.valoresPrincipais?.some(item => 
                 (item.tipoSelic === 'valor' && item.valorSelic > 0) || 
                 (item.tipoSelic === 'percentual' && item.percentualSelic > 0)
@@ -5383,190 +5381,20 @@
                 item.indices.jurosMora && (resultados.itensCalculados?.find(calc => calc.id === item.id)?.jurosMoraCalculado || 0) > 0
             );
             
-            // Para cada item, gerar memorial de cálculo individual
+            let memoriaisCalculos = '';
+            
             if (dados.valoresPrincipais && dados.valoresPrincipais.length > 0) {
                 const isSingleItem = dados.valoresPrincipais.length === 1;
                 
                 dados.valoresPrincipais.forEach((item, index) => {
                     const itemCalculado = resultados.itensCalculados?.find(calc => calc.id === item.id) || {};
-                    
-                    // Pegar os índices específicos deste item
-                    const indicesCNJ = itemCalculado.indices?.cnj || 1;
-                    const indiceSelic = itemCalculado.indices?.selic || 1;
-                    const indiceIpca = itemCalculado.indices?.ipca || 1;
-                    const jurosMora = itemCalculado.indices?.jurosMora || 0;
-                    
-                    // Cálculos passo a passo para este item
-                    const principalCNJ = item.valorPrincipal * indicesCNJ;
-                    const principalIPCA = principalCNJ * indiceIpca;
-                    const principalFinal = itemCalculado.valorAtualizado?.principal || 0;
-                    
-                    const jurosOriginaisCNJ = item.valorJuros * indicesCNJ;
-                    const valorJurosMora = itemCalculado.jurosMoraCalculado || 0;
-                    const totalJuros = jurosOriginaisCNJ + valorJurosMora;
-                    const totalJurosIPCA = totalJuros * indiceIpca;
-                    const jurosFinal = itemCalculado.valorAtualizado?.juros || 0;
-
-                    const temJurosIniciais = item.valorJuros && parseFloat(item.valorJuros) !== 0;
-                    const temJurosMora = item.indices.jurosMora && valorJurosMora !== 0;
-                    const temAlgumJuros = temJurosIniciais || temJurosMora;
-                    
-                    // Título e detalhes condicionais
-                    const titulo = isSingleItem ? 
-                        '🔢 MEMORIAL DE CÁLCULOS' : 
-                        `🔢 MEMORIAL DE CÁLCULOS - ${item.descricao || `Item ${index + 1}`}`;
-                    
-                    const detalhesItem = isSingleItem ? '' : `
-                        <div style="background: #f0f0f0; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
-                            <strong>Base:</strong> ${item.mesBase}/${item.anoBase} | 
-                            <strong>Índices aplicados:</strong> ${Object.entries(item.indices || {})
-                                .filter(([key, value]) => value)
-                                .map(([key]) => key.toUpperCase())
-                                .join(', ')}
-                        </div>
-                    `;
-                    
-                    const totalDoItem = isSingleItem ? '' : `
-                        <div class="highlight" style="margin-top: 10px; padding: 10px; background: #e8f4fd; border-radius: 5px;">
-                            <strong>TOTAL DESTE ITEM:</strong> R$ ${formatarMoeda(principalFinal)} + R$ ${formatarMoeda(jurosFinal)} = <strong>R$ ${formatarMoeda((principalFinal || 0) + (jurosFinal || 0))}</strong>
-                        </div>
-                    `;
-
-                    const secaoJuros = temAlgumJuros ? `
-                        <h4>⚖️ Atualização dos Juros - Passo a Passo</h4>
-                        <table>
-                            <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
-                            <tr>
-                                <td>1. Juros Originais</td>
-                                <td>Juros Homologado</td>
-                                <td>R$ ${formatarMoeda(item.valorJuros)}</td>
-                            </tr>
-                            ${item.indices.cnj ? `
-                            <tr>
-                                <td>2. Correção CNJ</td>
-                                <td>R$ ${formatarMoeda(item.valorJuros)} × ${indicesCNJ.toFixed(6)}</td>
-                                <td>R$ ${formatarMoeda(jurosOriginaisCNJ)}</td>
-                            </tr>` : ''}
-                            ${item.indices.jurosMora && valorJurosMora > 0 ? `
-                            <tr>
-                                <td>3. Juros de Mora</td>
-                                <td>Principal CNJ × ${(jurosMora * 100).toFixed(4)}%*</td>
-                                <td>R$ ${formatarMoeda(valorJurosMora)}</td>
-                            </tr>
-                            <tr>
-                                <td>4. Total Juros (CNJ + Mora)</td>
-                                <td>R$ ${formatarMoeda(jurosOriginaisCNJ)} + R$ ${formatarMoeda(valorJurosMora)}</td>
-                                <td>R$ ${formatarMoeda(totalJuros)}</td>
-                            </tr>` : ''}
-                            ${item.indices.ipca ? `
-                            <tr>
-                                <td>${item.indices.jurosMora ? '5' : '3'}. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
-                                <td>R$ ${formatarMoeda(totalJuros)} × ${indiceIpca.toFixed(6)}</td>
-                                <td>R$ ${formatarMoeda(totalJurosIPCA)}</td>
-                            </tr>` : ''}
-                            ${item.indices.selic ? `
-                            <tr>
-                                <td>${item.indices.jurosMora && item.indices.ipca ? '6' : item.indices.ipca ? '4' : '3'}. Aplicação SELIC (excluído a graça)</td>
-                                <td>R$ ${formatarMoeda(totalJurosIPCA)} × ${indiceSelic.toFixed(6)}</td>
-                                <td><strong>R$ ${formatarMoeda(jurosFinal)}</strong></td>
-                            </tr>` : `
-                            <tr>
-                                <td>Final</td>
-                                <td>Valor Final dos Juros</td>
-                                <td><strong>R$ ${formatarMoeda(jurosFinal)}</strong></td>
-                            </tr>`}
-                        </table>
-                    ` : '';
-                    
-                    memoriaisCalculos += `
-                        <div class="table-container" style="margin-top: 20px;">
-                            <h3>${titulo}</h3>
-                            ${detalhesItem}
-                            
-                            <h4>💰 Atualização do Principal - Passo a Passo</h4>
-                            <table>
-                                <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
-                                <tr>
-                                    <td>1. Valor Original</td>
-                                    <td>Principal Homologado</td>
-                                    <td>R$ ${formatarMoeda(item.valorPrincipal)}</td>
-                                </tr>
-                                ${item.indices.cnj ? `
-                                <tr>
-                                    <td>2. Correção CNJ</td>
-                                    <td>R$ ${formatarMoeda(item.valorPrincipal)} × ${indicesCNJ.toFixed(6)}</td>
-                                    <td>R$ ${formatarMoeda(principalCNJ)}</td>
-                                </tr>` : ''}
-                                ${item.indices.ipca ? `
-                                <tr>
-                                    <td>3. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
-                                    <td>R$ ${formatarMoeda(principalCNJ)} × ${indiceIpca.toFixed(6)}</td>
-                                    <td>R$ ${formatarMoeda(principalIPCA)}</td>
-                                </tr>` : ''}
-                                ${item.indices.selic ? `
-                                <tr>
-                                    <td>4. Aplicação SELIC (excluído a graça)</td>
-                                    <td>R$ ${formatarMoeda(principalIPCA)} × ${indiceSelic.toFixed(6)}</td>
-                                    <td><strong>R$ ${formatarMoeda(principalFinal)}</strong></td>
-                                </tr>` : `
-                                <tr>
-                                    <td>Final</td>
-                                    <td>Valor Final do Principal</td>
-                                    <td><strong>R$ ${formatarMoeda(principalFinal)}</strong></td>
-                                </tr>`}
-                            </table>
-                            
-                            ${secaoJuros}
-                            
-                            ${totalDoItem}
-                        </div>
-                    `;
+                    memoriaisCalculos += gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado);
                 });
             }
 
-            let notaSelicInformado = '';
-            if (temSelicInformado) {
-                const itensComSelic = dados.valoresPrincipais.filter(item => 
-                    (item.tipoSelic === 'valor' && item.valorSelic > 0) || 
-                    (item.tipoSelic === 'percentual' && item.percentualSelic > 0)
-                );
-                
-                const notasItens = itensComSelic.map(item => {
-                    const itemCalculado = resultados.itensCalculados?.find(calc => calc.id === item.id) || {};
-                    const indiceSelic = itemCalculado.indices?.selic || 1;
-                    
-                    const percentualTotal = ((indiceSelic - 1) * 100).toFixed(2);
-                    
-                    let percentualInformado;
-                    if (item.tipoSelic === 'valor') {
-                        const totalBase = item.valorPrincipal + item.valorJuros;
-                        percentualInformado = totalBase > 0 ? ((item.valorSelic / totalBase) * 100).toFixed(4) : 0;
-                    } else {
-                        percentualInformado = (item.percentualSelic * 100).toFixed(2);
-                    }
-                    
-                    const percentualAutomatico = (parseFloat(percentualTotal) - parseFloat(percentualInformado)).toFixed(2);
-                    
-                    const dataBase = criarDataBase(item.mesBase, item.anoBase);
-                    const dataInicio = new Date(dataBase);
-                    if (item.mesReferenciaSelic === 'mesAnterior') {
-                        
-                    } else {
-                        // Se SELIC informado é do mesmo mês, começar do mês seguinte
-                        dataInicio.setMonth(dataInicio.getMonth() + 1);
-                    }
-
-                    const dataAtualizacaoInput = document.getElementById('dataatualizacao').value;
-                    const dataFim = new Date(dataAtualizacaoInput);
-                    
-                    const periodoInicio = `${String(dataInicio.getMonth() + 1).padStart(2, '0')}/${dataInicio.getFullYear()}`;
-                    const periodoFim = `${String(dataFim.getMonth() + 1).padStart(2, '0')}/${dataFim.getFullYear()}`;
-                    
-                    return `SELIC: ${percentualInformado}% Cálculo Homologado (${item.mesBase}/${item.anoBase}) +  ${percentualAutomatico}% (${periodoInicio} a ${periodoFim}) = ${percentualTotal}% total`;
-                }).join('; ');
-                
-                notaSelicInformado = `*${notasItens}.<br>`;
-            }
+            const notaSelicInformado = temSelicInformado 
+                ? gerarNotaSelicInformado(dados, resultados)
+                : '';
             
             return `
                 ${memoriaisCalculos}
@@ -5575,6 +5403,212 @@
                     ${notaSelicInformado}${temJurosMora ? '*Juros calculados de forma simples (até Novembro/2021), conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ e SV nº 17 do STF.' : ''}
                 </div>` : ''}
             `;
+        }
+
+        // ========== FUNÇÕES AUXILIARES DE GERAR CALCULOS==========
+
+        function gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado) {
+            const indices = obterIndicesItem(itemCalculado);
+            const valoresCalculados = calcularValoresPassoAPasso(item, itemCalculado, indices);
+            
+            const titulo = isSingleItem ? 
+                '🔢 MEMORIAL DE CÁLCULOS' : 
+                `🔢 MEMORIAL DE CÁLCULOS - ${item.descricao || `Item ${index + 1}`}`;
+            
+            const detalhesItem = isSingleItem ? '' : `
+                <div style="background: #f0f0f0; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
+                    <strong>Base:</strong> ${item.mesBase}/${item.anoBase} | 
+                    <strong>Índices aplicados:</strong> ${Object.entries(item.indices || {})
+                        .filter(([key, value]) => value)
+                        .map(([key]) => key.toUpperCase())
+                        .join(', ')}
+                </div>
+            `;
+            
+            const totalDoItem = isSingleItem ? '' : `
+                <div class="highlight" style="margin-top: 10px; padding: 10px; background: #e8f4fd; border-radius: 5px;">
+                    <strong>TOTAL DESTE ITEM:</strong> R$ ${formatarMoeda(valoresCalculados.principalFinal)} + R$ ${formatarMoeda(valoresCalculados.jurosFinal)} = <strong>R$ ${formatarMoeda((valoresCalculados.principalFinal || 0) + (valoresCalculados.jurosFinal || 0))}</strong>
+                </div>
+            `;
+
+            const temAlgumJuros = (item.valorJuros && parseFloat(item.valorJuros) !== 0) || 
+                                (item.indices.jurosMora && valoresCalculados.valorJurosMora !== 0);
+
+            return `
+                <div class="table-container" style="margin-top: 20px;">
+                    <h3>${titulo}</h3>
+                    ${detalhesItem}
+                    
+                    ${gerarTabelaPrincipal(item, indices, valoresCalculados, inicioGracaFormatado, fimGracaFormatado)}
+                    
+                    ${temAlgumJuros ? gerarTabelaJuros(item, indices, valoresCalculados, inicioGracaFormatado, fimGracaFormatado) : ''}
+                    
+                    ${totalDoItem}
+                </div>
+            `;
+        }
+
+        function obterIndicesItem(itemCalculado) {
+            return {
+                cnj: itemCalculado.indices?.cnj || 1,
+                selic: itemCalculado.indices?.selic || 1,
+                ipca: itemCalculado.indices?.ipca || 1,
+                jurosMora: itemCalculado.indices?.jurosMora || 0
+            };
+        }
+
+        function calcularValoresPassoAPasso(item, itemCalculado, indices) {
+            // Principal
+            const principalCNJ = item.valorPrincipal * indices.cnj;
+            const principalIPCA = principalCNJ * indices.ipca;
+            const principalFinal = itemCalculado.valorAtualizado?.principal || 0;
+            
+            // Juros
+            const jurosOriginaisCNJ = item.valorJuros * indices.cnj;
+            const valorJurosMora = itemCalculado.jurosMoraCalculado || 0;
+            const totalJuros = jurosOriginaisCNJ + valorJurosMora;
+            const totalJurosIPCA = totalJuros * indices.ipca;
+            const jurosFinal = itemCalculado.valorAtualizado?.juros || 0;
+            
+            return {
+                principalCNJ,
+                principalIPCA,
+                principalFinal,
+                jurosOriginaisCNJ,
+                valorJurosMora,
+                totalJuros,
+                totalJurosIPCA,
+                jurosFinal
+            };
+        }
+
+        function gerarTabelaPrincipal(item, indices, valores, inicioGracaFormatado, fimGracaFormatado) {
+            return `
+                <h4>💰 Atualização do Principal - Passo a Passo</h4>
+                <table>
+                    <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
+                    <tr>
+                        <td>1. Valor Original</td>
+                        <td>Principal Homologado</td>
+                        <td>R$ ${formatarMoeda(item.valorPrincipal)}</td>
+                    </tr>
+                    ${item.indices.cnj ? `
+                    <tr>
+                        <td>2. Correção CNJ</td>
+                        <td>R$ ${formatarMoeda(item.valorPrincipal)} × ${indices.cnj.toFixed(6)}</td>
+                        <td>R$ ${formatarMoeda(valores.principalCNJ)}</td>
+                    </tr>` : ''}
+                    ${item.indices.ipca ? `
+                    <tr>
+                        <td>3. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
+                        <td>R$ ${formatarMoeda(valores.principalCNJ)} × ${indices.ipca.toFixed(6)}</td>
+                        <td>R$ ${formatarMoeda(valores.principalIPCA)}</td>
+                    </tr>` : ''}
+                    ${item.indices.selic ? `
+                    <tr>
+                        <td>4. Aplicação SELIC (excluído a graça)</td>
+                        <td>R$ ${formatarMoeda(valores.principalIPCA)} × ${indices.selic.toFixed(6)}</td>
+                        <td><strong>R$ ${formatarMoeda(valores.principalFinal)}</strong></td>
+                    </tr>` : `
+                    <tr>
+                        <td>Final</td>
+                        <td>Valor Final do Principal</td>
+                        <td><strong>R$ ${formatarMoeda(valores.principalFinal)}</strong></td>
+                    </tr>`}
+                </table>
+            `;
+        }
+
+        function gerarTabelaJuros(item, indices, valores, inicioGracaFormatado, fimGracaFormatado) {
+            let etapa = 2;
+            
+            return `
+                <h4>⚖️ Atualização dos Juros - Passo a Passo</h4>
+                <table>
+                    <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
+                    <tr>
+                        <td>1. Juros Originais</td>
+                        <td>Juros Homologado</td>
+                        <td>R$ ${formatarMoeda(item.valorJuros)}</td>
+                    </tr>
+                    ${item.indices.cnj ? `
+                    <tr>
+                        <td>${etapa++}. Correção CNJ</td>
+                        <td>R$ ${formatarMoeda(item.valorJuros)} × ${indices.cnj.toFixed(6)}</td>
+                        <td>R$ ${formatarMoeda(valores.jurosOriginaisCNJ)}</td>
+                    </tr>` : ''}
+                    ${item.indices.jurosMora && valores.valorJurosMora > 0 ? `
+                    <tr>
+                        <td>${etapa++}. Juros de Mora</td>
+                        <td>Principal CNJ × ${(indices.jurosMora * 100).toFixed(4)}%*</td>
+                        <td>R$ ${formatarMoeda(valores.valorJurosMora)}</td>
+                    </tr>
+                    <tr>
+                        <td>${etapa++}. Total Juros (CNJ + Mora)</td>
+                        <td>R$ ${formatarMoeda(valores.jurosOriginaisCNJ)} + R$ ${formatarMoeda(valores.valorJurosMora)}</td>
+                        <td>R$ ${formatarMoeda(valores.totalJuros)}</td>
+                    </tr>` : ''}
+                    ${item.indices.ipca ? `
+                    <tr>
+                        <td>${etapa++}. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
+                        <td>R$ ${formatarMoeda(valores.totalJuros)} × ${indices.ipca.toFixed(6)}</td>
+                        <td>R$ ${formatarMoeda(valores.totalJurosIPCA)}</td>
+                    </tr>` : ''}
+                    ${item.indices.selic ? `
+                    <tr>
+                        <td>${etapa++}. Aplicação SELIC (excluído a graça)</td>
+                        <td>R$ ${formatarMoeda(valores.totalJurosIPCA)} × ${indices.selic.toFixed(6)}</td>
+                        <td><strong>R$ ${formatarMoeda(valores.jurosFinal)}</strong></td>
+                    </tr>` : `
+                    <tr>
+                        <td>Final</td>
+                        <td>Valor Final dos Juros</td>
+                        <td><strong>R$ ${formatarMoeda(valores.jurosFinal)}</strong></td>
+                    </tr>`}
+                </table>
+            `;
+        }
+
+        function gerarNotaSelicInformado(dados, resultados) {
+            const itensComSelic = dados.valoresPrincipais.filter(item => 
+                (item.tipoSelic === 'valor' && item.valorSelic > 0) || 
+                (item.tipoSelic === 'percentual' && item.percentualSelic > 0)
+            );
+            
+            const notasItens = itensComSelic.map(item => {
+                const itemCalculado = resultados.itensCalculados?.find(calc => calc.id === item.id) || {};
+                const indiceSelic = itemCalculado.indices?.selic || 1;
+                
+                const percentualTotal = ((indiceSelic - 1) * 100).toFixed(2);
+                
+                // Calcular percentual informado
+                let percentualInformado;
+                if (item.tipoSelic === 'valor') {
+                    const totalBase = item.valorPrincipal + item.valorJuros;
+                    percentualInformado = totalBase > 0 ? ((item.valorSelic / totalBase) * 100).toFixed(4) : 0;
+                } else {
+                    percentualInformado = (item.percentualSelic * 100).toFixed(2);
+                }
+                
+                const percentualAutomatico = (parseFloat(percentualTotal) - parseFloat(percentualInformado)).toFixed(2);
+                
+                // Calcular período
+                const dataBase = criarDataBase(item.mesBase, item.anoBase);
+                const dataInicio = new Date(dataBase);
+                if (item.mesReferenciaSelic !== 'mesAnterior') {
+                    dataInicio.setMonth(dataInicio.getMonth() + 1);
+                }
+
+                const dataAtualizacaoInput = document.getElementById('dataatualizacao').value;
+                const dataFim = new Date(dataAtualizacaoInput);
+                
+                const periodoInicio = `${String(dataInicio.getMonth() + 1).padStart(2, '0')}/${dataInicio.getFullYear()}`;
+                const periodoFim = `${String(dataFim.getMonth() + 1).padStart(2, '0')}/${dataFim.getFullYear()}`;
+                
+                return `SELIC: ${percentualInformado}% Cálculo Homologado (${item.mesBase}/${item.anoBase}) +  ${percentualAutomatico}% (${periodoInicio} a ${periodoFim}) = ${percentualTotal}% total`;
+            }).join('; ');
+            
+            return `*${notasItens}.<br>`;
         }
 
         function gerarResumoCalculos(resultados, dados) {
