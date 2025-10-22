@@ -6716,107 +6716,88 @@
         function gerarSecaoHerdeiros(resultados, dados) {
             if (!resultados.temHerdeiros || resultados.herdeiros.length === 0) return '';
             
+            // Contexto geral
+            const proporcaoContratual = (resultados.totaisPorTipo?.contratual > 0)
+                ? resultados.totaisPorTipo.contratual / resultados.totaisPorTipo.total
+                : 1;
+            
+            const rraTotal = resultados.rraTotal || 0;
+            const valortotatt = resultados.valortotatt || 0;
+            
+            // Gerar linhas dos herdeiros
             const linhasHerdeiros = resultados.herdeiros.map(h => {
-                const valorBrutoHerdeiro = h.valorAposCessoesBeneficiario || h.valorTotalOriginal;
+                const valorBruto = h.valorAposCessoesBeneficiario || h.valorTotalOriginal;
                 
-                let honorarioTotalReal = 0;
-                let sindicatoTotalReal = 0;
+                // Honorários sobre o valor real
+                const valorBaseContratual = valorBruto * proporcaoContratual;
+                const honorarioTotal = (dados.advogados || []).reduce((sum, adv) => 
+                    sum + (valorBaseContratual * adv.percentual), 0
+                );
                 
-                // Calcular honorários sobre o valor real (após cessões)
-                if (dados.advogados && dados.advogados.length > 0) {
-                    let valorBaseContratualHerdeiro = valorBrutoHerdeiro;
-                    
-                    // Aplicar proporção contratual se disponível
-                    if (resultados.totaisPorTipo && resultados.totaisPorTipo.contratual > 0) {
-                        const proporcaoContratual = resultados.totaisPorTipo.contratual / resultados.totaisPorTipo.total;
-                        valorBaseContratualHerdeiro = valorBrutoHerdeiro * proporcaoContratual;
-                    }
-                    
-                    honorarioTotalReal = dados.advogados.reduce((sum, adv) => {
-                        return sum + (valorBaseContratualHerdeiro * adv.percentual);
-                    }, 0);
-                }
+                // Sindicatos sobre o valor real
+                const sindicatoTotal = (dados.sindicatos || []).reduce((sum, sind) => 
+                    sum + (valorBruto * sind.percentual), 0
+                );
                 
-                // Calcular sindicatos sobre o valor real (após cessões)
-                if (dados.sindicatos && dados.sindicatos.length > 0) {
-                    sindicatoTotalReal = dados.sindicatos.reduce((sum, sind) => {
-                        return sum + (valorBrutoHerdeiro * sind.percentual);
-                    }, 0);
-                }
+                const valorLiquido = valorBruto - honorarioTotal - sindicatoTotal;
                 
-                const valorLiquidoSemTributos = valorBrutoHerdeiro - honorarioTotalReal - sindicatoTotalReal;
-                
-                // Calcular RRA proporcional ao valor real
-                const rraReal = resultados.rraTotal !== 0 ? 
-                    Math.round((valorBrutoHerdeiro * resultados.rraTotal) / resultados.valortotatt) : 0;
+                // RRA proporcional
+                const rra = (rraTotal !== 0 && valortotatt > 0) 
+                    ? Math.round((valorBruto * rraTotal) / valortotatt) 
+                    : 0;
                 
                 return `
                     <tr>
                         <td>${h.nome}</td>
                         <td>${(h.percentual * 100).toFixed(2)}%</td>
-                        <td>R$ ${formatarMoeda(valorBrutoHerdeiro)}</td>
-                        <td>R$ ${formatarMoeda(honorarioTotalReal)}</td>
-                        <td>R$ ${formatarMoeda(sindicatoTotalReal)}</td>
-                        <td>R$ ${formatarMoeda(valorLiquidoSemTributos)}</td>
-                        <td>${rraReal || 0}</td>
+                        <td>R$ ${formatarMoeda(valorBruto)}</td>
+                        <td>R$ ${formatarMoeda(honorarioTotal)}</td>
+                        <td>R$ ${formatarMoeda(sindicatoTotal)}</td>
+                        <td>R$ ${formatarMoeda(valorLiquido)}</td>
+                        <td>${rra || 0}</td>
                     </tr>
                 `;
             }).join('');
             
-            // Calcular totais usando valores após cessões
+            // Calcular totais
             const totalRealHerdeiros = resultados.herdeiros.reduce((sum, h) => 
-                sum + (h.valorAposCessoesBeneficiario || h.valorTotalOriginal), 0);
+                sum + (h.valorAposCessoesBeneficiario || h.valorTotalOriginal), 0
+            );
             
-            // Total de honorários sobre valores reais
-            let totalHonorarios = 0;
-            if (dados.advogados) {
-                let valorBaseContratualTotal = totalRealHerdeiros;
-                
-                if (resultados.totaisPorTipo && resultados.totaisPorTipo.contratual > 0) {
-                    const proporcaoContratual = resultados.totaisPorTipo.contratual / resultados.totaisPorTipo.total;
-                    valorBaseContratualTotal = totalRealHerdeiros * proporcaoContratual;
-                }
-                
-                totalHonorarios = dados.advogados.reduce((sum, adv) => {
-                    return sum + (valorBaseContratualTotal * adv.percentual);
-                }, 0);
-            }
+            const valorBaseContratualTotal = totalRealHerdeiros * proporcaoContratual;
+            const totalHonorarios = (dados.advogados || []).reduce((sum, adv) => 
+                sum + (valorBaseContratualTotal * adv.percentual), 0
+            );
             
-            // Total de sindicatos sobre valores reais
-            const totalSindicatos = dados.sindicatos ? 
-                dados.sindicatos.reduce((sum, sind) => {
-                    return sum + (totalRealHerdeiros * sind.percentual);
-                }, 0) : 0;
+            const totalSindicatos = (dados.sindicatos || []).reduce((sum, sind) => 
+                sum + (totalRealHerdeiros * sind.percentual), 0
+            );
             
             const totalLiquido = totalRealHerdeiros - totalHonorarios - totalSindicatos;
-            const totalRRA = resultados.rraTotal !== 0 ? 
-                Math.round((totalRealHerdeiros * resultados.rraTotal) / resultados.valortotatt) : 0;
             
-            // Verificar se houve cessão do beneficiário
-            const houveCessaoBeneficiario = resultados.percentualBeneficiarioFinal && resultados.percentualBeneficiarioFinal < 1;
-            const percentualCedido = houveCessaoBeneficiario ? 
-                ((1 - resultados.percentualBeneficiarioFinal) * 100).toFixed(2) : 0;
+            const totalRRA = (rraTotal !== 0 && valortotatt > 0)
+                ? Math.round((totalRealHerdeiros * rraTotal) / valortotatt)
+                : 0;
             
-            let htmlCessaoInfo = '';
-            if (houveCessaoBeneficiario) {
-                htmlCessaoInfo = `
-                    <div style="background-color: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
-                        <p style="color: #856404; margin: 0;">
-                            <strong>⚠️ Atenção - Cessão do Beneficiário Principal:</strong><br>
-                            O beneficiário cedeu ${percentualCedido}% do precatório antes do falecimento.<br>
-                            <strong>Valor total do precatório:</strong> R$ ${formatarMoeda(resultados.valortotatt)}<br>
-                            <strong>Valor cedido pelo beneficiário:</strong> R$ ${formatarMoeda(resultados.valortotatt - totalRealHerdeiros)}<br>
-                            <strong>Valor disponível para herdeiros:</strong> R$ ${formatarMoeda(totalRealHerdeiros)}
-                        </p>
-                    </div>
-                `;
-            }
+            // Info sobre cessão do beneficiário
+            const houveCessao = resultados.percentualBeneficiarioFinal && resultados.percentualBeneficiarioFinal < 1;
+            const infoCessao = houveCessao ? `
+                <div style="background-color: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                    <p style="color: #856404; margin: 0;">
+                        <strong>⚠️ Atenção - Cessão do Beneficiário Principal:</strong><br>
+                        O beneficiário cedeu ${((1 - resultados.percentualBeneficiarioFinal) * 100).toFixed(2)}% do precatório antes do falecimento.<br>
+                        <strong>Valor total do precatório:</strong> R$ ${formatarMoeda(valortotatt)}<br>
+                        <strong>Valor cedido pelo beneficiário:</strong> R$ ${formatarMoeda(valortotatt - totalRealHerdeiros)}<br>
+                        <strong>Valor disponível para herdeiros:</strong> R$ ${formatarMoeda(totalRealHerdeiros)}
+                    </p>
+                </div>
+            ` : '';
             
             return `
                 <div class="cessoes-beneficiario">
                     <div class="table-container">
                         <h3>👨‍👩‍👧‍👦 Distribuição entre Herdeiros</h3>
-                        ${htmlCessaoInfo}
+                        ${infoCessao}
                         <table>
                             <tr>
                                 <th>Nome Herdeiro</th>
@@ -6846,12 +6827,12 @@
             `;
         }
 
+        // Cessoes herdeiros
+
         function gerarSecaoCessoesHerdeiros(resultados, dados) {
             const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
-            
             if (!temHerdeiros) return '';
             
-            // Verifica se algum herdeiro tem cessões
             const herdeirosComCessoes = resultados.herdeiros.filter(h => 
                 h.cessoesHerdeiro && h.cessoesHerdeiro.length > 0
             );
@@ -6865,82 +6846,71 @@
             
             // Gera seção para cada herdeiro com cessões
             const secoesHerdeiros = herdeirosComCessoes.map(herdeiro => {
-                const valorTotalHerdeiro = herdeiro.valorTotalOriginal;
+                const valorOriginal = herdeiro.valorTotalOriginal;
+                const totalCedido = herdeiro.cessoesHerdeiro.reduce((sum, c) => sum + c.percentual, 0);
                 
-                const valorBrutoSemCessoes = valorTotalHerdeiro; // Usar sempre o valor original
+                // Valores do herdeiro após cessões
+                const valorBrutoHerdeiro = valorOriginal * (1 - totalCedido);
+                const deducoesHerdeiro = valorBrutoHerdeiro * percentualDeducoes;
+                const valorLiquidoHerdeiro = valorBrutoHerdeiro - deducoesHerdeiro;
                 
-                // Lista de cessionários
-                const listaCessionarios = herdeiro.cessoesHerdeiro.map(cessao => 
-                    `${cessao.cessionario} (${(cessao.percentual * 100).toFixed(2)}%)`
-                ).join(', ');
+                const herdeiroRecebeAgora = isPreferencia && herdeiro.isPreferenciaParcial
+                    ? Math.min(valorLiquidoHerdeiro, herdeiro.valorTotal - (herdeiro.valorTotal * percentualDeducoes))
+                    : valorLiquidoHerdeiro;
                 
-                const totalCedido = herdeiro.cessoesHerdeiro.reduce((total, cessao) => 
-                    total + cessao.percentual, 0
-                );
+                const herdeiroAguarda = isPreferencia && herdeiro.isPreferenciaParcial
+                    ? Math.max(0, valorLiquidoHerdeiro - herdeiroRecebeAgora)
+                    : 0;
                 
-                // Valores do herdeiro após cessões (BRUTOS, sem IR/Prev)
-                const valorBrutoHerdeiroAposCessoes = valorBrutoSemCessoes * (1 - totalCedido);
-                const deducoesHerdeiro = valorBrutoHerdeiroAposCessoes * percentualDeducoes;
-                const valorLiquidoHerdeiro = valorBrutoHerdeiroAposCessoes - deducoesHerdeiro;
-                
-                const herdeiroRecebeAgora = isPreferencia ? 
-                    (herdeiro.isPreferenciaParcial ? 
-                        Math.min(valorLiquidoHerdeiro, herdeiro.valorTotal - (herdeiro.valorTotal * percentualDeducoes)) : 
-                        valorLiquidoHerdeiro) : 
-                    valorLiquidoHerdeiro;
+                // Função auxiliar para calcular valores de cessionário
+                const calcularCessionario = (cessao) => {
+                    const valorBruto = valorOriginal * cessao.percentual;
+                    const deducoes = valorBruto * percentualDeducoes;
+                    const valorLiquido = valorBruto - deducoes;
+                    const recebe = isPreferencia && herdeiro.isPreferenciaParcial ? 0 : valorLiquido;
+                    const aguarda = isPreferencia && herdeiro.isPreferenciaParcial ? valorLiquido : 0;
                     
-                const herdeiroAguarda = isPreferencia && herdeiro.isPreferenciaParcial ? 
-                    Math.max(0, valorLiquidoHerdeiro - herdeiroRecebeAgora) : 0;
+                    return { valorBruto, deducoes, valorLiquido, recebe, aguarda };
+                };
                 
                 // Linhas dos cessionários
                 const linhasCessionarios = herdeiro.cessoesHerdeiro.map(cessao => {
-                    const valorBrutoCessionario = valorBrutoSemCessoes * cessao.percentual;
-                    const deducoesCessionario = valorBrutoCessionario * percentualDeducoes;
-                    const valorLiquidoCessionario = valorBrutoCessionario - deducoesCessionario;
-                    
-                    // Na preferência parcial, cessionários não recebem
-                    const cessionarioRecebe = isPreferencia && herdeiro.isPreferenciaParcial ? 0 : valorLiquidoCessionario;
-                    const cessionarioAguarda = isPreferencia && herdeiro.isPreferenciaParcial ? valorLiquidoCessionario : 0;
+                    const { valorBruto, deducoes, valorLiquido, recebe, aguarda } = calcularCessionario(cessao);
                     
                     return `
                         <tr>
                             <td>${cessao.cessionario}</td>
                             <td>${(cessao.percentual * 100).toFixed(2)}%</td>
-                            <td>R$ ${formatarMoeda(valorBrutoCessionario)}</td>
+                            <td>R$ ${formatarMoeda(valorBruto)}</td>
                             <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
-                            <td>R$ ${formatarMoeda(deducoesCessionario)}</td>
-                            <td>R$ ${formatarMoeda(valorLiquidoCessionario)}</td>
-                            <td>R$ ${formatarMoeda(cessionarioRecebe)}</td>
-                            <td>R$ ${formatarMoeda(cessionarioAguarda)}</td>
+                            <td>R$ ${formatarMoeda(deducoes)}</td>
+                            <td>R$ ${formatarMoeda(valorLiquido)}</td>
+                            <td>R$ ${formatarMoeda(recebe)}</td>
+                            <td>R$ ${formatarMoeda(aguarda)}</td>
                         </tr>
                     `;
                 }).join('');
                 
-                // Totais para este herdeiro (baseados no valor original)
-                const totalValorBruto = valorBrutoSemCessoes;
-                const totalDeducoes = valorBrutoSemCessoes * percentualDeducoes;
-                const totalLiquido = valorBrutoSemCessoes - totalDeducoes;
+                // Totais (sobre valor original)
+                const totalDeducoes = valorOriginal * percentualDeducoes;
+                const totalLiquido = valorOriginal - totalDeducoes;
                 
-                const totalRecebe = herdeiroRecebeAgora + herdeiro.cessoesHerdeiro.reduce((total, cessao) => {
-                    const valorBrutoCessionario = valorBrutoSemCessoes * cessao.percentual;
-                    const deducoesCessionario = valorBrutoCessionario * percentualDeducoes;
-                    const valorLiquidoCessionario = valorBrutoCessionario - deducoesCessionario;
-                    const cessionarioRecebe = isPreferencia && herdeiro.isPreferenciaParcial ? 0 : valorLiquidoCessionario;
-                    return total + cessionarioRecebe;
-                }, 0);
+                const totalRecebe = herdeiroRecebeAgora + herdeiro.cessoesHerdeiro.reduce((sum, c) => 
+                    sum + calcularCessionario(c).recebe, 0
+                );
                 
-                const totalAguarda = herdeiroAguarda + herdeiro.cessoesHerdeiro.reduce((total, cessao) => {
-                    const valorBrutoCessionario = valorBrutoSemCessoes * cessao.percentual;
-                    const deducoesCessionario = valorBrutoCessionario * percentualDeducoes;
-                    const valorLiquidoCessionario = valorBrutoCessionario - deducoesCessionario;
-                    const cessionarioAguarda = isPreferencia && herdeiro.isPreferenciaParcial ? valorLiquidoCessionario : 0;
-                    return total + cessionarioAguarda;
-                }, 0);
+                const totalAguarda = herdeiroAguarda + herdeiro.cessoesHerdeiro.reduce((sum, c) => 
+                    sum + calcularCessionario(c).aguarda, 0
+                );
+                
+                const listaCessionarios = herdeiro.cessoesHerdeiro
+                    .map(c => `${c.cessionario} (${(c.percentual * 100).toFixed(2)}%)`)
+                    .join(', ');
                 
                 const alertBox = isPreferencia && herdeiro.isPreferenciaParcial ? `
                     <div class="warning-box" style="margin-top: 10px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
                         <strong>ℹ️ Preferência Parcial:</strong><br>
-                        • <strong>Cessões calculadas sobre valor original:</strong> R$ ${formatarMoeda(valorTotalHerdeiro)}<br>
+                        • <strong>Cessões calculadas sobre valor original:</strong> R$ ${formatarMoeda(valorOriginal)}<br>
                         • <strong>Teto da preferência limita pagamento do herdeiro</strong><br>
                         • <strong>Cessionários aguardam</strong> ordem cronológica
                     </div>
@@ -6953,7 +6923,7 @@
                 return `
                     <div style="margin-bottom: 30px;">
                         <h4>Cessão do Herdeiro: ${herdeiro.nome}</h4>
-                        <p><strong>Valor Original do Herdeiro:</strong> R$ ${formatarMoeda(valorTotalHerdeiro)}</p>
+                        <p><strong>Valor Original do Herdeiro:</strong> R$ ${formatarMoeda(valorOriginal)}</p>
                         <p><strong>Total Cedido:</strong> ${(totalCedido * 100).toFixed(2)}% para: ${listaCessionarios}</p>
                         
                         <table>
@@ -6973,7 +6943,7 @@
                             <tr>
                                 <td>${herdeiro.nome}</td>
                                 <td>${((1 - totalCedido) * 100).toFixed(2)}%</td>
-                                <td>R$ ${formatarMoeda(valorBrutoHerdeiroAposCessoes)}</td>
+                                <td>R$ ${formatarMoeda(valorBrutoHerdeiro)}</td>
                                 <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
                                 <td>R$ ${formatarMoeda(deducoesHerdeiro)}</td>
                                 <td>R$ ${formatarMoeda(valorLiquidoHerdeiro)}</td>
@@ -6984,7 +6954,7 @@
                             <tr class="highlight" style="background-color: #f8f9fa; font-weight: bold; border-top: 2px solid #dee2e6;">
                                 <td>TOTAL</td>
                                 <td>100.00%</td>
-                                <td>R$ ${formatarMoeda(totalValorBruto)}</td>
+                                <td>R$ ${formatarMoeda(valorOriginal)}</td>
                                 <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
                                 <td>R$ ${formatarMoeda(totalDeducoes)}</td>
                                 <td>R$ ${formatarMoeda(totalLiquido)}</td>
