@@ -6413,8 +6413,6 @@
 
         // Cessoes Beneficiario Principal
 
-        // Cessoes Beneficiario Principal
-
         function gerarSecaoCessoesBeneficiario(resultados, dados) {
             if (!resultados.cessoesBeneficiarioCalculadas || resultados.cessoesBeneficiarioCalculadas.length === 0) return '';
 
@@ -6441,7 +6439,7 @@
             `;
         }
 
-        // ========== FUNÇÕES AUXILIARES ==========
+        // ========== FUNÇÕES AUXILIARES CESSOES BEN==========
 
         function extrairContextoBeneficiario(resultados, dados) {
             const dividaTotalAtualizada = resultados.valortotatt || 0;
@@ -6712,6 +6710,8 @@
                 </div>
             `;
         }
+
+        // Herdeiros
 
         function gerarSecaoHerdeiros(resultados, dados) {
             if (!resultados.temHerdeiros || resultados.herdeiros.length === 0) return '';
