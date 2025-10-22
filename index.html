@@ -7368,7 +7368,7 @@
                 secoes.push(secaoBeneficiario);
             }
             
-            const secoesHerdeiros = gerarSecoesHerdeirosAgrupados(herdeirosFiltrados, dados, temPrevidencia, temIR, tipoPrevidencia);
+            const secoesHerdeiros = gerarSecoesHerdeiros(herdeirosFiltrados, dados, temPrevidencia, temIR, tipoPrevidencia, false);
             secoes.push(...secoesHerdeiros);
             
             if (secoes.length === 0) return '';
@@ -7392,7 +7392,7 @@
             
             if (herdeirosFiltrados.length === 0) return '';
             
-            const secoesPorBase = gerarSecoesPreferenciaPorBase(herdeirosFiltrados, dados, temPrevidencia, temIR, tipoPrevidencia);
+            const secoesPorBase = gerarSecoesHerdeiros(herdeirosFiltrados, dados, temPrevidencia, temIR, tipoPrevidencia, true);
             
             if (secoesPorBase.length === 0) return '';
             
@@ -7432,43 +7432,51 @@
             `;
         }
 
-        function gerarSecoesHerdeirosAgrupados(herdeirosFiltrados, dados, temPrevidencia, temIR, tipoPrevidencia) {
+        function gerarSecoesHerdeiros(herdeirosFiltrados, dados, temPrevidencia, temIR, tipoPrevidencia, isPreferencia) {
             if (herdeirosFiltrados.length === 0) return [];
             
-            const baseGroups = new Map();
-            herdeirosFiltrados.forEach(h => {
-                const baseKey = h.valorTotal.toFixed(2);
-                if (!baseGroups.has(baseKey)) baseGroups.set(baseKey, []);
-                baseGroups.get(baseKey).push(h);
-            });
-            
+            const baseGroups = agruparHerdeirosPorBase(herdeirosFiltrados);
             const secoes = [];
             
             baseGroups.forEach((herdeiros, base) => {
                 const valorBase = parseFloat(base);
                 const herdeirosNomes = herdeiros.map(h => h.nome).join(', ');
                 const primeiroHerdeiro = herdeiros[0];
+                const temAlgumParcial = herdeiros.some(h => h.isPreferenciaParcial);
                 
                 let secaoPrevidencia = '';
                 if (temPrevidencia) {
-                    if (tipoPrevidencia === 'fixa') {
-                        secaoPrevidencia = gerarDetalhePrevidenciaFixaHerdeiros(herdeiros, dados, valorBase);
+                    if (isPreferencia) {
+                        // Preferência: usa funções SemCessao
+                        secaoPrevidencia = tipoPrevidencia === 'fixa'
+                            ? gerarDetalhePrevidenciaFixaHerdeirosSemCessao(herdeiros, dados, valorBase)
+                            : gerarDetalhePrevidenciaINSSHerdeirosSemCessao(herdeiros, dados, valorBase);
                     } else {
-                        secaoPrevidencia = gerarDetalhePrevidenciaINSSHerdeiros(herdeiros, dados, valorBase);
+                        // Ordem: usa funções normais
+                        secaoPrevidencia = tipoPrevidencia === 'fixa'
+                            ? gerarDetalhePrevidenciaFixaHerdeiros(herdeiros, dados, valorBase)
+                            : gerarDetalhePrevidenciaINSSHerdeiros(herdeiros, dados, valorBase);
                     }
                 }
                 
                 let secaoIR = '';
                 if (temIR && primeiroHerdeiro.rrapagamento !== 0) {
-                    secaoIR = gerarDetalheIRHerdeiros(herdeiros, dados, valorBase, temPrevidencia, false);
+                    secaoIR = isPreferencia
+                        ? gerarDetalheIRHerdeirosSemCessao(herdeiros, dados, valorBase, temPrevidencia, temAlgumParcial)
+                        : gerarDetalheIRHerdeiros(herdeiros, dados, valorBase, temPrevidencia, false);
                 }
                 
                 if (secaoPrevidencia || secaoIR) {
+                    const extraInfo = isPreferencia 
+                        ? (temAlgumParcial ? ' <em>(Preferência Parcial)</em>' : ' <em>(Preferência Total)</em>')
+                        : '';
+                    
                     secoes.push(`
                         <div style="margin-bottom: 30px; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px;">
                             <p style="color: #155724; font-style: italic; margin-bottom: 15px;">
                                 <strong>Deduções de:</strong> ${herdeirosNomes}
                                 <span style="color: #856404;"> - R$ ${formatarMoeda(valorBase)}</span>
+                                ${extraInfo}
                             </p>
                             ${secaoPrevidencia}
                             ${secaoIR}
@@ -7480,52 +7488,14 @@
             return secoes;
         }
 
-        function gerarSecoesPreferenciaPorBase(herdeirosFiltrados, dados, temPrevidencia, temIR, tipoPrevidencia) {
+        function agruparHerdeirosPorBase(herdeiros) {
             const baseGroups = new Map();
-            herdeirosFiltrados.forEach(h => {
+            herdeiros.forEach(h => {
                 const baseKey = h.valorTotal.toFixed(2);
                 if (!baseGroups.has(baseKey)) baseGroups.set(baseKey, []);
                 baseGroups.get(baseKey).push(h);
             });
-            
-            const secoesPorBase = [];
-            
-            baseGroups.forEach((herdeiros, base) => {
-                const valorBase = parseFloat(base);
-                const herdeirosNomes = herdeiros.map(h => h.nome).join(', ');
-                const primeiroHerdeiro = herdeiros[0];
-                const temAlgumParcial = herdeiros.some(h => h.isPreferenciaParcial);
-                
-                let secaoPrevidencia = '';
-                if (temPrevidencia) {
-                    if (tipoPrevidencia === 'fixa') {
-                        secaoPrevidencia = gerarDetalhePrevidenciaFixaHerdeirosSemCessao(herdeiros, dados, valorBase);
-                    } else {
-                        secaoPrevidencia = gerarDetalhePrevidenciaINSSHerdeirosSemCessao(herdeiros, dados, valorBase);
-                    }
-                }
-                
-                let secaoIR = '';
-                if (temIR && primeiroHerdeiro.rrapagamento !== 0) {
-                    secaoIR = gerarDetalheIRHerdeirosSemCessao(herdeiros, dados, valorBase, temPrevidencia, temAlgumParcial);
-                }
-                
-                if (secaoPrevidencia || secaoIR) {
-                    secoesPorBase.push(`
-                        <div style="margin-bottom: 30px; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px;">
-                            <p style="color: #155724; font-style: italic; margin-bottom: 15px;">
-                                <strong>Deduções de:</strong> ${herdeirosNomes}
-                                <span style="color: #856404;"> - R$ ${formatarMoeda(valorBase)}</span>
-                                ${temAlgumParcial ? ' <em>(Preferência Parcial)</em>' : ' <em>(Preferência Total)</em>'}
-                            </p>
-                            ${secaoPrevidencia}
-                            ${secaoIR}
-                        </div>
-                    `);
-                }
-            });
-            
-            return secoesPorBase;
+            return baseGroups;
         }
 
         function montarResultadoFinal(secoes, tipo) {
