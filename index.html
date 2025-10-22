@@ -7333,28 +7333,19 @@
                 return gerarDeducoesSimples(resultadosParaUsar, dados, config.temPrevidencia, config.temIR);
             }
             
-            if (dados.tipoCalculo === 'preferencia') {
-                return gerarDeducoesPreferencia(resultadosParaUsar, dados, config);
-            } else {
-                return gerarDeducoesOrdem(resultadosParaUsar, dados, config);
-            }
+            return dados.tipoCalculo === 'preferencia'
+                ? gerarDeducoesPreferencia(resultadosParaUsar, dados, config)
+                : gerarDeducoesOrdem(resultadosParaUsar, dados, config);
         }
 
         function validarAdesaoParaAcordo(dados) {
             const adesoes = obterAdesaoAcordo();
             const beneficiarioOuHerdeirosAderiram = adesoes.beneficiario || adesoes.herdeiros.length > 0;
             
-            let cessionarioRelevante = false;
-            if (adesoes.cessionarios.length > 0) {
-                for (let i = 0; i < adesoes.cessionarios.length; i++) {
-                    const cessaoIndex = adesoes.cessionarios[i];
-                    const cessao = dados.cessoes[cessaoIndex];
-                    if (cessao && (cessao.tipo === 'cessaobenPrincipal' || cessao.tipo === 'cessaoherdeiro')) {
-                        cessionarioRelevante = true;
-                        break;
-                    }
-                }
-            }
+            const cessionarioRelevante = adesoes.cessionarios.some(cessaoIndex => {
+                const cessao = dados.cessoes?.[cessaoIndex];
+                return cessao?.tipo === 'cessaobenPrincipal' || cessao?.tipo === 'cessaoherdeiro';
+            });
             
             return beneficiarioOuHerdeirosAderiram || cessionarioRelevante;
         }
@@ -7417,11 +7408,9 @@
             
             let secaoPrevidencia = '';
             if (temPrevidencia) {
-                if (tipoPrevidencia === 'fixa') {
-                    secaoPrevidencia = gerarDetalhePrevidenciaFixa(resultados, dados, temCessoesBeneficiario);
-                } else {
-                    secaoPrevidencia = gerarDetalhePrevidenciaINSS(resultados, dados, temCessoesBeneficiario);
-                }
+                secaoPrevidencia = tipoPrevidencia === 'fixa'
+                    ? gerarDetalhePrevidenciaFixa(resultados, dados, temCessoesBeneficiario)
+                    : gerarDetalhePrevidenciaINSS(resultados, dados, temCessoesBeneficiario);
             }
             
             let secaoIR = '';
