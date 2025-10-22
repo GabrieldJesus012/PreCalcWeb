@@ -6995,157 +6995,16 @@
             `;
         }
 
+        // Pagamentos
+
         function gerarSecaoPagamentosOcorridos(resultados, dados) {
             if (!resultados.pagamentos || resultados.pagamentos.length === 0) {
                 return '';
             }
 
-            const pagamentosPorBeneficiario = {};
-            resultados.pagamentos.forEach(pag => {
-                if (!pagamentosPorBeneficiario[pag.beneficiario]) {
-                    pagamentosPorBeneficiario[pag.beneficiario] = [];
-                }
-                pagamentosPorBeneficiario[pag.beneficiario].push(pag);
-            });
-
-            // Lista de cessionários (para filtrar)
-            const cessionarios = new Set();
-            
-            // Cessionários do Beneficiário
-            if (resultados.cessoesBeneficiarioFinais) {
-                resultados.cessoesBeneficiarioFinais.forEach(c => cessionarios.add(c.cessionario));
-            }
-            
-            // Cessionários de Herdeiros
-            if (resultados.herdeiros) {
-                resultados.herdeiros.forEach(h => {
-                    if (h.cessoesHerdeiroFinais) {
-                        h.cessoesHerdeiroFinais.forEach(c => cessionarios.add(c.cessionario));
-                    }
-                });
-            }
-            
-            // Cessionários de Advogados
-            if (resultados.honorarios) {
-                resultados.honorarios.forEach(adv => {
-                    if (adv.cessionarios) {
-                        adv.cessionarios.forEach(c => cessionarios.add(c.nome));
-                    }
-                });
-            }
-            
-            // Cessionários de Advogados Sucumbenciais
-            if (resultados.honorariosSucumbenciais?.honorarios) {
-                resultados.honorariosSucumbenciais.honorarios.forEach(adv => {
-                    if (adv.cessionarios) {
-                        adv.cessionarios.forEach(c => cessionarios.add(c.nome));
-                    }
-                });
-            }
-            
-            // Cessionários de Sindicatos
-            if (resultados.sindicatos) {
-                resultados.sindicatos.forEach(sind => {
-                    if (sind.cessionarios) {
-                        sind.cessionarios.forEach(c => cessionarios.add(c.nome));
-                    }
-                });
-            }
-
-            let htmlLinhas = '';
-
-            Object.keys(pagamentosPorBeneficiario).forEach(beneficiario => {
-                // ❌ NÃO MOSTRAR cessionários sem pagamento direto
-                if (cessionarios.has(beneficiario)) {
-                    const pagamentosDoBeneficiario = pagamentosPorBeneficiario[beneficiario];
-                    
-                    // Verificar se teve pagamento direto
-                    const tevePagamentoDireto = pagamentosDoBeneficiario.length > 0;
-                    
-                    if (!tevePagamentoDireto) {
-                        return; // Pula este cessionário
-                    }
-                }
-                
-                const pagamentosDoBeneficiario = pagamentosPorBeneficiario[beneficiario];
-                
-                pagamentosDoBeneficiario.forEach(pag => {
-                    const dataFormatada = new Date(pag.dataBase + 'T00:00:00').toLocaleDateString('pt-BR');
-                    
-                    const pagamentoOriginal = dados.pagamentos.find(p => 
-                        p.beneficiario === pag.beneficiario && 
-                        p.dataBase === pag.dataBase
-                    );
-                    
-                    let valorOriginalPago = pag.valorOriginal.principal + pag.valorOriginal.juros;
-                    
-                    let detalhamentoGrid = `
-                        <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; margin-top: 6px; font-size: 0.85em; color: #666;">
-                            <span>Principal:</span>
-                            <span style="text-align: right;">R$ ${formatarMoeda(pag.valorOriginal.principal)}</span>
-                            <span>Juros:</span>
-                            <span style="text-align: right;">R$ ${formatarMoeda(pag.valorOriginal.juros)}</span>
-                    `;
-                    
-                    if (pagamentoOriginal) {
-                        if (pagamentoOriginal.tipoSelic === 'valor' && pagamentoOriginal.valorSelic > 0) {
-                            const valorSelicInformado = pagamentoOriginal.valorSelic;
-                            valorOriginalPago += valorSelicInformado;
-                            detalhamentoGrid += `
-                                <span>SELIC:</span>
-                                <span style="text-align: right;">R$ ${formatarMoeda(valorSelicInformado)}</span>
-                            `;
-                        } else if (pagamentoOriginal.tipoSelic === 'percentual' && pagamentoOriginal.percentualSelic > 0) {
-                            const percentualSelicInformado = pagamentoOriginal.percentualSelic;
-                            const valorSelicCalculado = (pag.valorOriginal.principal + pag.valorOriginal.juros) * percentualSelicInformado;
-                            valorOriginalPago += valorSelicCalculado;
-                            detalhamentoGrid += `
-                                <span>SELIC (${(percentualSelicInformado * 100).toFixed(2)}%):</span>
-                                <span style="text-align: right;">R$ ${formatarMoeda(valorSelicCalculado)}</span>
-                            `;
-                        }
-                    }
-                    
-                    detalhamentoGrid += `</div>`;
-                    
-                    const detalhesIndices = [];
-                    
-                    if (pag.indices.cnj && pag.indices.cnj !== 1) {
-                        detalhesIndices.push(`CNJ: ${(pag.indices.cnj).toFixed(6)}`);
-                    }
-                    
-                    if (pag.indices.selic && pag.indices.selic !== 1) {
-                        const percentualSelic = ((pag.indices.selic - 1) * 100).toFixed(2);
-                        detalhesIndices.push(`SELIC: ${percentualSelic}%`);
-                    }
-                    
-                    if (pag.indices.ipca && pag.indices.ipca !== 1) {
-                        detalhesIndices.push(`IPCA: ${(pag.indices.ipca).toFixed(6)}`);
-                    }
-                    
-                    if (pag.indices.jurosMora && pag.indices.jurosMora > 0) {
-                        const percentualMora = (pag.indices.jurosMora * 100).toFixed(4);
-                        detalhesIndices.push(`J.Mora: ${percentualMora}%`);
-                    }
-                    
-                    const indicesTexto = detalhesIndices.length > 0 ? 
-                        detalhesIndices.join(' | ') : 
-                        'Sem correção';
-
-                    htmlLinhas += `
-                        <tr>
-                            <td>${beneficiario}</td>
-                            <td>${dataFormatada}</td>
-                            <td>
-                                <strong style="font-size: 1.05em;">R$ ${formatarMoeda(valorOriginalPago)}</strong>
-                                ${detalhamentoGrid}
-                            </td>
-                            <td>${indicesTexto}</td>
-                            <td><strong>R$ ${formatarMoeda(pag.valorAtualizado.total)}</strong></td>
-                        </tr>
-                    `;
-                });
-            });
+            const pagamentosPorBeneficiario = agruparPagamentosPorBeneficiario(resultados.pagamentos);
+            const cessionarios = obterTodosCessionarios(resultados);
+            const htmlLinhas = gerarLinhasPagamentos(pagamentosPorBeneficiario, cessionarios, dados);
 
             return `
                 <div class="deducoes-acessorias">
@@ -7173,114 +7032,158 @@
             `;
         }
 
-        function gerarDemonstrativoSaldoRemanescente(resultados) {
-            if (!resultados.saldosFinais) {
-                return '';
-            }
+        // ========== FUNÇÕES AUXILIARES DE PAGAMENTOS==========
+
+        function agruparPagamentosPorBeneficiario(pagamentos) {
+            const grupos = {};
+            pagamentos.forEach(pag => {
+                if (!grupos[pag.beneficiario]) {
+                    grupos[pag.beneficiario] = [];
+                }
+                grupos[pag.beneficiario].push(pag);
+            });
+            return grupos;
+        }
+
+        function obterTodosCessionarios(resultados) {
+            const cessionarios = new Set();
             
-            const saldos = resultados.saldosFinais;
+            // Cessionários do Beneficiário
+            resultados.cessoesBeneficiarioFinais?.forEach(c => cessionarios.add(c.cessionario));
+            
+            // Cessionários de Herdeiros
+            resultados.herdeiros?.forEach(h => {
+                h.cessoesHerdeiroFinais?.forEach(c => cessionarios.add(c.cessionario));
+            });
+            
+            // Cessionários de Advogados
+            resultados.honorarios?.forEach(adv => {
+                adv.cessionarios?.forEach(c => cessionarios.add(c.nome));
+            });
+            
+            // Cessionários de Advogados Sucumbenciais
+            resultados.honorariosSucumbenciais?.honorarios?.forEach(adv => {
+                adv.cessionarios?.forEach(c => cessionarios.add(c.nome));
+            });
+            
+            // Cessionários de Sindicatos
+            resultados.sindicatos?.forEach(sind => {
+                sind.cessionarios?.forEach(c => cessionarios.add(c.nome));
+            });
+            
+            return cessionarios;
+        }
+
+        function gerarLinhasPagamentos(pagamentosPorBeneficiario, cessionarios, dados) {
             let htmlLinhas = '';
             
-            // 1. Beneficiário Principal
-            if (saldos.beneficiarioPrincipal && saldos.beneficiarioPrincipal.pagamento > 0) {
-                const benef = saldos.beneficiarioPrincipal;
-                htmlLinhas += `
-                    <tr>
-                        <td>${benef.nome} (Beneficiário Principal)</td>
-                        <td>R$ ${formatarMoeda(benef.valorBruto)}</td>
-                        <td>R$ ${formatarMoeda(benef.pagamento)}</td>
-                        <td><strong>R$ ${formatarMoeda(benef.saldo)}</strong></td>
-                    </tr>
-                `;
-            }
-            
-            // 2. Herdeiros
-            if (saldos.herdeiros && saldos.herdeiros.length > 0) {
-                saldos.herdeiros.forEach(herd => {
-                    let detalhesPagamento = '';
-                    if (herd.pagamentoDoBeneficiario && herd.pagamentoDoBeneficiario > 0) {
-                        detalhesPagamento = `<br><small style="color: #666;">(Direto: R$ ${formatarMoeda(herd.pagamentoDireto)} + Do Benef.: R$ ${formatarMoeda(herd.pagamentoDoBeneficiario)})</small>`;
-                    }
+            Object.keys(pagamentosPorBeneficiario).forEach(beneficiario => {
+                // Não mostrar cessionários sem pagamento direto
+                if (cessionarios.has(beneficiario) && pagamentosPorBeneficiario[beneficiario].length === 0) {
+                    return;
+                }
+                
+                pagamentosPorBeneficiario[beneficiario].forEach(pag => {
+                    const dataFormatada = new Date(pag.dataBase + 'T00:00:00').toLocaleDateString('pt-BR');
+                    const pagamentoOriginal = dados.pagamentos.find(p => 
+                        p.beneficiario === pag.beneficiario && p.dataBase === pag.dataBase
+                    );
+                    
+                    const { valorTotal, detalhamentoGrid } = calcularValorOriginalComDetalhes(pag, pagamentoOriginal);
+                    const indicesTexto = formatarIndices(pag.indices);
                     
                     htmlLinhas += `
                         <tr>
-                            <td>${herd.nome} (Herdeiro)</td>
-                            <td>R$ ${formatarMoeda(herd.valorBruto)}</td>
-                            <td>R$ ${formatarMoeda(herd.pagamento)}${detalhesPagamento}</td>
-                            <td><strong>R$ ${formatarMoeda(herd.saldo)}</strong></td>
+                            <td>${beneficiario}</td>
+                            <td>${dataFormatada}</td>
+                            <td>
+                                <strong style="font-size: 1.05em;">R$ ${formatarMoeda(valorTotal)}</strong>
+                                ${detalhamentoGrid}
+                            </td>
+                            <td>${indicesTexto}</td>
+                            <td><strong>R$ ${formatarMoeda(pag.valorAtualizado.total)}</strong></td>
                         </tr>
                     `;
                 });
-            }
+            });
             
-            // 3. Advogados
-            if (saldos.advogados && saldos.advogados.length > 0) {
-                saldos.advogados.forEach(adv => {
-                    htmlLinhas += `
-                        <tr>
-                            <td>${adv.nome} (Advogado ${adv.tipo})</td>
-                            <td>R$ ${formatarMoeda(adv.valorBruto)}</td>
-                            <td>R$ ${formatarMoeda(adv.pagamento)}</td>
-                            <td><strong>R$ ${formatarMoeda(adv.saldo)}</strong></td>
-                        </tr>
+            return htmlLinhas;
+        }
+
+        function calcularValorOriginalComDetalhes(pag, pagamentoOriginal) {
+            let valorTotal = pag.valorOriginal.principal + pag.valorOriginal.juros;
+            
+            let detalhamentoGrid = `
+                <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; margin-top: 6px; font-size: 0.85em; color: #666;">
+                    <span>Principal:</span>
+                    <span style="text-align: right;">R$ ${formatarMoeda(pag.valorOriginal.principal)}</span>
+                    <span>Juros:</span>
+                    <span style="text-align: right;">R$ ${formatarMoeda(pag.valorOriginal.juros)}</span>
+            `;
+            
+            if (pagamentoOriginal) {
+                if (pagamentoOriginal.tipoSelic === 'valor' && pagamentoOriginal.valorSelic > 0) {
+                    const valorSelic = pagamentoOriginal.valorSelic;
+                    valorTotal += valorSelic;
+                    detalhamentoGrid += `
+                        <span>SELIC:</span>
+                        <span style="text-align: right;">R$ ${formatarMoeda(valorSelic)}</span>
                     `;
-                });
-            }
-            
-            // 4. Advogados Sucumbenciais
-            if (saldos.advogadosSucumbenciais && saldos.advogadosSucumbenciais.length > 0) {
-                saldos.advogadosSucumbenciais.forEach(advSuc => {
-                    htmlLinhas += `
-                        <tr>
-                            <td>${advSuc.nome} (Adv. Sucumbencial ${advSuc.tipo})</td>
-                            <td>R$ ${formatarMoeda(advSuc.valorBruto)}</td>
-                            <td>R$ ${formatarMoeda(advSuc.pagamento)}</td>
-                            <td><strong>R$ ${formatarMoeda(advSuc.saldo)}</strong></td>
-                        </tr>
+                } else if (pagamentoOriginal.tipoSelic === 'percentual' && pagamentoOriginal.percentualSelic > 0) {
+                    const percentualSelic = pagamentoOriginal.percentualSelic;
+                    const valorSelic = (pag.valorOriginal.principal + pag.valorOriginal.juros) * percentualSelic;
+                    valorTotal += valorSelic;
+                    detalhamentoGrid += `
+                        <span>SELIC (${(percentualSelic * 100).toFixed(2)}%):</span>
+                        <span style="text-align: right;">R$ ${formatarMoeda(valorSelic)}</span>
                     `;
-                });
+                }
             }
             
-            // 5. Sindicatos
-            if (saldos.sindicatos && saldos.sindicatos.length > 0) {
-                saldos.sindicatos.forEach(sind => {
-                    htmlLinhas += `
-                        <tr>
-                            <td>${sind.nome} (Sindicato)</td>
-                            <td>R$ ${formatarMoeda(sind.valorBruto)}</td>
-                            <td>R$ ${formatarMoeda(sind.pagamento)}</td>
-                            <td><strong>R$ ${formatarMoeda(sind.saldo)}</strong></td>
-                        </tr>
-                    `;
-                });
+            detalhamentoGrid += `</div>`;
+            
+            return { valorTotal, detalhamentoGrid };
+        }
+
+        function formatarIndices(indices) {
+            const detalhes = [];
+            
+            if (indices.cnj && indices.cnj !== 1) {
+                detalhes.push(`CNJ: ${indices.cnj.toFixed(6)}`);
             }
             
-            // 6. Cessionários (SEMPRE mostrar, mesmo sem pagamento direto)
-            if (saldos.cessionarios && saldos.cessionarios.length > 0) {
-                saldos.cessionarios.forEach(cess => {
-                    // Só mostrar se teve pagamento
-                    if (cess.pagamento > 0) {  // 👈 ESTA LINHA É CRUCIAL
-                        let detalhesPagamento = '';
-                        
-                        // Se tem pagamentoDireto definido, mostrar detalhamento
-                        if (cess.hasOwnProperty('pagamentoDireto')) {
-                            const pagamentoDoCedente = cess.pagamento - cess.pagamentoDireto;
-                            if (pagamentoDoCedente > 0) {
-                                detalhesPagamento = `<br><small style="color: #666;">(Direto: R$ ${formatarMoeda(cess.pagamentoDireto)} + Do Cedente: R$ ${formatarMoeda(pagamentoDoCedente)})</small>`;
-                            }
-                        }
-                        
-                        htmlLinhas += `
-                            <tr>
-                                <td>${cess.nome} (${cess.tipo})</td>
-                                <td>R$ ${formatarMoeda(cess.valorBruto)}</td>
-                                <td>R$ ${formatarMoeda(cess.pagamento)}${detalhesPagamento}</td>
-                                <td><strong>R$ ${formatarMoeda(cess.saldo)}</strong></td>
-                            </tr>
-                        `;
-                    }  // 👈 FECHA O IF
-                });
+            if (indices.selic && indices.selic !== 1) {
+                const percentualSelic = ((indices.selic - 1) * 100).toFixed(2);
+                detalhes.push(`SELIC: ${percentualSelic}%`);
             }
+            
+            if (indices.ipca && indices.ipca !== 1) {
+                detalhes.push(`IPCA: ${indices.ipca.toFixed(6)}`);
+            }
+            
+            if (indices.jurosMora && indices.jurosMora > 0) {
+                const percentualMora = (indices.jurosMora * 100).toFixed(4);
+                detalhes.push(`J.Mora: ${percentualMora}%`);
+            }
+            
+            return detalhes.length > 0 ? detalhes.join(' | ') : 'Sem correção';
+        }
+
+        // SALDO REMANCESCENTE
+
+        function gerarDemonstrativoSaldoRemanescente(resultados) {
+            if (!resultados.saldosFinais) return '';
+            
+            const saldos = resultados.saldosFinais;
+            
+            const linhas = [
+                gerarLinhaBeneficiario(saldos.beneficiarioPrincipal),
+                gerarLinhasHerdeiros(saldos.herdeiros),
+                gerarLinhasSimples(saldos.advogados, 'Advogado'),
+                gerarLinhasSimples(saldos.advogadosSucumbenciais, 'Adv. Sucumbencial'),
+                gerarLinhasSimples(saldos.sindicatos, 'Sindicato'),
+                gerarLinhasCessionarios(saldos.cessionarios)
+            ].filter(Boolean).join('');
             
             return `
                 <div class="pagamentos-finais">
@@ -7293,13 +7196,8 @@
                                 <th>(-) Valor Pago</th>
                                 <th>Saldo Remanescente (Bruto)</th>
                             </tr>
-                            ${htmlLinhas}
-                            <tr class="highlight">
-                                <td><strong>TOTAL</strong></td>
-                                <td><strong>R$ ${formatarMoeda(saldos.totalGeralOriginal)}</strong></td>
-                                <td><strong>R$ ${formatarMoeda(saldos.totalGeralOriginal - saldos.totalGeralBruto)}</strong></td>
-                                <td><strong>R$ ${formatarMoeda(saldos.totalGeralBruto)}</strong></td>
-                            </tr>
+                            ${linhas}
+                            ${gerarLinhaTotal(saldos)}
                         </table>
                         
                         <div style="margin-top: 15px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
@@ -7309,6 +7207,98 @@
                 </div>
             `;
         }
+
+        // ========== FUNÇÕES AUXILIARES DE SALDO REMANESC==========
+
+        function gerarLinhaBeneficiario(benef) {
+            if (!benef || benef.pagamento <= 0) return '';
+            
+            return `
+                <tr>
+                    <td>${benef.nome} (Beneficiário Principal)</td>
+                    <td>R$ ${formatarMoeda(benef.valorBruto)}</td>
+                    <td>R$ ${formatarMoeda(benef.pagamento)}</td>
+                    <td><strong>R$ ${formatarMoeda(benef.saldo)}</strong></td>
+                </tr>
+            `;
+        }
+
+        function gerarLinhasHerdeiros(herdeiros) {
+            if (!herdeiros || herdeiros.length === 0) return '';
+            
+            return herdeiros.map(herd => {
+                const detalhesPagamento = (herd.pagamentoDoBeneficiario && herd.pagamentoDoBeneficiario > 0)
+                    ? `<br><small style="color: #666;">(Direto: R$ ${formatarMoeda(herd.pagamentoDireto)} + Do Benef.: R$ ${formatarMoeda(herd.pagamentoDoBeneficiario)})</small>`
+                    : '';
+                
+                return `
+                    <tr>
+                        <td>${herd.nome} (Herdeiro)</td>
+                        <td>R$ ${formatarMoeda(herd.valorBruto)}</td>
+                        <td>R$ ${formatarMoeda(herd.pagamento)}${detalhesPagamento}</td>
+                        <td><strong>R$ ${formatarMoeda(herd.saldo)}</strong></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function gerarLinhasSimples(lista, tipo) {
+            if (!lista || lista.length === 0) return '';
+            
+            return lista.map(item => {
+                const rotulo = tipo === 'Advogado' || tipo === 'Adv. Sucumbencial'
+                    ? `${item.nome} (${tipo} ${item.tipo})`
+                    : `${item.nome} (${tipo})`;
+                
+                return `
+                    <tr>
+                        <td>${rotulo}</td>
+                        <td>R$ ${formatarMoeda(item.valorBruto)}</td>
+                        <td>R$ ${formatarMoeda(item.pagamento)}</td>
+                        <td><strong>R$ ${formatarMoeda(item.saldo)}</strong></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function gerarLinhasCessionarios(cessionarios) {
+            if (!cessionarios || cessionarios.length === 0) return '';
+            
+            return cessionarios
+                .filter(cess => cess.pagamento > 0)
+                .map(cess => {
+                    let detalhesPagamento = '';
+                    
+                    if (cess.hasOwnProperty('pagamentoDireto')) {
+                        const pagamentoDoCedente = cess.pagamento - cess.pagamentoDireto;
+                        if (pagamentoDoCedente > 0) {
+                            detalhesPagamento = `<br><small style="color: #666;">(Direto: R$ ${formatarMoeda(cess.pagamentoDireto)} + Do Cedente: R$ ${formatarMoeda(pagamentoDoCedente)})</small>`;
+                        }
+                    }
+                    
+                    return `
+                        <tr>
+                            <td>${cess.nome} (${cess.tipo})</td>
+                            <td>R$ ${formatarMoeda(cess.valorBruto)}</td>
+                            <td>R$ ${formatarMoeda(cess.pagamento)}${detalhesPagamento}</td>
+                            <td><strong>R$ ${formatarMoeda(cess.saldo)}</strong></td>
+                        </tr>
+                    `;
+                }).join('');
+        }
+
+        function gerarLinhaTotal(saldos) {
+            return `
+                <tr class="highlight">
+                    <td><strong>TOTAL</strong></td>
+                    <td><strong>R$ ${formatarMoeda(saldos.totalGeralOriginal)}</strong></td>
+                    <td><strong>R$ ${formatarMoeda(saldos.totalGeralOriginal - saldos.totalGeralBruto)}</strong></td>
+                    <td><strong>R$ ${formatarMoeda(saldos.totalGeralBruto)}</strong></td>
+                </tr>
+            `;
+        }
+
+        //DEDUCOES LEGAIS
 
         function gerarSecaoDeducoes(resultados, dados) {
             const temPrevidencia = dados.incidenciaPrevidencia || 
