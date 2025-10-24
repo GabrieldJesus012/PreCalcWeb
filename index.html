@@ -4458,7 +4458,7 @@
                 if (cessoes100[adv.nome]) return;
                 
                 const pagamentoDireto = pagamentosPorBeneficiario[adv.nome]?.totalPago || 0;
-                const valorBruto = adv.valorBruto || adv.valorBrutoAdvogado || 0;
+                const valorBruto = adv.valorBrutoAdvogado || adv.valorBruto || 0;
                 const saldo = valorBruto - pagamentoDireto;
                 
                 saldosFinais[chave].push({
