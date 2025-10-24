@@ -4596,7 +4596,6 @@
         }
 
         function calcularTotaisETributos(resultados, dados, saldosFinais) {
-            // Total sem honorários sucumbenciais
             let totalSemHonSuc = saldosFinais.totalGeralBruto;
             
             if (saldosFinais.advogadosSucumbenciais?.length > 0) {
@@ -4610,11 +4609,7 @@
             }
             
             saldosFinais.totalSemHonorariosSucumbenciais = totalSemHonSuc;
-            saldosFinais.principalTotal = totalSemHonSuc * (resultados.percentualprinc || 0.5);
-            saldosFinais.jurosTotal = totalSemHonSuc * (resultados.percentualjur || 0.5);
             
-            // RRA ajustado
-            const rraOriginal = resultados.rrapagamento || resultados.rraTotal || 0;
             let totalOriginalSemHonSuc = saldosFinais.totalGeralOriginal;
             
             if (saldosFinais.advogadosSucumbenciais?.length > 0) {
@@ -4627,6 +4622,24 @@
                     .reduce((sum, c) => sum + c.valorBruto, 0);
             }
             
+            const principalOriginal = resultados.principal || (resultados.valortotatt * (resultados.percentualprinc || 0.5));
+            const jurosOriginal = (resultados.valortotatt || 0) - principalOriginal;
+            
+            const valorPago = totalOriginalSemHonSuc - totalSemHonSuc;
+            
+            if (valorPago > 0 && totalOriginalSemHonSuc > 0) {
+                const percentualPago = valorPago / totalOriginalSemHonSuc;
+                const principalPago = principalOriginal * percentualPago;
+                const jurosPago = jurosOriginal * percentualPago;
+                
+                saldosFinais.principalTotal = principalOriginal - principalPago;
+                saldosFinais.jurosTotal = jurosOriginal - jurosPago;
+            } else {
+                saldosFinais.principalTotal = totalSemHonSuc * (resultados.percentualprinc || 0.5);
+                saldosFinais.jurosTotal = totalSemHonSuc * (resultados.percentualjur || 0.5);
+            }
+            
+            const rraOriginal = resultados.rrapagamento || resultados.rraTotal || 0;
             const proporcao = totalOriginalSemHonSuc > 0 ? (totalSemHonSuc / totalOriginalSemHonSuc) : 0;
             saldosFinais.rraOriginal = rraOriginal;
             saldosFinais.rraAjustado = rraOriginal > 0 ? Math.max(1, arredondarRRA(proporcao * rraOriginal)) : 0;
