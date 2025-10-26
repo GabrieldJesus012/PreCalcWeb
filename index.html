@@ -3442,7 +3442,7 @@
                 // Verificar se há honorário sucumbencial
                 if (dados.honorarioSucumbencial?.advogados?.length > 0) {
                     // Calcular proporção considerando sucumbencial
-                    const dadosTemporarios = { ...dados, tipoCalculo: 'ordem' };
+                    const dadosTemporarios = { ...dados, tipoCalculo: 'ordem',saldoParcial: undefined };
                     const resultadoSucumbencial = calcularHonorariosSucumbenciais(
                         dadosTemporarios, 
                         valortotatt, 
@@ -3451,9 +3451,13 @@
                     
                     const valorTotalSucumbencial = resultadoSucumbencial.valorHonorarioTotal;
                     const totalGeral = valortotatt + valorTotalSucumbencial;
-                    const proporcaoPrecatorio = valortotatt / totalGeral;
                     
-                    valorBase = dados.saldoParcial * proporcaoPrecatorio;
+                    if (dados.saldoParcial >= totalGeral) {
+                        valorBase =  valortotatt; 
+                    } else {
+                        const proporcaoPrecatorio = valortotatt / totalGeral;
+                        valorBase = dados.saldoParcial * proporcaoPrecatorio;
+                    }
                 } else {
                     // Sem sucumbencial - lógica simples
                     valorBase = Math.min(valortotatt, dados.saldoParcial);
@@ -3759,11 +3763,15 @@
                     const valorPrecatorioComSucumbencial = valorTotalDivida * proporcaoVerbaSucumbencial;
                     
                     const totalGeral = valorPrecatorioComSucumbencial + valorTotalSucumbencial;
-                    const proporcaoSucumbencial = valorTotalSucumbencial / totalGeral;
-                    const valorParcialSucumbencial = dados.saldoParcial * proporcaoSucumbencial;
-                    
-                    const fatorAjuste = valorParcialSucumbencial / valorTotalSucumbencial;
-                    valorBaseSucumbencial = valorBaseSucumbencial * fatorAjuste;
+                    if (dados.saldoParcial >= totalGeral) {
+                        valorBaseSucumbencial = valorBaseSucumbencial;
+                    } else {
+                        const proporcaoSucumbencial = valorTotalSucumbencial / totalGeral;
+                        const valorParcialSucumbencial = dados.saldoParcial * proporcaoSucumbencial;
+                        
+                        const fatorAjuste = valorParcialSucumbencial / valorTotalSucumbencial;
+                        valorBaseSucumbencial = valorBaseSucumbencial * fatorAjuste;
+                    }
                 }
             }
             
