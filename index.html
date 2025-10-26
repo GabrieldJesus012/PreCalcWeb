@@ -6147,12 +6147,17 @@
                         valorHonorario: adv.valorBruto,
                         valorAdvogado: adv.valorBrutoAdvogado 
                     };
-                
+                const proporcaoContratual = resultados.totaisPorTipo?.contratual 
+                ? resultados.totaisPorTipo.contratual / resultados.totaisPorTipo.total 
+                : 1;
+                const valorBasePrecatorio = isParcial 
+                    ? resultados.valorBase 
+                    : resultados.valortotatt;
+                const valorBaseContratual = valorBasePrecatorio * proporcaoContratual;
+
                 // Linhas dos cessionários
                 const linhasCessionarios = (adv.cessionarios || []).map(cessionario => {
-                    const valorCessionario = isParcial 
-                        ? resultados.valorBase * cessionario.percentual
-                        : cessionario.valorBruto;
+                    const valorCessionario = valorBaseContratual * cessionario.percentual;
                     
                     return `
                         <tr>
@@ -6162,6 +6167,8 @@
                         </tr>
                     `;
                 }).join('');
+
+                const valorTotalSobrePrecatorio = valorBaseContratual * adv.percentual;
 
                 const pluralCessionarios = adv.cessoesAdv.length > 1 ? 's' : '';
                 const textoTipo = isParcial ? ' (Parcial)' : '';
@@ -6182,8 +6189,8 @@
                             ${linhasCessionarios}
                             <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
                                 <td>TOTAL</td>
-                                <td>100.00%</td>
-                                <td>R$ ${formatarMoeda(valorHonorario)}</td>
+                                <td>${(adv.percentual * 100).toFixed(2)}%</td>
+                                <td>R$ ${formatarMoeda(valorTotalSobrePrecatorio)}</td>
                             </tr>
                         </table>
                     </div>
@@ -6232,13 +6239,18 @@
                 
                 if (advogadosComCessao.length === 0) return;
                 
+                const proporcaoContratual = resultados.totaisPorTipo?.contratual 
+                    ? resultados.totaisPorTipo.contratual / resultados.totaisPorTipo.total 
+                    : 1;
+                const valorBaseContratual = valorBase * proporcaoContratual;
+                
                 const secoesCessoes = advogadosComCessao.map(adv => {
-                    const valorHonorarioAdvogado = valorBase * adv.percentual;
-                    const valorAdvogadoAposCessao = valorBase * adv.percentualAdvogado;
+                    const valorHonorarioAdvogado = valorBaseContratual * adv.percentual;
+                    const valorAdvogadoAposCessao = valorBaseContratual * adv.percentualAdvogado;
                     
                     const linhasCessionarios = grupoEPreferenciaParcial
-                        ? gerarLinhasCessionariosAguardando(adv.cessionarios, valorBase)
-                        : gerarLinhasCessionariosRecebendo(adv.cessionarios);
+                        ? gerarLinhasCessionariosAguardando(adv.cessionarios, valorBaseContratual)
+                        : gerarLinhasCessionariosRecebendo(adv.cessionarios, valorBaseContratual);
                     
                     const pluralCessionarios = adv.cessoesAdv.length > 1 ? 's' : '';
                     
@@ -6258,7 +6270,7 @@
                                 ${linhasCessionarios}
                                 <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
                                     <td>TOTAL</td>
-                                    <td>100.00%</td>
+                                    <td>${(adv.percentual * 100).toFixed(2)}%</td>
                                     <td>R$ ${formatarMoeda(valorHonorarioAdvogado)}</td>
                                 </tr>
                             </table>
@@ -6311,31 +6323,42 @@
             const isParcial = dados.tipoCalculo === 'parcial';
             const isPreferenciaParcial = isPreferencia && resultados.valorBase < resultados.valortotatt;
             
+            const proporcaoContratual = resultados.totaisPorTipo?.contratual 
+                ? resultados.totaisPorTipo.contratual / resultados.totaisPorTipo.total 
+                : 1;
+            
             const secoesCessoes = advogadosComCessao.map(adv => {
-                // Calcular valores conforme tipo de cálculo
-                let valorHonorario, valorAdvogado;
-                
+                let valorBasePrecatorio, valorBaseContratual;
                 if (isParcial) {
-                    valorHonorario = resultados.valorBase * adv.percentual;
-                    valorAdvogado = resultados.valorBase * adv.percentualAdvogado;
-                } else if (isPreferenciaParcial) {
-                    valorHonorario = adv.valorBruto;
-                    valorAdvogado = adv.valorBrutoAdvogado;
+                    valorBasePrecatorio = resultados.valorBase;
+                    valorBaseContratual = valorBasePrecatorio * proporcaoContratual;
                 } else if (isPreferencia) {
-                    valorHonorario = resultados.valortotatt * adv.percentual;
-                    valorAdvogado = resultados.valortotatt * adv.percentualAdvogado;
+                    valorBasePrecatorio = resultados.valorBase;
+                    valorBaseContratual = valorBasePrecatorio * proporcaoContratual;
                 } else {
-                    valorHonorario = adv.valorBruto;
-                    valorAdvogado = adv.valorBrutoAdvogado;
+                    // Ordem: usa valortotatt (total do precatório)
+                    valorBasePrecatorio = resultados.valortotatt;
+                    valorBaseContratual = valorBasePrecatorio * proporcaoContratual;
                 }
                 
-                // Linhas dos cessionários conforme situação
+                let valorHonorario, valorAdvogado;
+                
+                if (isPreferenciaParcial) {
+                    // Preferência parcial: usa valores já calculados (adv.valorBruto)
+                    valorHonorario = adv.valorBruto;
+                    valorAdvogado = adv.valorBrutoAdvogado;
+                } else {
+                    // Todos os outros casos: calcula sobre valorBaseContratual
+                    valorHonorario = valorBaseContratual * adv.percentual;
+                    valorAdvogado = valorBaseContratual * adv.percentualAdvogado;
+                }
+                
                 let linhasCessionarios = '';
                 if (isPreferenciaParcial) {
-                    linhasCessionarios = gerarLinhasCessionariosAguardando(adv.cessionarios, valorHonorario);
+                    linhasCessionarios = gerarLinhasCessionariosAguardando(adv.cessionarios, valorBaseContratual);
                 } else if (isParcial) {
                     linhasCessionarios = (adv.cessionarios || []).map(cessionario => {
-                        const valorCessionario = valorHonorario * cessionario.percentual;
+                        const valorCessionario = valorBaseContratual * cessionario.percentual;
                         return `
                             <tr>
                                 <td>${cessionario.nome} (cessionário)</td>
@@ -6345,7 +6368,7 @@
                         `;
                     }).join('');
                 } else {
-                    linhasCessionarios = gerarLinhasCessionariosRecebendo(adv.cessionarios, valorHonorario, isPreferencia, resultados);
+                    linhasCessionarios = gerarLinhasCessionariosRecebendo(adv.cessionarios, valorBaseContratual);
                 }
                 
                 const pluralCessionarios = adv.cessoesAdv.length > 1 ? 's' : '';
@@ -6369,7 +6392,7 @@
                             ${linhasCessionarios}
                             <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
                                 <td>TOTAL</td>
-                                <td>100.00%</td>
+                                <td>${(adv.percentual * 100).toFixed(2)}%</td>
                                 <td>R$ ${formatarMoeda(valorHonorario)}</td>
                             </tr>
                         </table>
@@ -6389,9 +6412,9 @@
             `;
         }
 
-        function gerarLinhasCessionariosAguardando(cessionarios, valorBase) {
+        function gerarLinhasCessionariosAguardando(cessionarios, valorBaseContratual) {
             return (cessionarios || []).map(cessionario => {
-                const valorCessionario = valorBase * cessionario.percentual;
+                const valorCessionario = valorBaseContratual * cessionario.percentual;
                 return `
                     <tr>
                         <td>${cessionario.nome} (cessionário) - <em>aguarda</em></td>
@@ -6402,20 +6425,13 @@
             }).join('');
         }
 
-        function gerarLinhasCessionariosRecebendo(cessionarios, valorHonorario, isPreferencia, resultados) {
+        function gerarLinhasCessionariosRecebendo(cessionarios, valorBaseContratual) {
             return (cessionarios || []).map(cessionario => {
-                let valorCessionario;
-                if (isPreferencia && resultados) {
-                    valorCessionario = resultados.valortotatt * cessionario.percentual;
-                } else if (valorHonorario) {
-                    valorCessionario = valorHonorario * cessionario.percentual;
-                } else {
-                    valorCessionario = cessionario.valorBruto;
-                }
+                const valorCessionario = valorBaseContratual * cessionario.percentual;
                 
                 return `
                     <tr>
-                        <td>${cessionario.nome} (cessionário) </td>
+                        <td>${cessionario.nome} (cessionário)</td>
                         <td>${(cessionario.percentual * 100).toFixed(2)}%</td>
                         <td>R$ ${formatarMoeda(valorCessionario)}</td>
                     </tr>
@@ -7197,6 +7213,8 @@
                 gerarLinhasCessionarios(saldos.cessionarios)
             ].filter(Boolean).join('');
             
+            const totaisComPagamento = calcularTotaisComPagamento(saldos);
+
             return `
                 <div class="pagamentos-finais">
                     <div class="table-container">
@@ -7209,7 +7227,7 @@
                                 <th>Saldo Remanescente (Bruto)</th>
                             </tr>
                             ${linhas}
-                            ${gerarLinhaTotal(saldos)}
+                            ${gerarLinhaTotal(totaisComPagamento)}
                         </table>
                         
                         <div style="margin-top: 15px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
@@ -7222,8 +7240,82 @@
 
         // ========== FUNÇÕES AUXILIARES DE SALDO REMANESC==========
 
+        function calcularTotaisComPagamento(saldos) {
+            let totalValorBruto = 0;
+            let totalPagamento = 0;
+            let totalSaldo = 0;
+            
+            // Beneficiário Principal
+            if (saldos.beneficiarioPrincipal?.pagamento > 0) {
+                totalValorBruto += saldos.beneficiarioPrincipal.valorBruto;
+                totalPagamento += saldos.beneficiarioPrincipal.pagamento;
+                totalSaldo += saldos.beneficiarioPrincipal.saldo;
+            }
+            
+            // Herdeiros
+            if (saldos.herdeiros?.length > 0) {
+                saldos.herdeiros.forEach(herd => {
+                    if (herd.pagamento > 0 && (herd.pagamentoDireto > 0 || herd.pagamentoDoBeneficiario > 0)) {
+                        totalValorBruto += herd.valorBruto;
+                        totalPagamento += herd.pagamento;
+                        totalSaldo += herd.saldo;
+                    }
+                });
+            }
+            
+            // Advogados
+            if (saldos.advogados?.length > 0) {
+                saldos.advogados.forEach(adv => {
+                    if (adv.pagamento > 0) {
+                        totalValorBruto += adv.valorBruto;
+                        totalPagamento += adv.pagamento;
+                        totalSaldo += adv.saldo;
+                    }
+                });
+            }
+            
+            // Advogados Sucumbenciais
+            if (saldos.advogadosSucumbenciais?.length > 0) {
+                saldos.advogadosSucumbenciais.forEach(adv => {
+                    if (adv.pagamento > 0) {
+                        totalValorBruto += adv.valorBruto;
+                        totalPagamento += adv.pagamento;
+                        totalSaldo += adv.saldo;
+                    }
+                });
+            }
+            
+            // Sindicatos
+            if (saldos.sindicatos?.length > 0) {
+                saldos.sindicatos.forEach(sind => {
+                    if (sind.pagamento > 0) {
+                        totalValorBruto += sind.valorBruto;
+                        totalPagamento += sind.pagamento;
+                        totalSaldo += sind.saldo;
+                    }
+                });
+            }
+            
+            // Cessionários
+            if (saldos.cessionarios?.length > 0) {
+                saldos.cessionarios.forEach(cess => {
+                    if (cess.pagamento > 0 && (cess.pagamentoDireto > 0 || (cess.pagamentoHerdado && cess.pagamentoHerdado > 0))) {
+                        totalValorBruto += cess.valorBruto;
+                        totalPagamento += cess.pagamento;
+                        totalSaldo += cess.saldo;
+                    }
+                });
+            }
+            
+            return {
+                totalValorBruto,
+                totalPagamento,
+                totalSaldo
+            };
+        }
+
         function gerarLinhaBeneficiario(benef) {
-            if (!benef || benef.pagamento <= 0) return '';
+            if (!benef || benef.pagamento <= 0 || benef.saldo <= 0) return '';
             
             return `
                 <tr>
@@ -7238,46 +7330,64 @@
         function gerarLinhasHerdeiros(herdeiros) {
             if (!herdeiros || herdeiros.length === 0) return '';
             
-            return herdeiros.map(herd => {
-                const detalhesPagamento = (herd.pagamentoDoBeneficiario && herd.pagamentoDoBeneficiario > 0)
-                    ? `<br><small style="color: #666;">(Direto: R$ ${formatarMoeda(herd.pagamentoDireto)} + Do Benef.: R$ ${formatarMoeda(herd.pagamentoDoBeneficiario)})</small>`
-                    : '';
-                
-                return `
-                    <tr>
-                        <td>${herd.nome} (Herdeiro)</td>
-                        <td>R$ ${formatarMoeda(herd.valorBruto)}</td>
-                        <td>R$ ${formatarMoeda(herd.pagamento)}${detalhesPagamento}</td>
-                        <td><strong>R$ ${formatarMoeda(herd.saldo)}</strong></td>
-                    </tr>
-                `;
-            }).join('');
+            return herdeiros
+                .filter(herd => {
+                    return herd.pagamento > 0 && (
+                        herd.pagamentoDireto > 0 || 
+                        herd.pagamentoDoBeneficiario > 0
+                    );
+                })
+                .map(herd => {
+                    const detalhesPagamento = (herd.pagamentoDoBeneficiario && herd.pagamentoDoBeneficiario > 0)
+                        ? `<br><small style="color: #666;">(Direto: R$ ${formatarMoeda(herd.pagamentoDireto || 0)} + Do Benef.: R$ ${formatarMoeda(herd.pagamentoDoBeneficiario)})</small>`
+                        : '';
+                    
+                    return `
+                        <tr>
+                            <td>${herd.nome} (Herdeiro)</td>
+                            <td>R$ ${formatarMoeda(herd.valorBruto)}</td>
+                            <td>R$ ${formatarMoeda(herd.pagamento)}${detalhesPagamento}</td>
+                            <td><strong>R$ ${formatarMoeda(herd.saldo)}</strong></td>
+                        </tr>
+                    `;
+                }).join('');
         }
 
         function gerarLinhasSimples(lista, tipo) {
             if (!lista || lista.length === 0) return '';
             
-            return lista.map(item => {
-                const rotulo = tipo === 'Advogado' || tipo === 'Adv. Sucumbencial'
-                    ? `${item.nome} (${tipo} ${item.tipo})`
-                    : `${item.nome} (${tipo})`;
-                
-                return `
-                    <tr>
-                        <td>${rotulo}</td>
-                        <td>R$ ${formatarMoeda(item.valorBruto)}</td>
-                        <td>R$ ${formatarMoeda(item.pagamento)}</td>
-                        <td><strong>R$ ${formatarMoeda(item.saldo)}</strong></td>
-                    </tr>
-                `;
-            }).join('');
+            return lista
+                .filter(item => item.pagamento > 0) 
+                .map(item => {
+                    const rotulo = tipo === 'Advogado' || tipo === 'Adv. Sucumbencial'
+                        ? `${item.nome} (${tipo} ${item.tipo})`
+                        : `${item.nome} (${tipo})`;
+                    
+                    return `
+                        <tr>
+                            <td>${rotulo}</td>
+                            <td>R$ ${formatarMoeda(item.valorBruto)}</td>
+                            <td>R$ ${formatarMoeda(item.pagamento)}</td>
+                            <td><strong>R$ ${formatarMoeda(item.saldo)}</strong></td>
+                        </tr>
+                    `;
+                }).join('');
         }
 
         function gerarLinhasCessionarios(cessionarios) {
             if (!cessionarios || cessionarios.length === 0) return '';
             
             return cessionarios
-                .filter(cess => cess.pagamento > 0)
+                .filter(cess => {
+                    if (cess.pagamento <= 0) return false;
+
+                    if (cess.hasOwnProperty('pagamentoDireto')) {
+                        const pagamentoDoCedente = cess.pagamento - cess.pagamentoDireto;
+                        return cess.pagamentoDireto > 0 || pagamentoDoCedente > 0;
+                    }
+                    
+                    return true;
+                })
                 .map(cess => {
                     let detalhesPagamento = '';
                     
@@ -7299,13 +7409,13 @@
                 }).join('');
         }
 
-        function gerarLinhaTotal(saldos) {
+        function gerarLinhaTotal(totais) {
             return `
                 <tr class="highlight">
                     <td><strong>TOTAL</strong></td>
-                    <td><strong>R$ ${formatarMoeda(saldos.totalGeralOriginal)}</strong></td>
-                    <td><strong>R$ ${formatarMoeda(saldos.totalGeralOriginal - saldos.totalGeralBruto)}</strong></td>
-                    <td><strong>R$ ${formatarMoeda(saldos.totalGeralBruto)}</strong></td>
+                    <td><strong>R$ ${formatarMoeda(totais.totalValorBruto)}</strong></td>
+                    <td><strong>R$ ${formatarMoeda(totais.totalPagamento)}</strong></td>
+                    <td><strong>R$ ${formatarMoeda(totais.totalSaldo)}</strong></td>
                 </tr>
             `;
         }
