@@ -209,8 +209,8 @@
                                 <label for="principalSELIC">SELIC</label>
                             </div>
                             <div class="checkbox-item">
-                                <input type="checkbox" id="principalIPCA" checked>
-                                <label for="principalIPCA">IPCA</label>
+                                <input type="checkbox" id="principalIPCAE" checked>
+                                <label for="principalIPCAE">IPCA-E</label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="principalJurosMora" checked>
@@ -731,7 +731,7 @@
             const indices = { 
                 cnj: $('principalCNJ').checked, 
                 selic: $('principalSELIC').checked, 
-                ipca: $('principalIPCA').checked, 
+                ipcae: $('principalIPCAE').checked, 
                 jurosMora: $('principalJurosMora').checked 
             };
 
@@ -882,7 +882,7 @@
 
             $('principalCNJ').checked = valorParaEditar.indices.cnj || false; 
             $('principalSELIC').checked = valorParaEditar.indices.selic || false; 
-            $('principalIPCA').checked = valorParaEditar.indices.ipca || false; 
+            $('principalIPCAE').checked = valorParaEditar.indices.ipcae || false; 
             $('principalJurosMora').checked = valorParaEditar.indices.jurosMora || false;
 
             const trib = valorParaEditar.tributacao || {};
@@ -2670,10 +2670,10 @@
         }
 
         // ====================================
-        // IPCA
+        // IPCA-E
         // ====================================
 
-        async function calcularIpca(dataBase, inicioGraca, fimGraca) {
+        async function calcularIpcaE(dataBase, inicioGraca, fimGraca) {
             try {
                 // Descobre a data final como o último dia do mês anterior ao mês atual
                 const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
@@ -2683,80 +2683,80 @@
                 const primeiroDiaMesAtual = new Date(dataReferencia.getFullYear(), dataReferencia.getMonth(), 1);
                 const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
                 const dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
-                const urlipca = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.10764/dados?formato=json&dataInicial=01/12/2021&dataFinal=${dataFinal}`;
+                const urlipcae = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.10764/dados?formato=json&dataInicial=01/12/2021&dataFinal=${dataFinal}`;
                 //7478 - ipca 10764 - IPCA.E
-                const response = await fetch(urlipca);
+                const response = await fetch(urlipcae);
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
-                const dadosipca = await response.json();
+                const dadosipcae = await response.json();
                 
-                return processarDadosIpca(dadosipca, dataBase, inicioGraca, fimGraca);
+                return processarDadosIpcaE(dadosipcae, dataBase, inicioGraca, fimGraca);
                 
             } catch (error) {
-                console.error(`Erro ao obter dados do IPCA: ${error}`);
-                console.log('A API do Banco Central está indisponível. Será necessário inserir o valor do IPCA manualmente.');
+                console.error(`Erro ao obter dados do IPCAE: ${error}`);
+                console.log('A API do Banco Central está indisponível. Será necessário inserir o valor do IPCAE manualmente.');
                 
                 // Solicita valor manual
-                return await solicitarIpcaManual(dataBase, inicioGraca, fimGraca);
+                return await solicitarIpcaEManual(dataBase, inicioGraca, fimGraca);
             }
         }
 
-        async function solicitarIpcaManual(dataBase, inicioGraca, fimGraca) {
+        async function solicitarIpcaEManual(dataBase, inicioGraca, fimGraca) {
             try {
-                let indiceipca = 1.0;
+                let indiceipcae = 1.0;
                 
                 // Data de início da aplicação do IPCA (dezembro/2021) - igual à API
-                const inicioIPCAPrec = new Date(2021, 11, 1); // dezembro/2021
+                const inicioIPCAEPrec = new Date(2021, 11, 1); // dezembro/2021
                 
                 // Verifica se precisa de IPCA durante a graça
                 if (dataBase <= fimGraca) {
                     // Determina o início efetivo: o maior entre dataBase, inicioGraca e dez/2021
                     let inicioEfetivo = dataBase > inicioGraca ? dataBase : inicioGraca;
-                    if (inicioEfetivo < inicioIPCAPrec) {
-                        inicioEfetivo = inicioIPCAPrec;
+                    if (inicioEfetivo < inicioIPCAEPrec) {
+                        inicioEfetivo = inicioIPCAEPrec;
                     }
                     
                     // Só pergunta se há período válido para aplicar IPCA
                     if (inicioEfetivo <= fimGraca) {
-                        const valorIpca = prompt(
-                            `Digite o índice IPCA DURANTE a graça (período de ${inicioEfetivo.toLocaleDateString('pt-BR')} a ${fimGraca.toLocaleDateString('pt-BR')}):\n` +
+                        const valorIpcaE = prompt(
+                            `Digite o índice IPCAE DURANTE a graça (período de ${inicioEfetivo.toLocaleDateString('pt-BR')} a ${fimGraca.toLocaleDateString('pt-BR')}):\n` +
                             `Formato: 1,XXXX ou 1.XXXX (exemplo: 1,1250 ou 1.1250 para 12,50% acumulado)`
                         );
                         
-                        if (valorIpca) {
+                        if (valorIpcaE) {
                             // Normaliza vírgula para ponto
-                            const valorNormalizado = valorIpca.replace(',', '.');
+                            const valorNormalizado = valorIpcaE.replace(',', '.');
                             if (!isNaN(parseFloat(valorNormalizado))) {
-                                indiceipca = parseFloat(valorNormalizado);
+                                indiceipcae = parseFloat(valorNormalizado);
                             }
                         }
                     }
                 }
                 // Se dataBase > fimGraca, não aplica IPCA (mantém 1.0)
                 
-                return indiceipca;
+                return indiceipcae;
                 
             } catch (error) {
-                console.error('Erro ao processar valor manual do IPCA:', error);
+                console.error('Erro ao processar valor manual do IPCAE:', error);
                 return 1.0;
             }
         }
 
-        function processarDadosIpca(dadosipca, dataBase, inicioGraca, fimGraca) {
+        function processarDadosIpcaE(dadosipcae, dataBase, inicioGraca, fimGraca) {
             // Função para converter string de data da API em Date
             function strParaData(dataStr) {
                 const [dia, mes, ano] = dataStr.split('/');
                 return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
             }
             
-            let ipcaGraca = [];
+            let ipcaeGraca = [];
             
             if (dataBase <= fimGraca) {
                 // Determina o início efetivo: o maior entre dataBase e inicioGraca
                 const inicioEfetivo = dataBase > inicioGraca ? dataBase : inicioGraca;
                 
-                ipcaGraca = dadosipca
+                ipcaeGraca = dadosipcae
                     .filter(item => {
                         const dataItem = strParaData(item.data);
                         return inicioEfetivo <= dataItem && dataItem <= fimGraca;
@@ -2765,12 +2765,12 @@
             }
             // Se dataBase > fimGraca, não aplica IPCA (ipcaGraca fica vazio)
             
-            let indiceipca = 1.0;
-            for (const valor of ipcaGraca) {
-                indiceipca *= 1 + (valor / 100);
+            let indiceipcae = 1.0;
+            for (const valor of ipcaeGraca) {
+                indiceipcae *= 1 + (valor / 100);
             }
             
-            return indiceipca;
+            return indiceipcae;
         }
 
         // ====================================
@@ -2811,7 +2811,7 @@
             const indices = {
                 cnj: 1,
                 selic: 1,
-                ipca: 1,
+                ipcae: 1,
                 jurosMora: 0
             };
             
@@ -2857,12 +2857,12 @@
                 }
                 
                 // 3. IPCA
-                if (configIndices.aplicarIpca) {
+                if (configIndices.aplicarIpcaE) {
                     try {
-                        indices.ipca = await calcularIpca(dataBase, inicioGraca, fimGraca);
+                        indices.ipcae = await calcularIpcaE(dataBase, inicioGraca, fimGraca);
                     } catch (error) {
-                        console.error("⚠️ Erro ao calcular IPCA (usando 1.0):", error.message);
-                        indices.ipca = 1;
+                        console.error("⚠️ Erro ao calcular IPCAE (usando 1.0):", error.message);
+                        indices.ipcae = 1;
                     }
                 }
                 
@@ -2877,8 +2877,8 @@
             }
             
             // Índices compostos
-            const indicePrincipal = indices.cnj * indices.selic * indices.ipca;
-            const indiceJuros = indices.selic * indices.ipca;
+            const indicePrincipal = indices.cnj * indices.selic * indices.ipcae;
+            const indiceJuros = indices.selic * indices.ipcae;
             
             // Valores atualizados
             const valorJurosMora = valorPrincipal * indices.cnj * indices.jurosMora;
@@ -2904,7 +2904,7 @@
             const configIndices = {
                 aplicarCNJ: item.indices.cnj || false,
                 aplicarSelic: item.indices.selic || false,
-                aplicarIpca: item.indices.ipca || false,
+                aplicarIpcaE: item.indices.ipcae || false,
                 aplicarJurosMora: item.indices.jurosMora || false,
                 tipoSelic: item.tipoSelic,
                 valorSelic: item.valorSelic,
@@ -3019,7 +3019,7 @@
                     const configIndices = {
                         aplicarCNJ: true,        // ⭐ Sempre
                         aplicarSelic: true,      // ⭐ Sempre
-                        aplicarIpca: true,       // ⭐ Sempre
+                        aplicarIpcaE: true,       // ⭐ Sempre
                         aplicarJurosMora: true,  // ⭐ Sempre
                         tipoSelic: pagamento.tipoSelic,
                         valorSelic: pagamento.valorSelic,
@@ -5474,7 +5474,7 @@
             return {
                 cnj: itemCalculado.indices?.cnj || 1,
                 selic: itemCalculado.indices?.selic || 1,
-                ipca: itemCalculado.indices?.ipca || 1,
+                ipcae: itemCalculado.indices?.ipcae || 1,
                 jurosMora: itemCalculado.indices?.jurosMora || 0
             };
         }
@@ -5482,24 +5482,24 @@
         function calcularValoresPassoAPasso(item, itemCalculado, indices) {
             // Principal
             const principalCNJ = item.valorPrincipal * indices.cnj;
-            const principalIPCA = principalCNJ * indices.ipca;
+            const principalIPCAE = principalCNJ * indices.ipcae;
             const principalFinal = itemCalculado.valorAtualizado?.principal || 0;
             
             // Juros
             const jurosOriginaisCNJ = item.valorJuros * indices.cnj;
             const valorJurosMora = itemCalculado.jurosMoraCalculado || 0;
             const totalJuros = jurosOriginaisCNJ + valorJurosMora;
-            const totalJurosIPCA = totalJuros * indices.ipca;
+            const totalJurosIPCAE = totalJuros * indices.ipcae;
             const jurosFinal = itemCalculado.valorAtualizado?.juros || 0;
             
             return {
                 principalCNJ,
-                principalIPCA,
+                principalIPCAE,
                 principalFinal,
                 jurosOriginaisCNJ,
                 valorJurosMora,
                 totalJuros,
-                totalJurosIPCA,
+                totalJurosIPCAE,
                 jurosFinal
             };
         }
@@ -5520,16 +5520,16 @@
                         <td>R$ ${formatarMoeda(item.valorPrincipal)} × ${indices.cnj.toFixed(6)}</td>
                         <td>R$ ${formatarMoeda(valores.principalCNJ)}</td>
                     </tr>` : ''}
-                    ${item.indices.ipca ? `
+                    ${item.indices.ipcae ? `
                     <tr>
-                        <td>3. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
-                        <td>R$ ${formatarMoeda(valores.principalCNJ)} × ${indices.ipca.toFixed(6)}</td>
-                        <td>R$ ${formatarMoeda(valores.principalIPCA)}</td>
+                        <td>3. Aplicação IPCAE (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
+                        <td>R$ ${formatarMoeda(valores.principalCNJ)} × ${indices.ipcae.toFixed(6)}</td>
+                        <td>R$ ${formatarMoeda(valores.principalIPCAE)}</td>
                     </tr>` : ''}
                     ${item.indices.selic ? `
                     <tr>
                         <td>4. Aplicação SELIC (excluído a graça)</td>
-                        <td>R$ ${formatarMoeda(valores.principalIPCA)} × ${indices.selic.toFixed(6)}</td>
+                        <td>R$ ${formatarMoeda(valores.principalIPCAE)} × ${indices.selic.toFixed(6)}</td>
                         <td><strong>R$ ${formatarMoeda(valores.principalFinal)}</strong></td>
                     </tr>` : `
                     <tr>
@@ -5570,16 +5570,16 @@
                         <td>R$ ${formatarMoeda(valores.jurosOriginaisCNJ)} + R$ ${formatarMoeda(valores.valorJurosMora)}</td>
                         <td>R$ ${formatarMoeda(valores.totalJuros)}</td>
                     </tr>` : ''}
-                    ${item.indices.ipca ? `
+                    ${item.indices.ipcae ? `
                     <tr>
-                        <td>${etapa++}. Aplicação IPCA (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
-                        <td>R$ ${formatarMoeda(valores.totalJuros)} × ${indices.ipca.toFixed(6)}</td>
-                        <td>R$ ${formatarMoeda(valores.totalJurosIPCA)}</td>
+                        <td>${etapa++}. Aplicação IPCAE (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
+                        <td>R$ ${formatarMoeda(valores.totalJuros)} × ${indices.ipcae.toFixed(6)}</td>
+                        <td>R$ ${formatarMoeda(valores.totalJurosIPCAE)}</td>
                     </tr>` : ''}
                     ${item.indices.selic ? `
                     <tr>
                         <td>${etapa++}. Aplicação SELIC (excluído a graça)</td>
-                        <td>R$ ${formatarMoeda(valores.totalJurosIPCA)} × ${indices.selic.toFixed(6)}</td>
+                        <td>R$ ${formatarMoeda(valores.totalJurosIPCAE)} × ${indices.selic.toFixed(6)}</td>
                         <td><strong>R$ ${formatarMoeda(valores.jurosFinal)}</strong></td>
                     </tr>` : `
                     <tr>
@@ -7193,8 +7193,8 @@
                 detalhes.push(`SELIC: ${percentualSelic}%`);
             }
             
-            if (indices.ipca && indices.ipca !== 1) {
-                detalhes.push(`IPCA: ${indices.ipca.toFixed(6)}`);
+            if (indices.ipcae && indices.ipcae !== 1) {
+                detalhes.push(`IPCAE: ${indices.ipcae.toFixed(6)}`);
             }
             
             if (indices.jurosMora && indices.jurosMora > 0) {
