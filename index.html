@@ -2479,16 +2479,24 @@
         const hoje = new Date().toISOString().split('T')[0];
         $("dataatualizacao").value = hoje;
 
-        async function calcularSelic(dataBase, inicioGraca, fimGraca) {
+        async function calcularSelic(dataBase, inicioGraca, fimGraca, dataLimite = null) {
             try {
-                // Descobre a data final como o último dia do mês anterior ao mês atual
-                const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
-                const [ano, mes, dia] = dataAtualizacaoInput.split('-');
-                const dataReferencia = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+                let dataFinal;
 
-                const primeiroDiaMesAtual = new Date(dataReferencia.getFullYear(), dataReferencia.getMonth(), 1);
-                const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
-                const dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
+                if (dataLimite) {
+                    // Usar a data limite passada como parâmetro
+                    dataFinal = dataLimite.toLocaleDateString('pt-BR');
+                } else {
+                    // Usar a data de atualização do input (comportamento original)
+                    const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
+                    const [ano, mes, dia] = dataAtualizacaoInput.split('-');
+                    const dataReferencia = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+
+                    const primeiroDiaMesAtual = new Date(dataReferencia.getFullYear(), dataReferencia.getMonth(), 1);
+                    const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
+                    dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
+                }
+
                 const urlselic = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.4390/dados?formato=json&dataInicial=01/12/2021&dataFinal=${dataFinal}`;
                 
                 const response = await fetch(urlselic);
@@ -2682,16 +2690,22 @@
         // IPCA-E
         // ====================================
 
-        async function calcularIpcaE(dataBase, inicioGraca, fimGraca) {
+        async function calcularIpcaE(dataBase, inicioGraca, fimGraca, dataLimite = null) {
             try {
-                // Descobre a data final como o último dia do mês anterior ao mês atual
-                const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
-                const [ano, mes, dia] = dataAtualizacaoInput.split('-');
-                const dataReferencia = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+                let dataFinal;
 
-                const primeiroDiaMesAtual = new Date(dataReferencia.getFullYear(), dataReferencia.getMonth(), 1);
-                const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
-                const dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
+                if (dataLimite) {
+                    dataFinal = dataLimite.toLocaleDateString('pt-BR');
+                } else {
+                    const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
+                    const [ano, mes, dia] = dataAtualizacaoInput.split('-');
+                    const dataReferencia = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+
+                    const primeiroDiaMesAtual = new Date(dataReferencia.getFullYear(), dataReferencia.getMonth(), 1);
+                    const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
+                    dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
+                }
+
                 const urlipcae = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.10764/dados?formato=json&dataInicial=01/12/2021&dataFinal=${dataFinal}`;
                 //7478 - ipca 10764 - IPCA.E
                 const response = await fetch(urlipcae);
