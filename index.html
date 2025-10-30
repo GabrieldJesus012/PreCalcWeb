@@ -2405,13 +2405,15 @@
             let inicioGraca;
             if (anoOrcamento <= 2022) {
                 // Julho do ano anterior
-                inicioGraca = new Date(anoOrcamento - 1, 6, 1); // Mês 6 = Julho (0-based)
-            } else {
+                inicioGraca = new Date(anoOrcamento - 1, 6, 1); // Julho
+            } else if (anoOrcamento >= 2023 && anoOrcamento <= 2026) {
                 // Abril do ano anterior
-                inicioGraca = new Date(anoOrcamento - 1, 3, 1); // Mês 3 = Abril
+                inicioGraca = new Date(anoOrcamento - 1, 3, 1); // Abril
+            } else { // anoOrcamento >= 2027
+                // Fevereiro do ano anterior
+                inicioGraca = new Date(anoOrcamento - 1, 1, 1); // Fevereiro
             }
-            // Fim do período: 31 de Dezembro do ano do orçamento
-            const fimGraca = new Date(anoOrcamento, 11, 31); // Mês 11 = Dezembro
+            const fimGraca = new Date(anoOrcamento, 11, 31);
             return { inicioGraca, fimGraca };
         }
         
