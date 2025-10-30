@@ -216,6 +216,10 @@
                                 <input type="checkbox" id="principalJurosMora" checked>
                                 <label for="principalJurosMora">Juros de Mora</label>
                             </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="principalIPCA" checked>
+                                <label for="principalIPCA">IPCA</label>
+                            </div>
                         </div>
                         <h3>🏦 Impostos e Contribuições</h3>
                         <div class="date-row">
@@ -732,7 +736,8 @@
                 cnj: $('principalCNJ').checked, 
                 selic: $('principalSELIC').checked, 
                 ipcae: $('principalIPCAE').checked, 
-                jurosMora: $('principalJurosMora').checked 
+                jurosMora: $('principalJurosMora').checked,
+                ipca: $('principalIPCA').checked
             };
 
             const tributacao = {
@@ -884,6 +889,7 @@
             $('principalSELIC').checked = valorParaEditar.indices.selic || false; 
             $('principalIPCAE').checked = valorParaEditar.indices.ipcae || false; 
             $('principalJurosMora').checked = valorParaEditar.indices.jurosMora || false;
+            $('principalIPCA').checked = valorParaEditar.indices.ipca || false;
 
             const trib = valorParaEditar.tributacao || {};
             $('incidenciaIR').value = trib.ir ? 'sim' : 'nao';
@@ -2400,9 +2406,12 @@
             if (anoOrcamento <= 2022) {
                 // Julho do ano anterior
                 inicioGraca = new Date(anoOrcamento - 1, 6, 1); // Mês 6 = Julho (0-based)
-            } else {
+            } else if (anoOrcamento >= 2023 && anoOrcamento <= 2026) {
                 // Abril do ano anterior
-                inicioGraca = new Date(anoOrcamento - 1, 3, 1); // Mês 3 = Abril
+                inicioGraca = new Date(anoOrcamento - 1, 3, 1);
+            }else {
+                // Fevereiro do ano anterior
+                inicioGraca = new Date(anoOrcamento - 1, 1, 1); // Mês 1 = Fevereiro
             }
             // Fim do período: 31 de Dezembro do ano do orçamento
             const fimGraca = new Date(anoOrcamento, 11, 31); // Mês 11 = Dezembro
@@ -2774,6 +2783,69 @@
         }
 
         // ====================================
+        // IPCA + 2%a.a
+        // ====================================
+        function calcularMesesEntre(dataInicio, dataFim) {
+            const anos = dataFim.getFullYear() - dataInicio.getFullYear();
+            const meses = dataFim.getMonth() - dataInicio.getMonth();
+            const dias = dataFim.getDate() - dataInicio.getDate();
+            
+            let totalMeses = anos * 12 + meses;
+            
+            // Se o dia final for menor que o dia inicial, subtrai 1 mês
+            if (dias < 0) {
+                totalMeses -= 1;
+            }
+            
+            return totalMeses;
+        }
+
+        async function calcularIpca(dataInicio, dataFim) {
+            try {
+                // Formatar datas para o formato da API (dd/mm/aaaa)
+                const dataInicioFormatada = dataInicio.toLocaleDateString('pt-BR');
+                const dataFimFormatada = dataFim.toLocaleDateString('pt-BR');
+                
+                const urlIpca= `https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados?formato=json&dataInicial=${dataInicioFormatada}&dataFinal=${dataFimFormatada}`;
+                
+                const response = await fetch(urlIpca);
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+                
+                const dadosIpca = await response.json();
+                
+                // Processar dados
+                let indice = 1.0;
+                for (const item of dadosIpca) {
+                    const valor = parseFloat(item.valor.replace(',', '.'));
+                    indice *= (1 + valor / 100);
+                }
+                
+                return indice;
+                
+            } catch (error) {
+                console.error(`Erro ao obter IPCA Normal: ${error}`);
+                console.log('A API do Banco Central está indisponível. Será necessário inserir o valor do IPCA Normal manualmente.');
+                
+                // Solicitar manual
+                const valorManual = prompt(
+                    `Digite o índice IPCA Normal acumulado de ${dataInicio.toLocaleDateString('pt-BR')} até ${dataFim.toLocaleDateString('pt-BR')}:\n` +
+                    `Formato: 1,XXXX ou 1.XXXX (exemplo: 1.0369 ou 1,0369 para 3,69% acumulado)`
+                );
+                
+                if (valorManual) {
+                    const valorNormalizado = valorManual.replace(',', '.');
+                    if (!isNaN(parseFloat(valorNormalizado))) {
+                        return parseFloat(valorNormalizado);
+                    }
+                }
+                
+                return 1.0;
+            }
+        }
+
+        // ====================================
         // Calculos
         // ====================================
 
@@ -2807,12 +2879,24 @@
             const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
             const { mesBase, anoBase } = baseData;
             const dataBase = criarDataBase(mesBase, anoBase);
+
+            // Data de corte da PEC
+            const dataAgosto2025 = new Date(2025, 7, 1); // 01/08/2025
+
+            // Pegar data de atualização do input
+            const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
+            const [ano, mes, dia] = dataAtualizacaoInput.split('-');
+            const dataAtualizacao = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
             
             const indices = {
                 cnj: 1,
                 selic: 1,
                 ipcae: 1,
-                jurosMora: 0
+                jurosMora: 0,
+                ipca:1,
+                selicPosAgosto: 1,  // SELIC após ago/2025
+                ipcaNormalPosGraca: 1, // IPCA Normal após período de graça
+                ipcaComJuros: 1   // IPCA Normal + 2% a.a (para comparação)  
             };
             
             try {
@@ -2820,8 +2904,13 @@
                 if (configIndices.aplicarCNJ) {
                     indices.cnj = obterIndiceCNJ(mesBase, anoBase);
                 }
+
+                // 2. Juros Mora Cardeneta de Poupança
+                if (configIndices.aplicarJurosMora) {
+                    indices.jurosMora = calcularSomaJurosMora(mesBase, anoBase, dados.natureza, inicioGraca, fimGraca) / 100;
+                }
                 
-                // 2. SELIC
+                // 3. SELIC
                 if (configIndices.aplicarSelic) {
                     const temSelicInformado = (configIndices.tipoSelic === 'valor' && configIndices.valorSelic > 0) || 
                                             (configIndices.tipoSelic === 'percentual' && configIndices.percentualSelic > 0);
@@ -2856,7 +2945,7 @@
                     }
                 }
                 
-                // 3. IPCA
+                // 4. IPCA
                 if (configIndices.aplicarIpcaE) {
                     try {
                         indices.ipcae = await calcularIpcaE(dataBase, inicioGraca, fimGraca);
@@ -2864,11 +2953,6 @@
                         console.error("⚠️ Erro ao calcular IPCAE (usando 1.0):", error.message);
                         indices.ipcae = 1;
                     }
-                }
-                
-                // 4. Juros de Mora
-                if (configIndices.aplicarJurosMora) {
-                    indices.jurosMora = calcularSomaJurosMora(mesBase, anoBase, dados.natureza, inicioGraca, fimGraca) / 100;
                 }
                 
             } catch (error) {
@@ -2906,6 +2990,7 @@
                 aplicarSelic: item.indices.selic || false,
                 aplicarIpcaE: item.indices.ipcae || false,
                 aplicarJurosMora: item.indices.jurosMora || false,
+                aplicarIpca: item.indices.ipca || false, 
                 tipoSelic: item.tipoSelic,
                 valorSelic: item.valorSelic,
                 percentualSelic: item.percentualSelic,
@@ -3021,6 +3106,7 @@
                         aplicarSelic: true,      // ⭐ Sempre
                         aplicarIpcaE: true,       // ⭐ Sempre
                         aplicarJurosMora: true,  // ⭐ Sempre
+                        aplicarIpca: true, 
                         tipoSelic: pagamento.tipoSelic,
                         valorSelic: pagamento.valorSelic,
                         percentualSelic: pagamento.percentualSelic,
@@ -5475,7 +5561,8 @@
                 cnj: itemCalculado.indices?.cnj || 1,
                 selic: itemCalculado.indices?.selic || 1,
                 ipcae: itemCalculado.indices?.ipcae || 1,
-                jurosMora: itemCalculado.indices?.jurosMora || 0
+                jurosMora: itemCalculado.indices?.jurosMora || 0,
+                ipca: itemCalculado.indices?.ipca || 1,
             };
         }
 
