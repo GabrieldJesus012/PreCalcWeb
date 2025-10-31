@@ -5673,8 +5673,6 @@
         }
 
         function gerarDemonstrativoValores(dados, resultados, dataAtual) {
-            const indiceTotal = isNaN(resultados.indiceTotal) ? '1' : resultados.indiceTotal.toFixed(6);
-
             // Calcular valores originais totais - EXCLUINDO valores negativos
             const valorPrincipalOriginal = (dados.valoresPrincipais || [])
                 .reduce((sum, item) => {
@@ -5690,6 +5688,19 @@
             
             const valorTotalOriginal = valorPrincipalOriginal + valorJurosOriginal;
 
+            // ⬇️ CALCULAR ÍNDICES INDIVIDUAIS
+            const indicePrincipal = valorPrincipalOriginal > 0 
+                ? (resultados.valorprincatt / valorPrincipalOriginal).toFixed(6)
+                : '1.000000';
+            
+            const indiceJuros = valorJurosOriginal > 0
+                ? (resultados.valorjurosatt / valorJurosOriginal).toFixed(6)
+                : '1.000000';
+            
+            const indiceTotal = valorTotalOriginal > 0
+                ? (resultados.valortotatt / valorTotalOriginal).toFixed(6)
+                : '1.000000';
+
             const datasUnicas = [...new Set(
                 (dados.valoresPrincipais || [])
                     .filter(item => item.mesBase && item.anoBase)
@@ -5700,6 +5711,10 @@
                 ? datasUnicas.join(', ') 
                 : 'Não informado';
 
+            // VERIFICAR SE TEM SELIC SEPARADA
+            const valorSelicTotal = resultados.valorSelicatt || 0;
+            const temSelic = valorSelicTotal > 0;
+
             return `
                 <div class="table-container">
                     <h3>💰 Demonstrativo de Atualização Monetária</h3>
@@ -5707,30 +5722,38 @@
                         <tr>
                             <th>Componente</th>
                             <th>Valor Histórico (${textoDataBase})</th>
-                            <th>Correção Aplicada*</th>
+                            <th>Índice de Correção*</th>
                             <th>Valor Atualizado (${dataAtual})</th>
                         </tr>
                         <tr>
                             <td>Principal</td>
                             <td>R$ ${formatarMoeda(valorPrincipalOriginal)}</td>
-                            <td>${indiceTotal}</td>
+                            <td>${indicePrincipal}</td>
                             <td>R$ ${formatarMoeda(resultados.valorprincatt)}</td>
                         </tr>
                         <tr>
                             <td>Juros</td>
                             <td>R$ ${formatarMoeda(valorJurosOriginal)}</td>
-                            <td>${indiceTotal}</td>
+                            <td>${indiceJuros}</td>
                             <td>R$ ${formatarMoeda(resultados.valorjurosatt)}</td>
                         </tr>
+                        ${temSelic ? `
+                        <tr>
+                            <td>Selic</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>R$ ${formatarMoeda(valorSelicTotal)}</td>
+                        </tr>
+                        ` : ''}
                         <tr class="highlight">
                             <td><strong>Total Atualizado</strong></td>
                             <td><strong>R$ ${formatarMoeda(valorTotalOriginal)}</strong></td>
-                            <td><strong>-</strong></td>
+                            <td><strong>${indiceTotal}</strong></td>
                             <td><strong>R$ ${formatarMoeda(resultados.valortotatt)}</strong></td>
                         </tr>
                     </table>
                     <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
-                        *Atualização Monetária conforme Resolução CNJ nº 303/2019, com índices de correção monetária, conforme caput do Art.21- A - <strong>Período de Correção</strong>: Os valores foram atualizados desde a base <strong>${textoDataBase}</strong> até <strong>${dataAtual}</strong>.
+                        *Atualização Monetária conforme Resolução CNJ nº 303/2019, com índices de correção monetária, conforme caput do Art.21- A e  Emenda Constitucional nº 62 e 113, art. 3º. - <strong>Período de Correção</strong>: Os valores foram atualizados desde a base <strong>${textoDataBase}</strong> até <strong>${dataAtual}</strong>.
                     </div>
                 </div>
             `;
