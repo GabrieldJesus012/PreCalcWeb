@@ -5793,7 +5793,7 @@
                 ${memoriaisCalculos}
                 ${(notaSelicInformado || temJurosMora) ? `
                 <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
-                    ${notaSelicInformado}${temJurosMora ? '*Juros calculados de forma simples (até Novembro/2021), conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ e SV nº 17 do STF.' : ''}
+                    ${notaSelicInformado}${temJurosMora ? '*Juros calculados de forma simples (até Novembro/2021), conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ, SV nº 17 do STF e a partir de 01.08.2025 juros de 2% ao ano (quando aplicável).' : ''}
                 </div>` : ''}
             `;
         }
@@ -5933,7 +5933,7 @@
                     </tr>` : ''}
                     ${item.indices.jurosMora && valores.valorJurosMora > 0 ? `
                     <tr>
-                        <td>${etapa++}. Juros de Mora</td>
+                        <td>${etapa++}. Juros de Mora - Poupança</td>
                         <td>Principal CNJ × ${(indices.jurosMora * 100).toFixed(4)}%*</td>
                         <td>R$ ${formatarMoeda(valores.valorJurosMora)}</td>
                     </tr>
