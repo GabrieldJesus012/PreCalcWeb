@@ -3359,8 +3359,14 @@
                         valorAtualizado: {
                             principal: calculo.valorPrincipalAtualizado,
                             juros: calculo.valorJurosAtualizado,
-                            total: calculo.valorPrincipalAtualizado + calculo.valorJurosAtualizado
+                            selic: calculo.valorSelicSeparado || 0,
+                            total: calculo.valorPrincipalAtualizado + calculo.valorJurosAtualizado  + (calculo.valorSelicSeparado || 0)
                         },
+
+                        principalTributacao: calculo.principalTributacao,
+                        jurosTributacao: calculo.jurosTributacao,
+                        valorSelicSeparado: calculo.valorSelicSeparado || 0, 
+
                         indices: calculo.indices,
                         jurosMoraCalculado: calculo.jurosMoraCalculado,
                         selicReferencia: pagamento.selicReferencia,
@@ -3398,7 +3404,20 @@
                         const itemCalculado = await calcularItemPrincipal(item, dados);
                         valorPrincipalAtualizado += itemCalculado.valorAtualizado.principal;
                         valorJurosAtualizado += itemCalculado.valorAtualizado.juros;
-                        
+
+                        // ⬅️ ADICIONAR SELIC SEPARADA
+                        const valorSelicItem = itemCalculado.valorSelicSeparado || 0;
+                        if (valorSelicItem > 0) {
+                            // Distribuir SELIC proporcionalmente entre principal e juros
+                            const totalItem = itemCalculado.valorAtualizado.principal + itemCalculado.valorAtualizado.juros;
+                            if (totalItem > 0) {
+                                const propPrinc = itemCalculado.valorAtualizado.principal / totalItem;
+                                const propJuros = itemCalculado.valorAtualizado.juros / totalItem;
+                                valorPrincipalAtualizado += valorSelicItem * propPrinc;
+                                valorJurosAtualizado += valorSelicItem * propJuros;
+                            }
+                        }
+
                         if (item.indices.selic && itemCalculado.indices.selic) {
                             percentualSelicAcumulado = itemCalculado.indices.selic - 1;
                         }
