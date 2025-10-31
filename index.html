@@ -2493,7 +2493,6 @@
                 const dataFinalSelic = ultimoDiaMesAnterior < dataLimite31Jul2025 ? ultimoDiaMesAnterior : dataLimite31Jul2025;
                 
                 const dataFinal = dataFinalSelic.toLocaleDateString('pt-BR');
-                console.log('📅 Data final SELIC (limitada a 31/07/2025):', dataFinal);
                 
                 const urlselic = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.4390/dados?formato=json&dataInicial=01/12/2021&dataFinal=${dataFinal}`;
                 
@@ -2857,12 +2856,7 @@
             const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
             const { mesBase, anoBase } = baseData;
             const dataBase = criarDataBase(mesBase, anoBase);
-            
-            console.log('🔵 ===== INÍCIO calcularIndicesEValores =====');
-            console.log('📅 Data Base:', mesBase, anoBase);
-            console.log('💰 Valor Principal:', valorPrincipal);
-            console.log('💰 Valor Juros:', valorJuros);
-            
+                        
             const indices = {
                 cnj: 1,
                 selic: 1,
@@ -2878,20 +2872,17 @@
                 // 1. CNJ
                 if (configIndices.aplicarCNJ) {
                     indices.cnj = obterIndiceCNJ(mesBase, anoBase);
-                    console.log('📊 Índice CNJ:', indices.cnj);
                 }
 
                 // 2. Caderneta de Poupança Juros de Mora
                 if (configIndices.aplicarJurosMora) {
                     indices.jurosMora = calcularSomaJurosMora(mesBase, anoBase, dados.natureza, inicioGraca, fimGraca) / 100;
-                    console.log('📊 Juros de Mora:', (indices.jurosMora * 100).toFixed(4) + '%');
                 }
 
                 // 3. IPCA-E (período de graça)
                 if (configIndices.aplicarIpcaE) {
                     try {
                         indices.ipcae = await calcularIpcaE(dataBase, inicioGraca, fimGraca);
-                        console.log('📊 Índice IPCA-E:', indices.ipcae);
                     } catch (error) {
                         console.error("⚠️ Erro ao calcular IPCA-E (usando 1.0):", error.message);
                         indices.ipcae = 1;
@@ -2910,16 +2901,8 @@
                     }
                     
                     try {
-                        console.log('📅 Calculando SELIC de', dataInicioSelic, 'até', fimGraca);
                         dadosSelicCompletos = await calcularSelic(dataInicioSelic, inicioGraca, fimGraca);
-                        console.log('📊 Dados SELIC retornados:', {
-                            indiceselic: dadosSelicCompletos.indiceselic,
-                            periodo: dadosSelicCompletos.periodoAntesGraca,
-                            temDados: dadosSelicCompletos.temSelicAntes
-                        });
                         indices.selic = dadosSelicCompletos.indiceselic;
-                        console.log('📊 Índice SELIC (até 31/07/2025):', indices.selic);
-                        console.log('📊 Percentual SELIC:', ((indices.selic - 1) * 100).toFixed(4) + '%');
                         
                         // Adicionar SELIC informado
                         if (temSelicInformado) {
@@ -2934,7 +2917,6 @@
                             
                             if (percentualSelicAdicional > 0) {
                                 indices.selic = 1 + (indices.selic - 1) + percentualSelicAdicional;
-                                console.log('📊 SELIC com informado:', indices.selic);
                             }
                         }
                     } catch (error) {
@@ -2944,16 +2926,9 @@
                 }
 
                 // 5. Comparação SELIC vs IPCA+2% (pós agosto/2025)
-                console.log('\n🔍 ===== COMPARAÇÃO SELIC vs IPCA+2% =====');
                 comparacaoSelicIpca = await calcularSelicPosAgosto2025();
-                console.log('📊 Quantidade de meses pós agosto/2025:', comparacaoSelicIpca.quantidadeMeses);
-                console.log('📊 Índice SELIC (ago/2025+):', comparacaoSelicIpca.indiceSelic);
-                console.log('📊 Índice IPCA+2% (ago/2025+):', comparacaoSelicIpca.indiceIpcaMais2);
-                console.log('📊 SELIC > IPCA+2%?', comparacaoSelicIpca.selicMaior);
-                console.log('📊 Tipo selecionado:', comparacaoSelicIpca.tipoIndice);
                 
                 usarLogicaPEC = comparacaoSelicIpca.quantidadeMeses > 0;
-                console.log('🎯 Usar Lógica PEC?', usarLogicaPEC);
                 
             } catch (error) {
                 console.error("❌ Erro geral em calcularIndicesEValores:", error);
@@ -2963,69 +2938,47 @@
             // CÁLCULO DOS VALORES
             // ====================================
             
-            console.log('\n💵 ===== CÁLCULO DOS VALORES =====');
             
             // Calcular valores base (até 31/07/2025)
             const principalCNJ = valorPrincipal * indices.cnj;
-            console.log('1️⃣ Principal × CNJ:', principalCNJ.toFixed(2));
             
             const jurosCNJ = valorJuros * indices.cnj;
-            console.log('2️⃣ Juros × CNJ:', jurosCNJ.toFixed(2));
             
             const valorJurosMora = principalCNJ * indices.jurosMora;
-            console.log('3️⃣ Juros de Mora:', valorJurosMora.toFixed(2));
             
             const jurosTotal = jurosCNJ + valorJurosMora;
-            console.log('4️⃣ Juros Total (CNJ + Mora):', jurosTotal.toFixed(2));
             
             // Total antes de SELIC
             const totalAntesSelic = principalCNJ + jurosTotal;
-            console.log('5️⃣ Total antes SELIC:', totalAntesSelic.toFixed(2));
             
             // Aplicar SELIC (até 31/07/2025)
             const valorSelicSeparado = totalAntesSelic * (indices.selic - 1);
-            console.log('6️⃣ Valor SELIC separado:', valorSelicSeparado.toFixed(2));
-            console.log('   (Total × ' + ((indices.selic - 1) * 100).toFixed(4) + '%)');
             
             // ====================================
             // LÓGICA PEC (Pós agosto/2025)
             // ====================================
             
             if (usarLogicaPEC && comparacaoSelicIpca.selicMaior) {
-                console.log('\n🟢 ===== USANDO LÓGICA PEC: SELIC > IPCA+2% =====');
-                console.log('➡️ Aplicando IPCA + Juros 2% a.a (separado)');
                 
                 // Buscar IPCA puro
                 const dadosIpca = await calcularIpca(dataBase, inicioGraca, fimGraca);
                 const indiceIpca = dadosIpca.indiceipca;
-                console.log('📊 Índice IPCA puro:', indiceIpca);
                 
                 const percentualJuros2AA = calcularJuros2PorcentoAA(dadosIpca.quantidadeMeses);
-                console.log('📊 Percentual Juros 2% a.a:', (percentualJuros2AA * 100).toFixed(6) + '%');
                 
                 // Aplicar IPCA sobre os 3 componentes
                 const principalComIpca = principalCNJ * indiceIpca;
-                console.log('7️⃣ Principal × IPCA:', principalComIpca.toFixed(2));
                 
                 const jurosComIpca = jurosTotal * indiceIpca;
-                console.log('8️⃣ Juros × IPCA:', jurosComIpca.toFixed(2));
                 
                 const selicComIpca = valorSelicSeparado * indiceIpca;
-                console.log('9️⃣ SELIC × IPCA:', selicComIpca.toFixed(2));
                 
                 // Adicionar Juros 2% a.a sobre o PRINCIPAL (já com IPCA)
                 const valorJuros2AA = principalComIpca * percentualJuros2AA;
-                console.log('🔟 Valor Juros 2% a.a:', valorJuros2AA.toFixed(2));
-                console.log('   (Principal com IPCA × ' + (percentualJuros2AA * 100).toFixed(6) + '%)');
                 
                 const jurosFinal = jurosComIpca + valorJuros2AA;
-                console.log('1️⃣1️⃣ Juros Final:', jurosFinal.toFixed(2));
                 
                 const totalFinal = principalComIpca + jurosFinal + selicComIpca;
-                console.log('\n✅ TOTAL FINAL:', totalFinal.toFixed(2));
-                console.log('   Principal:', principalComIpca.toFixed(2));
-                console.log('   Juros:', jurosFinal.toFixed(2));
-                console.log('   SELIC:', selicComIpca.toFixed(2));
                 
                 // ========================================
                 // CALCULAR VALORES PARA TRIBUTAÇÃO
@@ -3033,7 +2986,6 @@
                 
                 // Principal para tributação: Principal × CNJ × IPCA-E × IPCA × SELIC
                 const principalComSelicTributacao = valorPrincipal * indices.cnj * indices.ipcae * indiceIpca * indices.selic;
-                console.log('💰 Principal com SELIC (tributação):', principalComSelicTributacao.toFixed(2));
                 
                 // Juros para tributação: (Juros × CNJ × IPCA-E × IPCA × SELIC) + (Juros de Mora × IPCA-E × IPCA × SELIC)
                 const jurosOriginaisComSelic = valorJuros * indices.cnj * indices.ipcae * indiceIpca * indices.selic;
@@ -3041,7 +2993,6 @@
                 const juros2AASemSelic = valorJuros2AA;
 
                 const jurosComSelicTributacao = jurosOriginaisComSelic + jurosMoraComSelic + juros2AASemSelic;
-                console.log('💰 Juros com SELIC (tributação):', jurosComSelicTributacao.toFixed(2));
                 
                 // Armazenar índice IPCA nos indices
                 indices.ipca = indiceIpca;
@@ -3074,18 +3025,13 @@
                 };
                 
             } else if (usarLogicaPEC && !comparacaoSelicIpca.selicMaior) {
-                console.log('\n🟡 ===== USANDO LÓGICA PEC: IPCA+2% > SELIC =====');
-                console.log('➡️ Aplicando SELIC normalmente (sem separação)');
                 
                 const totalComSelic = totalAntesSelic * indices.selic;
-                console.log('7️⃣ Total × SELIC:', totalComSelic.toFixed(2));
                 
                 const totalComIpcaE = totalComSelic * indices.ipcae;
-                console.log('8️⃣ Total × IPCA-E:', totalComIpcaE.toFixed(2));
                 
                 // Aplicar SELIC pós agosto (a menor)
                 const totalFinal = totalComIpcaE * comparacaoSelicIpca.indiceSelecionado;
-                console.log('9️⃣ Total × SELIC(menor):', totalFinal.toFixed(2));
                 
                 // Proporcionalizar principal e juros
                 const proporcaoPrincipal = principalCNJ / totalAntesSelic;
@@ -3094,15 +3040,9 @@
                 const principalFinal = totalFinal * proporcaoPrincipal;
                 const jurosFinal = totalFinal * proporcaoJuros;
                 
-                console.log('\n✅ TOTAL FINAL:', totalFinal.toFixed(2));
-                console.log('   Principal:', principalFinal.toFixed(2));
-                console.log('   Juros:', jurosFinal.toFixed(2));
-                
                 // VALORES PARA TRIBUTAÇÃO (usa os mesmos valores, pois não separa)
                 const principalComSelicTributacao = principalFinal;
                 const jurosComSelicTributacao = jurosFinal;
-                console.log('💰 Principal com SELIC (tributação):', principalComSelicTributacao.toFixed(2));
-                console.log('💰 Juros com SELIC (tributação):', jurosComSelicTributacao.toFixed(2));
                 
                 // Armazenar índice no indices
                 indices.ipca = comparacaoSelicIpca.indiceSelecionado;
@@ -3132,13 +3072,10 @@
                 };
                 
             } else {
-                console.log('\n⚪ ===== USANDO LÓGICA ANTIGA (Antes agosto/2025) =====');
                 
                 const totalComSelic = totalAntesSelic * indices.selic;
-                console.log('7️⃣ Total × SELIC:', totalComSelic.toFixed(2));
                 
                 const totalComIpcaE = totalComSelic * indices.ipcae;
-                console.log('8️⃣ Total × IPCA-E:', totalComIpcaE.toFixed(2));
                 
                 const totalFinal = totalComIpcaE;
                 
@@ -3149,18 +3086,12 @@
                 const principalFinal = totalFinal * proporcaoPrincipal;
                 const jurosFinal = totalFinal * proporcaoJuros;
                 
-                console.log('\n✅ TOTAL FINAL:', totalFinal.toFixed(2));
-                console.log('   Principal:', principalFinal.toFixed(2));
-                console.log('   Juros:', jurosFinal.toFixed(2));
-                
                 const indicePrincipal = indices.cnj * indices.selic * indices.ipcae;
                 const indiceJuros = indices.cnj * indices.selic * indices.ipcae;
                 
                 // VALORES PARA TRIBUTAÇÃO (usa os mesmos valores)
                 const principalComSelicTributacao = principalFinal;
                 const jurosComSelicTributacao = jurosFinal;
-                console.log('💰 Principal com SELIC (tributação):', principalComSelicTributacao.toFixed(2));
-                console.log('💰 Juros com SELIC (tributação):', jurosComSelicTributacao.toFixed(2));
                 
                 return {
                     valorPrincipalAtualizado: principalFinal,
@@ -3234,7 +3165,9 @@
 
                 indices: calculo.indices,
                 tributacao: item.tributacao,
-                jurosMoraCalculado: calculo.jurosMoraCalculado
+                jurosMoraCalculado: calculo.jurosMoraCalculado,
+
+                detalhamentoPEC: calculo.detalhamentoPEC
             };
         }
 
@@ -5818,9 +5751,18 @@
                 </div>
             `;
             
+            // ⬇️ USAR valoresCalculados.valorSelicFinal
+            const valorSelicFinal = valoresCalculados.valorSelicFinal || 0;
+            const totalItem = (valoresCalculados.principalFinal || 0) + 
+                            (valoresCalculados.jurosFinal || 0) + 
+                            valorSelicFinal;
+            
             const totalDoItem = isSingleItem ? '' : `
                 <div class="highlight" style="margin-top: 10px; padding: 10px; background: #e8f4fd; border-radius: 5px;">
-                    <strong>TOTAL DESTE ITEM:</strong> R$ ${formatarMoeda(valoresCalculados.principalFinal)} + R$ ${formatarMoeda(valoresCalculados.jurosFinal)} = <strong>R$ ${formatarMoeda((valoresCalculados.principalFinal || 0) + (valoresCalculados.jurosFinal || 0))}</strong>
+                    <strong>TOTAL DESTE ITEM:</strong> 
+                    R$ ${formatarMoeda(valoresCalculados.principalFinal)} + 
+                    R$ ${formatarMoeda(valoresCalculados.jurosFinal)}${valorSelicFinal > 0 ? ` + R$ ${formatarMoeda(valorSelicFinal)} (SELIC)` : ''} = 
+                    <strong>R$ ${formatarMoeda(totalItem)}</strong>
                 </div>
             `;
 
@@ -5832,9 +5774,11 @@
                     <h3>${titulo}</h3>
                     ${detalhesItem}
                     
-                    ${gerarTabelaPrincipal(item, indices, valoresCalculados, inicioGracaFormatado, fimGracaFormatado)}
+                    ${gerarTabelaPrincipal(item, indices, valoresCalculados, inicioGracaFormatado, fimGracaFormatado, itemCalculado)}
                     
-                    ${temAlgumJuros ? gerarTabelaJuros(item, indices, valoresCalculados, inicioGracaFormatado, fimGracaFormatado) : ''}
+                    ${temAlgumJuros ? gerarTabelaJuros(item, indices, valoresCalculados, inicioGracaFormatado, fimGracaFormatado, itemCalculado) : ''}
+                    
+                    ${valorSelicFinal > 0 ? gerarTabelaSelic(itemCalculado, valoresCalculados) : ''}
                     
                     ${totalDoItem}
                 </div>
@@ -5852,31 +5796,102 @@
         }
 
         function calcularValoresPassoAPasso(item, itemCalculado, indices) {
-            // Principal
+            const detalhePEC = itemCalculado.detalhamentoPEC || {};
+            const usaLogicaPEC = detalhePEC.usouLogicaPEC && detalhePEC.selicMaior;
+            
+            // PRINCIPAL - PASSO A PASSO
+
             const principalCNJ = item.valorPrincipal * indices.cnj;
             const principalIPCAE = principalCNJ * indices.ipcae;
-            const principalFinal = itemCalculado.valorAtualizado?.principal || 0;
             
-            // Juros
+            let principalSelic, principalIPCA, principalFinal;
+            
+            if (usaLogicaPEC) {
+                // LÓGICA PEC: IPCA aplicado depois, SELIC fica separada
+                principalSelic = principalIPCAE * indices.selic;  // Usado apenas para cálculo da SELIC separada
+                principalIPCA = principalIPCAE * (detalhePEC.indiceIpcaPuro || 1);
+                principalFinal = principalIPCA;
+            } else {
+                // LÓGICA ANTIGA: SELIC aplicada diretamente
+                principalSelic = principalIPCAE * indices.selic;
+                principalIPCA = principalSelic;  // Não tem IPCA separado
+                principalFinal = principalSelic;
+            }
+            
+            // JUROS - PASSO A PASSO
+            
             const jurosOriginaisCNJ = item.valorJuros * indices.cnj;
             const valorJurosMora = itemCalculado.jurosMoraCalculado || 0;
             const totalJuros = jurosOriginaisCNJ + valorJurosMora;
             const totalJurosIPCAE = totalJuros * indices.ipcae;
-            const jurosFinal = itemCalculado.valorAtualizado?.juros || 0;
+            
+            let totalJurosSelic, totalJurosIPCA, juros2AA, jurosFinal;
+            
+            if (usaLogicaPEC) {
+                // LÓGICA PEC: IPCA + Juros 2% a.a.
+                totalJurosSelic = totalJurosIPCAE * indices.selic;  // Usado para cálculo da SELIC separada
+                totalJurosIPCA = totalJurosIPCAE * (detalhePEC.indiceIpcaPuro || 1);
+                juros2AA = detalhePEC.valorJuros2AA || 0;
+                jurosFinal = totalJurosIPCA + juros2AA;
+            } else {
+                // LÓGICA ANTIGA: SELIC aplicada diretamente
+                totalJurosSelic = totalJurosIPCAE * indices.selic;
+                totalJurosIPCA = totalJurosSelic;  // Não tem IPCA separado
+                juros2AA = 0;
+                jurosFinal = totalJurosSelic;
+            }
+            
+            // SELIC SEPARADA (apenas na lógica PEC)
+            
+            let valorSelicBase, valorSelicIPCA, valorSelicFinal;
+            
+            if (usaLogicaPEC) {
+                // Base da SELIC = (Principal + Juros) após IPCA-E, antes de IPCA
+                const baseAntesSelic = principalIPCAE + totalJurosIPCAE;
+                
+                // SELIC aplicada sobre a base
+                valorSelicBase = baseAntesSelic * (indices.selic - 1);
+                
+                // IPCA aplicado sobre a SELIC
+                valorSelicIPCA = valorSelicBase * (detalhePEC.indiceIpcaPuro || 1);
+                valorSelicFinal = valorSelicIPCA;
+            } else {
+                valorSelicBase = 0;
+                valorSelicIPCA = 0;
+                valorSelicFinal = 0;
+            }
             
             return {
+                // Principal
                 principalCNJ,
                 principalIPCAE,
+                principalSelic,      // Intermediário (lógica antiga) ou base para SELIC (PEC)
+                principalIPCA,       // Apenas na PEC
                 principalFinal,
+                
+                // Juros
                 jurosOriginaisCNJ,
                 valorJurosMora,
                 totalJuros,
                 totalJurosIPCAE,
-                jurosFinal
+                totalJurosSelic,     // Intermediário (lógica antiga) ou base para SELIC (PEC)
+                totalJurosIPCA,      // Apenas na PEC
+                juros2AA,            // Apenas na PEC
+                jurosFinal,
+                
+                // SELIC Separada (apenas PEC)
+                valorSelicBase,      // SELIC antes do IPCA
+                valorSelicIPCA,      // SELIC com IPCA aplicado
+                valorSelicFinal,     // Valor final da SELIC separada
+                
+                // Flags
+                usaLogicaPEC
             };
         }
 
-        function gerarTabelaPrincipal(item, indices, valores, inicioGracaFormatado, fimGracaFormatado) {
+        function gerarTabelaPrincipal(item, indices, valores, inicioGracaFormatado, fimGracaFormatado, itemCalculado) {
+            const detalhePEC = itemCalculado.detalhamentoPEC || {};
+            
             return `
                 <h4>💰 Atualização do Principal - Passo a Passo</h4>
                 <table>
@@ -5894,11 +5909,21 @@
                     </tr>` : ''}
                     ${item.indices.ipcae ? `
                     <tr>
-                        <td>3. Aplicação IPCA- E (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
+                        <td>3. Aplicação IPCA-E (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
                         <td>R$ ${formatarMoeda(valores.principalCNJ)} × ${indices.ipcae.toFixed(6)}</td>
                         <td>R$ ${formatarMoeda(valores.principalIPCAE)}</td>
                     </tr>` : ''}
-                    ${item.indices.selic ? `
+                    ${valores.usaLogicaPEC ? `
+                    <tr>
+                        <td>4. Aplicação IPCA (pós agosto/2025)</td>
+                        <td>R$ ${formatarMoeda(valores.principalIPCAE)} × ${indices.ipca.toFixed(6)}</td>
+                        <td><strong>R$ ${formatarMoeda(valores.principalIPCA)}</strong></td>
+                    </tr>
+                    <tr style="background: #fff3cd;">
+                        <td colspan="3" style="text-align: center; font-size: 0.9em;">
+                            ⚠️ <strong>SELIC aplicada separadamente</strong> - Ver seção específica abaixo
+                        </td>
+                    </tr>` : item.indices.selic ? `
                     <tr>
                         <td>4. Aplicação SELIC (excluído a graça)</td>
                         <td>R$ ${formatarMoeda(valores.principalIPCAE)} × ${indices.selic.toFixed(6)}</td>
@@ -5913,8 +5938,11 @@
             `;
         }
 
-        function gerarTabelaJuros(item, indices, valores, inicioGracaFormatado, fimGracaFormatado) {
+        function gerarTabelaJuros(item, indices, valores, inicioGracaFormatado, fimGracaFormatado, itemCalculado) {
             let etapa = 2;
+            
+            const detalhePEC = itemCalculado.detalhamentoPEC || {};
+            const quantidadeMeses = detalhePEC.quantidadeMeses || 0;
             
             return `
                 <h4>⚖️ Atualização dos Juros - Passo a Passo</h4>
@@ -5944,11 +5972,31 @@
                     </tr>` : ''}
                     ${item.indices.ipcae ? `
                     <tr>
-                        <td>${etapa++}. Aplicação IPCA - E (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
+                        <td>${etapa++}. Aplicação IPCA-E (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
                         <td>R$ ${formatarMoeda(valores.totalJuros)} × ${indices.ipcae.toFixed(6)}</td>
                         <td>R$ ${formatarMoeda(valores.totalJurosIPCAE)}</td>
                     </tr>` : ''}
-                    ${item.indices.selic ? `
+                    ${valores.usaLogicaPEC ? `
+                    <tr>
+                        <td>${etapa++}. Aplicação IPCA (pós agosto/2025)</td>
+                        <td>R$ ${formatarMoeda(valores.totalJurosIPCAE)} × ${indices.ipca.toFixed(6)}</td>
+                        <td>R$ ${formatarMoeda(valores.totalJurosIPCA)}</td>
+                    </tr>
+                    <tr>
+                        <td>${etapa++}. Juros (2% a.a.) - ${quantidadeMeses} meses</td>
+                        <td> Principal × ${(detalhePEC.percentualJuros2AA * 100).toFixed(6)}%</td>
+                        <td>R$ ${formatarMoeda(valores.juros2AA)}</td>
+                    </tr>
+                    <tr>
+                        <td>${etapa++}. Total Juros</td>
+                        <td>R$ ${formatarMoeda(valores.totalJurosIPCA)} + R$ ${formatarMoeda(valores.juros2AA)}</td>
+                        <td><strong>R$ ${formatarMoeda(valores.jurosFinal)}</strong></td>
+                    </tr>
+                    <tr style="background: #fff3cd;">
+                        <td colspan="3" style="text-align: center; font-size: 0.9em;">
+                            ⚠️ <strong>SELIC aplicada separadamente</strong> - Ver seção específica abaixo
+                        </td>
+                    </tr>` : item.indices.selic ? `
                     <tr>
                         <td>${etapa++}. Aplicação SELIC (excluído a graça)</td>
                         <td>R$ ${formatarMoeda(valores.totalJurosIPCAE)} × ${indices.selic.toFixed(6)}</td>
@@ -5959,6 +6007,37 @@
                         <td>Valor Final dos Juros</td>
                         <td><strong>R$ ${formatarMoeda(valores.jurosFinal)}</strong></td>
                     </tr>`}
+                </table>
+            `;
+        }
+
+        function gerarTabelaSelic(itemCalculado, valores) {
+            if (!valores.usaLogicaPEC || valores.valorSelicFinal === 0) {
+                return ''; // Não mostra se não usa lógica PEC
+            }
+            
+            const indices = itemCalculado.indices || {};
+            const baseAntesSelic = valores.principalIPCAE + valores.totalJurosIPCAE;
+            
+            return `
+                <h4>📊 SELIC - Passo a Passo</h4>
+                <table>
+                    <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
+                    <tr>
+                        <td>1. Base para SELIC</td>
+                        <td>Principal + Juros em 31/07/2025 </td>
+                        <td>R$ ${formatarMoeda(baseAntesSelic)}</td>
+                    </tr>
+                    <tr>
+                        <td>2. Aplicação SELIC (até 31/07/2025)</td>
+                        <td>Base × ${((indices.selic - 1) * 100).toFixed(4)}%</td>
+                        <td>R$ ${formatarMoeda(valores.valorSelicBase)}</td>
+                    </tr>
+                    <tr>
+                        <td>3. Aplicação IPCA (pós agosto/2025)</td>
+                        <td>SELIC × ${indices.ipca?.toFixed(6) || '1.000000'}</td>
+                        <td><strong>R$ ${formatarMoeda(valores.valorSelicFinal)}</strong></td>
+                    </tr>
                 </table>
             `;
         }
@@ -6011,6 +6090,11 @@
             const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
             const temTributacaoMista = resultados.tributacaoIR?.isento > 0 && 
                                     resultados.tributacaoIR?.principalTributado > 0;
+            
+            // ⬇️ VERIFICAR SE TEM SELIC SEPARADA
+            const valorSelicTotal = resultados.valorSelicatt || 0;
+            const temSelic = valorSelicTotal > 0;
+            const percentualSelic = temSelic ? (resultados.percentualselic || 0) : 0;
 
             // Linhas principais (sempre aparecem)
             const linhasPrincipais = `
@@ -6031,6 +6115,13 @@
                     <td>R$ ${formatarMoeda(resultados.valorjurosatt)}</td>
                     <td>${(resultados.percentualjur * 100).toFixed(4)}%</td>
                 </tr>
+                ${temSelic ? `
+                <tr>
+                    <td>SELIC Separada (PEC 03/2021)</td>
+                    <td>R$ ${formatarMoeda(valorSelicTotal)}</td>
+                    <td>${(percentualSelic * 100).toFixed(4)}%</td>
+                </tr>
+                ` : ''}
             `;
 
             // Base de pagamento (varia conforme o tipo)
@@ -6074,6 +6165,9 @@
                 `;
             }
 
+            // ⬇️ CALCULAR PERCENTUAL TOTAL CORRETO
+            const percentualTotal = (resultados.percentualprinc + resultados.percentualjur + percentualSelic) * 100;
+
             return `
                 <div class="table-container">
                     <h3>📈 Resumo dos Cálculos</h3>
@@ -6083,7 +6177,7 @@
                         <tr>
                             <td><strong>Total Atualizado</strong></td>
                             <td><strong>R$ ${formatarMoeda(resultados.valortotatt)}</strong></td>
-                            <td><strong>${((resultados.percentualprinc + resultados.percentualjur) * 100).toFixed(2)}%</strong></td>
+                            <td><strong>${percentualTotal.toFixed(2)}%</strong></td>
                         </tr>
                         ${basesPagamento}
                     </table>
