@@ -2967,7 +2967,7 @@
                 const percentualJuros2AA = calcularJuros2PorcentoAA(dadosIpca.quantidadeMeses);
                 
                 // Aplicar IPCA sobre os 3 componentes
-                const principalComIpca = principalCNJ * indiceIpca;
+                const principalComIpca = principalCNJ * indices.ipcae * indiceIpca;
                 
                 const jurosComIpca = jurosTotal * indiceIpca;
                 
@@ -6117,7 +6117,7 @@
                 </tr>
                 ${temSelic ? `
                 <tr>
-                    <td>SELIC Separada (PEC 03/2021)</td>
+                    <td>Valor Selic Atualizado </td>
                     <td>R$ ${formatarMoeda(valorSelicTotal)}</td>
                     <td>${(percentualSelic * 100).toFixed(4)}%</td>
                 </tr>
