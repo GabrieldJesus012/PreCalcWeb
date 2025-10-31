@@ -3222,8 +3222,16 @@
                 valorAtualizado: {
                     principal: calculo.valorPrincipalAtualizado,
                     juros: calculo.valorJurosAtualizado,
-                    total: calculo.valorPrincipalAtualizado + calculo.valorJurosAtualizado
+                    selic: calculo.valorSelicSeparado || 0,  // ⬅️ NOVO
+                    total: calculo.valorPrincipalAtualizado + 
+                        calculo.valorJurosAtualizado + 
+                        (calculo.valorSelicSeparado || 0)
                 },
+
+                valorSelicSeparado: calculo.valorSelicSeparado || 0,
+                principalTributacao: calculo.principalTributacao,
+                jurosTributacao: calculo.jurosTributacao,
+
                 indices: calculo.indices,
                 tributacao: item.tributacao,
                 jurosMoraCalculado: calculo.jurosMoraCalculado
@@ -3504,7 +3512,10 @@
                 const itemCalculado = itensCalculados[index];
                 if (!itemCalculado) return;
                 
-                const valorAtualizado = itemCalculado.valorAtualizado.total;
+                const valorSelicItem = itemCalculado.valorSelicSeparado || 0;
+                const valorAtualizado = itemCalculado.valorAtualizado.principal + 
+                                        itemCalculado.valorAtualizado.juros + 
+                                        valorSelicItem;
                 const tipos = tiposMap[itemOriginal.tipoUsoHonorario] || [];
                 
                 tipos.forEach(tipo => {
@@ -3515,6 +3526,8 @@
             // 4. Percentuais e índices gerais
             const percentualprinc = totais.valorPrincipalTotal / totais.valorGeralTotal;
             const percentualjur = totais.valorJurosTotal / totais.valorGeralTotal;
+            const percentualselic = totais.valorSelicTotal / totais.valorGeralTotal; 
+
             const valorOriginalTotal = itensCalculados.reduce((sum, item) => 
                 sum + item.valorOriginal.total, 0);
             const indiceTotal = totais.valorGeralTotal / valorOriginalTotal;
@@ -3529,6 +3542,7 @@
                 ...dados,
                 valorPrincipal: totais.valorPrincipalTotal,
                 valorJuros: totais.valorJurosTotal,
+                valorSelic: totais.valorSelicTotal, 
                 rra: totais.rraTotal,
                 incidenciaIR: dados.valoresPrincipais.some(item => item.tributacao?.ir === true),
                 incidenciaPrevidencia: dados.valoresPrincipais.some(item => item.tributacao?.previdencia === true),
@@ -3565,6 +3579,7 @@
             const resultadoFinal = {
                 valorprincatt: totais.valorPrincipalTotal,
                 valorjurosatt: totais.valorJurosTotal,
+                valorSelicatt: totais.valorSelicTotal,
                 valortotatt: totais.valorGeralTotal,
                 
                 tributacaoIR: {
@@ -3597,6 +3612,7 @@
                 indiceTotal,
                 percentualprinc,
                 percentualjur,
+                percentualselic,
                 valorOriginalTotal,
                 totaisPorTipo
             };
