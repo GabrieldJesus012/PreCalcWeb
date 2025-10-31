@@ -2910,8 +2910,6 @@
                     }
                     
                     try {
-                        // Calcular SELIC até 31/07/2025
-                        const dataLimiteSelicAntiga = new Date(2025, 6, 31); // 31/07/2025
                         console.log('📅 Calculando SELIC de', dataInicioSelic, 'até', fimGraca);
                         dadosSelicCompletos = await calcularSelic(dataInicioSelic, inicioGraca, fimGraca);
                         console.log('📊 Dados SELIC retornados:', {
@@ -3029,6 +3027,22 @@
                 console.log('   Juros:', jurosFinal.toFixed(2));
                 console.log('   SELIC:', selicComIpca.toFixed(2));
                 
+                // ========================================
+                // CALCULAR VALORES PARA TRIBUTAÇÃO
+                // ========================================
+                
+                // Principal para tributação: Principal × CNJ × IPCA-E × IPCA × SELIC
+                const principalComSelicTributacao = valorPrincipal * indices.cnj * indices.ipcae * indiceIpca * indices.selic;
+                console.log('💰 Principal com SELIC (tributação):', principalComSelicTributacao.toFixed(2));
+                
+                // Juros para tributação: (Juros × CNJ × IPCA-E × IPCA × SELIC) + (Juros de Mora × IPCA-E × IPCA × SELIC)
+                const jurosOriginaisComSelic = valorJuros * indices.cnj * indices.ipcae * indiceIpca * indices.selic;
+                const jurosMoraComSelic = valorJurosMora * indices.ipcae * indiceIpca * indices.selic;
+                const juros2AASemSelic = valorJuros2AA;
+
+                const jurosComSelicTributacao = jurosOriginaisComSelic + jurosMoraComSelic + juros2AASemSelic;
+                console.log('💰 Juros com SELIC (tributação):', jurosComSelicTributacao.toFixed(2));
+                
                 // Armazenar índice IPCA nos indices
                 indices.ipca = indiceIpca;
                 
@@ -3036,6 +3050,11 @@
                     valorPrincipalAtualizado: principalComIpca,
                     valorJurosAtualizado: jurosFinal,
                     valorSelicSeparado: selicComIpca,
+                    
+                    // VALORES PARA TRIBUTAÇÃO (com SELIC incorporada)
+                    principalTributacao: principalComSelicTributacao,
+                    jurosTributacao: jurosComSelicTributacao,
+                    
                     indices: {
                         ...indices,
                         indicePrincipal: indices.cnj * indiceIpca,
@@ -3079,6 +3098,12 @@
                 console.log('   Principal:', principalFinal.toFixed(2));
                 console.log('   Juros:', jurosFinal.toFixed(2));
                 
+                // VALORES PARA TRIBUTAÇÃO (usa os mesmos valores, pois não separa)
+                const principalComSelicTributacao = principalFinal;
+                const jurosComSelicTributacao = jurosFinal;
+                console.log('💰 Principal com SELIC (tributação):', principalComSelicTributacao.toFixed(2));
+                console.log('💰 Juros com SELIC (tributação):', jurosComSelicTributacao.toFixed(2));
+                
                 // Armazenar índice no indices
                 indices.ipca = comparacaoSelicIpca.indiceSelecionado;
                 
@@ -3086,6 +3111,11 @@
                     valorPrincipalAtualizado: principalFinal,
                     valorJurosAtualizado: jurosFinal,
                     valorSelicSeparado: 0,
+                    
+                    // VALORES PARA TRIBUTAÇÃO
+                    principalTributacao: principalComSelicTributacao,
+                    jurosTributacao: jurosComSelicTributacao,
+                    
                     indices: {
                         ...indices,
                         indicePrincipal: indices.cnj * indices.selic * indices.ipcae * comparacaoSelicIpca.indiceSelecionado,
@@ -3126,10 +3156,21 @@
                 const indicePrincipal = indices.cnj * indices.selic * indices.ipcae;
                 const indiceJuros = indices.cnj * indices.selic * indices.ipcae;
                 
+                // VALORES PARA TRIBUTAÇÃO (usa os mesmos valores)
+                const principalComSelicTributacao = principalFinal;
+                const jurosComSelicTributacao = jurosFinal;
+                console.log('💰 Principal com SELIC (tributação):', principalComSelicTributacao.toFixed(2));
+                console.log('💰 Juros com SELIC (tributação):', jurosComSelicTributacao.toFixed(2));
+                
                 return {
                     valorPrincipalAtualizado: principalFinal,
                     valorJurosAtualizado: jurosFinal,
                     valorSelicSeparado: 0,
+                    
+                    // VALORES PARA TRIBUTAÇÃO
+                    principalTributacao: principalComSelicTributacao,
+                    jurosTributacao: jurosComSelicTributacao,
+                    
                     indices: {
                         ...indices,
                         indicePrincipal,
@@ -3197,6 +3238,7 @@
             const totais = {
                 valorPrincipalTotal: 0,
                 valorJurosTotal: 0,
+                valorSelicTotal: 0,  
                 valorGeralTotal: 0,
                 rraTotal: 0,
                 principalTributadoIR: 0,
@@ -3210,21 +3252,43 @@
             for (const item of itensCalculados) {
                 totais.valorPrincipalTotal += item.valorAtualizado.principal;
                 totais.valorJurosTotal += item.valorAtualizado.juros;
-                totais.valorGeralTotal += item.valorAtualizado.total;
+                
+                // ⬅️ SELIC separada
+                const valorSelicItem = item.valorSelicSeparado || 0;
+                totais.valorSelicTotal += valorSelicItem;
+                
+                // ⬅️ Total geral (com SELIC)
+                totais.valorGeralTotal += item.valorAtualizado.principal + 
+                                        item.valorAtualizado.juros + 
+                                        valorSelicItem;
+                
                 totais.rraTotal += item.tributacao.rra || 0;
                 
+                // ========== TRIBUTAÇÃO IR ==========
                 if (item.tributacao.ir) {
-                    totais.principalTributadoIR += item.valorAtualizado.principal;
-                    totais.jurosTributadoIR += item.valorAtualizado.juros;
+                    // ⬅️ USA OS VALORES DE TRIBUTAÇÃO (com SELIC incorporada)
+                    if (item.principalTributacao !== undefined && item.jurosTributacao !== undefined) {
+                        totais.principalTributadoIR += item.principalTributacao;
+                        totais.jurosTributadoIR += item.jurosTributacao;
+                    } else {
+                        // Fallback para lógica antiga (caso não tenha os novos campos)
+                        totais.principalTributadoIR += item.valorAtualizado.principal;
+                        totais.jurosTributadoIR += item.valorAtualizado.juros;
+                    }
                 } else {
-                    totais.isentoIR += item.valorAtualizado.total;
+                    totais.isentoIR += item.valorAtualizado.principal + 
+                                    item.valorAtualizado.juros + 
+                                    valorSelicItem;
                 }
                 
+                // ========== TRIBUTAÇÃO PREVIDÊNCIA ==========
                 if (item.tributacao.previdencia) {
                     totais.principalTributadoPrevidencia += item.valorAtualizado.principal;
                     totais.jurosTributadoPrevidencia += item.valorAtualizado.juros;
                 } else {
-                    totais.isentoPrevidencia += item.valorAtualizado.total;
+                    totais.isentoPrevidencia += item.valorAtualizado.principal + 
+                                                item.valorAtualizado.juros + 
+                                                valorSelicItem;
                 }
             }
             
