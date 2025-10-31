@@ -2635,7 +2635,92 @@
         // IPCA-E
         // ====================================
 
+        async function calcularIpca(dataBase, inicioGraca, fimGraca) {
+            try {
+                // Descobre a data final como o último dia do mês anterior ao mês atual
+                const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
+                const [ano, mes, dia] = dataAtualizacaoInput.split('-');
+                const dataReferencia = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
 
+                const primeiroDiaMesAtual = new Date(dataReferencia.getFullYear(), dataReferencia.getMonth(), 1);
+                const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
+                const dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
+                
+                // Série 433 = IPCA normal (não é o IPCA-E)
+                const urlipca = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados?formato=json&dataInicial=01/08/2025&dataFinal=${dataFinal}`;
+                
+                const response = await fetch(urlipca);
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+                const dadosipca = await response.json();
+                
+                return processarDadosIpca(dadosipca, dataBase, inicioGraca, fimGraca);
+                
+            } catch (error) {
+                console.error(`Erro ao obter dados do IPCA (433): ${error}`);
+                return { indiceipca: 1.0, periodo: '', temDados: false };
+            }
+        }
+
+        function processarDadosIpca(dadosipca, dataBase, inicioGraca, fimGraca) {
+            // Função para converter string de data da API em Date
+            function strParaData(dataStr) {
+                const [dia, mes, ano] = dataStr.split('/');
+                return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+            }
+            
+            // Data de corte: 01/08/2025
+            const dataAgosto2025 = new Date(2025, 7, 1); // mês 7 = agosto (0-indexed)
+            
+            // Se não temos dados ou data de atualização é antes de agosto/2025, retorna neutro
+            if (!dadosipca || dadosipca.length === 0) {
+                return { indiceipca: 1.0, periodo: '', temDados: false };
+            }
+            
+            // IPCA aplica apenas de agosto/2025 em diante
+            const dataInicioIPCA = dataAgosto2025;
+            
+            // Filtrar dados de agosto/2025 até a data de atualização
+            const dadosIPCAFiltrados = dadosipca.filter(item => {
+                const dataItem = strParaData(item.data);
+                return dataItem >= dataInicioIPCA;
+            });
+            
+            const valoresIPCA = dadosIPCAFiltrados.map(item => parseFloat(item.valor.replace(',', '.')));
+            
+            // Calcular índice acumulado
+            let indiceipca = 1.0;
+            for (const valor of valoresIPCA) {
+                indiceipca *= 1 + (valor / 100);
+            }
+            
+            // Definir período
+            let periodo = '';
+            if (dadosIPCAFiltrados.length > 0) {
+                const primeiraData = dadosIPCAFiltrados[0].data;
+                const ultimaData = dadosIPCAFiltrados[dadosIPCAFiltrados.length - 1].data;
+                periodo = `${primeiraData} a ${ultimaData}`;
+            }
+            
+            return {
+                indiceipca,
+                periodo,
+                temDados: valoresIPCA.length > 0,
+                quantidadeMeses: valoresIPCA.length
+            };
+        }
+
+        //Juros 2% a.a
+
+        function calcularJuros2PorcentoAA(quantidadeMeses) {
+            if (!quantidadeMeses || quantidadeMeses <= 0) {
+                return 0;
+            }
+            
+            const percentual = (0.02 / 12) * quantidadeMeses;
+            return percentual;
+        }
 
         // ====================================
         // Calculos
