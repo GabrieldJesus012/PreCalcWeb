@@ -2723,6 +2723,100 @@
         }
 
         // ====================================
+        // COMPARAÇÃO SELIC VS IPCA + 2% A.A (Pós agosto/2025)
+        // ====================================
+
+        async function calcularSelicPosAgosto2025() {
+            try {
+                const dataAgosto2025 = new Date(2025, 7, 1); // 01/08/2025
+                
+                // Pega a data de atualização do formulário
+                const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
+                const [ano, mes, dia] = dataAtualizacaoInput.split('-');
+                const dataAtualizacao = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+                
+                // Se data de atualização é antes de agosto/2025, retorna neutro
+                if (dataAtualizacao < dataAgosto2025) {
+                    return {
+                        indiceSelecionado: 1.0,
+                        tipoIndice: 'nenhum',
+                        indiceSelic: 1.0,
+                        indiceIpcaMais2: 1.0,
+                        selicMaior: false,
+                        quantidadeMeses: 0,
+                        periodo: ''
+                    };
+                }
+                
+                // 1. Buscar SELIC de agosto/2025 até data atual
+                const primeiroDiaMesAtual = new Date(dataAtualizacao.getFullYear(), dataAtualizacao.getMonth(), 1);
+                const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
+                const dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
+                
+                const urlselic = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.4390/dados?formato=json&dataInicial=01/08/2025&dataFinal=${dataFinal}`;
+                const responseSelic = await fetch(urlselic);
+                
+                if (!responseSelic.ok) {
+                    throw new Error(`Erro ao buscar SELIC: ${responseSelic.status}`);
+                }
+                
+                const dadosSelic = await responseSelic.json();
+                
+                // Calcular índice SELIC acumulado
+                let indiceSelic = 1.0;
+                for (const item of dadosSelic) {
+                    const valor = parseFloat(item.valor.replace(',', '.'));
+                    indiceSelic *= 1 + (valor / 100);
+                }
+                
+                // 2. Buscar IPCA (433) de agosto/2025 até data atual
+                const dadosIpca = await calcularIpca(dataAgosto2025, null, null);
+                
+                // 3. Calcular IPCA + Juros 2% a.a
+                const juros2AA = calcularJuros2PorcentoAA(dadosIpca.quantidadeMeses);
+                const indiceIpcaMais2 = dadosIpca.indiceipca * (1 + juros2AA);
+                
+                // 4. Comparar: SELIC > IPCA+2%?
+                const selicMaior = indiceSelic > indiceIpcaMais2;
+                
+                // 5. Retornar o menor índice
+                const indiceSelecionado = selicMaior ? indiceIpcaMais2 : indiceSelic;
+                const tipoIndice = selicMaior ? 'ipca' : 'selic';
+                
+                // Período
+                let periodo = '';
+                if (dadosSelic.length > 0) {
+                    periodo = `01/08/2025 a ${dadosSelic[dadosSelic.length - 1].data}`;
+                }
+                
+                return {
+                    indiceSelecionado,      // O menor (que será aplicado)
+                    tipoIndice,             // 'selic' ou 'ipca'
+                    indiceSelic,            // SELIC isolada
+                    indiceIpcaMais2,        // IPCA + 2% a.a
+                    selicMaior,             // true se SELIC > IPCA+2%
+                    quantidadeMeses: dadosIpca.quantidadeMeses,
+                    periodo,
+                    percentualSelic: ((indiceSelic - 1) * 100).toFixed(4),
+                    percentualIpcaMais2: ((indiceIpcaMais2 - 1) * 100).toFixed(4),
+                    percentualJuros2AA: (juros2AA * 100).toFixed(4)
+                };
+                
+            } catch (error) {
+                console.error(`Erro em calcularSelicPosAgosto2025: ${error}`);
+                return {
+                    indiceSelecionado: 1.0,
+                    tipoIndice: 'erro',
+                    indiceSelic: 1.0,
+                    indiceIpcaMais2: 1.0,
+                    selicMaior: false,
+                    quantidadeMeses: 0,
+                    periodo: ''
+                };
+            }
+        }
+
+        // ====================================
         // Calculos
         // ====================================
 
