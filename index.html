@@ -2969,9 +2969,9 @@
                 // Aplicar IPCA sobre os 3 componentes
                 const principalComIpca = principalCNJ * indices.ipcae * indiceIpca;
                 
-                const jurosComIpca = jurosTotal * indiceIpca;
+                const jurosComIpca = jurosTotal * indiceIpca * indices.ipcae;
                 
-                const selicComIpca = valorSelicSeparado * indiceIpca;
+                const selicComIpca = valorSelicSeparado * indiceIpca * indices.ipcae;
                 
                 // Adicionar Juros 2% a.a sobre o PRINCIPAL (já com IPCA)
                 const valorJuros2AA = principalComIpca * percentualJuros2AA;
@@ -7666,6 +7666,10 @@
             if (indices.jurosMora && indices.jurosMora > 0) {
                 const percentualMora = (indices.jurosMora * 100).toFixed(4);
                 detalhes.push(`J.Mora: ${percentualMora}%`);
+            }
+
+            if (indices.ipca && indices.ipca !== 1) {
+                detalhes.push(`IPCA: ${indices.ipca.toFixed(6)}`);
             }
             
             return detalhes.length > 0 ? detalhes.join(' | ') : 'Sem correção';
