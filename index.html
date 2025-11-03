@@ -2510,7 +2510,6 @@
         }
 
         function processarDadosSelic(dadosselic, dataBase, inicioGraca, fimGraca) {
-            // Função para converter string de data da API em Date
             function strParaData(dataStr) {
                 const [dia, mes, ano] = dataStr.split('/');
                 return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
@@ -2608,7 +2607,6 @@
         }
 
         function processarDadosIpcaE(dadosipcae, dataBase, inicioGraca, fimGraca) {
-            // Função para converter string de data da API em Date
             function strParaData(dataStr) {
                 const [dia, mes, ano] = dataStr.split('/');
                 return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
@@ -2638,7 +2636,7 @@
         }
 
         // ====================================
-        // IPCA-E
+        // IPCA
         // ====================================
 
         async function calcularIpca(dataBase, inicioGraca, fimGraca) {
@@ -2670,7 +2668,6 @@
         }
 
         function processarDadosIpca(dadosipca, dataBase, inicioGraca, fimGraca) {
-            // Função para converter string de data da API em Date
             function strParaData(dataStr) {
                 const [dia, mes, ano] = dataStr.split('/');
                 return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
@@ -2700,6 +2697,18 @@
             for (const valor of valoresIPCA) {
                 indiceipca *= 1 + (valor / 100);
             }
+
+            const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
+            const [anoAtual, mesAtual, diaAtual] = dataAtualizacaoInput.split('-');
+            const dataAtualReferencia = new Date(parseInt(anoAtual), parseInt(mesAtual) - 1, parseInt(diaAtual));
+            
+            // Mês da atualização - 1 (porque IPCA é sempre do mês anterior)
+            const mesReferencia = dataAtualReferencia.getMonth(); // 0-indexed
+            const anoReferencia = dataAtualReferencia.getFullYear();
+
+            const mesInicio = dataAgosto2025.getFullYear() * 12 + dataAgosto2025.getMonth();
+            const mesFim = anoReferencia * 12 + (mesReferencia - 1); // -1 para mês anterior
+            const quantidadeMesesReal = Math.max(0, mesFim - mesInicio + 1); // +1 porque inclui o mês de início
             
             // Definir período
             let periodo = '';
@@ -2713,7 +2722,7 @@
                 indiceipca,
                 periodo,
                 temDados: valoresIPCA.length > 0,
-                quantidadeMeses: valoresIPCA.length
+                quantidadeMeses: quantidadeMesesReal 
             };
         }
 
