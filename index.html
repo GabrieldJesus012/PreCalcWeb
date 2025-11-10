@@ -580,6 +580,76 @@
             toggleAbaAcordo();
             toggleAbaPagamento();
         });
+        
+        document.addEventListener('blur', function(e) {
+            if (e.target.id && e.target.id.startsWith('pagDataBase')) {
+                
+                const match = e.target.id.match(/\d+$/);
+                if (!match) return;
+                
+                const index = match[0];
+                const campoData = document.getElementById(`pagDataBase${index}`);
+                const campoTipo = document.getElementById(`pagTipoInformacao${index}`);
+                
+                if (!campoData || !campoTipo) return;
+                
+                const dataBase = campoData.value;
+                const tipoInformacao = campoTipo.value;
+                
+                if (!dataBase || dataBase.length !== 10) return;
+                
+                if (tipoInformacao !== 'total') return;
+                
+                const dataPagamento = new Date(dataBase + 'T00:00:00');
+                if (isNaN(dataPagamento.getTime())) return;
+                
+                const dataLimite = new Date(2021, 11, 31);
+                
+                if (dataPagamento <= dataLimite) {
+                    alert(`⚠️ ATENÇÃO - Pagamento ${parseInt(index) + 1}\n\nPara pagamentos até 31/12/2021, não é possível usar "Valor Total".\n\nO tipo foi alterado automaticamente para "Valores Separados".\n\n📌 Motivo: Limitação das APIs do Banco Central para datas antigas.`);
+                    
+                    campoTipo.value = 'separado';
+                    
+                    if (typeof toggleTipoPagamento === 'function') {
+                        toggleTipoPagamento(index);
+                    }
+                }
+            }
+        }, true); 
+
+        document.addEventListener('change', function(e) {
+            if (e.target.id && e.target.id.startsWith('pagTipoInformacao')) {
+                
+                const match = e.target.id.match(/\d+$/);
+                if (!match) return;
+                
+                const index = match[0];
+                const campoData = document.getElementById(`pagDataBase${index}`);
+                const campoTipo = document.getElementById(`pagTipoInformacao${index}`);
+                
+                if (!campoData || !campoTipo) return;
+                
+                const dataBase = campoData.value;
+                const tipoInformacao = campoTipo.value;
+                
+                if (!dataBase || dataBase.length !== 10 || tipoInformacao !== 'total') return;
+                
+                const dataPagamento = new Date(dataBase + 'T00:00:00');
+                if (isNaN(dataPagamento.getTime())) return;
+                
+                const dataLimite = new Date(2021, 11, 31);
+                
+                if (dataPagamento <= dataLimite) {
+                    alert(`⚠️ ATENÇÃO - Pagamento ${parseInt(index) + 1}\n\nPara pagamentos até 31/12/2021, não é possível usar "Valor Total".\n\nO tipo foi alterado automaticamente para "Valores Separados".\n\n📌 Motivo: Limitação das APIs do Banco Central para datas antigas.`);
+                    
+                    campoTipo.value = 'separado';
+                    
+                    if (typeof toggleTipoPagamento === 'function') {
+                        toggleTipoPagamento(index);
+                    }
+                }
+            }
+        });
 
         // ====================================
         // INICIALIZAÇÃO NA CARGA DA PÁGINA
@@ -3018,7 +3088,8 @@
                     indices: {
                         ...indices,
                         indicePrincipal: indices.cnj * indiceIpca,
-                        indiceJuros: indices.cnj * indiceIpca
+                        indiceJuros: indices.cnj * indiceIpca,
+                        juros2AA: percentualJuros2AA 
                     },
                     jurosMoraCalculado: valorJurosMora,
                     detalhamentoPEC: {
@@ -7679,6 +7750,11 @@
 
             if (indices.ipca && indices.ipca !== 1) {
                 detalhes.push(`IPCA: ${indices.ipca.toFixed(6)}`);
+            }
+
+            if (indices.juros2AA && indices.juros2AA > 0) {
+                const percentualJuros = (indices.juros2AA * 100).toFixed(4);
+                detalhes.push(`Juros 2%a.a.: ${percentualJuros}%`);
             }
             
             return detalhes.length > 0 ? detalhes.join(' | ') : 'Sem correção';
