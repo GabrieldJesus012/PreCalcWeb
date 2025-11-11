@@ -2821,7 +2821,7 @@
                 const dataAtualizacao = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
                 
                 // Se data de atualização é antes de agosto/2025, retorna neutro
-                if (dataAtualizacao < dataAgosto2025) {
+                if (dataAtualizacao <= dataAgosto2025) {
                     return {
                         indiceSelecionado: 1.0,
                         tipoIndice: 'nenhum',
