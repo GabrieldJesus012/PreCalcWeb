@@ -7829,56 +7829,73 @@
             let totalPagamento = 0;
             let totalSaldo = 0;
             
-            // Beneficiário Principal
-            if (saldos.beneficiarioPrincipal) {
+            // Beneficiário Principal 
+            if (saldos.beneficiarioPrincipal && saldos.beneficiarioPrincipal.saldo > 0 && saldos.beneficiarioPrincipal.pagamento > 0) {
                 totalValorBruto += saldos.beneficiarioPrincipal.valorBruto || 0;
                 totalPagamento += saldos.beneficiarioPrincipal.pagamento || 0;
                 totalSaldo += saldos.beneficiarioPrincipal.saldo || 0;
             }
             
-            // Herdeiros
+            // Herdeiros 
             if (saldos.herdeiros?.length > 0) {
-                saldos.herdeiros.forEach(herd => {
-                    totalValorBruto += herd.valorBruto || 0;
-                    totalPagamento += herd.pagamento || 0;
-                    totalSaldo += herd.saldo || 0;
-                });
+                saldos.herdeiros
+                    .filter(herd => herd.pagamento > 0 && (herd.pagamentoDireto > 0 || herd.pagamentoDoBeneficiario > 0))
+                    .forEach(herd => {
+                        totalValorBruto += herd.valorBruto || 0;
+                        totalPagamento += herd.pagamento || 0;
+                        totalSaldo += herd.saldo || 0;
+                    });
             }
             
-            // Advogados
+            // Advogados 
             if (saldos.advogados?.length > 0) {
-                saldos.advogados.forEach(adv => {
-                    totalValorBruto += adv.valorBruto || 0;
-                    totalPagamento += adv.pagamento || 0;
-                    totalSaldo += adv.saldo || 0;
-                });
+                saldos.advogados
+                    .filter(adv => adv.pagamento > 0)
+                    .forEach(adv => {
+                        totalValorBruto += adv.valorBruto || 0;
+                        totalPagamento += adv.pagamento || 0;
+                        totalSaldo += adv.saldo || 0;
+                    });
             }
             
-            // Advogados Sucumbenciais
+            // Advogados Sucumbenciais 
             if (saldos.advogadosSucumbenciais?.length > 0) {
-                saldos.advogadosSucumbenciais.forEach(adv => {
-                    totalValorBruto += adv.valorBruto || 0;
-                    totalPagamento += adv.pagamento || 0;
-                    totalSaldo += adv.saldo || 0;
-                });
+                saldos.advogadosSucumbenciais
+                    .filter(adv => adv.pagamento > 0)
+                    .forEach(adv => {
+                        totalValorBruto += adv.valorBruto || 0;
+                        totalPagamento += adv.pagamento || 0;
+                        totalSaldo += adv.saldo || 0;
+                    });
             }
             
-            // Sindicatos
+            // Sindicatos 
             if (saldos.sindicatos?.length > 0) {
-                saldos.sindicatos.forEach(sind => {
-                    totalValorBruto += sind.valorBruto || 0;
-                    totalPagamento += sind.pagamento || 0;
-                    totalSaldo += sind.saldo || 0;
-                });
+                saldos.sindicatos
+                    .filter(sind => sind.pagamento > 0)
+                    .forEach(sind => {
+                        totalValorBruto += sind.valorBruto || 0;
+                        totalPagamento += sind.pagamento || 0;
+                        totalSaldo += sind.saldo || 0;
+                    });
             }
             
             // Cessionários 
             if (saldos.cessionarios?.length > 0) {
-                saldos.cessionarios.forEach(cess => {
-                    totalValorBruto += cess.valorBruto || 0;
-                    totalPagamento += cess.pagamento || 0;
-                    totalSaldo += cess.saldo || 0;
-                });
+                saldos.cessionarios
+                    .filter(cess => {
+                        if (cess.pagamento <= 0) return false;
+                        if (cess.hasOwnProperty('pagamentoDireto')) {
+                            const pagamentoDoCedente = cess.pagamento - cess.pagamentoDireto;
+                            return cess.pagamentoDireto > 0 || pagamentoDoCedente > 0;
+                        }
+                        return true;
+                    })
+                    .forEach(cess => {
+                        totalValorBruto += cess.valorBruto || 0;
+                        totalPagamento += cess.pagamento || 0;
+                        totalSaldo += cess.saldo || 0;
+                    });
             }
             
             return {
