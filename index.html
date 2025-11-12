@@ -41,7 +41,15 @@
                                     SindiFaz
                                 </button>
                             </div>
-                            <input type="text" id="numprocesso" placeholder="Número do processo">
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="text" id="numprocesso" placeholder="Número do processo" style="flex: 1;">
+                                <button type="button" class="btn-add" onclick="buscarDadosProcesso()" style="white-space: nowrap; padding: 8px 16px;">
+                                    🔍 Buscar
+                                </button>
+                            </div>
+                            <div id="statusCarregamento" style="margin-top: 5px; font-size: 12px; color: #666;">
+                                ⏳ Carregando base de dados...
+                            </div>
                         </div>
                         <div class="input-group">
                             <label for="beneficiario">Beneficiário Principal:</label>
@@ -9903,13 +9911,259 @@
                 setTimeout(() => {
                     definir('tipoPrevidencia', 'fixa');
                     definir('aliquotaFixa', 0.08); 
-                    definir('anoOrcamento', 2020);
-                    definir('mesBase', 'fevereiro');
-                    definir('anoBase', 2018);
-                    definir('dataBase', '2018-02-01');
                 }, 100);
             }, 400);
         }
+
+        //  CARREGAMENTO AUTOMÁTICO DE DADOS
+        let dadosProcessos = new Map(); // Cache dos dados dos processos
+        let csvCarregado = false;
+
+        // Função para carregar o CSV automaticamente do servidor
+        async function carregarCSVDoServidor() {
+            try {
+                const response = await fetch('/tabelas/dados.csv');
+                
+                if (!response.ok) {
+                    throw new Error('Erro ao carregar arquivo CSV');
+                }
+                
+                // Lê o conteúdo como texto com encoding correto
+                const texto = await response.text();
+                
+                // Separa as linhas
+                const linhas = texto.split('\n');
+                
+                // Ignora a primeira linha (cabeçalho)
+                const cabecalho = linhas[0].split(';').map(c => c.trim());
+                
+                dadosProcessos.clear();
+                
+                // Processa cada linha de dados
+                for (let i = 1; i < linhas.length; i++) {
+                    if (!linhas[i].trim()) continue; // Pula linhas vazias
+                    
+                    // Divide por ponto-e-vírgula
+                    const valores = linhas[i].split(';');
+                    
+                    if (valores.length < 9) continue; // Garante que tem todos os campos
+                    
+                    const processo = {
+                        numero: valores[0]?.trim() || '',
+                        orcamento: valores[1]?.trim() || '',
+                        exequente: valores[2]?.trim() || '',
+                        executado: valores[3]?.trim() || '',
+                        dataCalculo: valores[4]?.trim() || '',
+                        natureza: valores[5]?.trim() || '',
+                        rra: valores[6]?.trim() || '',
+                        principal: valores[7]?.trim() || '',
+                        juros: valores[8]?.trim() || ''
+                    };
+                    
+                    if (processo.numero) {
+                        dadosProcessos.set(processo.numero, processo);
+                    }
+                }
+                
+                console.log(`✅ ${dadosProcessos.size} processos carregados do servidor`);
+                csvCarregado = true;
+                
+                // Atualiza o indicador visual
+                const statusDiv = document.getElementById('statusCarregamento');
+                if (statusDiv) {
+                    statusDiv.innerHTML = `✅ Base de dados carregada: ${dadosProcessos.size} processos disponíveis`;
+                    statusDiv.style.color = '#28a745';
+                }
+                
+                // Salva no LocalStorage para cache
+                localStorage.setItem('dadosProcessos', JSON.stringify([...dadosProcessos]));
+                localStorage.setItem('dataCarregamento', new Date().toISOString());
+                
+                return true;
+            } catch (erro) {
+                console.error('❌ Erro ao carregar CSV:', erro);
+                
+                // Tenta carregar do cache local se falhar
+                const cacheLocal = localStorage.getItem('dadosProcessos');
+                if (cacheLocal) {
+                    dadosProcessos = new Map(JSON.parse(cacheLocal));
+                    console.log('📦 Dados carregados do cache local');
+                    csvCarregado = true;
+                    
+                    const statusDiv = document.getElementById('statusCarregamento');
+                    if (statusDiv) {
+                        statusDiv.innerHTML = `📦 Usando cache local: ${dadosProcessos.size} processos`;
+                        statusDiv.style.color = '#ffc107';
+                    }
+                    return true;
+                }
+                
+                const statusDiv = document.getElementById('statusCarregamento');
+                if (statusDiv) {
+                    statusDiv.innerHTML = '❌ Erro ao carregar base de dados';
+                    statusDiv.style.color = '#dc3545';
+                }
+                
+                return false;
+            }
+        }
+
+        // Função para converter data do formato DD/MM/YYYY para YYYY-MM-DD
+        function converterDataParaInput(dataStr) {
+            if (!dataStr) return '';
+            
+            // Remove espaços
+            dataStr = dataStr.trim();
+            
+            // Se já estiver no formato YYYY-MM-DD, retorna direto
+            if (dataStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                return dataStr;
+            }
+            
+            // Converte DD/MM/YYYY para YYYY-MM-DD
+            const partes = dataStr.split('/');
+            if (partes.length === 3) {
+                const dia = partes[0].padStart(2, '0');
+                const mes = partes[1].padStart(2, '0');
+                const ano = partes[2];
+                return `${ano}-${mes}-${dia}`;
+            }
+            
+            return '';
+        }
+
+        // Função para converter número brasileiro (123.456,78) para número JS (123456.78)
+        function converterNumero(valorStr) {
+            if (!valorStr) return '';
+            
+            // Remove espaços
+            valorStr = valorStr.trim();
+            
+            // Se estiver vazio, retorna vazio
+            if (valorStr === '') return '';
+            
+            // Substitui ponto (separador de milhar) por nada
+            // Substitui vírgula (separador decimal) por ponto
+            const numeroConvertido = valorStr
+                .replace(/\./g, '')  // Remove pontos
+                .replace(',', '.');   // Troca vírgula por ponto
+            
+            return numeroConvertido;
+        }
+
+        // Função principal: buscar e preencher dados do processo
+        function buscarDadosProcesso() {
+            const numeroProcesso = document.getElementById('numprocesso').value.trim();
+            
+            if (!numeroProcesso) {
+                alert('⚠️ Digite o número do processo!');
+                return false;
+            }
+            
+            if (!csvCarregado || dadosProcessos.size === 0) {
+                alert('⚠️ Base de dados ainda não foi carregada. Aguarde um momento e tente novamente.');
+                return false;
+            }
+            
+            const dados = dadosProcessos.get(numeroProcesso);
+            
+            if (!dados) {
+                alert('❌ Processo não encontrado na base de dados!\n\nProcurado: ' + numeroProcesso);
+                return false;
+            }
+            
+            // Preenche os campos do formulário
+            
+            // Beneficiário (Exequente)
+            if (dados.exequente) {
+                document.getElementById('beneficiario').value = dados.exequente;
+            }
+            
+            // Devedor (Executado)
+            if (dados.executado) {
+                document.getElementById('credor').value = dados.executado;
+            }
+            
+            // Natureza (converte para lowercase para match com as options)
+            if (dados.natureza) {
+                const naturezaValue = dados.natureza.toLowerCase();
+                const selectNatureza = document.getElementById('natureza');
+                
+                if (naturezaValue === 'comum' || naturezaValue === 'alimentar') {
+                    selectNatureza.value = naturezaValue;
+                    // Dispara o evento onchange para atualizar outros campos dependentes
+                    selectNatureza.dispatchEvent(new Event('change'));
+                }
+            }
+            
+            // Ano do Orçamento
+            if (dados.orcamento) {
+                document.getElementById('anoOrcamento').value = dados.orcamento;
+            }
+            
+            // Data Base (Data do Cálculo Homologado)
+            if (dados.dataCalculo) {
+                const dataConvertida = converterDataParaInput(dados.dataCalculo);
+                if (dataConvertida) {
+                    document.getElementById('dataBase').value = dataConvertida;
+                }
+            }
+            
+            // Valor Principal
+            if (dados.principal) {
+                const valorConvertido = converterNumero(dados.principal);
+                if (valorConvertido) {
+                    document.getElementById('valorPrincipal').value = valorConvertido;
+                }
+            }
+            
+            // Valor dos Juros
+            if (dados.juros) {
+                const valorConvertido = converterNumero(dados.juros);
+                if (valorConvertido) {
+                    document.getElementById('valorJuros').value = valorConvertido;
+                }
+            }
+            
+            // RRA
+            if (dados.rra) {
+                const rraConvertido = converterNumero(dados.rra);
+                if (rraConvertido) {
+                    document.getElementById('rra').value = rraConvertido;
+                } else {
+                    // Se o campo RRA está vazio no CSV, mantém 0
+                    document.getElementById('rra').value = '0';
+                }
+            }
+            
+            alert('✅ Dados do processo carregados com sucesso!');
+            return true;
+        }
+
+        // Carregar dados quando a página carregar
+        window.addEventListener('DOMContentLoaded', async function() {
+            console.log('🔄 Carregando base de dados de processos...');
+            await carregarCSVDoServidor();
+        });
+
+        // Recarregar dados periodicamente (a cada 30 minutos)
+        setInterval(async function() {
+            console.log('🔄 Atualizando base de dados...');
+            await carregarCSVDoServidor();
+        }, 1800000); // 30 minutos em milissegundos
+
+        // Adiciona evento ao campo de número do processo para buscar ao pressionar Enter
+        document.addEventListener('DOMContentLoaded', function() {
+            const campoProcesso = document.getElementById('numprocesso');
+            if (campoProcesso) {
+                campoProcesso.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        buscarDadosProcesso();
+                    }
+                });
+            }
+        });
 
     </script>
     <footer class="footer">
