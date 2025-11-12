@@ -9916,10 +9916,9 @@
         }
 
         //  CARREGAMENTO AUTOMÁTICO DE DADOS
-        let dadosProcessos = new Map(); // Cache dos dados dos processos
+        let dadosProcessos = new Map(); 
         let csvCarregado = false;
 
-        // Função para carregar o CSV automaticamente do servidor
         async function carregarCSVDoServidor() {
             try {
                 const response = await fetch('/tabelas/dados.csv');
@@ -9928,25 +9927,21 @@
                     throw new Error('Erro ao carregar arquivo CSV');
                 }
                 
-                // Lê o conteúdo como texto com encoding correto
                 const texto = await response.text();
                 
-                // Separa as linhas
                 const linhas = texto.split('\n');
                 
-                // Ignora a primeira linha (cabeçalho)
                 const cabecalho = linhas[0].split(';').map(c => c.trim());
                 
                 dadosProcessos.clear();
                 
-                // Processa cada linha de dados
+                
                 for (let i = 1; i < linhas.length; i++) {
-                    if (!linhas[i].trim()) continue; // Pula linhas vazias
+                    if (!linhas[i].trim()) continue; 
                     
-                    // Divide por ponto-e-vírgula
                     const valores = linhas[i].split(';');
                     
-                    if (valores.length < 9) continue; // Garante que tem todos os campos
+                    if (valores.length < 9) continue;
                     
                     const processo = {
                         numero: valores[0]?.trim() || '',
@@ -9965,17 +9960,14 @@
                     }
                 }
                 
-                console.log(`✅ ${dadosProcessos.size} processos carregados do servidor`);
                 csvCarregado = true;
                 
-                // Atualiza o indicador visual
                 const statusDiv = document.getElementById('statusCarregamento');
                 if (statusDiv) {
                     statusDiv.innerHTML = `✅ Base de dados carregada: ${dadosProcessos.size} processos disponíveis`;
                     statusDiv.style.color = '#28a745';
                 }
                 
-                // Salva no LocalStorage para cache
                 localStorage.setItem('dadosProcessos', JSON.stringify([...dadosProcessos]));
                 localStorage.setItem('dataCarregamento', new Date().toISOString());
                 
@@ -9983,7 +9975,6 @@
             } catch (erro) {
                 console.error('❌ Erro ao carregar CSV:', erro);
                 
-                // Tenta carregar do cache local se falhar
                 const cacheLocal = localStorage.getItem('dadosProcessos');
                 if (cacheLocal) {
                     dadosProcessos = new Map(JSON.parse(cacheLocal));
@@ -10008,19 +9999,15 @@
             }
         }
 
-        // Função para converter data do formato DD/MM/YYYY para YYYY-MM-DD
         function converterDataParaInput(dataStr) {
             if (!dataStr) return '';
             
-            // Remove espaços
             dataStr = dataStr.trim();
             
-            // Se já estiver no formato YYYY-MM-DD, retorna direto
             if (dataStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
                 return dataStr;
             }
             
-            // Converte DD/MM/YYYY para YYYY-MM-DD
             const partes = dataStr.split('/');
             if (partes.length === 3) {
                 const dia = partes[0].padStart(2, '0');
@@ -10032,18 +10019,13 @@
             return '';
         }
 
-        // Função para converter número brasileiro (123.456,78) para número JS (123456.78)
         function converterNumero(valorStr) {
             if (!valorStr) return '';
             
-            // Remove espaços
             valorStr = valorStr.trim();
             
-            // Se estiver vazio, retorna vazio
             if (valorStr === '') return '';
             
-            // Substitui ponto (separador de milhar) por nada
-            // Substitui vírgula (separador decimal) por ponto
             const numeroConvertido = valorStr
                 .replace(/\./g, '')  // Remove pontos
                 .replace(',', '.');   // Troca vírgula por ponto
@@ -10051,7 +10033,6 @@
             return numeroConvertido;
         }
 
-        // Função principal: buscar e preencher dados do processo
         function buscarDadosProcesso() {
             const numeroProcesso = document.getElementById('numprocesso').value.trim();
             
@@ -10071,9 +10052,7 @@
                 alert('❌ Processo não encontrado na base de dados!\n\nProcurado: ' + numeroProcesso);
                 return false;
             }
-            
-            // Preenche os campos do formulário
-            
+        
             // Beneficiário (Exequente)
             if (dados.exequente) {
                 document.getElementById('beneficiario').value = dados.exequente;
@@ -10084,14 +10063,13 @@
                 document.getElementById('credor').value = dados.executado;
             }
             
-            // Natureza (converte para lowercase para match com as options)
+            // Natureza 
             if (dados.natureza) {
                 const naturezaValue = dados.natureza.toLowerCase();
                 const selectNatureza = document.getElementById('natureza');
                 
                 if (naturezaValue === 'comum' || naturezaValue === 'alimentar') {
                     selectNatureza.value = naturezaValue;
-                    // Dispara o evento onchange para atualizar outros campos dependentes
                     selectNatureza.dispatchEvent(new Event('change'));
                 }
             }
@@ -10101,7 +10079,7 @@
                 document.getElementById('anoOrcamento').value = dados.orcamento;
             }
             
-            // Data Base (Data do Cálculo Homologado)
+            // Data Base 
             if (dados.dataCalculo) {
                 const dataConvertida = converterDataParaInput(dados.dataCalculo);
                 if (dataConvertida) {
@@ -10140,19 +10118,16 @@
             return true;
         }
 
-        // Carregar dados quando a página carregar
         window.addEventListener('DOMContentLoaded', async function() {
             console.log('🔄 Carregando base de dados de processos...');
             await carregarCSVDoServidor();
         });
 
-        // Recarregar dados periodicamente (a cada 30 minutos)
         setInterval(async function() {
             console.log('🔄 Atualizando base de dados...');
             await carregarCSVDoServidor();
         }, 1800000); // 30 minutos em milissegundos
 
-        // Adiciona evento ao campo de número do processo para buscar ao pressionar Enter
         document.addEventListener('DOMContentLoaded', function() {
             const campoProcesso = document.getElementById('numprocesso');
             if (campoProcesso) {
