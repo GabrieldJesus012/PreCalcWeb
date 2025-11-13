@@ -5211,7 +5211,8 @@
                     saldos.cessionarios, 
                     dados, 
                     resultados,
-                    temIR
+                    temIR,
+                    saldos
                 );
             }
             
@@ -5222,7 +5223,7 @@
             ajustarCessionariosHerdeiros(resultadosAjustados, saldos.cessionarios, dados, temIR);
         }
 
-        function ajustarCessionariosBeneficiario(cessionarios, saldosCessionarios, dados, resultados, temIR) {
+        function ajustarCessionariosBeneficiario(cessionarios, saldosCessionarios, dados, resultados, temIR, saldos) {
             return cessionarios.map(cess => {
                 const saldoCess = saldosCessionarios.find(c => 
                     c.nome === cess.cessionario && c.tipo === 'Cessionário do Beneficiário'
@@ -5230,24 +5231,49 @@
                 
                 if (!saldoCess || saldoCess.saldo <= 0) return cess;
                 
-                const principalCess = saldoCess.saldo * (resultados.percentualprinc || 0.5);
-                const rraCess = resultados.rrapagamento || 0;
+                const percentualCessao = cess.percentual || 0;
+                const cedeu100 = percentualCessao >= 1.0;
                 
-                const resultadoPrev = calcularPrevidenciaIsolada(dados, principalCess, rraCess);
-                let novoIR = 0;
+                let previdenciaCess, novoIR;
                 
-                if (temIR && rraCess !== 0) {
-                    const resultadoIR = calcularIRIsolado(dados, saldoCess.saldo, saldoCess.saldo, 
-                        principalCess, resultadoPrev.valorPrevidencia, rraCess);
-                    novoIR = resultadoIR.valorIR;
+                if (cedeu100) {
+                    previdenciaCess = saldos.previdenciaTotal || resultados.valorPrevidencia || 0;  // ⬅️ USAR 'saldos'
+            
+                    // IR também direto
+                    if (temIR) {
+                        novoIR = saldos.irTotal || resultados.valorIR || 0;
+                    } else {
+                        novoIR = 0;
+                    }
+                } else {
+                    const valorBrutoBeneficiario = resultados.valorBeneficiarioBruto || resultados.valortotatt || 0;
+                    const principalBeneficiario = resultados.principal || 0;
+                    
+                    const proporcaoPrincipal = valorBrutoBeneficiario > 0 
+                        ? principalBeneficiario / valorBrutoBeneficiario 
+                        : 0.5;
+                    
+                    const principalCess = saldoCess.saldo * proporcaoPrincipal;
+                    const rraCess = saldos.rraAjustado || resultados.rrapagamento || 0;
+                    
+                    const resultadoPrev = calcularPrevidenciaIsolada(dados, principalCess, rraCess);
+                    previdenciaCess = resultadoPrev.valorPrevidencia;
+                    
+                    if (temIR && rraCess !== 0) {
+                        const resultadoIR = calcularIRIsolado(dados, saldoCess.saldo, saldoCess.saldo, 
+                            principalCess, previdenciaCess, rraCess);
+                        novoIR = resultadoIR.valorIR;
+                    } else {
+                        novoIR = 0;
+                    }
                 }
                 
                 return {
                     ...cess,
                     valorBruto: saldoCess.saldo,
-                    previdenciaCessao: resultadoPrev.valorPrevidencia,
+                    previdenciaCessao: previdenciaCess,
                     irCessao: novoIR,
-                    valorLiquido: saldoCess.saldo - resultadoPrev.valorPrevidencia - novoIR
+                    valorLiquido: saldoCess.saldo - previdenciaCess - novoIR
                 };
             });
         }
@@ -8456,8 +8482,14 @@
                     <td>R$ ${formatarMoeda(resultados.principalComDesagio)}</td>
                 </tr>`;
             }
+
+            const temIRParaDistribuir = temCessoes && (
+                (resultados.valorIRBeneficiario > 0) ||
+                (resultados.cessoesBeneficiarioFinais?.some(c => c.irCessao > 0))
+            );
+
             
-            const distribuicaoCessoes = temCessoes ? `
+            const distribuicaoCessoes = temIRParaDistribuir ? `
                 <tr style="border-top: 1px solid #dee2e6;">
                     <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
                 </tr>
