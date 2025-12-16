@@ -2944,9 +2944,6 @@
                 jurosMora: 0
             };
 
-            let comparacaoSelicIpca = null;
-            let usarLogicaPEC = false;
-            
             try {
                 // 1. CNJ
                 if (configIndices.aplicarCNJ) {
@@ -2964,12 +2961,10 @@
                         indices.ipcae = await calcularIpcaE(dataBase, inicioGraca, fimGraca);
                     } catch (error) {
                         console.error("⚠️ Erro ao calcular IPCA-E (usando 1.0):", error.message);
-                        indices.ipcae = 1;
                     }
                 }
                 
-                // 4. SELIC (até 31/07/2025)
-                let dadosSelicCompletos = null;
+                // 4. SELIC
                 if (configIndices.aplicarSelic) {
                     const temSelicInformado = (configIndices.tipoSelic === 'valor' && configIndices.valorSelic > 0) || 
                                             (configIndices.tipoSelic === 'percentual' && configIndices.percentualSelic > 0);
@@ -2980,7 +2975,7 @@
                     }
                     
                     try {
-                        dadosSelicCompletos = await calcularSelic(dataInicioSelic, inicioGraca, fimGraca);
+                        const dadosSelicCompletos = await calcularSelic(dataInicioSelic, inicioGraca, fimGraca);
                         indices.selic = dadosSelicCompletos.indiceselic;
                         
                         // Adicionar SELIC informado
@@ -3000,90 +2995,54 @@
                         }
                     } catch (error) {
                         console.error("⚠️ Erro ao calcular SELIC (usando 1.0):", error.message);
-                        indices.selic = 1;
                     }
                 }
-
-                // 5. Comparação SELIC vs IPCA+2% (pós agosto/2025)
-                comparacaoSelicIpca = await calcularSelicPosAgosto2025();
-                
-                usarLogicaPEC = comparacaoSelicIpca.quantidadeMeses > 0;
-                
             } catch (error) {
                 console.error("❌ Erro geral em calcularIndicesEValores:", error);
             }
             
-            // ====================================
-            // CÁLCULO DOS VALORES
-            // ====================================
-            
-            // Calcular valores base (até 31/07/2025)
+            // Calcular valores base
             const principalCNJ = valorPrincipal * indices.cnj;
-            
             const jurosCNJ = valorJuros * indices.cnj;
-            
             const valorJurosMora = principalCNJ * indices.jurosMora;
-            
             const jurosTotal = jurosCNJ + valorJurosMora;
-            
-            // Total antes de SELIC
             const totalAntesSelic = principalCNJ + jurosTotal;
-            
-            // Aplicar SELIC (até 31/07/2025)
             const valorSelicSeparado = totalAntesSelic * (indices.selic - 1);
             
-            // ====================================
-            // LÓGICA PEC (Pós agosto/2025)
-            // ====================================
+            // Verificar PEC
+            const comparacaoSelicIpca = await calcularSelicPosAgosto2025();
+            const usarLogicaPEC = comparacaoSelicIpca.quantidadeMeses > 0;
             
+            // ====================================
+            // SITUAÇÃO 1: PEC com SELIC > IPCA+2%
+            // ====================================
             if (usarLogicaPEC && comparacaoSelicIpca.selicMaior) {
-                
-                // Buscar IPCA puro
                 const dadosIpca = await calcularIpca(dataBase, inicioGraca, fimGraca);
                 const indiceIpca = dadosIpca.indiceipca;
-                
                 const percentualJuros2AA = calcularJuros2PorcentoAA(dadosIpca.quantidadeMeses);
                 
-                // Aplicar IPCA sobre os 3 componentes
                 const principalComIpca = principalCNJ * indices.ipcae * indiceIpca;
-                
                 const jurosComIpca = jurosTotal * indiceIpca * indices.ipcae;
-                
                 const selicComIpca = valorSelicSeparado * indiceIpca * indices.ipcae;
-                
-                // Adicionar Juros 2% a.a sobre o PRINCIPAL (já com IPCA)
                 const valorJuros2AA = principalComIpca * percentualJuros2AA;
                 
                 const jurosFinal = jurosComIpca + valorJuros2AA;
-                
                 const totalFinal = principalComIpca + jurosFinal + selicComIpca;
                 
-                // ========================================
-                // CALCULAR VALORES PARA TRIBUTAÇÃO
-                // ========================================
-                
-                // Principal para tributação: Principal × CNJ × IPCA-E × IPCA × SELIC
+                // Valores para tributação (com SELIC incorporada)
                 const principalComSelicTributacao = valorPrincipal * indices.cnj * indices.ipcae * indiceIpca * indices.selic;
-                
-                // Juros para tributação: (Juros × CNJ × IPCA-E × IPCA × SELIC) + (Juros de Mora × IPCA-E × IPCA × SELIC)
                 const jurosOriginaisComSelic = valorJuros * indices.cnj * indices.ipcae * indiceIpca * indices.selic;
                 const jurosMoraComSelic = valorJurosMora * indices.ipcae * indiceIpca * indices.selic;
-                const juros2AASemSelic = valorJuros2AA;
-
-                const jurosComSelicTributacao = jurosOriginaisComSelic + jurosMoraComSelic + juros2AASemSelic;
+                const jurosComSelicTributacao = jurosOriginaisComSelic + jurosMoraComSelic + valorJuros2AA;
                 
-                // Armazenar índice IPCA nos indices
                 indices.ipca = indiceIpca;
                 
                 return {
                     valorPrincipalAtualizado: principalComIpca,
                     valorJurosAtualizado: jurosFinal,
                     valorSelicSeparado: selicComIpca,
-                    
-                    // VALORES PARA TRIBUTAÇÃO (com SELIC incorporada)
                     principalTributacao: principalComSelicTributacao,
                     jurosTributacao: jurosComSelicTributacao,
-                    
                     indices: {
                         ...indices,
                         indicePrincipal: indices.cnj * indiceIpca,
@@ -3097,101 +3056,59 @@
                         indiceSelic: comparacaoSelicIpca.indiceSelic,
                         indiceIpcaMais2: comparacaoSelicIpca.indiceIpcaMais2,
                         indiceIpcaPuro: indiceIpca,
-                        percentualJuros2AA: percentualJuros2AA,
-                        valorJuros2AA: valorJuros2AA,
+                        percentualJuros2AA,
+                        valorJuros2AA,
                         quantidadeMeses: comparacaoSelicIpca.quantidadeMeses
-                    }
-                };
-                
-            } else if (usarLogicaPEC && !comparacaoSelicIpca.selicMaior) {
-                
-                const totalComSelic = totalAntesSelic * indices.selic;
-                
-                const totalComIpcaE = totalComSelic * indices.ipcae;
-                
-                // Aplicar SELIC pós agosto (a menor)
-                const totalFinal = totalComIpcaE * comparacaoSelicIpca.indiceSelecionado;
-                
-                // Proporcionalizar principal e juros
-                const proporcaoPrincipal = principalCNJ / totalAntesSelic;
-                const proporcaoJuros = jurosTotal / totalAntesSelic;
-                
-                const principalFinal = totalFinal * proporcaoPrincipal;
-                const jurosFinal = totalFinal * proporcaoJuros;
-                
-                // VALORES PARA TRIBUTAÇÃO (usa os mesmos valores, pois não separa)
-                const principalComSelicTributacao = principalFinal;
-                const jurosComSelicTributacao = jurosFinal;
-                
-                // Armazenar índice no indices
-                indices.ipca = comparacaoSelicIpca.indiceSelecionado;
-                
-                return {
-                    valorPrincipalAtualizado: principalFinal,
-                    valorJurosAtualizado: jurosFinal,
-                    valorSelicSeparado: 0,
-                    
-                    // VALORES PARA TRIBUTAÇÃO
-                    principalTributacao: principalComSelicTributacao,
-                    jurosTributacao: jurosComSelicTributacao,
-                    
-                    indices: {
-                        ...indices,
-                        indicePrincipal: indices.cnj * indices.selic * indices.ipcae * comparacaoSelicIpca.indiceSelecionado,
-                        indiceJuros: indices.cnj * indices.selic * indices.ipcae * comparacaoSelicIpca.indiceSelecionado
-                    },
-                    jurosMoraCalculado: valorJurosMora,
-                    detalhamentoPEC: {
-                        usouLogicaPEC: true,
-                        selicMaior: false,
-                        indiceSelic: comparacaoSelicIpca.indiceSelic,
-                        indiceIpcaMais2: comparacaoSelicIpca.indiceIpcaMais2,
-                        quantidadeMeses: comparacaoSelicIpca.quantidadeMeses
-                    }
-                };
-                
-            } else {
-                
-                const totalComSelic = totalAntesSelic * indices.selic;
-                
-                const totalComIpcaE = totalComSelic * indices.ipcae;
-                
-                const totalFinal = totalComIpcaE;
-                
-                // Proporcionalizar principal e juros
-                const proporcaoPrincipal = principalCNJ / totalAntesSelic;
-                const proporcaoJuros = jurosTotal / totalAntesSelic;
-                
-                const principalFinal = totalFinal * proporcaoPrincipal;
-                const jurosFinal = totalFinal * proporcaoJuros;
-                
-                const indicePrincipal = indices.cnj * indices.selic * indices.ipcae;
-                const indiceJuros = indices.cnj * indices.selic * indices.ipcae;
-                
-                // VALORES PARA TRIBUTAÇÃO (usa os mesmos valores)
-                const principalComSelicTributacao = principalFinal;
-                const jurosComSelicTributacao = jurosFinal;
-                
-                return {
-                    valorPrincipalAtualizado: principalFinal,
-                    valorJurosAtualizado: jurosFinal,
-                    valorSelicSeparado: 0,
-                    
-                    // VALORES PARA TRIBUTAÇÃO
-                    principalTributacao: principalComSelicTributacao,
-                    jurosTributacao: jurosComSelicTributacao,
-                    
-                    indices: {
-                        ...indices,
-                        indicePrincipal,
-                        indiceJuros
-                    },
-                    jurosMoraCalculado: valorJurosMora,
-                    detalhamentoPEC: {
-                        usouLogicaPEC: false
                     }
                 };
             }
+            
+            // ====================================
+            // SITUAÇÕES 2 e 3: Cálculo unificado
+            // ====================================
+            const totalComSelic = totalAntesSelic * indices.selic;
+            const totalComIpcaE = totalComSelic * indices.ipcae;
+            
+            // Aplicar índice pós-agosto se houver PEC (Situação 2) ou manter como está (Situação 3)
+            const indiceFinal = usarLogicaPEC ? comparacaoSelicIpca.indiceSelecionado : 1;
+            const totalFinal = totalComIpcaE * indiceFinal;
+            
+            // Proporcionalizar principal e juros
+            const proporcaoPrincipal = principalCNJ / totalAntesSelic;
+            const proporcaoJuros = jurosTotal / totalAntesSelic;
+            
+            const principalFinal = totalFinal * proporcaoPrincipal;
+            const jurosFinal = totalFinal * proporcaoJuros;
+            
+            const indicePrincipal = indices.cnj * indices.selic * indices.ipcae * indiceFinal;
+            const indiceJuros = indicePrincipal;
+            
+            if (usarLogicaPEC) {
+                indices.ipca = comparacaoSelicIpca.indiceSelecionado;
+            }
+            
+            return {
+                valorPrincipalAtualizado: principalFinal,
+                valorJurosAtualizado: jurosFinal,
+                valorSelicSeparado: 0,
+                principalTributacao: principalFinal,
+                jurosTributacao: jurosFinal,
+                indices: {
+                    ...indices,
+                    indicePrincipal,
+                    indiceJuros
+                },
+                jurosMoraCalculado: valorJurosMora,
+                detalhamentoPEC: usarLogicaPEC ? {
+                    usouLogicaPEC: true,
+                    selicMaior: false,
+                    indiceSelic: comparacaoSelicIpca.indiceSelic,
+                    indiceIpcaMais2: comparacaoSelicIpca.indiceIpcaMais2,
+                    quantidadeMeses: comparacaoSelicIpca.quantidadeMeses
+                } : {
+                    usouLogicaPEC: false
+                }
+            };
         }
 
         // ====================================
