@@ -2935,7 +2935,7 @@
             const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
             const { mesBase, anoBase } = baseData;
             const dataBase = criarDataBase(mesBase, anoBase);
-                        
+            
             const indices = {
                 cnj: 1,
                 selic: 1,
@@ -3016,7 +3016,6 @@
             // ====================================
             // CÁLCULO DOS VALORES
             // ====================================
-            
             
             // Calcular valores base (até 31/07/2025)
             const principalCNJ = valorPrincipal * indices.cnj;
