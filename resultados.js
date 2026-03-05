@@ -2923,6 +2923,35 @@
                 (resultados.cessoesBeneficiarioFinais?.some(c => c.irCessao > 0))
             );
 
+            const temDesconto2026 = resultados.descontoAdicional2026 && resultados.descontoAdicional2026 > 0;
+            const descontoTotal = temDesconto2026 ? resultados.descontoAdicional2026 * (resultados.rraComDesagio || resultados.rrapagamento) : 0;
+
+            let secaoDesconto2026 = '';
+            if (temDesconto2026) {
+                const baseRRA = resultados.baseIRRRA;
+                let explicacao = '';
+                
+                if (baseRRA <= 5000) {
+                    explicacao = 'Isenção para rendimentos até R$ 5.000,00';
+                } else if (baseRRA <= 7350) {
+                    explicacao = `Desconto progressivo para rendimentos entre R$ 5.000,01 e R$ 7.350,00`;
+                }
+                
+                secaoDesconto2026 = `
+                <tr>
+                    <th>IR Calculado (Tabela Progressiva):</th>
+                    <td>R$ ${formatarMoeda(resultados.valorIRSemDesconto || resultados.valorIR + descontoTotal)}</td>
+                </tr>
+                <tr style="background-color: #e8f5e9; color: #2e7d32;">
+                    <th>(-) Desconto Adicional 2026:</th>
+                    <td><strong>R$ ${formatarMoeda(descontoTotal)}</strong></td>
+                </tr>
+                <tr style="background-color: #f1f8e9;">
+                    <td colspan="2" style="padding: 8px 12px; border-left: 3px solid #66bb6a; font-size: 0.9em;">
+                        💡 <strong>Novo benefício 2026:</strong> ${explicacao}
+                    </td>
+                </tr>`;
+            }
             
             const distribuicaoCessoes = temIRParaDistribuir ? `
                 <tr style="border-top: 1px solid #dee2e6;">
@@ -2988,6 +3017,7 @@
                         <th>Valor IR Mensal:</th>
                         <td>R$ ${formatarMoeda(resultados.valorIRUnitario)}</td>
                     </tr>
+                    ${secaoDesconto2026}
                     <tr class="total-row">
                         <th>Valor IR Devido Total:</th>
                         <td><strong>R$ ${formatarMoeda(resultados.valorIR)}</strong></td>
@@ -3215,7 +3245,37 @@
                     <td>R$ ${formatarMoeda(primeiroHerdeiro.principalComDesagio || primeiroHerdeiro.baseIRSindi)}</td>
                 </tr>`;
             }
-            
+
+            const temDesconto2026 = primeiroHerdeiro.descontoAdicional2026 && primeiroHerdeiro.descontoAdicional2026 > 0;
+            const descontoTotal = temDesconto2026 ? primeiroHerdeiro.descontoAdicional2026 * (primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento) : 0;
+
+            let secaoDesconto2026 = '';
+            if (temDesconto2026) {
+                const baseRRA = primeiroHerdeiro.baseIRRRA;
+                let explicacao = '';
+                
+                if (baseRRA <= 5000) {
+                    explicacao = 'Isenção para rendimentos até R$ 5.000,00';
+                } else if (baseRRA <= 7350) {
+                    explicacao = `Desconto progressivo (R$ 5.000,01 a R$ 7.350,00)`;
+                }
+                
+                secaoDesconto2026 = `
+                <tr>
+                    <th>IR Calculado (Tabela Progressiva):</th>
+                    <td>R$ ${formatarMoeda(primeiroHerdeiro.valorIRSemDesconto || primeiroHerdeiro.valorIR + descontoTotal)}</td>
+                </tr>
+                <tr style="background-color: #e8f5e9; color: #2e7d32;">
+                    <th>(-) Desconto Adicional 2026:</th>
+                    <td><strong>R$ ${formatarMoeda(descontoTotal)}</strong></td>
+                </tr>
+                <tr style="background-color: #f1f8e9;">
+                    <td colspan="2" style="padding: 8px 12px; border-left: 3px solid #66bb6a; font-size: 0.9em;">
+                        💡 <strong>Novo benefício 2026:</strong> ${explicacao}
+                    </td>
+                </tr>`;
+            }
+
             const distribuicaoHerdeiros = herdeiros.map(herdeiro => `
                 <tr>
                     <th>${herdeiro.nome}:</th>
@@ -3267,6 +3327,7 @@
                         <th>Valor IR Mensal:</th>
                         <td>R$ ${formatarMoeda(primeiroHerdeiro.valorIRUnitario)}</td>
                     </tr>
+                    ${secaoDesconto2026}
                     <tr class="total-row">
                         <th>Valor IR Devido Total por Herdeiro:</th>
                         <td><strong>R$ ${formatarMoeda(primeiroHerdeiro.valorIR)}</strong></td>
@@ -3484,6 +3545,36 @@
                     <td>R$ ${formatarMoeda(primeiroHerdeiro.principalComDesagio || primeiroHerdeiro.baseIRSindi)}</td>
                 </tr>`;
             }
+
+            const temDesconto2026 = primeiroHerdeiro.descontoAdicional2026 && primeiroHerdeiro.descontoAdicional2026 > 0;
+            const descontoTotal = temDesconto2026 ? primeiroHerdeiro.descontoAdicional2026 * (primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento) : 0;
+            
+            let secaoDesconto2026 = '';
+            if (temDesconto2026) {
+                const baseRRA = primeiroHerdeiro.baseIRRRA;
+                let explicacao = '';
+                
+                if (baseRRA <= 5000) {
+                    explicacao = 'Isenção para rendimentos até R$ 5.000,00';
+                } else if (baseRRA <= 7350) {
+                    explicacao = `Desconto progressivo (R$ 5.000,01 a R$ 7.350,00)`;
+                }
+                
+                secaoDesconto2026 = `
+                <tr>
+                    <th>IR Calculado (Tabela Progressiva):</th>
+                    <td>R$ ${formatarMoeda(primeiroHerdeiro.valorIRSemDesconto || primeiroHerdeiro.valorIR + descontoTotal)}</td>
+                </tr>
+                <tr style="background-color: #e8f5e9; color: #2e7d32;">
+                    <th>(-) Desconto Adicional 2026:</th>
+                    <td><strong>R$ ${formatarMoeda(descontoTotal)}</strong></td>
+                </tr>
+                <tr style="background-color: #f1f8e9;">
+                    <td colspan="2" style="padding: 8px 12px; border-left: 3px solid #66bb6a; font-size: 0.9em;">
+                        💡 <strong>Novo benefício 2026:</strong> ${explicacao}
+                    </td>
+                </tr>`;
+            }
             
             const distribuicaoHerdeiros = herdeiros.map(herdeiro => {
                 const temCessoes = herdeiro.cessoesHerdeiro && herdeiro.cessoesHerdeiro.length > 0;
@@ -3567,6 +3658,7 @@
                         <th>Valor IR Mensal:</th>
                         <td>R$ ${formatarMoeda(primeiroHerdeiro.valorIRUnitario)}</td>
                     </tr>
+                    ${secaoDesconto2026}
                     <tr class="total-row">
                         <th>Valor IR Devido Total por Herdeiro:</th>
                         <td><strong>R$ ${formatarMoeda(primeiroHerdeiro.valorIR)}</strong></td>
