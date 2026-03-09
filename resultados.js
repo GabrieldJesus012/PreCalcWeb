@@ -2924,27 +2924,32 @@
             );
 
             const temDesconto2026 = resultados.descontoAdicional2026 && resultados.descontoAdicional2026 > 0;
-            const descontoTotal = temDesconto2026 ? resultados.descontoAdicional2026 * (resultados.rraComDesagio || resultados.rrapagamento) : 0;
-
+    
             let secaoDesconto2026 = '';
             if (temDesconto2026) {
                 const baseRRA = resultados.baseIRRRA;
-                let explicacao = '';
+                const descontoUnitario = resultados.descontoAdicional2026;  // ✅ JÁ É UNITÁRIO
+                const irUnitarioSemDesconto = resultados.valorIRSemDesconto;  // ✅ JÁ É UNITÁRIO
                 
+                let explicacao = '';
                 if (baseRRA <= 5000) {
                     explicacao = 'Isenção para rendimentos até R$ 5.000,00';
                 } else if (baseRRA <= 7350) {
-                    explicacao = `Desconto progressivo para rendimentos entre R$ 5.000,01 e R$ 7.350,00`;
+                    explicacao = 'Desconto progressivo (R$ 5.000,01 a R$ 7.350,00)';
                 }
                 
                 secaoDesconto2026 = `
                 <tr>
-                    <th>IR Calculado (Tabela Progressiva):</th>
-                    <td>R$ ${formatarMoeda(resultados.valorIRSemDesconto || resultados.valorIR + descontoTotal)}</td>
+                    <th>IR Mensal (Tabela Progressiva):</th>
+                    <td>R$ ${formatarMoeda(irUnitarioSemDesconto)}</td>
                 </tr>
                 <tr style="background-color: #e8f5e9; color: #2e7d32;">
                     <th>(-) Desconto Adicional 2026:</th>
-                    <td><strong>R$ ${formatarMoeda(descontoTotal)}</strong></td>
+                    <td><strong>R$ ${formatarMoeda(descontoUnitario)}</strong></td>
+                </tr>
+                <tr>
+                    <th>IR Mensal com Desconto:</th>
+                    <td>R$ ${formatarMoeda(resultados.valorIRUnitario)}</td>
                 </tr>
                 <tr style="background-color: #f1f8e9;">
                     <td colspan="2" style="padding: 8px 12px; border-left: 3px solid #66bb6a; font-size: 0.9em;">
@@ -3013,11 +3018,16 @@
                         <th>Alíquota IR:</th>
                         <td>${(resultados.aliquotaIR * 100).toFixed(2)}%</td>
                     </tr>
+                    ${secaoDesconto2026}
+                    ${!temDesconto2026 ? `
                     <tr>
                         <th>Valor IR Mensal:</th>
                         <td>R$ ${formatarMoeda(resultados.valorIRUnitario)}</td>
+                    </tr>` : ''}
+                    <tr>
+                        <th>RRA Pagamento:</th>
+                        <td>${arredondarRRA(resultados.rraComDesagio || resultados.rrapagamento)}</td>
                     </tr>
-                    ${secaoDesconto2026}
                     <tr class="total-row">
                         <th>Valor IR Devido Total:</th>
                         <td><strong>R$ ${formatarMoeda(resultados.valorIR)}</strong></td>

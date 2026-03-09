@@ -4661,6 +4661,8 @@
                     valorIRUnitario: ir.valorIRUnitario,
                     principalComDesagio: ir.principalComDesagio,
                     percentualDesagioIR: ir.percentualDesagioIR,
+                    descontoAdicional2026: ir.descontoAdicional2026,
+                    valorIRSemDesconto: ir.valorIRSemDesconto, 
                     valorPrevidenciaFinal: cessoes.valorPrevidenciaHerdeiroFinal,
                     valorIRFinal: cessoes.valorIRHerdeiroFinal,
                     percentualBeneficiarioFinal: detalhamentoTotal.percentualBeneficiarioFinal,
@@ -5232,7 +5234,9 @@
                 valorIRUnitario: resultadoIR.valorIRUnitario,
                 principalComDesagio: resultadoIR.principalComDesagio,
                 percentualDesagioIR: resultadoIR.percentualDesagioIR,
-                rraComDesagio: resultadoIR.rraComDesagio
+                rraComDesagio: resultadoIR.rraComDesagio,
+                descontoAdicional2026: resultadoIR.descontoAdicional2026,
+                valorIRSemDesconto: resultadoIR.valorIRSemDesconto  
             });
             
             saldosFinais.totalLiquido = totalSemHonSuc - saldosFinais.previdenciaTotal - saldosFinais.irTotal;
@@ -5271,7 +5275,9 @@
                 valorIRUnitario: saldos.valorIRUnitario,
                 principalComDesagio: saldos.principalComDesagio,
                 percentualDesagioIR: saldos.percentualDesagioIR,
-                rraComDesagio: saldos.rraComDesagio
+                rraComDesagio: saldos.rraComDesagio,
+                descontoAdicional2026: saldos.descontoAdicional2026,
+                valorIRSemDesconto: saldos.valorIRSemDesconto
             });
             
             // Ajustar Beneficiário Principal
@@ -5369,7 +5375,9 @@
                         baseIRSindi: resultadoIR.baseIRSindi,
                         baseIRPrev: resultadoIR.baseIRPrev,
                         baseIRRRA: resultadoIR.baseIRRRA,
-                        valorIRUnitario: resultadoIR.valorIRUnitario
+                        valorIRUnitario: resultadoIR.valorIRUnitario,
+                        descontoAdicional2026: resultadoIR.descontoAdicional2026,  
+                        valorIRSemDesconto: resultadoIR.valorIRSemDesconto 
                     });
                 }
                 
@@ -5579,10 +5587,9 @@
             }
             
             // PESSOA FÍSICA
-            const baseIRHonora = principalBase - (principalBase * percentualTotalAdv);
+           const baseIRHonora = principalBase - (principalBase * percentualTotalAdv);
             const baseIRSindi = baseIRHonora - (principalBase * percentualTotalSind);
             
-            // Aplicar deságio se for acordo
             const percentualDesagioIR = dados.percentualAcordo || 0;
             const principalComDesagio = dados.tipoCalculo === 'acordo' 
                 ? baseIRSindi * (1 - percentualDesagioIR)
@@ -5592,19 +5599,22 @@
             const baseIRPrev = principalComDesagio - valorPrevidencia;
             const baseIRRRA = baseIRPrev / rraComDesagio;
             
-            // ✅ Calcular IR pela tabela progressiva
-            const valorIRUnitario = calcularIR(baseIRRRA);
-            const valorIRSemDesconto = valorIRUnitario * rraComDesagio;
+            // ✅ 1. Calcular IR pela tabela (base unitária)
+            const valorIRSemDesconto = calcularIR(baseIRRRA);
             
-            // ✅ Aplicar desconto adicional de 2026
-            const descontoAdicional2026 = calcularDescontoAdicional2026(baseIRRRA, valorIRUnitario);
-            const valorIRUnitarioFinal = Math.max(0, valorIRUnitario - descontoAdicional2026);
-            const valorIR = valorIRUnitarioFinal * rraComDesagio;
+            // ✅ 2. Aplicar desconto 2026 (sobre o IR unitário)
+            const descontoAdicional2026 = calcularDescontoAdicional2026(baseIRRRA, valorIRSemDesconto);
+            
+            // ✅ 3. IR unitário com desconto
+            const valorIRUnitario = Math.max(0, valorIRSemDesconto - descontoAdicional2026);
+            
+            // ✅ 4. Multiplicar pelo RRA (APENAS NO FINAL)
+            const valorIR = valorIRUnitario * rraComDesagio;
             
             const aliquotaIR = obterAliquotaIR(baseIRRRA);
             
             return {
-                valorIR,
+                valorIR,                        
                 aliquotaIR,
                 baseIRHonora,
                 baseIRSindi,
@@ -5613,9 +5623,9 @@
                 percentualDesagioIR,
                 rraComDesagio,
                 baseIRRRA,
-                valorIRUnitario: valorIRUnitarioFinal,
-                descontoAdicional2026,
-                valorIRSemDesconto
+                valorIRUnitario,                
+                descontoAdicional2026,          
+                valorIRSemDesconto             
             };
         }
 
