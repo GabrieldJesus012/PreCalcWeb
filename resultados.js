@@ -71,7 +71,7 @@
             return `
                 <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
                     <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-                    <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nº 15.191, DE 11 DE AGOSTO DE 2025</p>
+                    <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nª 15.270, DE 11 DE NOVEMBRO DE 2025</p>
                     <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, ART 714</p>
                 </div>
             `;
@@ -2981,7 +2981,7 @@
             return `
                 <table class="ir-table">
                     <tr>
-                        <th colspan="2" class="section-header">📄 Imposto de Renda - LEI Nº 15.191, DE 11 DE AGOSTO DE 2025</th>
+                        <th colspan="2" class="section-header">📄 Imposto de Renda - LEI Nª 15.270, DE 11 DE NOVEMBRO DE 2025</th>
                     </tr>
                     <tr>
                         <th>Principal:</th>
@@ -3296,7 +3296,7 @@
             return `
                 <table class="ir-table" style="margin-bottom: 15px;">
                     <tr>
-                        <th colspan="2" class="section-header">📄 Imposto de Renda - LEI Nº 15.191, DE 11 DE AGOSTO DE 2025</th>
+                        <th colspan="2" class="section-header">📄 Imposto de Renda - LEI Nª 15.270, DE 11 DE NOVEMBRO DE 2025</th>
                     </tr>
                     <tr>
                         <th>Principal (base):</th>
@@ -3627,7 +3627,7 @@
             return `
                 <table class="ir-table" style="margin-bottom: 15px;">
                     <tr>
-                        <th colspan="2" class="section-header">📄 Imposto de Renda - LEI Nº 15.191, DE 11 DE AGOSTO DE 2025</th>
+                        <th colspan="2" class="section-header">📄 Imposto de Renda - LEI Nª 15.270, DE 11 DE NOVEMBRO DE 2025</th>
                     </tr>
                     <tr>
                         <th>Principal (base):</th>
@@ -4643,7 +4643,7 @@
             const notaTributacao = totalHerdeiros === 1 ? `
                 <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
                     <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-                    <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nº 15.191, DE 11 DE AGOSTO DE 2025</p>
+                    <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nª 15.270, DE 11 DE NOVEMBRO DE 2025</p>
                     <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
                 </div>
             ` : '';
@@ -4749,7 +4749,7 @@
                         </table>
                         <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
                             <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nº 15.191, DE 11 DE AGOSTO DE 2025</p>
+                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nª 15.270, DE 11 DE NOVEMBRO DE 2025</p>
                             <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
                             <p style="margin: 5px 0;"><strong>Sindicatos:</strong> Tributação conforme Art. 27, da Lei nº 10.833/03 ou alíquota fixa quando aplicável</p>
                         </div>
@@ -4895,7 +4895,7 @@
                         </table>
                         <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
                             <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nº 15.191, DE 11 DE AGOSTO DE 2025</p>
+                            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nª 15.270, DE 11 DE NOVEMBRO DE 2025</p>
                             <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
                             <p style="margin: 5px 0;"><strong>Sindicatos:</strong> Tributação conforme Art. 27, da Lei nº 10.833/03 ou alíquota fixa quando aplicável</p>
                         </div>
