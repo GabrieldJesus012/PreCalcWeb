@@ -3024,10 +3024,6 @@
                         <th>Valor IR Mensal:</th>
                         <td>R$ ${formatarMoeda(resultados.valorIRUnitario)}</td>
                     </tr>` : ''}
-                    <tr>
-                        <th>RRA Pagamento:</th>
-                        <td>${arredondarRRA(resultados.rraComDesagio || resultados.rrapagamento)}</td>
-                    </tr>
                     <tr class="total-row">
                         <th>Valor IR Devido Total:</th>
                         <td><strong>R$ ${formatarMoeda(resultados.valorIR)}</strong></td>
@@ -3257,7 +3253,7 @@
             }
 
             const temDesconto2026 = primeiroHerdeiro.descontoAdicional2026 && primeiroHerdeiro.descontoAdicional2026 > 0;
-            const descontoTotal = temDesconto2026 ? primeiroHerdeiro.descontoAdicional2026 * (primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento) : 0;
+            const descontoUnitario = temDesconto2026 ? primeiroHerdeiro.descontoAdicional2026 : 0;
 
             let secaoDesconto2026 = '';
             if (temDesconto2026) {
@@ -3277,7 +3273,7 @@
                 </tr>
                 <tr style="background-color: #e8f5e9; color: #2e7d32;">
                     <th>(-) Desconto Adicional 2026:</th>
-                    <td><strong>R$ ${formatarMoeda(descontoTotal)}</strong></td>
+                    <td><strong>R$ ${formatarMoeda(descontoUnitario)}</strong></td> 
                 </tr>
                 <tr style="background-color: #f1f8e9;">
                     <td colspan="2" style="padding: 8px 12px; border-left: 3px solid #66bb6a; font-size: 0.9em;">
@@ -3333,11 +3329,11 @@
                         <th>Alíquota IR:</th>
                         <td>${(primeiroHerdeiro.aliquotaIR * 100).toFixed(2)}%</td>
                     </tr>
+                    ${secaoDesconto2026}
                     <tr>
                         <th>Valor IR Mensal:</th>
                         <td>R$ ${formatarMoeda(primeiroHerdeiro.valorIRUnitario)}</td>
                     </tr>
-                    ${secaoDesconto2026}
                     <tr class="total-row">
                         <th>Valor IR Devido Total por Herdeiro:</th>
                         <td><strong>R$ ${formatarMoeda(primeiroHerdeiro.valorIR)}</strong></td>
@@ -3557,7 +3553,7 @@
             }
 
             const temDesconto2026 = primeiroHerdeiro.descontoAdicional2026 && primeiroHerdeiro.descontoAdicional2026 > 0;
-            const descontoTotal = temDesconto2026 ? primeiroHerdeiro.descontoAdicional2026 * (primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento) : 0;
+            const descontoUnitario = temDesconto2026 ? primeiroHerdeiro.descontoAdicional2026 : 0;
             
             let secaoDesconto2026 = '';
             if (temDesconto2026) {
@@ -3577,7 +3573,7 @@
                 </tr>
                 <tr style="background-color: #e8f5e9; color: #2e7d32;">
                     <th>(-) Desconto Adicional 2026:</th>
-                    <td><strong>R$ ${formatarMoeda(descontoTotal)}</strong></td>
+                    <td><strong>R$ ${formatarMoeda(descontoUnitario)}</strong></td>
                 </tr>
                 <tr style="background-color: #f1f8e9;">
                     <td colspan="2" style="padding: 8px 12px; border-left: 3px solid #66bb6a; font-size: 0.9em;">
@@ -3664,11 +3660,11 @@
                         <th>Alíquota IR:</th>
                         <td>${(primeiroHerdeiro.aliquotaIR * 100).toFixed(2)}%</td>
                     </tr>
+                    ${secaoDesconto2026}
                     <tr>
                         <th>Valor IR Mensal:</th>
                         <td>R$ ${formatarMoeda(primeiroHerdeiro.valorIRUnitario)}</td>
                     </tr>
-                    ${secaoDesconto2026}
                     <tr class="total-row">
                         <th>Valor IR Devido Total por Herdeiro:</th>
                         <td><strong>R$ ${formatarMoeda(primeiroHerdeiro.valorIR)}</strong></td>
