@@ -432,20 +432,22 @@ function processarDadosIpcaE(dadosipcae, dataBase, inicioGraca, fimGraca) {
         return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
     }
     
+    // IPCA-E só vale até 31/07/2025
+    const dataCorteIpcaE = new Date(2025, 6, 31);
+    const fimGracaEfetivo = fimGraca < dataCorteIpcaE ? fimGraca : dataCorteIpcaE;
+    
     let ipcaEGraca = [];
     
-    if (dataBase <= fimGraca) {
-        // Determina o início efetivo: o maior entre dataBase e inicioGraca
+    if (dataBase <= fimGracaEfetivo) {
         const inicioEfetivo = dataBase > inicioGraca ? dataBase : inicioGraca;
         
         ipcaEGraca = dadosipcae
             .filter(item => {
                 const dataItem = strParaData(item.data);
-                return inicioEfetivo <= dataItem && dataItem <= fimGraca;
+                return inicioEfetivo <= dataItem && dataItem <= fimGracaEfetivo;
             })
             .map(item => parseFloat(item.valor.replace(',', '.')));
     }
-    // Se dataBase > fimGraca, não aplica IPCA (ipcaGraca fica vazio)
     
     let indiceipcae = 1.0;
     for (const valor of ipcaEGraca) {
