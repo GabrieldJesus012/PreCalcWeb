@@ -60,9 +60,9 @@ function calcularHerdeiros(dados, valortotatt, valorprincatt, valorjurosatt, det
         // Honorários e Sindicatos
         const { honorarios, valorHonorarioTotal } = calcularHonorarios(dados, valorBaseHerdeiro, valorTotalHerdeiro, totaisPorTipo);
         const { sindicatos, valorSindicatoTotal } = calcularSindicatos(dados, valorBaseHerdeiro, valorTotalHerdeiro);
-        const valorSindicatoParaDescontar = contexto.isPreferencia ? 0 : valorSindicatoTotal;
+        const valorSindicatoParaDescontar = (contexto.isPreferencia && isPreferenciaParcial) ? 0 : valorSindicatoTotal;
         const valorBruto = valorBaseHerdeiro - valorHonorarioTotal - valorSindicatoParaDescontar;
-        
+    
         // Recálculo para preferência parcial e parcial
         let principalFinal = principal;
         let jurosFinal = juros;

@@ -57,9 +57,10 @@ function calcularSindicatos(dados, valorBase, valortotatt) {
             };
         });
 
-        if (!isPreferencia) {
-            valorSindicatoTotal += valorBrutoTotal;
-        }
+        //if (!isPreferencia) {
+            
+        //
+        valorSindicatoTotal += valorBrutoTotal;
 
         return {
             ...sind,

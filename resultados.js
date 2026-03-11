@@ -3883,7 +3883,8 @@
             }
 
             // 4. Sindicatos e seus cessionários (não paga em preferência)
-            if (!isPreferencia && herdeiro.sindicatos?.length > 0) {
+            const sindicatoNaoRecebe = isPreferencia && herdeiro.isPreferenciaParcial;
+            if (!sindicatoNaoRecebe && herdeiro.sindicatos?.length > 0) {
                 adicionarPagamentosSindicatos(herdeiro.sindicatos, pagamentosHerdeiro);
             }
 
