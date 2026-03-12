@@ -90,7 +90,7 @@ async function calcularIndicesEValores(baseData, dados, valorPrincipal, valorJur
     if (usarLogicaPEC && comparacaoSelicIpca.selicMaior) {
         const dadosIpca = await calcularIpca(dataBase, inicioGraca, fimGraca);
         const indiceIpca = dadosIpca.indiceipca;
-        const percentualJuros2AA = calcularJuros2PorcentoAA(dadosIpca.quantidadeMeses);
+        const percentualJuros2AA = calcularJuros2PorcentoAA(dadosIpca.quantidadeMesesForaGraca);
         
         const principalComIpca = principalCNJ * indices.ipcae * indiceIpca;
         const jurosComIpca = jurosTotal * indiceIpca * indices.ipcae;

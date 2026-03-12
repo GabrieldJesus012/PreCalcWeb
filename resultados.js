@@ -181,7 +181,13 @@
                     return sum + (valor > 0 ? valor : 0);
                 }, 0);
             
-            const valorTotalOriginal = valorPrincipalOriginal + valorJurosOriginal;
+            const valorSelicOriginal = (dados.valoresPrincipais || [])
+            .reduce((sum, item) => {
+                const valor = parseFloat(item.valorSelic) || 0;
+                return sum + (valor > 0 ? valor : 0);
+            }, 0);
+
+            const valorTotalOriginal = valorPrincipalOriginal + valorJurosOriginal + valorSelicOriginal;
 
             // ⬇️ CALCULAR ÍNDICES INDIVIDUAIS
             const indicePrincipal = valorPrincipalOriginal > 0 
@@ -210,6 +216,13 @@
             const valorSelicTotal = resultados.valorSelicatt || 0;
             const temSelic = valorSelicTotal > 0;
 
+            const indiceSelicExibicao = valorSelicOriginal > 0
+                ? (valorSelicTotal / valorSelicOriginal).toFixed(6)
+                : '-';
+            const valorSelicOriginalExibicao = valorSelicOriginal > 0
+                ? `R$ ${formatarMoeda(valorSelicOriginal)}`
+                : '-';
+
             return `
                 <div class="table-container">
                     <h3>💰 Demonstrativo de Atualização Monetária</h3>
@@ -235,8 +248,8 @@
                         ${temSelic ? `
                         <tr>
                             <td>Selic</td>
-                            <td>-</td>
-                            <td>-</td>
+                            <td>${valorSelicOriginalExibicao}</td>
+                            <td>${indiceSelicExibicao}</td>
                             <td>R$ ${formatarMoeda(valorSelicTotal)}</td>
                         </tr>
                         ` : ''}
@@ -453,6 +466,8 @@
 
         function gerarTabelaPrincipal(item, indices, valores, inicioGracaFormatado, fimGracaFormatado, itemCalculado) {
             const detalhePEC = itemCalculado.detalhamentoPEC || {};
+            // IPCA-E só vale até Jul/2025 — se há IPCA pós-ago/2025, ajustar label
+            const fimIpcaELabel = (indices.ipca && indices.ipca > 1) ? 'Jul/2025' : fimGracaFormatado;
             
             return `
                 <h4>💰 Atualização do Principal - Passo a Passo</h4>
@@ -471,7 +486,7 @@
                     </tr>` : ''}
                     ${item.indices.ipcae ? `
                     <tr>
-                        <td>3. Aplicação IPCA-E (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
+                        <td>3. Aplicação IPCA-E (graça - ${inicioGracaFormatado} - ${fimIpcaELabel})</td>
                         <td>R$ ${formatarMoeda(valores.principalCNJ)} × ${indices.ipcae.toFixed(6)}</td>
                         <td>R$ ${formatarMoeda(valores.principalIPCAE)}</td>
                     </tr>` : ''}
@@ -505,6 +520,9 @@
             
             const detalhePEC = itemCalculado.detalhamentoPEC || {};
             const quantidadeMeses = detalhePEC.quantidadeMeses || 0;
+            // IPCA-E só vale até Jul/2025 — se há IPCA pós-ago/2025, ajustar label
+            const fimIpcaELabel = (indices.ipca && indices.ipca > 1) ? 'Jul/2025' : fimGracaFormatado;
+            const temJuros2AA = detalhePEC.percentualJuros2AA > 0;
             
             return `
                 <h4>⚖️ Atualização dos Juros - Passo a Passo</h4>
@@ -534,7 +552,7 @@
                     </tr>` : ''}
                     ${item.indices.ipcae ? `
                     <tr>
-                        <td>${etapa++}. Aplicação IPCA-E (graça - ${inicioGracaFormatado} - ${fimGracaFormatado})</td>
+                        <td>${etapa++}. Aplicação IPCA-E (graça - ${inicioGracaFormatado} - ${fimIpcaELabel})</td>
                         <td>R$ ${formatarMoeda(valores.totalJuros)} × ${indices.ipcae.toFixed(6)}</td>
                         <td>R$ ${formatarMoeda(valores.totalJurosIPCAE)}</td>
                     </tr>` : ''}
@@ -544,14 +562,18 @@
                         <td>R$ ${formatarMoeda(valores.totalJurosIPCAE)} × ${indices.ipca.toFixed(6)}</td>
                         <td>R$ ${formatarMoeda(valores.totalJurosIPCA)}</td>
                     </tr>
+                    ${temJuros2AA ? `
                     <tr>
                         <td>${etapa++}. Juros (2% a.a.) - ${quantidadeMeses} meses</td>
-                        <td> Principal × ${(detalhePEC.percentualJuros2AA * 100).toFixed(6)}%</td>
+                        <td>Principal × ${(detalhePEC.percentualJuros2AA * 100).toFixed(6)}%</td>
                         <td>R$ ${formatarMoeda(valores.juros2AA)}</td>
-                    </tr>
+                    </tr>` : ''}
                     <tr>
                         <td>${etapa++}. Total Juros</td>
-                        <td>R$ ${formatarMoeda(valores.totalJurosIPCA)} + R$ ${formatarMoeda(valores.juros2AA)}</td>
+                        <td>${temJuros2AA 
+                            ? `R$ ${formatarMoeda(valores.totalJurosIPCA)} + R$ ${formatarMoeda(valores.juros2AA)}`
+                            : `R$ ${formatarMoeda(valores.totalJurosIPCA)}`
+                        }</td>
                         <td><strong>R$ ${formatarMoeda(valores.jurosFinal)}</strong></td>
                     </tr>
                     <tr style="background: #fff3cd;">

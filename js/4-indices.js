@@ -495,44 +495,30 @@ function processarDadosIpca(dadosipca, dataBase, inicioGraca, fimGraca) {
         return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
     }
     
-    // Data de corte: 01/08/2025
-    const dataAgosto2025 = new Date(2025, 7, 1); // mês 7 = agosto (0-indexed)
+    const dataAgosto2025 = new Date(2025, 7, 1);
     
-    // Se não temos dados ou data de atualização é antes de agosto/2025, retorna neutro
     if (!dadosipca || dadosipca.length === 0) {
-        return { indiceipca: 1.0, periodo: '', temDados: false };
+        return { indiceipca: 1.0, periodo: '', temDados: false, quantidadeMeses: 0, quantidadeMesesForaGraca: 0 };
     }
     
-    // IPCA aplica apenas de agosto/2025 em diante
-    const dataInicioIPCA = dataAgosto2025;
-    
-    // Filtrar dados de agosto/2025 até a data de atualização
     const dadosIPCAFiltrados = dadosipca.filter(item => {
         const dataItem = strParaData(item.data);
-        return dataItem >= dataInicioIPCA;
+        return dataItem >= dataAgosto2025;
     });
     
     const valoresIPCA = dadosIPCAFiltrados.map(item => parseFloat(item.valor.replace(',', '.')));
     
-    // Calcular índice acumulado
     let indiceipca = 1.0;
     for (const valor of valoresIPCA) {
         indiceipca *= 1 + (valor / 100);
     }
 
-    const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
-    const [anoAtual, mesAtual, diaAtual] = dataAtualizacaoInput.split('-');
-    const dataAtualReferencia = new Date(parseInt(anoAtual), parseInt(mesAtual) - 1, parseInt(diaAtual));
-    
-    // Mês da atualização - 1 (porque IPCA é sempre do mês anterior)
-    const mesReferencia = dataAtualReferencia.getMonth(); // 0-indexed
-    const anoReferencia = dataAtualReferencia.getFullYear();
+    // Meses fora da graça = apenas após fimGraca
+    const dadosForaGraca = fimGraca
+        ? dadosIPCAFiltrados.filter(item => strParaData(item.data) > fimGraca)
+        : dadosIPCAFiltrados;
+    const quantidadeMesesForaGraca = dadosForaGraca.length;
 
-    const mesInicio = dataAgosto2025.getFullYear() * 12 + dataAgosto2025.getMonth();
-    const mesFim = anoReferencia * 12 + (mesReferencia - 1); // -1 para mês anterior
-    const quantidadeMesesReal = Math.max(0, mesFim - mesInicio + 1); // +1 porque inclui o mês de início
-    
-    // Definir período
     let periodo = '';
     if (dadosIPCAFiltrados.length > 0) {
         const primeiraData = dadosIPCAFiltrados[0].data;
@@ -544,7 +530,8 @@ function processarDadosIpca(dadosipca, dataBase, inicioGraca, fimGraca) {
         indiceipca,
         periodo,
         temDados: valoresIPCA.length > 0,
-        quantidadeMeses: valoresIPCA.length //quantidadeMesesReal 
+        quantidadeMeses: valoresIPCA.length,
+        quantidadeMesesForaGraca
     };
 }
 
@@ -608,8 +595,6 @@ async function calcularSelicPosAgosto2025() {
         
         // 2. Buscar IPCA (433) de agosto/2025 até data atual
         const dadosIpca = await calcularIpca(dataAgosto2025, null, null);
-        
-        // 3. Calcular IPCA + Juros 2% a.a
         const juros2AA = calcularJuros2PorcentoAA(dadosIpca.quantidadeMeses);
         const indiceIpcaMais2 = dadosIpca.indiceipca * (1 + juros2AA);
         
