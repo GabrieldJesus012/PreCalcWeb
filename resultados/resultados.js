@@ -87,10 +87,6 @@ function navegarParaResultados() {
     }, 100);
 }
 
-// ====================================
-// EXIBICAO DE RESULTADOS - Alguma fun. Aux (HTML)
-// ====================================
-
 function obterDataAtual() {
     const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
     const [ano, mes, dia] = dataAtualizacaoInput.split('-');
