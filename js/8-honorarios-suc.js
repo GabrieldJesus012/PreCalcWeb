@@ -108,7 +108,10 @@ function calcularHonorariosSucumbenciais(dados, valorTotalDivida, totaisPorTipo 
         
         const calcularIRPessoa = (valor) => {
             if (!adv.incidenciaIR || valor <= 0) return 0;
-            return adv.tipo === 'PF' ? calcularIR(valor) : valor * 0.015;
+            if (adv.tipo !== 'PF') return valor * 0.015;
+            const irSemDesconto = calcularIR(valor);
+            const desconto = calcularDescontoAdicional2026(valor, irSemDesconto);
+            return Math.max(0, irSemDesconto - desconto);
         };
         
         const irAdvogado = calcularIRPessoa(valorAdvogadoAposDesagio);
@@ -123,9 +126,13 @@ function calcularHonorariosSucumbenciais(dados, valorTotalDivida, totaisPorTipo 
                 ? valorBrutoCessao * (1 - percentualDesagio)
                 : valorBrutoCessao;
             
-            const irCessao = adv.incidenciaIR
-                ? (adv.tipo === 'PF' ? calcularIR(valorAposDesagio) : valorAposDesagio * 0.015)
-                : 0;
+            const irCessao = (() => {
+                if (!adv.incidenciaIR) return 0;
+                if (adv.tipo !== 'PF') return valorAposDesagio * 0.015;
+                const irSemDesconto = calcularIR(valorAposDesagio);
+                const desconto = calcularDescontoAdicional2026(valorAposDesagio, irSemDesconto);
+                return Math.max(0, irSemDesconto - desconto);
+            })();
             
             return {
                 nome: cessao.cessionario,
