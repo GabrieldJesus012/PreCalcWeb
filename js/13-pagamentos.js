@@ -12,7 +12,6 @@ async function calcularPagamentos(dados) {
         const pagamento = dados.pagamentos[i];
         
         try {
-            // Decompor pagamento total
             if (pagamento.tipoInformacao === 'total') {
                 const componentes = await calcularComponentesPagamentoTotal(dados, pagamento);
                 if (!componentes) {
@@ -36,7 +35,6 @@ async function calcularPagamentos(dados) {
             console.log(`   Total: R$ ${(pagamento.valorPrincipal + pagamento.valorJuros + (pagamento.valorSelic || 0)).toFixed(2)}`);
             console.log('');
             
-            // ✅ ATUALIZAR DA DATA DO PAGAMENTO → HOJE
             const [ano, mes] = pagamento.dataBase.split('-');
             const mesesNomes = ['', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 
                             'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
@@ -46,9 +44,6 @@ async function calcularPagamentos(dados) {
             };
             
             if (isPagamentoPosPEC && pagamento.valorSelic > 0) {
-                // ==========================================
-                // PÓS-PEC: Índices específicos do período
-                // ==========================================
                 console.log(`🟢 PAGAMENTO PÓS-PEC - Aplicando índices do período`);
                 
                 const indicesPosPEC = await calcularIndicesPosPEC(
@@ -57,7 +52,7 @@ async function calcularPagamentos(dados) {
                 );
                 
                 console.log(`   IPCA (${pagamento.dataBase} → hoje): ${indicesPosPEC.ipca.toFixed(6)}`);
-                console.log(`   Juros 2% a.a. (${indicesPosPEC.meses} meses): ${((indicesPosPEC.juros2aa - 1) * 100).toFixed(4)}%`);
+                console.log(`   Juros 2% a.a. (${indicesPosPEC.mesesForaGraca} meses fora da graça): ${((indicesPosPEC.juros2aa - 1) * 100).toFixed(4)}%`);
                 console.log('');
                 
                 const principalAtualizado = pagamento.valorPrincipal * indicesPosPEC.ipca * indicesPosPEC.juros2aa;
@@ -97,23 +92,21 @@ async function calcularPagamentos(dados) {
                     valorSelicSeparado: selicAtualizada,
                     indices: {
                         ipca: indicesPosPEC.ipca,
-                        juros2AA: indicesPosPEC.juros2aa - 1 
+                        juros2AA: indicesPosPEC.juros2aa - 1,
+                        mesesForaGraca: indicesPosPEC.mesesForaGraca
                     }
                 });
                 
             } else {
-                // ==========================================
-                // PRÉ-PEC: Atualização normal
-                // ==========================================
                 console.log(`🔵 PAGAMENTO PRÉ-PEC - Aplicando todos os índices`);
                 
                 const configIndices = {
-                    aplicarCNJ: true,       
-                    aplicarSelic: true,      
-                    aplicarIpcaE: true,      
-                    aplicarJurosMora: true, 
-                    aplicarIpca: true,       
-                    tipoSelic: 'valor',      
+                    aplicarCNJ: true,
+                    aplicarSelic: true,
+                    aplicarIpcaE: true,
+                    aplicarJurosMora: true,
+                    aplicarIpca: true,
+                    tipoSelic: 'valor',
                     valorSelic: pagamento.valorSelic || 0,
                     percentualSelic: 0,
                     selicReferencia: 'mesAnterior'
@@ -244,20 +237,42 @@ async function calcularIndicesPosPEC(dataPagamento, anoOrcamento) {
     console.log(`   Data pagamento: ${dataPagamento}`);
     
     // ✅ Usar nova função que calcula IPCA da data do pagamento até hoje
+    const { fimGraca } = calcularPeriodoGraca(anoOrcamento);
+    const dataPag = new Date(dataPagamento);
+
     const dadosIpca = await calcularIpcaPagamento(dataPagamento);
     
-    const mesesDecorridos = dadosIpca.quantidadeMeses || 0;
-    const juros2aaDecimal = calcularJuros2PorcentoAA(mesesDecorridos);
+    const mesesForaGraca = calcularMesesForaGraca(dataPag, fimGraca, dadosIpca.quantidadeMeses);
+    const juros2aaDecimal = calcularJuros2PorcentoAA(mesesForaGraca);
     
-    console.log(`   Meses: ${mesesDecorridos}`);
+    console.log(`   Meses totais: ${dadosIpca.quantidadeMeses}`);
+    console.log(`   Meses fora da graça: ${mesesForaGraca}`);
     console.log(`   IPCA: ${dadosIpca.indiceipca.toFixed(6)}`);
-    console.log(`   Juros 2% (${mesesDecorridos} meses): ${(juros2aaDecimal * 100).toFixed(4)}%`);
+    console.log(`   Juros 2% (${mesesForaGraca} meses): ${(juros2aaDecimal * 100).toFixed(4)}%`);
     
     return {
         ipca: dadosIpca.indiceipca,
         juros2aa: 1 + juros2aaDecimal,
-        meses: mesesDecorridos
+        meses: dadosIpca.quantidadeMeses,
+        mesesForaGraca
     };
+}
+
+function calcularMesesForaGraca(dataPagamento, fimGraca, totalMeses) {
+    const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
+    const [ano, mes, dia] = dataAtualizacaoInput.split('-');
+    const dataAtualizacao = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+    
+    // Se fimGraca já passou antes do pagamento, todos os meses são fora da graça
+    if (fimGraca < dataPagamento) return totalMeses;
+    
+    // Se fimGraca é após a data de atualização, nenhum mês é fora da graça
+    if (fimGraca >= dataAtualizacao) return 0;
+    
+    // fimGraca está entre dataPagamento e dataAtualizacao
+    const mesesForaGraca = (dataAtualizacao.getFullYear() * 12 + dataAtualizacao.getMonth()) -
+                           (fimGraca.getFullYear() * 12 + fimGraca.getMonth()) - 1;
+    return Math.max(0, mesesForaGraca);
 }
 
 async function calcularComponentesPagamentoTotal(dados, pagamento) {
