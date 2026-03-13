@@ -40,10 +40,10 @@ function gerarCalculos(dados, resultados, inicioGraca, fimGraca) {
 function gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado) {
     const indices = obterIndicesItem(itemCalculado);
     const valoresCalculados = calcularValoresPassoAPasso(item, itemCalculado, indices);
-    
+    const periodoGraca = `Graça Constitucional: ${inicioGracaFormatado} a ${fimGracaFormatado}`;
     const titulo = isSingleItem ? 
-        '🔢 MEMORIAL DE CÁLCULOS' : 
-        `🔢 MEMORIAL DE CÁLCULOS - ${item.descricao || `Item ${index + 1}`}`;
+        `🔢 MEMORIAL DE CÁLCULOS — ${periodoGraca}` : 
+        `🔢 MEMORIAL DE CÁLCULOS - ${item.descricao || `Item ${index + 1}`} — ${periodoGraca} `;
     
     const detalhesItem = isSingleItem ? '' : `
         <div style="background: #f0f0f0; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
@@ -197,47 +197,60 @@ function calcularValoresPassoAPasso(item, itemCalculado, indices) {
 function gerarTabelaPrincipal(item, indices, valores, inicioGracaFormatado, fimGracaFormatado, itemCalculado) {
     const detalhePEC = itemCalculado.detalhamentoPEC || {};
     const fimIpcaELabel = (indices.ipca && indices.ipca > 1) ? 'Jul/2025' : fimGracaFormatado;
+    
+    const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
+    const [anoAtual, mesAtual] = dataAtualizacaoInput.split('-');
+    const dataHojeLabel = `${String(mesAtual).padStart(2,'0')}/${anoAtual}`;
+    
+    const dataBaseLabel = `${item.mesBase.charAt(0).toUpperCase() + item.mesBase.slice(1)}/${item.anoBase}`;
+    
     let etapa = 2;
     
     return `
         <h4>💰 Atualização do Principal - Passo a Passo</h4>
         <table>
-            <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
+            <tr><th>Etapa</th><th>Período</th><th>Cálculo</th><th>Valor</th></tr>
             <tr>
                 <td>1. Valor Original</td>
+                <td>${dataBaseLabel}</td>
                 <td>Principal Homologado</td>
                 <td>R$ ${formatarMoeda(item.valorPrincipal)}</td>
             </tr>
             ${item.indices.cnj && indices.cnj !== 1 ? `
             <tr>
                 <td>${etapa++}. Correção CNJ</td>
+                <td>${dataBaseLabel} até Nov/2021</td>
                 <td>R$ ${formatarMoeda(item.valorPrincipal)} × ${indices.cnj.toFixed(6)}</td>
                 <td>R$ ${formatarMoeda(valores.principalCNJ)}</td>
             </tr>` : ''}
-            ${item.indices.ipcae ? `
+            ${item.indices.ipcae && indices.ipcae !== 1 ? `
             <tr>
-                <td>${etapa++}. Aplicação IPCA-E (graça - ${inicioGracaFormatado} - ${fimIpcaELabel})</td>
+                <td>${etapa++}. Aplicação IPCA-E</td>
+                <td>${inicioGracaFormatado} até ${fimIpcaELabel}</td>
                 <td>R$ ${formatarMoeda(valores.principalCNJ)} × ${indices.ipcae.toFixed(6)}</td>
                 <td>R$ ${formatarMoeda(valores.principalIPCAE)}</td>
             </tr>` : ''}
             ${valores.usaLogicaPEC ? `
             <tr>
-                <td>${etapa++}. Aplicação IPCA (pós agosto/2025)</td>
+                <td>${etapa++}. Aplicação IPCA</td>
+                <td>Ago/2025 até ${dataHojeLabel}</td>
                 <td>R$ ${formatarMoeda(valores.principalIPCAE)} × ${indices.ipca.toFixed(6)}</td>
                 <td><strong>R$ ${formatarMoeda(valores.principalIPCA)}</strong></td>
             </tr>
             <tr style="background: #fff3cd;">
-                <td colspan="3" style="text-align: center; font-size: 0.9em;">
-                    ⚠️ <strong>SELIC aplicada separadamente</strong> - Ver seção específica abaixo
+                <td colspan="4" style="text-align: center; font-size: 0.9em;">
+                    ⚠️ <strong>SELIC aplicada separadamente</strong> — Ver seção específica abaixo
                 </td>
             </tr>` : item.indices.selic ? `
             <tr>
-                <td>${etapa++}. Aplicação SELIC (excluído a graça)</td>
+                <td>${etapa++}. Aplicação SELIC</td>
+                <td>Excluído a graça</td>
                 <td>R$ ${formatarMoeda(valores.principalIPCAE)} × ${indices.selic.toFixed(6)}</td>
                 <td><strong>R$ ${formatarMoeda(valores.principalFinal)}</strong></td>
             </tr>` : `
             <tr>
                 <td>${etapa++}. Valor Final</td>
+                <td>—</td>
                 <td>Valor Final do Principal</td>
                 <td><strong>R$ ${formatarMoeda(valores.principalFinal)}</strong></td>
             </tr>`}
@@ -249,57 +262,91 @@ function gerarTabelaJuros(item, indices, valores, inicioGracaFormatado, fimGraca
     let etapa = 2;
     
     const detalhePEC = itemCalculado.detalhamentoPEC || {};
-    const quantidadeMeses = detalhePEC.quantidadeMeses || 0;
-    // IPCA-E só vale até Jul/2025 — se há IPCA pós-ago/2025, ajustar label
+    const quantidadeMeses = detalhePEC.quantidadeMesesForaGraca || detalhePEC.quantidadeMeses || 0;
     const fimIpcaELabel = (indices.ipca && indices.ipca > 1) ? 'Jul/2025' : fimGracaFormatado;
     const temJuros2AA = detalhePEC.percentualJuros2AA > 0;
+    
+    const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
+    const [anoAtual, mesAtual] = dataAtualizacaoInput.split('-');
+    const dataHojeLabel = `${String(mesAtual).padStart(2,'0')}/${anoAtual}`;
+    
+    const dataBaseLabel = `${item.mesBase.charAt(0).toUpperCase() + item.mesBase.slice(1)}/${item.anoBase}`;
+    
+    // Período dos juros de mora — verificar se a graça intercepta o período CNJ
+    const anoBase = item.anoBase;
+    const mesBaseIdx = ['janeiro','fevereiro','março','abril','maio','junho',
+                        'julho','agosto','setembro','outubro','novembro','dezembro']
+                        .indexOf(item.mesBase.toLowerCase());
+    const dataBase = new Date(anoBase, mesBaseIdx, 1);
+    const dataFimCNJ = new Date(2021, 10, 30); // Nov/2021
+    
+    // Período de graça como datas
+    const [diaIG, mesIG, anoIG] = inicioGracaFormatado.split('/');
+    const [diaFG, mesFG, anoFG] = fimGracaFormatado.split('/');
+    const dataInicioGraca = new Date(parseInt(anoIG), parseInt(mesIG) - 1, 1);
+    const dataFimGraca = new Date(parseInt(anoFG), parseInt(mesFG) - 1, 1);
+    
+    // Graça intercepta período CNJ se início da graça está entre dataBase e Nov/2021
+    const gracaInterceptaCNJ = dataInicioGraca > dataBase && dataInicioGraca <= dataFimCNJ;
+    
+    const periodoJurosMora = gracaInterceptaCNJ
+        ? `${dataBaseLabel} até Nov/2021 (excluindo graça: ${inicioGracaFormatado} até ${fimGracaFormatado})`
+        : `${dataBaseLabel} até Nov/2021`;
     
     return `
         <h4>⚖️ Atualização dos Juros - Passo a Passo</h4>
         <table>
-            <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
+            <tr><th>Etapa</th><th>Período</th><th>Cálculo</th><th>Valor</th></tr>
             <tr>
                 <td>1. Juros Originais</td>
+                <td>${dataBaseLabel}</td>
                 <td>Juros Homologado</td>
                 <td>R$ ${formatarMoeda(item.valorJuros)}</td>
             </tr>
             ${item.indices.cnj && indices.cnj !== 1 ? `
             <tr>
                 <td>${etapa++}. Correção CNJ</td>
+                <td>${dataBaseLabel} até Nov/2021</td>
                 <td>R$ ${formatarMoeda(item.valorJuros)} × ${indices.cnj.toFixed(6)}</td>
                 <td>R$ ${formatarMoeda(valores.jurosOriginaisCNJ)}</td>
             </tr>` : ''}
             ${item.indices.jurosMora && valores.valorJurosMora > 0 ? `
             <tr>
                 <td>${etapa++}. Juros de Mora - Poupança</td>
+                <td>${periodoJurosMora}</td>
                 <td>Principal CNJ × ${(indices.jurosMora * 100).toFixed(4)}%*</td>
                 <td>R$ ${formatarMoeda(valores.valorJurosMora)}</td>
             </tr>
             <tr>
                 <td>${etapa++}. Total Juros (CNJ + Mora)</td>
+                <td>—</td>
                 <td>R$ ${formatarMoeda(valores.jurosOriginaisCNJ)} + R$ ${formatarMoeda(valores.valorJurosMora)}</td>
                 <td>R$ ${formatarMoeda(valores.totalJuros)}</td>
             </tr>` : ''}
-            ${item.indices.ipcae ? `
+            ${item.indices.ipcae && indices.ipcae !== 1 ? `
             <tr>
-                <td>${etapa++}. Aplicação IPCA-E (graça - ${inicioGracaFormatado} - ${fimIpcaELabel})</td>
+                <td>${etapa++}. Aplicação IPCA-E</td>
+                <td>${inicioGracaFormatado} até ${fimIpcaELabel}</td>
                 <td>R$ ${formatarMoeda(valores.totalJuros)} × ${indices.ipcae.toFixed(6)}</td>
                 <td>R$ ${formatarMoeda(valores.totalJurosIPCAE)}</td>
             </tr>` : ''}
             ${valores.usaLogicaPEC ? `
             <tr>
-                <td>${etapa++}. Aplicação IPCA (pós agosto/2025)</td>
+                <td>${etapa++}. Aplicação IPCA</td>
+                <td>Ago/2025 até ${dataHojeLabel}</td>
                 <td>R$ ${formatarMoeda(valores.totalJurosIPCAE)} × ${indices.ipca.toFixed(6)}</td>
                 <td>R$ ${formatarMoeda(valores.totalJurosIPCA)}</td>
             </tr>
             ${temJuros2AA ? `
             <tr>
-                <td>${etapa++}. Juros (2% a.a.) - ${quantidadeMeses} meses</td>
+                <td>${etapa++}. Juros (2% a.a.)</td>
+                <td>${quantidadeMeses} meses</td>
                 <td>Principal × ${(detalhePEC.percentualJuros2AA * 100).toFixed(6)}%</td>
                 <td>R$ ${formatarMoeda(valores.juros2AA)}</td>
             </tr>` : ''}
             <tr>
                 <td>${etapa++}. Total Juros</td>
+                <td>—</td>
                 <td>${temJuros2AA 
                     ? `R$ ${formatarMoeda(valores.totalJurosIPCA)} + R$ ${formatarMoeda(valores.juros2AA)}`
                     : `R$ ${formatarMoeda(valores.totalJurosIPCA)}`
@@ -307,17 +354,19 @@ function gerarTabelaJuros(item, indices, valores, inicioGracaFormatado, fimGraca
                 <td><strong>R$ ${formatarMoeda(valores.jurosFinal)}</strong></td>
             </tr>
             <tr style="background: #fff3cd;">
-                <td colspan="3" style="text-align: center; font-size: 0.9em;">
-                    ⚠️ <strong>SELIC aplicada separadamente</strong> - Ver seção específica abaixo
+                <td colspan="4" style="text-align: center; font-size: 0.9em;">
+                    ⚠️ <strong>SELIC aplicada separadamente</strong> — Ver seção específica abaixo
                 </td>
             </tr>` : item.indices.selic ? `
             <tr>
-                <td>${etapa++}. Aplicação SELIC (excluído a graça)</td>
+                <td>${etapa++}. Aplicação SELIC</td>
+                <td>Excluído a graça</td>
                 <td>R$ ${formatarMoeda(valores.totalJurosIPCAE)} × ${indices.selic.toFixed(6)}</td>
                 <td><strong>R$ ${formatarMoeda(valores.jurosFinal)}</strong></td>
             </tr>` : `
             <tr>
                 <td>Final</td>
+                <td>—</td>
                 <td>Valor Final dos Juros</td>
                 <td><strong>R$ ${formatarMoeda(valores.jurosFinal)}</strong></td>
             </tr>`}
