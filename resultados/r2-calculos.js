@@ -196,8 +196,8 @@ function calcularValoresPassoAPasso(item, itemCalculado, indices) {
 
 function gerarTabelaPrincipal(item, indices, valores, inicioGracaFormatado, fimGracaFormatado, itemCalculado) {
     const detalhePEC = itemCalculado.detalhamentoPEC || {};
-    // IPCA-E só vale até Jul/2025 — se há IPCA pós-ago/2025, ajustar label
     const fimIpcaELabel = (indices.ipca && indices.ipca > 1) ? 'Jul/2025' : fimGracaFormatado;
+    let etapa = 2;
     
     return `
         <h4>💰 Atualização do Principal - Passo a Passo</h4>
@@ -208,21 +208,21 @@ function gerarTabelaPrincipal(item, indices, valores, inicioGracaFormatado, fimG
                 <td>Principal Homologado</td>
                 <td>R$ ${formatarMoeda(item.valorPrincipal)}</td>
             </tr>
-            ${item.indices.cnj ? `
+            ${item.indices.cnj && indices.cnj !== 1 ? `
             <tr>
-                <td>2. Correção CNJ</td>
+                <td>${etapa++}. Correção CNJ</td>
                 <td>R$ ${formatarMoeda(item.valorPrincipal)} × ${indices.cnj.toFixed(6)}</td>
                 <td>R$ ${formatarMoeda(valores.principalCNJ)}</td>
             </tr>` : ''}
             ${item.indices.ipcae ? `
             <tr>
-                <td>3. Aplicação IPCA-E (graça - ${inicioGracaFormatado} - ${fimIpcaELabel})</td>
+                <td>${etapa++}. Aplicação IPCA-E (graça - ${inicioGracaFormatado} - ${fimIpcaELabel})</td>
                 <td>R$ ${formatarMoeda(valores.principalCNJ)} × ${indices.ipcae.toFixed(6)}</td>
                 <td>R$ ${formatarMoeda(valores.principalIPCAE)}</td>
             </tr>` : ''}
             ${valores.usaLogicaPEC ? `
             <tr>
-                <td>4. Aplicação IPCA (pós agosto/2025)</td>
+                <td>${etapa++}. Aplicação IPCA (pós agosto/2025)</td>
                 <td>R$ ${formatarMoeda(valores.principalIPCAE)} × ${indices.ipca.toFixed(6)}</td>
                 <td><strong>R$ ${formatarMoeda(valores.principalIPCA)}</strong></td>
             </tr>
@@ -232,12 +232,12 @@ function gerarTabelaPrincipal(item, indices, valores, inicioGracaFormatado, fimG
                 </td>
             </tr>` : item.indices.selic ? `
             <tr>
-                <td>4. Aplicação SELIC (excluído a graça)</td>
+                <td>${etapa++}. Aplicação SELIC (excluído a graça)</td>
                 <td>R$ ${formatarMoeda(valores.principalIPCAE)} × ${indices.selic.toFixed(6)}</td>
                 <td><strong>R$ ${formatarMoeda(valores.principalFinal)}</strong></td>
             </tr>` : `
             <tr>
-                <td>Final</td>
+                <td>${etapa++}. Valor Final</td>
                 <td>Valor Final do Principal</td>
                 <td><strong>R$ ${formatarMoeda(valores.principalFinal)}</strong></td>
             </tr>`}
@@ -263,7 +263,7 @@ function gerarTabelaJuros(item, indices, valores, inicioGracaFormatado, fimGraca
                 <td>Juros Homologado</td>
                 <td>R$ ${formatarMoeda(item.valorJuros)}</td>
             </tr>
-            ${item.indices.cnj ? `
+            ${item.indices.cnj && indices.cnj !== 1 ? `
             <tr>
                 <td>${etapa++}. Correção CNJ</td>
                 <td>R$ ${formatarMoeda(item.valorJuros)} × ${indices.cnj.toFixed(6)}</td>
