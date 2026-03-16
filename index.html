@@ -1381,7 +1381,7 @@
                 prefixo: 'herd',
                 campos: [
                     { id: 'Nome', label: 'Nome', type: 'text', placeholder: 'Nome do herdeiro' },
-                    { id: 'Percentual', label: 'Percentual (ex: 0.1 para 10%)', type: 'number', step: '0.01', min: '0', max: '1', placeholder: '0.00' },
+                    { id: 'Percentual', label: 'Percentual (ex: 1/3 ou 0.3333)', type: 'text', placeholder: '1/3' },
                     { id: 'Preferencia', label: 'Tem direito à preferência?', type: 'select', condicional: 'preferencia', containerId: 'Container', options: [
                         { value: 'sim', text: 'Sim' },
                         { value: 'nao', text: 'Não' }
@@ -1389,6 +1389,27 @@
                 ]
             }
         };
+
+        function parsearPercentual(valor) {
+            if (!valor && valor !== 0) return 0;
+            const str = String(valor).trim();
+            
+            if (str.includes('/')) {
+                const partes = str.split('/');
+                if (partes.length === 2) {
+                    const numerador = parseFloat(partes[0].trim());
+                    const denominador = parseFloat(partes[1].trim());
+                    if (!isNaN(numerador) && !isNaN(denominador) && denominador !== 0) {
+                        return numerador / denominador;
+                    }
+                }
+                return 0;
+            }
+            
+            // Formato decimal normal
+            const num = parseFloat(str.replace(',', '.'));
+            return isNaN(num) ? 0 : num;
+        }
         
         function criarCampo(campo, prefixo, index) {
             const id = campo.semPrefixo ? `${campo.id}${index}` : `${prefixo}${campo.id}${index}`;
@@ -2147,7 +2168,7 @@
             for (let i = 0; i < dados.quantHerdeiros; i++) {
                 dados.herdeiros.push({
                     nome: $(`herdNome${i}`)?.value || `Herdeiro ${i + 1}`,
-                    percentual: parseFloat($(`herdPercentual${i}`)?.value) || 0,
+                    percentual: parsearPercentual($(`herdPercentual${i}`)?.value),
                     temPreferencia: $(`herdPreferencia${i}`)?.value === 'sim'
                 });
             }
