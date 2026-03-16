@@ -2305,6 +2305,8 @@
         // Calculos
         // ====================================
 
+        let _dadosPendentes = null;
+
         async function calcular() {
             if (!Cache.elementos) {
                 Cache.init();
@@ -2323,9 +2325,164 @@
                 return;
             }
             
-            const resultados = await calcularValores(dados);
-            exibirResultados(resultados, dados)
+            _dadosPendentes = dados;
+            abrirModalResumo(dados);
         }
+
+        function abrirModalResumo(dados) {
+            const conteudo = document.getElementById('modalResumoConteudo');
+            conteudo.innerHTML = gerarHTMLResumo(dados);
+            document.getElementById('modalResumo').classList.add('ativo');
+        }
+
+        function fecharModalResumo() {
+            document.getElementById('modalResumo').classList.remove('ativo');
+            _dadosPendentes = null;
+        }
+
+        async function confirmarCalculo() {
+            fecharModalResumo();
+            const dados = _dadosPendentes || coletarDados();
+            const resultados = await calcularValores(dados);
+            exibirResultados(resultados, dados);
+        }
+
+        function gerarHTMLResumo(dados) {
+            const fmt = v => 'R$ ' + formatarMoeda(v);
+            const pct = v => (v * 100).toFixed(2) + '%';
+
+            // Seção: Identificação
+            const dataAtualizacao = document.getElementById('dataatualizacao')?.value || '';
+            const dataFormatada = dataAtualizacao 
+                ? new Date(dataAtualizacao + 'T00:00:00').toLocaleDateString('pt-BR') 
+                : '—';
+
+            const secaoIdentificacao = `
+                <div class="modal-resumo-secao">
+                    <h4>Identificação</h4>
+                    <table>
+                        <tr><td>Processo</td><td>${dados.numProcesso || '—'}</td></tr>
+                        <tr><td>Beneficiário</td><td>${dados.beneficiario || '—'}</td></tr>
+                        <tr><td>Credor</td><td>${dados.credor || '—'}</td></tr>
+                        <tr><td>Natureza</td><td>${dados.natureza || '—'}</td></tr>
+                        <tr><td>Tipo de Cálculo</td><td>${dados.tipoCalculo || '—'}</td></tr>
+                        <tr><td>Ano Orçamento</td><td>${dados.anoOrcamento || '—'}</td></tr>
+                        <tr><td>Data de Atualização</td><td>${dataFormatada}</td></tr>
+                    </table>
+                </div>
+            `;
+
+            // Seção: Valores Principais
+            const linhasValores = dados.valoresPrincipais.map((v, i) => {
+                const temSelic = (v.tipoSelic === 'valor' && v.valorSelic > 0) || 
+                                (v.tipoSelic === 'percentual' && v.percentualSelic > 0);
+                const selicInfo = temSelic 
+                    ? (v.tipoSelic === 'valor' ? ` + ${fmt(v.valorSelic)} SELIC` : ` + ${(v.percentualSelic * 100).toFixed(2)}% SELIC`)
+                    : '';
+                const rraInfo = v.tributacao?.rra > 0 ? ` | RRA: ${v.tributacao.rra} meses` : '';
+                const nome = v.descricao || `Valor Principal ${i + 1}`;
+
+                return `
+                    <tr>
+                        <td>${nome} (${v.mesBase}/${v.anoBase})</td>
+                        <td>${fmt(v.valorPrincipal)} + ${fmt(v.valorJuros)} juros${selicInfo}${rraInfo}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            const secaoValores = `
+                <div class="modal-resumo-secao">
+                    <h4>Valores Principais (${dados.valoresPrincipais.length})</h4>
+                    <table>${linhasValores}</table>
+                </div>
+            `;
+
+            // Seção: Advogados
+            const secaoAdvogados = dados.advogados?.length ? `
+                <div class="modal-resumo-secao">
+                    <h4>Advogados Contratuais (${dados.advogados.length})</h4>
+                    <table>
+                        ${dados.advogados.map(a => `
+                            <tr><td>${a.nome || '—'} (${a.tipo})</td><td>${pct(a.percentual)}</td></tr>
+                        `).join('')}
+                    </table>
+                </div>
+            ` : '';
+
+            // Seção: Advogados Sucumbenciais
+            const advsSuc = dados.honorarioSucumbencial?.advogados || [];
+            const secaoSucumbencial = advsSuc.length ? `
+                <div class="modal-resumo-secao">
+                    <h4>Advogados Sucumbenciais (${advsSuc.length})</h4>
+                    <table>
+                        ${advsSuc.map(a => `
+                            <tr><td>${a.nome || '—'} (${a.tipo})</td>
+                            <td>${a.tipoHonorario === 'percentual' ? pct(a.percentual || 0) : 'Valor fixo'}</td></tr>
+                        `).join('')}
+                    </table>
+                </div>
+            ` : '';
+
+            // Seção: Herdeiros
+            const secaoHerdeiros = dados.herdeiros?.length ? `
+                <div class="modal-resumo-secao">
+                    <h4>Herdeiros (${dados.herdeiros.length})</h4>
+                    <table>
+                        ${dados.herdeiros.map(h => `
+                            <tr><td>${h.nome || '—'}</td>
+                            <td>${pct(h.percentual)}${h.temPreferencia ? ' ⭐ preferência' : ''}</td></tr>
+                        `).join('')}
+                    </table>
+                </div>
+            ` : '';
+
+            // Seção: Sindicatos
+            const secaoSindicatos = dados.sindicatos?.length ? `
+                <div class="modal-resumo-secao">
+                    <h4>Sindicatos (${dados.sindicatos.length})</h4>
+                    <table>
+                        ${dados.sindicatos.map(s => `
+                            <tr><td>${s.nome || '—'}</td><td>${pct(s.percentual)}</td></tr>
+                        `).join('')}
+                    </table>
+                </div>
+            ` : '';
+
+            // Seção: Cessões
+            const secaoCessoes = dados.cessoes?.length ? `
+                <div class="modal-resumo-secao">
+                    <h4>Cessões (${dados.cessoes.length})</h4>
+                    <table>
+                        ${dados.cessoes.map(c => `
+                            <tr>
+                                <td>${c.cedente} → ${c.cessionario}</td>
+                                <td>${pct(c.percentual)} · ${c.tipo}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                </div>
+            ` : '';
+
+            // Seção: Pagamentos anteriores
+            const secaoPagamentos = dados.pagamentos?.length ? `
+                <div class="modal-resumo-secao">
+                    <h4>Pagamentos Anteriores (${dados.pagamentos.length})</h4>
+                    <table>
+                        ${dados.pagamentos.map(p => `
+                            <tr><td>${p.beneficiario} — ${p.dataBase}</td>
+                            <td>${p.tipoInformacao === 'total' ? fmt(p.valorTotal) : fmt(p.valorPrincipal + p.valorJuros + (p.valorSelic || 0))}</td></tr>
+                        `).join('')}
+                    </table>
+                </div>
+            ` : '';
+
+            return secaoIdentificacao + secaoValores + secaoAdvogados + 
+                secaoSucumbencial + secaoHerdeiros + secaoSindicatos  + secaoCessoes + secaoPagamentos;
+        }
+
+        document.getElementById('modalResumo').addEventListener('click', function(e) {
+            if (e.target === this) fecharModalResumo();
+        });
 
         // ====================================
         // Detalhamentos
@@ -2586,5 +2743,15 @@
             </div>
         </div>
     </footer>
+    <div class="modal-overlay" id="modalResumo">
+    <div class="modal-resumo">
+        <div class="modal-resumo-header">📋 Resumo — Confirmar Cálculo</div>
+        <div class="modal-resumo-corpo" id="modalResumoConteudo"></div>
+        <div class="modal-resumo-acoes">
+            <button class="btn btn-secondary" onclick="fecharModalResumo()">✕ Cancelar</button>
+            <button class="btn" onclick="confirmarCalculo()">✓ Confirmar e Calcular</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
