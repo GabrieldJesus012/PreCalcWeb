@@ -437,9 +437,13 @@ function gerarNotaSelicInformado(dados, resultados) {
 
         const dataAtualizacaoInput = document.getElementById('dataatualizacao').value;
         const dataFim = new Date(dataAtualizacaoInput);
+
+        // SELIC vai só até Jul/2025
+        const dataCorteSelicPEC = new Date(2025, 6, 31); // Jul/2025
+        const dataFimSelic = dataFim > dataCorteSelicPEC ? dataCorteSelicPEC : dataFim;
         
         const periodoInicio = `${String(dataInicio.getMonth() + 1).padStart(2, '0')}/${dataInicio.getFullYear()}`;
-        const periodoFim = `${String(dataFim.getMonth() + 1).padStart(2, '0')}/${dataFim.getFullYear()}`;
+        const periodoFim = `${String(dataFimSelic.getMonth() + 1).padStart(2, '0')}/${dataFimSelic.getFullYear()}`;
         
         return `SELIC: ${percentualInformado}% Cálculo Homologado (${item.mesBase}/${item.anoBase}) +  ${percentualAutomatico}% (${periodoInicio} a ${periodoFim}) = ${percentualTotal}% total`;
     }).join('; ');
