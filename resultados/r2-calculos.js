@@ -441,11 +441,18 @@ function gerarNotaSelicInformado(dados, resultados) {
         // SELIC vai só até Jul/2025
         const dataCorteSelicPEC = new Date(2025, 6, 31); // Jul/2025
         const dataFimSelic = dataFim > dataCorteSelicPEC ? dataCorteSelicPEC : dataFim;
-        
+
+        // Período de graça do orçamento
+        const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
+        const inicioGracaLabel = `${String(inicioGraca.getMonth() + 1).padStart(2, '0')}/${inicioGraca.getFullYear()}`;
+        const fimGracaLabel = `${String(fimGraca.getMonth() + 1).padStart(2, '0')}/${fimGraca.getFullYear()}`;
+
         const periodoInicio = `${String(dataInicio.getMonth() + 1).padStart(2, '0')}/${dataInicio.getFullYear()}`;
         const periodoFim = `${String(dataFimSelic.getMonth() + 1).padStart(2, '0')}/${dataFimSelic.getFullYear()}`;
+
+        const periodoSelic = `${periodoInicio} a ${periodoFim} (excluindo graça: ${inicioGracaLabel} a ${fimGracaLabel})`;
         
-        return `SELIC: ${percentualInformado}% Cálculo Homologado (${item.mesBase}/${item.anoBase}) +  ${percentualAutomatico}% (${periodoInicio} a ${periodoFim}) = ${percentualTotal}% total`;
+        return `SELIC: ${percentualInformado}% Cálculo Homologado (${item.mesBase}/${item.anoBase}) + ${percentualAutomatico}% (${periodoSelic}) = ${percentualTotal}% total`;
     }).join('; ');
     
     return `*${notasItens}.<br>`;
