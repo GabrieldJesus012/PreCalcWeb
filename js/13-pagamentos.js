@@ -874,7 +874,10 @@ function ajustarResultadosComPagamentos(resultados, dados) {
 
 function calcularIRAdvogado(item, saldo) {
     if (!item.incidenciaIR || saldo <= 0) return 0;
-    return item.tipo === 'PF' ? calcularIR(saldo) : saldo * 0.015;
+    if (item.tipo !== 'PF') return saldo * 0.015;
+    const irSemDesconto = calcularIR(saldo);
+    const desconto = calcularDescontoAdicional2026(saldo, irSemDesconto);
+    return Math.max(0, irSemDesconto - desconto);
 }
 
 function calcularIRSindicato(item, saldo) {
