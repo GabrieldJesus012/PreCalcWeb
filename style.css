@@ -1066,6 +1066,31 @@ tr.highlight {
     font-weight: 500;
 }
 
+.subsecao-colapsavel {
+    border: 1px solid rgba(197, 165, 114, 0.2);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+.subsecao-header {
+    background: var(--light-gold);
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    color: var(--primary-navy);
+    font-size: 0.95em;
+    transition: background 0.2s;
+}
+.subsecao-header:hover {
+    background: rgba(197, 165, 114, 0.3);
+}
+.subsecao-corpo {
+    padding: 16px;
+}
+
 
 #tab8 .sucumbencial-controle-cenario {
     background: #e3f2fd !important;

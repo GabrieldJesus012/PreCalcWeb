@@ -184,37 +184,41 @@
                                     <input type="number" id="valorJuros" step="0.01" placeholder="0.00">
                                 </div>
                             </div>
-                            <div class="valor-selic-group">
-                                <label>Selic ("%"/ "R$"):</label>
-                                <div class="checkbox-group">
-                                    <div class="checkbox-item">
-                                        <input type="radio" id="selicValor" name="tipoSelic" value="valor" checked>
-                                        <label for="selicValor">Valor em R$</label>
-                                    </div>
-                                    
-                                    <div class="checkbox-item">
-                                        <input type="radio" id="selicPercentual" name="tipoSelic" value="percentual">
-                                        <label for="selicPercentual">Percentual (%)</label>
-                                    </div>
+                            <div class="subsecao-colapsavel">
+                                <div class="subsecao-header" onclick="toggleSubsecao(this)">
+                                    <span>📊 SELIC <small style="font-weight:400; color:var(--medium-gray);">(se houver)</small></span>
+                                    <span class="subsecao-toggle">▼</span>
                                 </div>
-                                
-                                <div class="selic-inputs">
-                                    <div class="input-group" id="campoValorSelic">
-                                        <label for="valorSelic">Valor Selic (R$):</label>
-                                        <input type="number" id="valorSelic" step="0.01" placeholder="0.00">
-                                    </div>
-                                    
-                                    <div class="input-group" id="campoPercentualSelic" style="display: none;">
-                                        <label for="percentualSelic">Percentual Selic (ex: 0.3 para 30%):</label>
-                                        <input type="number" id="percentualSelic" step="0.01" placeholder="0.00">
-                                    </div>
-
-                                    <div class="input-group" id="campoMesReferencSelic">
-                                        <label for="mesReferenciaSelic">Este valor SELIC refere-se ao:</label>
-                                        <select id="mesReferenciaSelic">
-                                            <option value="mesAnterior">Mês Anterior ao mês base</option>
-                                            <option value="mesmomesBase">Mês base</option>
-                                        </select>
+                                <div class="subsecao-corpo" style="display:none;">
+                                    <div class="valor-selic-group">
+                                        <label>Selic ("%"/ "R$"):</label>
+                                        <div class="checkbox-group">
+                                            <div class="checkbox-item">
+                                                <input type="radio" id="selicValor" name="tipoSelic" value="valor" checked>
+                                                <label for="selicValor">Valor em R$</label>
+                                            </div>
+                                            <div class="checkbox-item">
+                                                <input type="radio" id="selicPercentual" name="tipoSelic" value="percentual">
+                                                <label for="selicPercentual">Percentual (%)</label>
+                                            </div>
+                                        </div>
+                                        <div class="selic-inputs">
+                                            <div class="input-group" id="campoValorSelic">
+                                                <label for="valorSelic">Valor Selic (R$):</label>
+                                                <input type="number" id="valorSelic" step="0.01" placeholder="0.00">
+                                            </div>
+                                            <div class="input-group" id="campoPercentualSelic" style="display:none;">
+                                                <label for="percentualSelic">Percentual Selic (ex: 0.3 para 30%):</label>
+                                                <input type="number" id="percentualSelic" step="0.01" placeholder="0.00">
+                                            </div>
+                                            <div class="input-group" id="campoMesReferencSelic">
+                                                <label for="mesReferenciaSelic">Este valor SELIC refere-se ao:</label>
+                                                <select id="mesReferenciaSelic">
+                                                    <option value="mesAnterior">Mês Anterior ao mês base</option>
+                                                    <option value="mesmomesBase">Mês base</option>
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -223,7 +227,7 @@
                             <input type="number" id="rra" value="0" min="0">
                         </div>
                         <div class="input-group">
-                            <label for="tipoUsoHonorario">Tipo de Uso para Honorários:</label>
+                            <label for="tipoUsoHonorario">Tipo de Uso do item para Honorários:</label>
                             <select id="tipoUsoHonorario">
                                 <option value="ambos" selected>Ambos (contratual e sucumbencial)</option>
                                 <option value="contratual">Honorário contratual apenas</option>
@@ -231,27 +235,34 @@
                                 <option value="nenhum">Não usado para honorários</option>
                             </select>
                         </div>
-                        <label>Índices de Correção:</label>
-                        <div class="checkbox-group">
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="principalCNJ" checked>
-                                <label for="principalCNJ">CNJ</label>
+                        <div class="subsecao-colapsavel">
+                            <div class="subsecao-header" onclick="toggleSubsecao(this)">
+                                <span>⚙️ Índices de Correção </span>
+                                <span class="subsecao-toggle">▼</span>
                             </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="principalSELIC" checked>
-                                <label for="principalSELIC">SELIC</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="principalIPCAE" checked>
-                                <label for="principalIPCAE">IPCA-E</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="principalJurosMora" checked>
-                                <label for="principalJurosMora">Juros de Mora</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="principalIPCA" checked>
-                                <label for="principalIPCA">IPCA</label>
+                            <div class="subsecao-corpo" style="display:none;">
+                                <div class="checkbox-group">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="principalCNJ" checked>
+                                        <label for="principalCNJ">CNJ</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="principalSELIC" checked>
+                                        <label for="principalSELIC">SELIC</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="principalIPCAE" checked>
+                                        <label for="principalIPCAE">IPCA-E</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="principalJurosMora" checked>
+                                        <label for="principalJurosMora">Juros de Mora</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="principalIPCA" checked>
+                                        <label for="principalIPCA">IPCA</label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <h3>🏦 Impostos e Contribuições</h3>
@@ -287,10 +298,15 @@
                                 ➕ Adicionar Valor Principal
                             </button>
                         </div>
-                        <div style="margin-top: 20px;">
-                            <h3>📋 Valores Cadastrados</h3>
-                            <div id="listaValoresPrincipais" class="lista-items">
-                                <!-- Valores serão adicionados aqui -->
+                        <div class="subsecao-colapsavel">
+                            <div class="subsecao-header" onclick="toggleSubsecao(this)">
+                                <span>📋 Valores Cadastrados</span>
+                                <span class="subsecao-toggle">▼</span>
+                            </div>
+                            <div class="subsecao-corpo" style="display:none;">
+                                <div id="listaValoresPrincipais" class="lista-items">
+                                    <!-- Valores serão adicionados aqui -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -570,6 +586,14 @@
                     showTab('tab1');
                 }
             }
+        }
+
+        function toggleSubsecao(header) {
+            const corpo = header.nextElementSibling;
+            const toggle = header.querySelector('.subsecao-toggle');
+            const aberto = corpo.style.display !== 'none';
+            corpo.style.display = aberto ? 'none' : 'block';
+            toggle.textContent = aberto ? '▼' : '▲';
         }
 
         // ====================================
@@ -1692,6 +1716,13 @@
             showTab('tab1');
             toggleAbaAcordo();
             toggleAbaPagamento();
+
+            document.querySelectorAll('.subsecao-corpo').forEach(corpo => {
+                corpo.style.display = 'none';
+            });
+            document.querySelectorAll('.subsecao-toggle').forEach(toggle => {
+                toggle.textContent = '▼';
+            });
 
             $('tipoCalculo').dispatchEvent(new Event('change'));
         }
