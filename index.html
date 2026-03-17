@@ -1864,7 +1864,7 @@
                         <input type="text" id="cessionarioNome${index}" placeholder="Nome do Cessionário">
                     </div>
                     <div class="input-group">
-                        <label>Percentual Cedido (ex: 0.1 para 10%):</label>
+                        <label>Percentual Cedido (ex: 0.1 = 10% do precatório): </label>
                         <input type="number" id="cessaoPercentual${index}" step="0.01" min="0" max="1" placeholder="0.00">
                     </div>
                 </div>
@@ -2366,7 +2366,6 @@
         }
 
         function validarCessoes(dados, erros) {
-            // Criar mapas de nomes para validação rápida
             const mapas = {
                 'cessaobenPrincipal': new Set([dados.beneficiario.trim(), 'Beneficiário Principal']),
                 'cessaoAdv': new Set(dados.advogados.map(adv => adv.nome)),
@@ -2376,15 +2375,47 @@
             };
             
             dados.cessoes.forEach((cessao, i) => {
-                // Validar percentual
                 if (cessao.percentual > 1.0) {
                     erros.push(`Cessão ${i + 1}: Percentual não pode ser maior que 100%`);
                 }
                 
-                // Validar se cedente existe
                 const cedenteExiste = mapas[cessao.tipo]?.has(cessao.cedente.trim());
                 if (!cedenteExiste) {
                     erros.push(`Cessão ${i + 1}: Cedente "${cessao.cedente}" não encontrado`);
+                }
+            });
+
+            // Validar soma das cessões por cedente vs percentual que tem direito
+            const percentuaisCedentes = {};
+            dados.cessoes.forEach((cessao, i) => {
+                const chave = `${cessao.tipo}__${cessao.cedente.trim()}`;
+                if (!percentuaisCedentes[chave]) {
+                    percentuaisCedentes[chave] = { total: 0, cessoes: [], cedente: cessao.cedente, tipo: cessao.tipo };
+                }
+                percentuaisCedentes[chave].total += cessao.percentual;
+                percentuaisCedentes[chave].cessoes.push(i + 1);
+            });
+
+            // Percentual máximo por tipo de cedente
+            const obterMaximo = (tipo, nomeCedente) => {
+                if (tipo === 'cessaoAdv') 
+                    return dados.advogados.find(a => a.nome === nomeCedente)?.percentual || 0;
+                if (tipo === 'cessaoAdvSuc') 
+                    return dados.honorarioSucumbencial?.advogados.find(a => a.nome === nomeCedente)?.percentual || 0;
+                if (tipo === 'cessaoSindicato') 
+                    return dados.sindicatos.find(s => s.nome === nomeCedente)?.percentual || 0;
+                if (tipo === 'cessaoherdeiro') 
+                    return dados.herdeiros.find(h => h.nome === nomeCedente)?.percentual || 0;
+                return 0; // beneficiário não valida soma
+            };
+
+            Object.values(percentuaisCedentes).forEach(({ total, cessoes, cedente, tipo }) => {
+                if (tipo === 'cessaobenPrincipal') return; // beneficiário sem percentual fixo
+                const maximo = obterMaximo(tipo, cedente);
+                if (maximo > 0 && total > maximo + 0.0001) {
+                    erros.push(
+                        `Cessões ${cessoes.join(' e ')}: "${cedente}" tem direito a ${(maximo * 100).toFixed(2)}% mas o total cedido é ${(total * 100).toFixed(2)}%`
+                    );
                 }
             });
         }

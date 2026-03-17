@@ -53,7 +53,7 @@ function gerarCessoesAdvogadosOrdem(resultados, dados, isParcial) {
 
         // Linhas dos cessionários
         const linhasCessionarios = (adv.cessionarios || []).map(cessionario => {
-            const valorCessionario = valorBaseContratual * cessionario.percentual;
+            const valorCessionario = cessionario.valorBruto || (valorBaseContratual * cessionario.percentual);
             
             return `
                 <tr>
@@ -254,7 +254,7 @@ function gerarCessoesAdvogadosSemHerdeiros(resultados, dados) {
             linhasCessionarios = gerarLinhasCessionariosAguardando(adv.cessionarios, valorBaseContratual);
         } else if (isParcial) {
             linhasCessionarios = (adv.cessionarios || []).map(cessionario => {
-                const valorCessionario = valorBaseContratual * cessionario.percentual;
+                const valorCessionario = cessionario.valorBruto || (valorBaseContratual * cessionario.percentual);
                 return `
                     <tr>
                         <td>${cessionario.nome} (cessionário)</td>
@@ -310,7 +310,7 @@ function gerarCessoesAdvogadosSemHerdeiros(resultados, dados) {
 
 function gerarLinhasCessionariosAguardando(cessionarios, valorBaseContratual) {
     return (cessionarios || []).map(cessionario => {
-        const valorCessionario = valorBaseContratual * cessionario.percentual;
+        const valorCessionario = cessionario.valorBruto || (valorBaseContratual * cessionario.percentual);
         return `
             <tr>
                 <td>${cessionario.nome} (cessionário) - <em>aguarda</em></td>
@@ -323,8 +323,7 @@ function gerarLinhasCessionariosAguardando(cessionarios, valorBaseContratual) {
 
 function gerarLinhasCessionariosRecebendo(cessionarios, valorBaseContratual) {
     return (cessionarios || []).map(cessionario => {
-        const valorCessionario = valorBaseContratual * cessionario.percentual;
-        
+        const valorCessionario = cessionario.valorBruto || (valorBaseContratual * cessionario.percentual);
         return `
             <tr>
                 <td>${cessionario.nome} (cessionário)</td>
