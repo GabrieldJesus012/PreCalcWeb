@@ -222,19 +222,33 @@
                                     </div>
                                 </div>
                             </div>
-                        <div class="input-group">
-                            <label for="rra">RRA:</label>
-                            <input type="number" id="rra" value="0" min="0">
-                        </div>
-                        <div class="input-group">
-                            <label for="tipoUsoHonorario">Tipo de Uso do item para Honorários:</label>
-                            <select id="tipoUsoHonorario">
-                                <option value="ambos" selected>Ambos (contratual e sucumbencial)</option>
-                                <option value="contratual">Honorário contratual apenas</option>
-                                <option value="sucumbencial">Honorário sucumbencial apenas</option>
-                                <option value="nenhum">Não usado para honorários</option>
-                            </select>
-                        </div>
+                            <div class="input-group">
+                                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                                    <label for="rra" style="margin:0;">RRA (meses):</label>
+                                    <span style="cursor:pointer; color:var(--primary-gold); font-size:1.1em;" 
+                                        onclick="toggleCalculadoraRRA()" title="Calcular meses entre datas">🗓️</span>
+                                </div>
+                                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                    <input type="number" id="rra" value="0" min="0" style="flex:1;">
+                                    <div id="calculadoraRRA" style="display:none; gap:6px; align-items:center; flex-wrap:wrap;">
+                                        <input type="date" id="rraDataInicial" style="padding:6px; font-size:0.8em; width:140px;">
+                                        <input type="date" id="rraDataFinal" style="padding:6px; font-size:0.8em; width:140px;">
+                                        <button type="button" class="btn-sindifaz" onclick="calcularEUsarRRA()">✓</button>
+                                    </div>
+                                </div>
+                                <div id="rraResultadoInline" style="display:none; margin-top:4px; font-size:0.82em; 
+                                    color:var(--primary-navy); font-weight:600;">
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="tipoUsoHonorario">Tipo de Uso do item para Honorários:</label>
+                                <select id="tipoUsoHonorario">
+                                    <option value="ambos" selected>Ambos (contratual e sucumbencial)</option>
+                                    <option value="contratual">Honorário contratual apenas</option>
+                                    <option value="sucumbencial">Honorário sucumbencial apenas</option>
+                                    <option value="nenhum">Não usado para honorários</option>
+                                </select>
+                            </div>
                         <div class="subsecao-colapsavel">
                             <div class="subsecao-header" onclick="toggleSubsecao(this)">
                                 <span>⚙️ Índices de Correção </span>
@@ -445,6 +459,7 @@
     </div>
 
     <script>
+        
         // ====================================
         // CONTROLE DE ABAS E UTILIDADES
         // ====================================
@@ -834,6 +849,43 @@
                     e.target.checked = false;
                 }
             });
+        }
+
+        // ====================================
+        // Calculo RRA
+        // ====================================
+        function toggleCalculadoraRRA() {
+            const calc = document.getElementById('calculadoraRRA');
+            calc.style.display = calc.style.display === 'none' ? 'flex' : 'none';
+        }
+
+        function calcularEUsarRRA() {
+            const dataIni = document.getElementById('rraDataInicial').value;
+            const dataFim = document.getElementById('rraDataFinal').value;
+            
+            if (!dataIni || !dataFim) return;
+
+            const ini = new Date(dataIni + 'T00:00:00');
+            const fim = new Date(dataFim + 'T00:00:00');
+            
+            if (fim <= ini) return;
+
+            const meses = (fim.getFullYear() - ini.getFullYear()) * 12 
+                        + (fim.getMonth() - ini.getMonth());
+
+            document.getElementById('rra').value = meses;
+            
+            const resultado = document.getElementById('rraResultadoInline');
+            resultado.style.display = 'block';
+            resultado.textContent = `✓ ${meses} meses aplicados`;
+
+            document.getElementById('calculadoraRRA').style.display = 'none';
+            document.getElementById('rraDataInicial').value = '';
+            document.getElementById('rraDataFinal').value = '';
+
+            setTimeout(() => {
+                resultado.style.display = 'none';
+            }, 2000);
         }
 
         // ====================================
@@ -1723,6 +1775,11 @@
             document.querySelectorAll('.subsecao-toggle').forEach(toggle => {
                 toggle.textContent = '▼';
             });
+            document.getElementById('calculadoraRRA').style.display = 'none';
+            document.getElementById('rraDataInicial').value = '';
+            document.getElementById('rraDataFinal').value = '';
+            document.getElementById('rraResultadoInline').style.display = 'none';
+            document.getElementById('rraResultadoInline').textContent = '';
 
             $('tipoCalculo').dispatchEvent(new Event('change'));
         }
