@@ -18,8 +18,9 @@ function configurarSindiFaz() {
             ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "FLAVIA CEOLIN LOPES PIANA", 0.00444],
             ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "FJ CONSULTORIA LTDA", 0.001653],
             ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "ISA MARIA LEME OPPENHEIMER BORGES", 0.003907],
-            ["cessaoSindicato", "Sindifaz", "TABARE FIDC NP", 0.5],
-            ["cessaoSindicato", "Sindifaz", "ZEFIROS I FIDC NP", 0.5]
+            ["cessaoAdv", "JUAREZ CHAVES DE AZEVEDO JUNIOR - SOCIEDADE INDIVIDUAL DE ADVOCACIA", "ALT LEGAL CLAIMS FIDC", 0.0035],
+            ["cessaoSindicato", "Sindifaz", "TABARE FIDC NP", 0.005],
+            ["cessaoSindicato", "Sindifaz", "ZEFIROS I FIDC NP", 0.005]
         ]
     };
     

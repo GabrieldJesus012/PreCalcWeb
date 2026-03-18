@@ -30,8 +30,8 @@ function calcularSindicatos(dados, valorBase, valortotatt) {
         let percentualCessionarioSind = cessaoSind.reduce((total, cessao) => total + cessao.percentual, 0);
         const percentualSindicato = Math.max(0, percentualTotalSindicato - percentualCessionarioSind);
 
-        const valorBrutoSindicato = valorBrutoTotal * percentualSindicato; 
-        const valorBrutoCessionario = valorBrutoTotal * percentualCessionarioSind; 
+        const valorBrutoSindicato = valorBaseCalculo * percentualSindicato;
+        const valorBrutoCessionario = valorBaseCalculo * percentualCessionarioSind;
 
         let valorParaIRSindicato = isAcordo ? valorBrutoSindicato * (1 - percentualDesagio) : valorBrutoSindicato;
         let valorParaIRCessionario = isAcordo ? valorBrutoCessionario * (1 - percentualDesagio) : valorBrutoCessionario;
@@ -43,7 +43,7 @@ function calcularSindicatos(dados, valorBase, valortotatt) {
         const valorLiquidoCessionario = valorBrutoCessionario - irCessionarioSind;
 
         const cessionarios = cessaoSind.map(cessao => {
-            const valorBrutoCessao = valorBrutoTotal * cessao.percentual; 
+            const valorBrutoCessao = valorBaseCalculo * cessao.percentual;
             let valorParaIRCessao = isAcordo ? valorBrutoCessao * (1 - percentualDesagio) : valorBrutoCessao;
             
             let irCessao = calcularIRSindicato(valorParaIRCessao, sind.tributacao, sind.aliquotaTributacao);
@@ -57,9 +57,6 @@ function calcularSindicatos(dados, valorBase, valortotatt) {
             };
         });
 
-        //if (!isPreferencia) {
-            
-        //
         valorSindicatoTotal += valorBrutoTotal;
 
         return {
