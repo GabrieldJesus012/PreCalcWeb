@@ -326,6 +326,7 @@ async function calcularSelic(dataBase, inicioGraca, fimGraca) {
         
     } catch (error) {
         console.error(`Erro ao obter dados da SELIC: ${error}`);
+        alertarErroBCB();
     }
 }
 
@@ -423,6 +424,7 @@ async function calcularIpcaE(dataBase, inicioGraca, fimGraca) {
         
     } catch (error) {
         console.error(`Erro ao obter dados do IPCA - E: ${error}`);
+        alertarErroBCB();
     }
 }
 
@@ -485,6 +487,7 @@ async function calcularIpca(dataBase, inicioGraca, fimGraca) {
         
     } catch (error) {
         console.error(`Erro ao obter dados do IPCA (433): ${error}`);
+        alertarErroBCB();
         return { indiceipca: 1.0, periodo: '', temDados: false };
     }
 }
@@ -626,6 +629,7 @@ async function calcularSelicPosAgosto2025() {
         
     } catch (error) {
         console.error(`Erro em calcularSelicPosAgosto2025: ${error}`);
+        alertarErroBCB();
         return {
             indiceSelecionado: 1.0,
             tipoIndice: 'erro',
@@ -636,4 +640,38 @@ async function calcularSelicPosAgosto2025() {
             periodo: ''
         };
     }
+}
+
+function alertarErroBCB() {
+    const jaExiste = document.getElementById('alertaBCB');
+    if (jaExiste) return;
+    
+    const alerta = document.createElement('div');
+    alerta.id = 'alertaBCB';
+    alerta.style.cssText = `
+        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+        background: var(--white); border: 2px solid var(--warning);
+        border-radius: 12px; padding: 16px 24px; z-index: 9999;
+        box-shadow: var(--shadow-elevated); max-width: 480px; width: 90%;
+        font-family: var(--font-primary); text-align: center;
+    `;
+    alerta.innerHTML = `
+        <div style="font-size: 1.5em; margin-bottom: 8px;">⚠️</div>
+        <div style="font-weight: 700; color: var(--primary-navy); margin-bottom: 6px;">
+            Comunicação com o Banco Central indisponível
+        </div>
+        <div style="color: var(--medium-gray); font-size: 0.9em; margin-bottom: 12px;">
+            Aguarde alguns minutos e tente novamente. Se o problema persistir, 
+            o servidor do BCB pode estar em manutenção.
+        </div>
+        <button onclick="document.getElementById('alertaBCB').remove()" style="
+            background: var(--gradient-gold); color: var(--white);
+            border: none; border-radius: 20px; padding: 8px 20px;
+            cursor: pointer; font-weight: 600; font-family: var(--font-primary);
+        ">Entendido</button>
+    `;
+    document.body.appendChild(alerta);
+    
+    // Remove automaticamente após 15 segundos
+    setTimeout(() => alerta?.remove(), 15000);
 }
