@@ -9,6 +9,9 @@ function configurarSindiFaz() {
             ["ADAUTO FORTES ADVOGADOS ASSOCIADOS", "PJ", 0.02666667],
             ["JUAREZ CHAVES DE AZEVEDO JUNIOR - SOCIEDADE INDIVIDUAL DE ADVOCACIA", "PJ", 0.013333333]
         ],
+        advogadosSucumbenciais: [
+                ["FURTADO COELHO ADVOGADOS ASSOCIADOS", "PJ", 0.02, true]
+        ],
         cessoes: [
             ["cessaoAdv", "FURTADO COELHO ADVOGADOS ASSOCIADOS", "LAGUZ I FIDC NP", 0.02],
             ["cessaoAdv", "FURTADO COELHO ADVOGADOS ASSOCIADOS", "DOMUS OCTANTE I FIDC LTDA", 0.02],
@@ -71,8 +74,22 @@ function preencherSindiFaz(dados) {
             }, 50);
         });
     }, 300);
+
+    // 4. Advogados Sucumbenciais
+    if (dados.advogadosSucumbenciais?.length) {
+        definir('quantAdvogadosSucumbenciais', dados.advogadosSucumbenciais.length);
+        setTimeout(() => {
+            dados.advogadosSucumbenciais.forEach(([nome, tipo, perc, incidenciaIR], i) => {
+                definir(`advSucNome${i}`, nome);
+                definir(`advSucTipo${i}`, tipo);
+                definir(`advSucTipoHonorario${i}`, 'percentual');
+                definir(`advSucPercentual${i}`, perc);
+                definir(`advSucIncidenciaIR${i}`, incidenciaIR ? 'sim' : 'nao');
+            });
+        }, 350);
+    }
     
-    // 4. Configurações padrão
+    // 5. Configurações padrão
     setTimeout(() => {
         definir('natureza', 'alimentar');
         definir('incidenciaIR', 'sim');
