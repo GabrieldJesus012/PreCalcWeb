@@ -517,9 +517,12 @@ function processarDadosIpca(dadosipca, dataBase, inicioGraca, fimGraca) {
     }
 
     // Meses fora da graça = apenas após fimGraca
-    const dadosForaGraca = fimGraca
-        ? dadosIPCAFiltrados.filter(item => strParaData(item.data) > fimGraca)
-        : dadosIPCAFiltrados;
+    const dadosForaGraca = dadosIPCAFiltrados.filter(item => {
+        const dataItem = strParaData(item.data);
+        if (!inicioGraca || !fimGraca) return true;
+        const dentroDaGraca = dataItem >= inicioGraca && dataItem <= fimGraca;
+        return !dentroDaGraca;
+    });
     const quantidadeMesesForaGraca = dadosForaGraca.length;
 
     let periodo = '';
