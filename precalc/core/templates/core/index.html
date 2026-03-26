@@ -1,40 +1,41 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="/print.css" media="print">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/print.css' %}" media="print">
     <link rel="shortcut icon" href="/assets/precalc2.ico" type="image/x-icon">
     <meta name="description" content="Cálculos de Precatórios.">
-    <script src="resultados/r1-cabecalho.js"></script>
-    <script src="resultados/r2-calculos.js"></script>
-    <script src="resultados/r3-honorarios-suc.js"></script>
-    <script src="resultados/r4-deducoesacess.js"></script>
-    <script src="resultados/r5-cessoes-sindicatos.js"></script>
-    <script src="resultados/r6-cessoesadv.js"></script>
-    <script src="resultados/r7-cessoesbenefi.js"></script>
-    <script src="resultados/r8-herdeiros.js"></script>
-    <script src="resultados/r9-cessoes-herdeiros.js"></script>
-    <script src="resultados/r10-pagamentosrecebido.js"></script>
-    <script src="resultados/r11-deducoeslegais.js"></script>
-    <script src="resultados/r12-pagamentofinal.js"></script>
-    <script src="resultados/resultados.js"></script>
-    <script src="js/modelos-sindifaz.js"></script>
-    <script src="js/modelos-sinafepi15.js"></script>
-    <script src="js/modelos-sinafepi2.js"></script>
-    <script src="js/modelos.js"></script>
-    <script src="js/carregardados.js"></script>
-    <script src="js/4-indices.js"></script>
-    <script src="js/5-tributacao.js"></script>
-    <script src="js/6-calculos-base.js"></script>
-    <script src="js/7-honorarios.js"></script>
-    <script src="js/8-honorarios-suc.js"></script>
-    <script src="js/9-sindicatos.js"></script>
-    <script src="js/10-herdeiros.js"></script> 
-    <script src="js/11-cessoes-herdeiros.js"></script> 
-    <script src="js/12-cessoes-beneficiario.js"></script> 
-    <script src="js/13-pagamentos.js"></script>
+    <script src="{% static 'resultados/r1-cabecalho.js' %}"></script>
+    <script src="{% static 'resultados/r2-calculos.js' %}"></script>
+    <script src="{% static 'resultados/r3-honorarios-suc.js' %}"></script>
+    <script src="{% static 'resultados/r4-deducoesacess.js' %}"></script>
+    <script src="{% static 'resultados/r5-cessoes-sindicatos.js' %}"></script>
+    <script src="{% static 'resultados/r6-cessoesadv.js' %}"></script>
+    <script src="{% static 'resultados/r7-cessoesbenefi.js' %}"></script>
+    <script src="{% static 'resultados/r8-herdeiros.js' %}"></script>
+    <script src="{% static 'resultados/r9-cessoes-herdeiros.js' %}"></script>
+    <script src="{% static 'resultados/r10-pagamentosrecebido.js' %}"></script>
+    <script src="{% static 'resultados/r11-deducoeslegais.js' %}"></script>
+    <script src="{% static 'resultados/r12-pagamentofinal.js' %}"></script>
+    <script src="{% static 'resultados/resultados.js' %}"></script>
+    <script src="{% static 'js/modelos-sindifaz.js' %}"></script>
+    <script src="{% static 'js/modelos-sinafepi15.js' %}"></script>
+    <script src="{% static 'js/modelos-sinafepi2.js' %}"></script>
+    <script src="{% static 'js/modelos.js' %}"></script>
+    <script src="{% static 'js/carregardados.js' %}"></script>
+    <script src="{% static 'js/4-indices.js' %}"></script>
+    <script src="{% static 'js/5-tributacao.js' %}"></script>
+    <script src="{% static 'js/6-calculos-base.js' %}"></script>
+    <script src="{% static 'js/7-honorarios.js' %}"></script>
+    <script src="{% static 'js/8-honorarios-suc.js' %}"></script>
+    <script src="{% static 'js/9-sindicatos.js' %}"></script>
+    <script src="{% static 'js/10-herdeiros.js' %}"></script> 
+    <script src="{% static 'js/11-cessoes-herdeiros.js' %}"></script> 
+    <script src="{% static 'js/12-cessoes-beneficiario.js' %}"></script> 
+    <script src="{% static 'js/13-pagamentos.js' %}"></script>
     <title>PreCalc Web</title>
 </head>
 <body>
@@ -2566,8 +2567,26 @@
         async function confirmarCalculo() {
             fecharModalResumo();
             const dados = _dadosPendentes || coletarDados();
-            const resultados = await calcularValores(dados);
-            exibirResultados(resultados, dados);
+            
+            try {
+                const response = await fetch('/calcular/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(dados)
+                });
+                
+                if (!response.ok) {
+                    const erro = await response.json();
+                    alert('Erro no cálculo: ' + (erro.erro || response.status));
+                    return;
+                }
+                
+                const resultados = await response.json();
+                exibirResultados(resultados, dados);
+                
+            } catch (error) {
+                alert('Erro de comunicação com o servidor: ' + error.message);
+            }
         }
 
         function gerarHTMLResumo(dados) {
