@@ -4,7 +4,7 @@ let csvCarregado = false;
 
 async function carregarCSVDoServidor() {
     try {
-        const response = await fetch('/tabelas/dados.csv');
+        const response = await fetch('/static/tabelas/dados.csv');
         
         if (!response.ok) {
             throw new Error('Erro ao carregar arquivo CSV');
