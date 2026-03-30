@@ -55,9 +55,9 @@ async function calcularPagamentos(dados) {
                 console.log(`   Juros 2% a.a. (${indicesPosPEC.mesesForaGraca} meses fora da graça): ${((indicesPosPEC.juros2aa - 1) * 100).toFixed(4)}%`);
                 console.log('');
                 
-                const principalAtualizado = pagamento.valorPrincipal * indicesPosPEC.ipca * indicesPosPEC.juros2aa;
+                const principalAtualizado = pagamento.valorPrincipal * indicesPosPEC.ipca;
                 const novosJuros2aa = principalAtualizado * (indicesPosPEC.juros2aa - 1);
-                const jurosOriginaisAtualizado = pagamento.valorJuros * indicesPosPEC.ipca * indicesPosPEC.juros2aa;
+                const jurosOriginaisAtualizado = pagamento.valorJuros * indicesPosPEC.ipca;
                 const jurosAtualizado = jurosOriginaisAtualizado + novosJuros2aa;
                 const selicAtualizada = pagamento.valorSelic * indicesPosPEC.ipca;
                 
@@ -210,7 +210,7 @@ async function calcularIpcaPagamento(dataPagamento) {
         const mesIni = dataPag.getMonth(); // 0-indexed
         
         const anoFim = dataReferencia.getFullYear();
-        const mesFim = dataReferencia.getMonth() - 1; // -1 porque IPCA é do mês anterior
+        const mesFim = dataReferencia.getMonth();
         
         const mesesTotal = (anoFim * 12 + mesFim) - (anoIni * 12 + mesIni);
         const quantidadeMeses = Math.max(0, mesesTotal);
