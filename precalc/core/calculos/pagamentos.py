@@ -34,7 +34,7 @@ def calcular_ipca_pagamento(data_pagamento, data_atualizacao):
             indice *= 1 + (float(item['valor'].replace(',', '.')) / 100)
 
         ano_ini, mes_ini = data_pagamento.year, data_pagamento.month
-        ano_fim, mes_fim = data_atualizacao.year, data_atualizacao.month - 1
+        ano_fim, mes_fim = data_atualizacao.year, data_atualizacao.month
         meses = max(0, (ano_fim * 12 + mes_fim) - (ano_ini * 12 + mes_ini))
 
         return {'indiceipca': indice, 'quantidadeMeses': meses, 'temDados': True}
@@ -151,9 +151,9 @@ def calcular_pagamentos(dados, data_atualizacao):
             if is_pos_pec and (pagamento.get('valorSelic') or 0) > 0:
                 indices = calcular_indices_pos_pec(pagamento['dataBase'], dados['anoOrcamento'], data_atualizacao)
 
-                principal_at = pagamento['valorPrincipal'] * indices['ipca'] * indices['juros2aa']
-                novos_juros = principal_at * (indices['juros2aa'] - 1)
+                principal_at = pagamento['valorPrincipal'] * indices['ipca'] 
                 juros_orig_at = pagamento['valorJuros'] * indices['ipca'] * indices['juros2aa']
+                novos_juros = principal_at * (indices['juros2aa'] - 1)
                 juros_at = juros_orig_at + novos_juros
                 selic_at = pagamento['valorSelic'] * indices['ipca']
                 total_at = principal_at + juros_at + selic_at
