@@ -2583,6 +2583,22 @@
                 
                 const resultados = await response.json();
                 exibirResultados(resultados, dados);
+
+                // Coletar credores que realmente recebem e enviar para salvar
+                const todosPagamentos = resultados.temHerdeiros
+                    ? coletarTodosPagamentos(resultados, dados)
+                    : coletarTodosPagamentosSemHerdeiros(resultados, dados);
+
+                    console.log('Credores para salvar:', todosPagamentos);
+
+                await fetch('/salvar-credores/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        calculo_id: resultados._id,
+                        credores: todosPagamentos
+                    })
+                });
                 
             } catch (error) {
                 alert('Erro de comunicação com o servidor: ' + error.message);
