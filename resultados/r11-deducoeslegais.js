@@ -318,7 +318,7 @@ function gerarDetalhePrevidenciaFixa(resultados, dados, temCessoes) {
                 <th colspan="2" class="section-header">📄 Previdência - Alíquota Fixa</th>
             </tr>
             <tr>
-                <th>Principal:</th>
+                <th>Valor Principal excluído juros:</th>
                 <td>R$ ${formatarMoeda(resultados.principal)}</td>
             </tr>
             <tr>
@@ -510,16 +510,16 @@ function gerarDetalheIR(resultados, dados, temPrevidencia, temCessoes) {
                 <th colspan="2" class="section-header">📄 Imposto de Renda - LEI Nª 15.270, DE 11 DE NOVEMBRO DE 2025</th>
             </tr>
             <tr>
-                <th>Principal:</th>
+                <th>Valor Principal excluído juros:</th>
                 <td>R$ ${formatarMoeda(resultados.principal)}</td>
             </tr>
             <tr>
-                <th>Base IR sem H.Contratuais (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
+                <th>(-) H.Contratuais(${(percentualTotalAdv * 100).toFixed(2)}%):</th>
                 <td>R$ ${formatarMoeda(resultados.baseIRHonora)}</td>
             </tr>
             ${percentualTotalSind > 0 ? `
             <tr>
-                <th>Base IR sem Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
+                <th>(-) Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
                 <td>R$ ${formatarMoeda(resultados.baseIRSindi)}</td>
             </tr>` : ''}
             ${baseComDesagio}
@@ -537,7 +537,7 @@ function gerarDetalheIR(resultados, dados, temPrevidencia, temCessoes) {
                 <td>${arredondarRRA(resultados.rraComDesagio || resultados.rrapagamento)}</td>
             </tr>
             <tr>
-                <th>Base IR por RRA:</th>
+                <th>Base de cálculo mensal</th>
                 <td>R$ ${formatarMoeda(resultados.baseIRRRA)}</td>
             </tr>
             <tr>
@@ -610,12 +610,12 @@ function gerarDetalheIRPJ(resultados, dados, temCessoes) {
                 <td>R$ ${formatarMoeda(resultados.valortotatt)}</td>
             </tr>
             <tr>
-                <th>Base IR sem H.Contratuais (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
+                <th>(-) H.Contratuais(${(percentualTotalAdv * 100).toFixed(2)}%):</th>
                 <td>R$ ${formatarMoeda(baseSemHonorarios)}</td>
             </tr>
             ${percentualTotalSind > 0 ? `
             <tr>
-                <th>Base IR sem Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
+                <th>(-) Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
                 <td>R$ ${formatarMoeda(baseSemSindicatos)}</td>
             </tr>` : ''}
             ${baseComDesagio}
@@ -661,7 +661,7 @@ function gerarDetalhePrevidenciaFixaHerdeirosSemCessao(herdeiros, dados, valorBa
                 <th colspan="2" class="section-header">📄 Previdência - Alíquota Fixa</th>
             </tr>
             <tr>
-                <th>Principal (base):</th>
+                <th>Valor Principal excluído juros:</th>
                 <td>R$ ${formatarMoeda(primeiroHerdeiro.principal)}</td>
             </tr>
             <tr>
@@ -713,7 +713,7 @@ function gerarDetalhePrevidenciaINSSHerdeirosSemCessao(herdeiros, dados, valorBa
                 <th colspan="2" class="section-header">📄 Previdência - INSS</th>
             </tr>
             <tr>
-                <th>Principal (base):</th>
+                <th>Valor Principal excluído juros:</th>
                 <td>R$ ${formatarMoeda(primeiroHerdeiro.principal)}</td>
             </tr>
             ${primeiroHerdeiro.rrapagamento !== 0 ? `
@@ -821,16 +821,16 @@ function gerarDetalheIRHerdeirosSemCessao(herdeiros, dados, valorBase, temPrevid
                 <th colspan="2" class="section-header">📄 Imposto de Renda - LEI Nª 15.270, DE 11 DE NOVEMBRO DE 2025</th>
             </tr>
             <tr>
-                <th>Principal (base):</th>
+                <th>Valor Principal excluído juros:</th>
                 <td>R$ ${formatarMoeda(primeiroHerdeiro.principal)}</td>
             </tr>
             <tr>
-                <th>Base IR sem H.Contratuais (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
+                <th>(-) H.Contratuais(${(percentualTotalAdv * 100).toFixed(2)}%):</th>
                 <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRHonora)}</td>
             </tr>
             ${percentualTotalSind > 0 ? `
             <tr>
-                <th>Base IR sem Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
+                <th>(-) Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
                 <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRSindi)}</td>
             </tr>` : ''}
             ${baseComDesagio}
@@ -848,7 +848,7 @@ function gerarDetalheIRHerdeirosSemCessao(herdeiros, dados, valorBase, temPrevid
                 <td>${arredondarRRA(primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento)}</td>
             </tr>
             <tr>
-                <th>Base IR por RRA:</th>
+                <th>Base de cálculo mensal</th>
                 <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRRRA)}</td>
             </tr>
             <tr>
@@ -932,7 +932,7 @@ function gerarDetalhePrevidenciaFixaHerdeiros(herdeiros, dados, valorBase) {
                 <th colspan="2" class="section-header">📄 Previdência - Alíquota Fixa</th>
             </tr>
             <tr>
-                <th>Principal (base):</th>
+                <th>Valor Principal excluído juros:</th>
                 <td>R$ ${formatarMoeda(primeiroHerdeiro.principal)}</td>
             </tr>
             <tr>
@@ -1015,7 +1015,7 @@ function gerarDetalhePrevidenciaINSSHerdeiros(herdeiros, dados, valorBase) {
                 <th colspan="2" class="section-header">📄 Previdência - INSS</th>
             </tr>
             <tr>
-                <th>Principal (base):</th>
+                <th>Valor Principal excluído juros:</th>
                 <td>R$ ${formatarMoeda(primeiroHerdeiro.principal)}</td>
             </tr>
             ${primeiroHerdeiro.rrapagamento !== 0 ? `
@@ -1152,16 +1152,16 @@ function gerarDetalheIRHerdeiros(herdeiros, dados, valorBase, temPrevidencia, te
                 <th colspan="2" class="section-header">📄 Imposto de Renda - LEI Nª 15.270, DE 11 DE NOVEMBRO DE 2025</th>
             </tr>
             <tr>
-                <th>Principal (base):</th>
+                <th>Valor Principal excluído juros:</th>
                 <td>R$ ${formatarMoeda(primeiroHerdeiro.principal)}</td>
             </tr>
             <tr>
-                <th>Base IR sem H.Contratuais (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
+                <th>(-) H.Contratuais(${(percentualTotalAdv * 100).toFixed(2)}%):</th>
                 <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRHonora)}</td>
             </tr>
             ${percentualTotalSind > 0 ? `
             <tr>
-                <th>Base IR sem Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
+                <th>(-) Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%):</th>
                 <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRSindi)}</td>
             </tr>` : ''}
             ${baseComDesagio}
@@ -1179,7 +1179,7 @@ function gerarDetalheIRHerdeiros(herdeiros, dados, valorBase, temPrevidencia, te
                 <td>${arredondarRRA(primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento)}</td>
             </tr>
             <tr>
-                <th>Base IR por RRA:</th>
+                <th>Base de cálculo mensal</th>
                 <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRRRA)}</td>
             </tr>
             <tr>
