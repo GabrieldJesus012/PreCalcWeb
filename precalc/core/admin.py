@@ -12,7 +12,7 @@ class CalculoCredorInline(admin.TabularInline):
 
 @admin.register(Calculo)
 class CalculoAdmin(admin.ModelAdmin):
-    list_display = ['numero_processo', 'beneficiario', 'natureza', 'tipo_calculo', 'data_base', 'valor_total_fmt', 'indice_total', 'total_pago', 'data_calculo']
+    list_display = ['numero_processo', 'beneficiario', 'credor', 'natureza', 'tipo_calculo', 'data_base', 'valor_total_fmt', 'indice_total', 'total_pago', 'data_calculo']
     list_filter = ['natureza', 'tipo_calculo', 'tem_herdeiros', 'tem_honorario_sucumbencial', 'data_calculo']
     search_fields = ['numero_processo', 'beneficiario', 'credor']
     readonly_fields = ['data_calculo', 'dados_entrada', 'resultado_completo']
