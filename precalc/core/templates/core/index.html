@@ -2326,7 +2326,11 @@
             const condicional = camposCondicionais[dados.tipoCalculo];
             if (condicional) {
                 const [campoId, propriedade, valorPadrao] = condicional;
-                dados[propriedade] = parsearPercentualCampo(Cache.getValue(campoId, valorPadrao));
+                const valorBruto = Cache.getValue(campoId, valorPadrao);
+                // Só parseia percentual para acordo
+                dados[propriedade] = dados.tipoCalculo === 'acordo'
+                    ? parsearPercentualCampo(valorBruto)
+                    : parseFloat(String(valorBruto).replace(',', '.')) || 0;
             }
             
             
