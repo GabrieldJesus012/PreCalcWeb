@@ -976,6 +976,19 @@
                 tipoUsoHonorario,
             };
 
+            const duplicata = valoresPrincipais.find(v => 
+                v.mesBase === mesBase && 
+                v.anoBase === parseInt(anoBase) &&
+                v.valorPrincipal === valorPrincipal &&
+                v.valorJuros === valorJuros
+            );
+
+            if (duplicata) {
+                if (!confirm(`⚠️ Já existe um item cadastrado com a mesma data base (${mesBase}/${anoBase}) e mesmos valores.\n\nDeseja adicionar mesmo assim?`)) {
+                    return;
+                }
+            }
+
             valoresPrincipais.push(valor);
             renderizarValoresPrincipais();
             limparFormularioPrincipal();
