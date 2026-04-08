@@ -496,6 +496,13 @@
             }
         }
 
+        function parsearPercentualCampo(valor) {
+            const num = parseFloat(String(valor).replace(',', '.'));
+            if (isNaN(num)) return 0;
+            // Se maior que 1, assume que foi digitado como percentual inteiro (ex: 40 = 40%)
+            return num > 1 ? num / 100 : num;
+        }
+
         // ====================================
         // FUNÇÕES DE VISIBILIDADE
         // ====================================
@@ -969,6 +976,20 @@
                 descricao,
                 tipoUsoHonorario,
             };
+
+            // Verificar duplicata — mesma data base e mesmos valores
+            const duplicata = valoresPrincipais.find(v => 
+                v.mesBase === mesBase && 
+                v.anoBase === parseInt(anoBase) &&
+                v.valorPrincipal === valorPrincipal &&
+                v.valorJuros === valorJuros
+            );
+
+            if (duplicata) {
+                if (!confirm(`⚠️ Já existe um item cadastrado com a mesma data base (${mesBase}/${anoBase}) e mesmos valores.\n\nDeseja adicionar mesmo assim?`)) {
+                    return;
+                }
+            }
 
             valoresPrincipais.push(valor);
             renderizarValoresPrincipais();
@@ -2277,7 +2298,7 @@
                     tributacao: {
                         ...valor.tributacao,
                         rra: parseFloat(valor.tributacao.rra) || 0,
-                        aliquotaFixa: parseFloat(valor.tributacao.aliquotaFixa) || 0
+                        aliquotaFixa: parsearPercentualCampo(valor.tributacao.aliquotaFixa)
                     }
                 })),
                 
@@ -2305,7 +2326,7 @@
             const condicional = camposCondicionais[dados.tipoCalculo];
             if (condicional) {
                 const [campoId, propriedade, valorPadrao] = condicional;
-                dados[propriedade] = Cache.getValue(campoId, valorPadrao, parseFloat);
+                dados[propriedade] = parsearPercentualCampo(Cache.getValue(campoId, valorPadrao));
             }
             
             
@@ -2325,7 +2346,7 @@
                     nome: $(`advNome${i}`)?.value || '',
                     tipo: $(`advTipo${i}`)?.value || '',
                     incidenciaIR: $(`advIncidenciaIR${i}`)?.value === 'sim',
-                    percentual: parseFloat($(`advPercentual${i}`)?.value) || 0
+                    percentual: parsearPercentualCampo($(`advPercentual${i}`)?.value)
                 });
             }
         }
@@ -2349,7 +2370,7 @@
                 
                 // Adicionar percentual se for tipo percentual
                 if (advogado.tipoHonorario === 'percentual') {
-                    advogado.percentual = parseFloat($(`advSucPercentual${i}`)?.value) || 0;
+                    advogado.percentual = parsearPercentualCampo($(`advSucPercentual${i}`)?.value);
                 }
                 
                 dados.honorarioSucumbencial.advogados.push(advogado);
@@ -2378,7 +2399,7 @@
                 
                 dados.sindicatos.push({
                     nome: $(`sindNome${i}`)?.value || `Sindicato ${i + 1}`,
-                    percentual: parseFloat($(`sindPercentual${i}`)?.value) || 0,
+                    percentual: parsearPercentualCampo($(`sindPercentual${i}`)?.value),
                     tributacao,
                     aliquotaTributacao: aliquotasMap[tributacao] || 0
                 });
@@ -2395,7 +2416,7 @@
                         tipo,
                         cedente,
                         cessionario: $(`cessionarioNome${i}`)?.value || `Cessionário ${i + 1}`,
-                        percentual: parseFloat($(`cessaoPercentual${i}`)?.value) || 0
+                        percentual: parsearPercentualCampo($(`cessaoPercentual${i}`)?.value)
                     });
                 }
             }
@@ -2588,8 +2609,6 @@
                 const todosPagamentos = resultados.temHerdeiros
                     ? coletarTodosPagamentos(resultados, dados)
                     : coletarTodosPagamentosSemHerdeiros(resultados, dados);
-
-                    console.log('Credores para salvar:', todosPagamentos);
 
                 await fetch('/salvar-credores/', {
                     method: 'POST',
