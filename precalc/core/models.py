@@ -11,6 +11,8 @@ class Calculo(models.Model):
     tipo_calculo = models.CharField(max_length=20, blank=True)
     data_atualizacao = models.DateField(null=True, blank=True)
     data_calculo = models.DateTimeField(auto_now_add=True)
+    data_base = models.DateField(null=True, blank=True)
+    
 
     # Valores históricos
     hist_principal = models.DecimalField(max_digits=15, decimal_places=2, null=True)
@@ -18,6 +20,8 @@ class Calculo(models.Model):
     hist_selic = models.DecimalField(max_digits=15, decimal_places=2, null=True)
     hist_total = models.DecimalField(max_digits=15, decimal_places=2, null=True)
     rra = models.DecimalField(max_digits=8, decimal_places=1, null=True)
+    
+    indice_total = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True)
 
     # Valores atualizados
     valor_principal = models.DecimalField(max_digits=15, decimal_places=2, null=True)

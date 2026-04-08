@@ -43,6 +43,17 @@ def calcular(request):
         hist_principal = item.get('valorPrincipal', 0)
         hist_juros = item.get('valorJuros', 0)
         hist_selic = item.get('valorSelic', 0)
+        
+        # Data base
+        data_base = None
+        if item.get('mesBase') and item.get('anoBase'):
+            meses_map = {
+                'janeiro': 1, 'fevereiro': 2, 'março': 3, 'abril': 4,
+                'maio': 5, 'junho': 6, 'julho': 7, 'agosto': 8,
+                'setembro': 9, 'outubro': 10, 'novembro': 11, 'dezembro': 12
+            }
+            mes_num = meses_map.get(item.get('mesBase', '').lower(), 1)
+            data_base = date(item.get('anoBase', 2000), mes_num, 1)
 
         # Salvar cabeçalho
         calculo = Calculo.objects.create(
@@ -53,6 +64,8 @@ def calcular(request):
             ano_orcamento=dados.get('anoOrcamento'),
             tipo_calculo=dados.get('tipoCalculo', ''),
             data_atualizacao=data_atualizacao,
+            data_base=data_base,
+            indice_total=round(resultado.get('indiceTotal', 0), 6),
             hist_principal=round(hist_principal, 2),
             hist_juros=round(hist_juros, 2),
             hist_selic=round(hist_selic, 2),
