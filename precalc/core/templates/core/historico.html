@@ -63,7 +63,11 @@
                     <td>{{ c.tipo_calculo|capfirst }}</td>
                     <td>R$ {{ c.valor_total|floatformat:2 }}</td>
                     <td>{{ c.data_calculo|date:"d/m/Y H:i" }}</td>
-                    <td><a href="/resultado/{{ c.pk }}/" class="btn-ver">Ver</a></td>
+                    <td>
+                        <a href="/resultado/{{ c.pk }}/" class="btn-ver">Ver</a>
+                        <button onclick="imprimirResultado({{ c.pk }})" class="btn-ver" style="margin-left: 5px;" title="Imprimir">🖨️</button>
+                    </td>
+                    
                 </tr>
                 {% endfor %}
             </tbody>
@@ -75,5 +79,15 @@
         </div>
         {% endif %}
     </div>
+<script>
+function imprimirResultado(pk) {
+    const janela = window.open('/resultado/' + pk + '/', '_blank', 'width=1200,height=800');
+    janela.addEventListener('load', function() {
+        setTimeout(() => {
+            janela.print();
+        }, 2000); // aguarda 2 segundos para carregar os dados
+    });
+}
+</script>
 </body>
 </html>
