@@ -170,9 +170,62 @@ function gerarBotaoImprimir() {
                 cursor: pointer;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.2);
                 transition: background-color 0.3s;
+                margin-right: 10px;
             " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#343A40'">
                 🖨️ Imprimir / Salvar PDF
             </button>
+            <button onclick="exportarExcel()" style="
+                background-color: #1a7a4a;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                font-size: 16px;
+                border-radius: 5px;
+                cursor: pointer;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                transition: background-color 0.3s;
+            " onmouseover="this.style.backgroundColor='#145c38'" onmouseout="this.style.backgroundColor='#1a7a4a'">
+                📊 Exportar Excel
+            </button>
         </div>
     `;
+}
+
+function exportarExcel() {
+    const tabelas = document.querySelectorAll('#resultadosContent table');
+    
+    if (tabelas.length === 0) {
+        alert('Nenhuma tabela encontrada.');
+        return;
+    }
+
+    let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" 
+                      xmlns:x="urn:schemas-microsoft-com:office:excel">
+        <head><meta charset="UTF-8">
+        <style>
+            table { border-collapse: collapse; }
+            th { background: #1a2b4a; color: white; padding: 8px; border: 1px solid #ccc; font-weight: bold; }
+            td { padding: 6px 10px; border: 1px solid #ccc; }
+            h3 { margin-top: 20px; color: #1a2b4a; }
+            h4 { color: #333; }
+        </style></head><body>`;
+
+    tabelas.forEach(tabela => {
+        const container = tabela.closest('.table-container, .deducoes-legais, .pagamentos-finais');
+        const titulo = container?.querySelector('h3, h4');
+        if (titulo) html += `<h3>${titulo.textContent.trim()}</h3>`;
+        html += tabela.outerHTML + '<br>';
+    });
+
+    html += '</body></html>';
+
+    const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `calculo_${(typeof dados !== 'undefined' ? dados.numProcesso : 'resultado') || 'resultado'}.xls`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
