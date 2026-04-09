@@ -7,4 +7,5 @@ urlpatterns = [
     path('salvar-credores/', views.salvar_credores, name='salvar_credores'),
     path('historico/', views.historico, name='historico'),
     path('resultado/<int:pk>/', views.resultado, name='resultado'),
+    path('carregar/<int:pk>/', views.carregar, name='carregar'),
 ]

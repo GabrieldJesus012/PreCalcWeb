@@ -12,8 +12,48 @@ def index(request):
 
 
 def historico(request):
-    calculos = Calculo.objects.all()[:50]
-    return render(request, 'core/historico.html', {'calculos': calculos})
+    calculos = Calculo.objects.all()
+
+    processo = request.GET.get('processo', '')
+    beneficiario = request.GET.get('beneficiario', '')
+    credor = request.GET.get('credor', '')
+    natureza = request.GET.get('natureza', '')
+    tipo_calculo = request.GET.get('tipo_calculo', '')
+    valor_min = request.GET.get('valor_min', '')
+    valor_max = request.GET.get('valor_max', '')
+    data_ini = request.GET.get('data_ini', '')
+    data_fim = request.GET.get('data_fim', '')
+
+    if processo:
+        calculos = calculos.filter(numero_processo__icontains=processo)
+    if beneficiario:
+        calculos = calculos.filter(beneficiario__icontains=beneficiario)
+    if credor:
+        calculos = calculos.filter(credor__icontains=credor)
+    if natureza:
+        calculos = calculos.filter(natureza=natureza)
+    if tipo_calculo:
+        calculos = calculos.filter(tipo_calculo=tipo_calculo)
+    if valor_min:
+        try:
+            calculos = calculos.filter(valor_total__gte=float(valor_min))
+        except ValueError:
+            pass
+    if valor_max:
+        try:
+            calculos = calculos.filter(valor_total__lte=float(valor_max))
+        except ValueError:
+            pass
+    if data_ini:
+        calculos = calculos.filter(data_calculo__date__gte=data_ini)
+    if data_fim:
+        calculos = calculos.filter(data_calculo__date__lte=data_fim)
+
+    return render(request, 'core/historico.html', {
+        'calculos': calculos[:100],
+        'total': calculos.count(),
+        'filtros': request.GET
+    })
 
 
 def resultado(request, pk):
@@ -24,6 +64,11 @@ def resultado(request, pk):
         'resultados_json': json.dumps(calculo.resultado_completo)
     })
 
+def carregar(request, pk):
+    calculo = get_object_or_404(Calculo, pk=pk)
+    dados = calculo.dados_entrada.copy()
+    dados['dataAtualizacao'] = calculo.data_atualizacao.strftime('%Y-%m-%d') if calculo.data_atualizacao else ''
+    return JsonResponse(dados)
 
 @csrf_exempt
 def calcular(request):

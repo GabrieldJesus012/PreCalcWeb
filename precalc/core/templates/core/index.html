@@ -469,10 +469,10 @@
         <!-- Botões -->
         <div class="btn-container">
             <button type="button" class="btn btn-secondary" onclick="limparFormulario()">🗑️ Limpar Formulário</button>
-            <button type="button" class="btn" onclick="calcular()">🧮 Calcular Valores</button>
             <button type="button" class="btn btn-secondary" onclick="window.location.href='/historico/'">
                 📋 HISTÓRICO
             </button>
+            <button type="button" class="btn" onclick="calcular()">🧮 Calcular Valores</button>
         </div>
     </div>
 
@@ -761,6 +761,20 @@
             $('selicValor').dispatchEvent(new Event('change'));
             toggleAbaAcordo();
             toggleAbaPagamento();
+        });
+
+        window.addEventListener('DOMContentLoaded', async function() {
+            const params = new URLSearchParams(window.location.search);
+            const editarPk = params.get('editar');
+            if (editarPk) {
+                try {
+                    const response = await fetch('/carregar/' + editarPk + '/');
+                    const dados = await response.json();
+                    carregarDadosNoFormulario(dados);
+                } catch (e) {
+                    console.error('Erro ao carregar dados:', e);
+                }
+            }
         });
         
         // ====================================
@@ -1355,6 +1369,218 @@
             restaurarCessoes() { this.restaurarTipo('cessoes'); },
             restaurarPagamentos() { this.restaurarTipo('pagamentos'); }
         };
+
+        async function carregarDadosNoFormulario(dados) {
+            // 1. Campos básicos
+            if (dados.numProcesso) document.getElementById('numprocesso').value = dados.numProcesso;
+            if (dados.beneficiario) document.getElementById('beneficiario').value = dados.beneficiario;
+            if (dados.credor) document.getElementById('credor').value = dados.credor;
+            if (dados.tipoBeneficiario) document.getElementById('tipoBeneficiario').value = dados.tipoBeneficiario;
+            if (dados.natureza) {
+                document.getElementById('natureza').value = dados.natureza;
+                document.getElementById('natureza').dispatchEvent(new Event('change'));
+            }
+            if (dados.anoOrcamento) document.getElementById('anoOrcamento').value = dados.anoOrcamento;
+            if (dados.tipoCalculo) {
+                document.getElementById('tipoCalculo').value = dados.tipoCalculo;
+                document.getElementById('tipoCalculo').dispatchEvent(new Event('change'));
+            }
+
+            // 2. Campos condicionais
+            setTimeout(() => {
+                if (dados.tipoCalculo === 'preferencia' && dados.tetoPreferencia) {
+                    const campo = document.getElementById('tetoPreferenciaPrincipal');
+                    if (campo) campo.value = dados.tetoPreferencia;
+                }
+                if (dados.tipoCalculo === 'parcial' && dados.saldoParcial) {
+                    const campo = document.getElementById('saldoParcialValor');
+                    if (campo) campo.value = dados.saldoParcial;
+                }
+                if (dados.tipoCalculo === 'acordo' && dados.percentualAcordo) {
+                    const campo = document.getElementById('percentualAcordoValor');
+                    if (campo) campo.value = (dados.percentualAcordo * 100).toFixed(2);
+                }
+            }, 300);
+
+            // 3. Valores principais
+            if (dados.valoresPrincipais?.length > 0) {
+                const v = dados.valoresPrincipais[0];
+                setTimeout(() => {
+                    if (v.mesBase) {
+                        const campoMes = document.getElementById('mesBase');
+                        if (campoMes) { campoMes.value = v.mesBase; campoMes.dispatchEvent(new Event('change')); }
+                    }
+                    if (v.anoBase) { const c = document.getElementById('anoBase'); if (c) c.value = v.anoBase; }
+                    if (v.valorPrincipal) { const c = document.getElementById('valorPrincipal'); if (c) c.value = v.valorPrincipal; }
+                    if (v.valorJuros) { const c = document.getElementById('valorJuros'); if (c) c.value = v.valorJuros; }
+                    if (v.tributacao?.rra) { const c = document.getElementById('rra'); if (c) c.value = v.tributacao.rra; }
+                }, 400);
+            }
+
+            // Data base e data atualização
+            if (dados.valoresPrincipais?.length > 0) {
+                const v = dados.valoresPrincipais[0];
+                // Monta data base no formato YYYY-MM-DD
+                if (v.mesBase && v.anoBase) {
+                    const mesesMap = {
+                        'janeiro': '01', 'fevereiro': '02', 'março': '03', 'abril': '04',
+                        'maio': '05', 'junho': '06', 'julho': '07', 'agosto': '08',
+                        'setembro': '09', 'outubro': '10', 'novembro': '11', 'dezembro': '12'
+                    };
+                    const mesNum = mesesMap[v.mesBase.toLowerCase()];
+                    if (mesNum) {
+                        const dataBase = `${v.anoBase}-${mesNum}-01`;
+                        const campoDataBase = document.getElementById('dataBase');
+                        if (campoDataBase) {
+                            campoDataBase.value = dataBase;
+                            campoDataBase.dispatchEvent(new Event('change'));
+                        }
+                    }
+                }
+            }
+
+            // Data atualização — pega do banco, não de hoje
+            if (dados.dataAtualizacao) {
+                const campoDataAtu = document.getElementById('dataatualizacao');
+                if (campoDataAtu) campoDataAtu.value = dados.dataAtualizacao;
+            }
+
+            // 4. Quantidades e restauração usando DadosFormulario
+            setTimeout(() => {
+                // PRIMEIRO: seta as quantidades e cria os elementos
+                const quantidades = [
+                    ['quantAdvogados', dados.advogados?.length || 0, 'advogadosContainer', criarElementoAdvogado],
+                    ['quantAdvogadosSucumbenciais', dados.honorarioSucumbencial?.advogados?.length || 0, 'advogadosSucumbenciaisContainer', criarElementoAdvogadoSucumbencial],
+                    ['quantHerdeiros', dados.herdeiros?.length || 0, 'herdeirosContainer', criarElementoHerdeiro],
+                    ['quantSindicatos', dados.sindicatos?.length || 0, 'sindicatosContainer', criarElementoSindicato],
+                ];
+
+                quantidades.forEach(([quantId, quant, containerId, criarFn]) => {
+                    const quantEl = document.getElementById(quantId);
+                    if (quantEl) quantEl.value = quant;
+                    if (quant > 0) {
+                        const container = document.getElementById(containerId);
+                        if (container) {
+                            container.innerHTML = '';
+                            const fragment = document.createDocumentFragment();
+                            for (let i = 0; i < quant; i++) {
+                                fragment.appendChild(criarFn(i));
+                            }
+                            container.appendChild(fragment);
+                        }
+                    }
+                });
+
+                // SEGUNDO: agora seta os arrays e restaura
+                setTimeout(() => {
+                    DadosFormulario.advogados = (dados.advogados || []).map(adv => ({
+                        ...adv,
+                        incidenciaIR: adv.incidenciaIR ? 'sim' : 'nao'
+                    }));
+
+                    DadosFormulario.herdeiros = dados.herdeiros || [];
+
+                    DadosFormulario.sindicatos = (dados.sindicatos || []).map(sind => ({
+                        nome: sind.nome,
+                        percentual: sind.percentual,
+                        tributacao: sind.tributacao,
+                        aliquota: sind.aliquotaTributacao || 0
+                    }));
+
+                    DadosFormulario.cessoes = (dados.cessoes || []).map(cess => ({
+                        tipo: cess.tipo,
+                        cedente: cess.cedente,
+                        cessionario: cess.cessionario,
+                        percentual: cess.percentual
+                    }));
+
+                    DadosFormulario.pagamentos = dados.pagamentos || [];
+
+                    DadosFormulario.advogadosSucumbenciais = (dados.honorarioSucumbencial?.advogados || []).map(adv => ({
+                        ...adv,
+                        incidenciaIR: adv.incidenciaIR ? 'sim' : 'nao',
+                        temPreferencia: adv.preferencia ? 'sim' : 'nao'
+                    }));
+
+                    // Restaura cada tipo
+                    DadosFormulario.restaurarAdvogados();
+                    DadosFormulario.restaurarAdvogadosSucumbenciais();
+                    DadosFormulario.restaurarHerdeiros();
+                    DadosFormulario.restaurarSindicatos();
+
+                    // Cessões
+                    if (dados.cessoes?.length > 0) {
+                        const quantCessEl = document.getElementById('quantCessoes');
+                        if (quantCessEl) quantCessEl.value = dados.cessoes.length;
+                        
+                        setTimeout(() => {
+                            // Seta os dados antes de criar
+                            DadosFormulario.cessoes = (dados.cessoes || []).map(cess => ({
+                                tipo: cess.tipo,
+                                cedente: cess.cedente,
+                                cessionario: cess.cessionario,
+                                percentual: cess.percentual
+                            }));
+                            
+                            // Cria as cessões sem chamar salvar
+                            const container = document.getElementById('cessaoContainer');
+                            if (container) {
+                                const { advogados, advogadosSucumbenciais, herdeiros, sindicatos } = getQuantidadesCessao();
+                                const opcoesTipo = criarOpcoesTipoCessao(advogados, advogadosSucumbenciais, herdeiros, sindicatos);
+                                container.innerHTML = '';
+                                const fragment = document.createDocumentFragment();
+                                for (let i = 0; i < dados.cessoes.length; i++) {
+                                    fragment.appendChild(criarElementoCessao(i, opcoesTipo));
+                                }
+                                container.appendChild(fragment);
+                                
+                                // Restaura depois de criar
+                                setTimeout(() => {
+                                    DadosFormulario.restaurarCessoes();
+                                }, 200);
+                            }
+                        }, 600);
+                    }
+
+                    // Pagamentos
+                    if (dados.pagamentos?.length > 0) {
+                        const quantPagEl = document.getElementById('quantidadePagamentos');
+                        if (quantPagEl) quantPagEl.value = dados.pagamentos.length;
+                        const houvePagamento = document.getElementById('houvePagamento');
+                        if (houvePagamento) {
+                            houvePagamento.value = 'sim';
+                            houvePagamento.dispatchEvent(new Event('change'));
+                        }
+                        
+                        setTimeout(() => {
+                            // Seta os dados antes de criar
+                            DadosFormulario.pagamentos = dados.pagamentos || [];
+                            
+                            // Cria os elementos sem chamar salvar
+                            const container = document.getElementById('listaPagamentos');
+                            if (container) {
+                                container.innerHTML = '';
+                                const fragment = document.createDocumentFragment();
+                                for (let i = 0; i < dados.pagamentos.length; i++) {
+                                    fragment.appendChild(criarElementoPagamento(i));
+                                }
+                                container.appendChild(fragment);
+                                
+                                // Restaura depois de criar
+                                setTimeout(() => {
+                                    DadosFormulario.restaurarPagamentos();
+                                    for (let i = 0; i < dados.pagamentos.length; i++) {
+                                        toggleTipoPagamento(i);
+                                    }
+                                }, 200);
+                            }
+                        }, 700);
+                    }
+
+                    showTab('tab1');
+                }, 300);
+            }, 500);
+        }
 
         // ====================================
         // CACHE
