@@ -185,3 +185,31 @@ def salvar_credores(request):
 
     except Exception as e:
         return JsonResponse({'erro': str(e)}, status=500)
+
+@csrf_exempt
+def feedback(request):
+    if request.method != 'POST':
+        return JsonResponse({'erro': 'Método não permitido'}, status=405)
+    
+    try:
+        dados = json.loads(request.body)
+        from core.models import Feedback
+        
+        calculo = None
+        calculo_id = dados.get('calculo_id')
+        if calculo_id:
+            try:
+                calculo = Calculo.objects.get(pk=calculo_id)
+            except Calculo.DoesNotExist:
+                pass
+
+        Feedback.objects.create(
+            tipo=dados.get('tipo', 'bug'),
+            descricao=dados.get('descricao', ''),
+            numero_processo=dados.get('numero_processo', ''),
+            nome_usuario=dados.get('nome_usuario', ''),
+            calculo=calculo
+        )
+        return JsonResponse({'ok': True})
+    except Exception as e:
+        return JsonResponse({'erro': str(e)}, status=500)

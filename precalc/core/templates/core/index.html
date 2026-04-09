@@ -474,8 +474,65 @@
             </button>
             <button type="button" class="btn" onclick="calcular()">🧮 Calcular Valores</button>
         </div>
+
+        <button onclick="abrirFeedback()" title="Reportar problema ou sugestão" style="
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--primary-navy, #1a2b4a);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+        💬
+        </button>
+        <div id="modalFeedback" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+            <div style="background:white; border-radius:12px; padding:24px; max-width:480px; width:90%; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+                <h3 style="margin:0 0 16px 0; color: var(--primary-navy);">💬 Reportar Problema / Sugestão</h3>
+                
+                <div class="input-group">
+                    <label>Tipo:</label>
+                    <select id="feedbackTipo">
+                        <option value="bug">🐛 Bug / Erro de Cálculo</option>
+                        <option value="melhoria">💡 Sugestão de Melhoria</option>
+                        <option value="duvida">❓ Dúvida</option>
+                    </select>
+                </div>
+
+                <div class="input-group" style="margin-top:12px;">
+                    <label>Seu nome:</label>
+                    <input type="text" id="feedbackNome" placeholder="Nome do servidor">
+                </div>
+
+                <div class="input-group" style="margin-top:12px;">
+                    <label>Processo (opcional):</label>
+                    <input type="text" id="feedbackProcesso" placeholder="Número do processo relacionado">
+                </div>
+
+                <div class="input-group" style="margin-top:12px;">
+                    <label>Descrição:</label>
+                    <textarea id="feedbackDescricao" rows="4" placeholder="Descreva o problema ou sugestão..." style="width:100%; padding:8px; border:1px solid #ddd; border-radius:8px; font-family:inherit; resize:vertical;"></textarea>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:16px; justify-content:flex-end;">
+                    <button onclick="fecharFeedback()" class="btn btn-secondary">Cancelar</button>
+                    <button onclick="enviarFeedback()" class="btn">Enviar</button>
+                </div>
+            </div>
+        </div>
     </div>
 
+    
     <script>
         
         // ====================================
@@ -634,6 +691,52 @@
             const aberto = corpo.style.display !== 'none';
             corpo.style.display = aberto ? 'none' : 'block';
             toggle.textContent = aberto ? '▼' : '▲';
+        }
+
+        // ====================================
+        // Feedback
+        // ====================================
+        function abrirFeedback() {
+            const modal = document.getElementById('modalFeedback');
+            modal.style.display = 'flex';
+            // Preenche processo se já tiver no campo
+            const processo = document.getElementById('numprocesso')?.value;
+            if (processo) document.getElementById('feedbackProcesso').value = processo;
+        }
+
+        function fecharFeedback() {
+            document.getElementById('modalFeedback').style.display = 'none';
+            document.getElementById('feedbackDescricao').value = '';
+        }
+
+        async function enviarFeedback() {
+            const descricao = document.getElementById('feedbackDescricao').value.trim();
+            if (!descricao) {
+                alert('Por favor descreva o problema ou sugestão.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/feedback/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        tipo: document.getElementById('feedbackTipo').value,
+                        descricao: descricao,
+                        nome_usuario: document.getElementById('feedbackNome').value,
+                        numero_processo: document.getElementById('feedbackProcesso').value
+                    })
+                });
+
+                if (response.ok) {
+                    alert('✅ Feedback enviado! Obrigado.');
+                    fecharFeedback();
+                } else {
+                    alert('Erro ao enviar feedback.');
+                }
+            } catch (e) {
+                alert('Erro de comunicação.');
+            }
         }
 
         // ====================================

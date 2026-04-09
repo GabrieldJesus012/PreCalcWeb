@@ -78,3 +78,26 @@ class CalculoCredor(models.Model):
 
     def __str__(self):
         return f"{self.nome} ({self.get_tipo_display()})"
+    
+class Feedback(models.Model):
+    TIPOS = [
+        ('bug', 'Bug / Erro'),
+        ('melhoria', 'Sugestão de Melhoria'),
+        ('duvida', 'Dúvida'),
+    ]
+
+    tipo = models.CharField(max_length=20, choices=TIPOS)
+    descricao = models.TextField()
+    nome_usuario = models.CharField(max_length=200, blank=True)
+    numero_processo = models.CharField(max_length=100, blank=True)
+    calculo = models.ForeignKey(Calculo, on_delete=models.SET_NULL, null=True, blank=True)
+    data_envio = models.DateTimeField(auto_now_add=True)
+    resolvido = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-data_envio']
+        verbose_name = 'Feedback'
+        verbose_name_plural = 'Feedbacks'
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} - {self.data_envio.strftime('%d/%m/%Y')}"

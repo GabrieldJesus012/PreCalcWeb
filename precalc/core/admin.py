@@ -1,6 +1,14 @@
 from django.contrib import admin
 from django.db.models import Sum
 from core.models import Calculo, CalculoCredor
+from core.models import Calculo, CalculoCredor, Feedback
+
+@admin.register(Feedback)
+class FeedbackAdmin(admin.ModelAdmin):
+    list_display = ['tipo', 'nome_usuario', 'numero_processo', 'descricao', 'resolvido', 'data_envio']
+    list_filter = ['tipo', 'resolvido', 'data_envio']
+    search_fields = ['descricao', 'numero_processo']
+    list_editable = ['resolvido']
 
 
 class CalculoCredorInline(admin.TabularInline):
