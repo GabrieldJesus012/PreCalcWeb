@@ -443,7 +443,8 @@ function gerarNotaSelicInformado(dados, resultados) {
         const dataFimSelic = dataFim > dataCorteSelicPEC ? dataCorteSelicPEC : dataFim;
 
         // Período de graça do orçamento
-        const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
+        const inicioGraca = resultados.inicioGraca ? new Date(resultados.inicioGraca) : null;
+        const fimGraca = resultados.fimGraca ? new Date(resultados.fimGraca) : null;
         const inicioGracaLabel = `${String(inicioGraca.getMonth() + 1).padStart(2, '0')}/${inicioGraca.getFullYear()}`;
         const fimGracaLabel = `${String(fimGraca.getMonth() + 1).padStart(2, '0')}/${fimGraca.getFullYear()}`;
 

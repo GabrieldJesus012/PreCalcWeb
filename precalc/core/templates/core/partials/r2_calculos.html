@@ -1,0 +1,166 @@
+{% for item in resultados.itensCalculados %}
+<div class="table-container" style="margin-top: 20px;">
+    <h3>🔢 MEMORIAL DE CÁLCULOS — Graça Constitucional: {{ inicio_graca }} a {{ fim_graca }}</h3>
+
+    {% if resultados.itensCalculados|length > 1 %}
+    <div style="background: #f0f0f0; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
+        <strong>Base:</strong> {{ item.valorOriginal.principal|default:0 }} | 
+        <strong>Descrição:</strong> {{ item.descricao|default:"Item" }}
+    </div>
+    {% endif %}
+
+    <h4>💰 Atualização do Principal - Passo a Passo</h4>
+    <table>
+        <tr><th>Etapa</th><th>Período</th><th>Cálculo</th><th>Valor</th></tr>
+        <tr>
+            <td>1. Valor Original</td>
+            <td>{{ item.indices.mesBase|default:"" }}</td>
+            <td>Principal Homologado</td>
+            <td><span class="valor-moeda" data-valor="{{ item.valorOriginal.principal }}"></span></td>
+        </tr>
+        {% if item.indices.cnj != 1 %}
+        <tr>
+            <td>2. Correção CNJ</td>
+            <td>{{ item.indices.mesBase|default:"" }} até Nov/2021</td>
+            <td><span class="valor-moeda" data-valor="{{ item.valorOriginal.principal }}"></span> × {{ item.indices.cnj }}</td>
+            <td><span class="valor-moeda" data-valor="{{ item.valorOriginal.principal|floatformat:2 }}"></span></td>
+        </tr>
+        {% endif %}
+        {% if item.detalhamentoPEC.selicMaior %}
+        <tr>
+            <td>3. Aplicação IPCA</td>
+            <td>Ago/2025 até {{ data_atual }}</td>
+            <td>× {{ item.detalhamentoPEC.indiceIpcaPuro }}</td>
+            <td><strong><span class="valor-moeda" data-valor="{{ item.valorAtualizado.principal }}"></span></strong></td>
+        </tr>
+        <tr style="background: #fff3cd;">
+            <td colspan="4" style="text-align: center; font-size: 0.9em;">
+                ⚠️ <strong>SELIC aplicada separadamente</strong> — Ver seção específica abaixo
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td>3. Aplicação SELIC</td>
+            <td></td>
+            <td>× {{ item.indices.selic }}</td>
+            <td><strong><span class="valor-moeda" data-valor="{{ item.valorAtualizado.principal }}"></span></strong></td>
+        </tr>
+        {% endif %}
+    </table>
+
+    {% if item.valorOriginal.juros > 0 or item.jurosMoraCalculado > 0 %}
+    <h4>⚖️ Atualização dos Juros - Passo a Passo</h4>
+    <table>
+        <tr><th>Etapa</th><th>Período</th><th>Cálculo</th><th>Valor</th></tr>
+        <tr>
+            <td>1. Juros Originais</td>
+            <td></td>
+            <td>Juros Homologado</td>
+            <td><span class="valor-moeda" data-valor="{{ item.valorOriginal.juros }}"></span></td>
+        </tr>
+        {% if item.indices.cnj != 1 %}
+        <tr>
+            <td>2. Correção CNJ</td>
+            <td>até Nov/2021</td>
+            <td>× {{ item.indices.cnj }}</td>
+            <td><span class="valor-moeda" data-valor="{{ item.valorOriginal.juros }}"></span></td>
+        </tr>
+        {% endif %}
+        {% if item.jurosMoraCalculado > 0 %}
+        <tr>
+            <td>3. Juros de Mora - Poupança</td>
+            <td>{{ inicio_graca }} a {{ fim_graca }}</td>
+            <td>Principal CNJ × {{ item.indices.jurosMora|floatformat:4 }}%</td>
+            <td><span class="valor-moeda" data-valor="{{ item.jurosMoraCalculado }}"></span></td>
+        </tr>
+        {% endif %}
+        {% if item.detalhamentoPEC.selicMaior %}
+        <tr>
+            <td>Aplicação IPCA</td>
+            <td>Ago/2025 até {{ data_atual }}</td>
+            <td>× {{ item.detalhamentoPEC.indiceIpcaPuro }}</td>
+            <td><span class="valor-moeda" data-valor="{{ item.valorAtualizado.juros }}"></span></td>
+        </tr>
+        {% if item.detalhamentoPEC.valorJuros2AA > 0 %}
+        <tr>
+            <td>Juros (2% a.a.)</td>
+            <td>{{ item.detalhamentoPEC.quantidadeMeses }} meses</td>
+            <td>Principal × {{ item.detalhamentoPEC.percentualJuros2AA|floatformat:6 }}%</td>
+            <td><span class="valor-moeda" data-valor="{{ item.detalhamentoPEC.valorJuros2AA }}"></span></td>
+        </tr>
+        {% endif %}
+        {% else %}
+        <tr>
+            <td>Aplicação SELIC</td>
+            <td></td>
+            <td>× {{ item.indices.selic }}</td>
+            <td></td>
+        </tr>
+        {% endif %}
+        <tr>
+            <td><strong>Total Juros</strong></td>
+            <td></td>
+            <td></td>
+            <td><strong><span class="valor-moeda" data-valor="{{ item.valorAtualizado.juros }}"></span></strong></td>
+        </tr>
+    </table>
+    {% endif %}
+
+    {% if item.valorAtualizado.selic > 0 %}
+    <h4>📊 SELIC - Passo a Passo</h4>
+    <table>
+        <tr><th>Etapa</th><th>Cálculo</th><th>Valor</th></tr>
+        <tr>
+            <td>1. Base para SELIC</td>
+            <td>Principal + Juros em 31/07/2025</td>
+            <td><span class="valor-moeda" data-valor="{{ item.valorAtualizado.selic }}"></span></td>
+        </tr>
+        <tr>
+            <td>2. Aplicação SELIC (até 31/07/2025)</td>
+            <td>Base × {{ item.detalhamentoPEC.indiceSelic|floatformat:4 }}</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td>3. Aplicação IPCA (pós agosto/2025)</td>
+            <td>SELIC × {{ item.detalhamentoPEC.indiceIpcaPuro|floatformat:6 }}</td>
+            <td><strong><span class="valor-moeda" data-valor="{{ item.valorAtualizado.selic }}"></span></strong></td>
+        </tr>
+    </table>
+    {% endif %}
+
+</div>
+{% endfor %}
+
+<div class="table-container">
+    <h3>📈 Resumo dos Cálculos</h3>
+    <table>
+        <tr><th>Descrição</th><th>Valor</th><th>%</th></tr>
+        <tr>
+            <td>Valor Principal Atualizado</td>
+            <td><span class="valor-moeda" data-valor="{{ resultados.valorprincatt }}"></span></td>
+            <td>{{ resultados.percentualprinc|floatformat:4 }}%</td>
+        </tr>
+        <tr>
+            <td>Valor Juros Atualizado</td>
+            <td><span class="valor-moeda" data-valor="{{ resultados.valorjurosatt }}"></span></td>
+            <td>{{ resultados.percentualjur|floatformat:4 }}%</td>
+        </tr>
+        {% if resultados.valorSelicatt %}
+        <tr>
+            <td>Valor Selic Atualizado</td>
+            <td><span class="valor-moeda" data-valor="{{ resultados.valorSelicatt }}"></span></td>
+            <td>{{ resultados.percentualselic|floatformat:4 }}%</td>
+        </tr>
+        {% endif %}
+        <tr>
+            <td><strong>Total Atualizado</strong></td>
+            <td><strong><span class="valor-moeda" data-valor="{{ resultados.valortotatt }}"></span></strong></td>
+            <td><strong>100.00%</strong></td>
+        </tr>
+        <tr class="highlight">
+            <td><strong>Base para Pagamento</strong></td>
+            <td><strong><span class="valor-moeda" data-valor="{{ resultados.valorBase }}"></span></strong></td>
+            <td><strong>100.00%</strong></td>
+        </tr>
+    </table>
+</div>

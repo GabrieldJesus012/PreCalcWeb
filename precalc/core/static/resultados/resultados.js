@@ -5,7 +5,8 @@
 function exibirResultados(resultados, dados) {
     const container = document.getElementById('resultadosContent');
     const dataAtual = obterDataAtual();
-    const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
+    const inicioGraca = resultados.inicioGraca ? new Date(resultados.inicioGraca) : null;
+    const fimGraca = resultados.fimGraca ? new Date(resultados.fimGraca) : null;
     
     const contexto = {
         dataAtual,
@@ -228,4 +229,38 @@ function exportarExcel() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+//auxiliar
+function calcularIR(valorBruto) {
+    if (valorBruto <= 2428.80) return 0;
+    else if (valorBruto <= 2826.65) return (valorBruto * 0.075) - 182.16;
+    else if (valorBruto <= 3751.05) return (valorBruto * 0.15) - 394.16;
+    else if (valorBruto <= 4664.68) return (valorBruto * 0.225) - 675.49;
+    else return (valorBruto * 0.275) - 908.73;
+}
+
+function calcularDescontoAdicional2026(baseIRRRA, valorIRCalculado) {
+    if (baseIRRRA <= 5000.00) return Math.min(valorIRCalculado, 312.89);
+    if (baseIRRRA <= 7350.00) return Math.max(0, 978.62 - (0.133145 * baseIRRRA));
+    return 0;
+}
+
+function arredondarRRA(valor) {
+    if (typeof valor !== 'number' || isNaN(valor)) return 0;
+    const valorStr = valor.toFixed(3);
+    const partes = valorStr.split('.');
+    if (partes.length !== 2) return Math.round(valor * 10) / 10;
+    const parteInteira = partes[0];
+    const parteDecimal = partes[1].padEnd(3, '0');
+    const primeiraDecimal = parseInt(parteDecimal[0]);
+    const segundaDecimal = parseInt(parteDecimal[1]);
+    const terceiraDecimal = parseInt(parteDecimal[2]);
+    let novaParteDecimal = primeiraDecimal;
+    if (segundaDecimal > 5) {
+        novaParteDecimal = primeiraDecimal + 1;
+    } else if (segundaDecimal === 5) {
+        if (terceiraDecimal >= 5) novaParteDecimal = primeiraDecimal + 1;
+    }
+    return parseFloat(`${parteInteira}.${novaParteDecimal}`);
 }

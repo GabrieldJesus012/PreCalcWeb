@@ -325,5 +325,10 @@ def calcular_valores(dados, data_atualizacao):
 
     # 10. Saldos finais
     resultado_final['saldosFinais'] = calcular_saldo_final_com_pagamentos(resultado_final, pagamentos_calculados, dados)
+    
+    # Período de graça para o frontend
+    inicio_graca, fim_graca = calcular_periodo_graca(dados['anoOrcamento'])
+    resultado_final['inicioGraca'] = inicio_graca.strftime('%Y-%m-%d')
+    resultado_final['fimGraca'] = fim_graca.strftime('%Y-%m-%d')
 
     return resultado_final
