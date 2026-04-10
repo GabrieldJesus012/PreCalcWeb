@@ -170,9 +170,8 @@ function gerarBotaoImprimir() {
                 border-radius: 5px;
                 cursor: pointer;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                transition: background-color 0.3s;
                 margin-right: 10px;
-            " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#343A40'">
+            ">
                 🖨️ Imprimir / Salvar PDF
             </button>
             <button onclick="exportarExcel()" style="
@@ -184,9 +183,42 @@ function gerarBotaoImprimir() {
                 border-radius: 5px;
                 cursor: pointer;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                transition: background-color 0.3s;
-            " onmouseover="this.style.backgroundColor='#145c38'" onmouseout="this.style.backgroundColor='#1a7a4a'">
+                margin-right: 10px;
+            ">
                 📊 Exportar Excel
+            </button>
+            <button onclick="window.location.href='/'" style="
+                background-color: #1a2b4a;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                font-size: 16px;
+                border-radius: 5px;
+                cursor: pointer;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            ">
+                ➕ Novo Cálculo
+            </button>
+            <button onclick="abrirFeedback()" title="Reportar problema ou sugestão" style="
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                width: 48px;
+                height: 48px;
+                border-radius: 50%;
+                background: var(--primary-navy, #1a2b4a);
+                color: white;
+                border: none;
+                cursor: pointer;
+                font-size: 20px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 1000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: transform 0.2s;
+            " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+            💬
             </button>
         </div>
     `;

@@ -44,8 +44,7 @@
                 <button class="tab-button" onclick="showTab('tab4')">👥 Herdeiros</button>
                 <button class="tab-button" onclick="showTab('tab5')">🔄 Cessões de Crédito</button>
                 <button class="tab-button" id= "tabPagamento" onclick="showTab('tab9')" style="display: none;">💳 Pagamentos</button>
-                <button class="tab-button" id="tabAcordo" onclick="showTab('tab6')" style="display: none;">🤝 Adesão ao Acordo</button>
-                <button class="tab-button" onclick="showTab('tab7')">📊 Resultados</button>
+                <button class="tab-button" id="tabAcordo" onclick="showTab('tab6')" style="display: none;">🤝 Acordo</button>
             </div>
 
             <!-- Tab 1: Informações Gerais -->
@@ -381,8 +380,8 @@
                 </div>
             </div>
 
-            <!-- Tab 6: Adesão ao Acordo (Nova Aba) -->
-            <div id="tab6" class="tab-content">
+        <!-- Tab 6: Adesão ao Acordo (Nova Aba) -->
+        <div id="tab6" class="tab-content">
                 <div class="form-section">
                     <div class="form-group">
                         <div class="alerta-didatico">
@@ -394,16 +393,6 @@
                         <div id="acordoContainer">
                             <p class="loading">Preencha as abas anteriores para ver as opções de adesão...</p>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab 7: Resultados -->
-            <div id="tab7" class="tab-content">
-                <div id="results" class="results">
-                    <div class="section-title">Resultados dos Cálculos</div>
-                    <div id="resultadosContent">
-                        <p class="loading">Execute o cálculo para ver os resultados aqui...</p>
                     </div>
                 </div>
             </div>
@@ -2110,9 +2099,6 @@
                 if (cont) cont.innerHTML = '';
             });
             
-            $('resultadosContent').innerHTML = 
-            '<p class="loading">Execute o cálculo para ver os resultados aqui...</p>';
-    
             [
                 ['somenteHonorarioSucumbencial', false, 'checked'],
                 ['houvePagamento', 'nao', 'value']
@@ -2929,7 +2915,7 @@
                 }
                 
                 const resultados = await response.json();
-                exibirResultados(resultados, dados);
+                // Aguarda salvar credores e redireciona
 
                 // Coletar credores que realmente recebem e enviar para salvar
                 const todosPagamentos = resultados.temHerdeiros
@@ -2945,6 +2931,7 @@
                     })
                 });
                 
+                window.location.href = '/resultado/' + resultados._id + '/';
             } catch (error) {
                 alert('Erro de comunicação com o servidor: ' + error.message);
             }
@@ -3085,9 +3072,12 @@
                 secaoSucumbencial + secaoHerdeiros + secaoSindicatos  + secaoCessoes + secaoPagamentos;
         }
 
-        document.getElementById('modalResumo').addEventListener('click', function(e) {
-            if (e.target === this) fecharModalResumo();
-        });
+        const modalResumo = document.getElementById('modalResumo');
+        if (modalResumo) {
+            modalResumo.addEventListener('click', function(e) {
+                if (e.target === this) fecharModalResumo();
+            });
+        }
 
         // ====================================
         // Detalhamentos
