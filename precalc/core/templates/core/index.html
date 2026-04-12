@@ -2919,12 +2919,51 @@
                 }
                 
                 const resultados = await response.json();
-                // Aguarda salvar credores e redireciona
 
                 // Coletar credores que realmente recebem e enviar para salvar
-                const todosPagamentos = resultados.temHerdeiros
-                    ? coletarTodosPagamentos(resultados, dados)
-                    : coletarTodosPagamentosSemHerdeiros(resultados, dados);
+                let todosPagamentos;
+                if (dados.tipoCalculo === 'acordo') {
+                    // Para acordo usa a função do r12 que já tem deságio e filtra por adesão
+                    const pagamentosAcordo = [];
+                    const adesoes = dados.adesaoAcordo || {};
+                    const percentualDesagio = dados.percentualAcordo || 0;
+
+                    if (adesoes.beneficiario && resultados.valorBeneficiarioFinal > 0) {
+                        const p = criarPagamentoAcordo(`${dados.beneficiario} (Beneficiário)`, resultados.valorBeneficiarioAposCessoes, percentualDesagio, resultados.valorPrevidenciaBeneficiario, resultados.valorIRBeneficiario, resultados.rraComDesagio || resultados.rrapagamento);
+                        pagamentosAcordo.push({ credor: p.credor, valorDevido: p.valorAposDesagio, previdencia: p.previdencia, ir: p.ir, valorLiquido: p.valorLiquido });
+                    }
+
+                    (adesoes.advogados || []).forEach(index => {
+                        const adv = resultados.honorarios?.[index];
+                        if (adv?.valorBrutoAdvogado > 0) {
+                            const p = criarPagamentoAcordo(`${adv.nome} (Adv. ${adv.tipo})`, adv.valorBrutoAdvogado, percentualDesagio, 0, adv.irAdvogado || 0, '-');
+                            pagamentosAcordo.push({ credor: p.credor, valorDevido: p.valorAposDesagio, previdencia: p.previdencia, ir: p.ir, valorLiquido: p.valorLiquido });
+                        }
+                    });
+
+                    (adesoes.sindicatos || []).forEach(index => {
+                        const sind = resultados.sindicatos?.[index];
+                        if (sind?.valorBrutoSindicato > 0) {
+                            const p = criarPagamentoAcordo(`${sind.nome} (Sindicato)`, sind.valorBrutoSindicato, percentualDesagio, 0, sind.irSindicato || 0, '-');
+                            pagamentosAcordo.push({ credor: p.credor, valorDevido: p.valorAposDesagio, previdencia: p.previdencia, ir: p.ir, valorLiquido: p.valorLiquido });
+                        }
+                    });
+
+                    // Cessionários via função do r12
+                    coletarCessionariosAcordo(adesoes, dados, resultados, percentualDesagio, pagamentosAcordo);
+                    // Converte para formato padrão
+                    todosPagamentos = pagamentosAcordo.map(p => ({
+                        credor: p.credor,
+                        valorDevido: p.valorAposDesagio || p.valorDevido,
+                        previdencia: p.previdencia,
+                        ir: p.ir,
+                        valorLiquido: p.valorLiquido
+                    }));
+                } else {
+                    todosPagamentos = resultados.temHerdeiros
+                        ? coletarTodosPagamentos(resultados, dados)
+                        : coletarTodosPagamentosSemHerdeiros(resultados, dados);
+                }
 
                 await fetch('/salvar-credores/', {
                     method: 'POST',
