@@ -29,7 +29,6 @@ function gerarVisualizacaoSucumbencial(resultados, dados, contexto) {
         ${gerarCabecalhoProcesso(dados, resultados, contexto.dataAtual)}
         ${gerarDemonstrativoValores(dados, resultados, contexto.dataAtual)}
         ${gerarCalculos(dados, resultados, contexto.inicioGraca, contexto.fimGraca)}
-        ${gerarResumoCalculos(resultados, dados)}
         
         ${gerarSecaoHonorariosSucumbenciais(resultados, dados)}
         ${gerarSecaoCessoesHonorariosSucumbenciais(resultados, dados)}
@@ -48,7 +47,6 @@ function gerarVisualizacaoCompleta(resultados, dados, contexto) {
         ${gerarCabecalhoProcesso(dados, resultados, contexto.dataAtual)}
         ${gerarDemonstrativoValores(dados, resultados, contexto.dataAtual)}
         ${gerarCalculos(dados, resultados, contexto.inicioGraca, contexto.fimGraca)}
-        ${gerarResumoCalculos(resultados, dados)}
         
         ${gerarSecaoHonorariosSucumbenciais(resultados, dados)}
         ${gerarSecaoCessoesHonorariosSucumbenciais(resultados, dados)}
