@@ -110,22 +110,25 @@ function gerarDemonstrativoValores(dados, resultados, dataAtual) {
             <h3>💰 Demonstrativo de Atualização Monetária</h3>
             <table>
                 <tr>
-                    <th>Componente</th>
-                    <th>Valor Histórico (${textoDataBase})</th>
-                    <th>Índice de Correção*</th>
-                    <th>Valor Atualizado (${dataAtual})</th>
+                    <th style="width:20%">Componente</th>
+                    <th style="width:15%">Valor Histórico (${textoDataBase})</th>
+                    <th style="width:15%">Índice de Correção*</th>
+                    <th style="width:15%">Valor Atualizado (${dataAtual})</th>
+                    <th style="width:15%">%</th>
                 </tr>
                 <tr>
                     <td>Principal</td>
                     <td>R$ ${formatarMoeda(valorPrincipalOriginal)}</td>
                     <td>${indicePrincipal}</td>
                     <td>R$ ${formatarMoeda(resultados.valorprincatt)}</td>
+                    <td>${(resultados.percentualprinc * 100).toFixed(4)}%</td>
                 </tr>
                 <tr>
                     <td>Juros</td>
                     <td>R$ ${formatarMoeda(valorJurosOriginal)}</td>
                     <td>${indiceJuros}</td>
                     <td>R$ ${formatarMoeda(resultados.valorjurosatt)}</td>
+                    <td>${(resultados.percentualjur * 100).toFixed(4)}%</td>
                 </tr>
                 ${temSelic ? `
                 <tr>
@@ -133,6 +136,7 @@ function gerarDemonstrativoValores(dados, resultados, dataAtual) {
                     <td>${valorSelicOriginalExibicao}</td>
                     <td>${indiceSelicExibicao}</td>
                     <td>R$ ${formatarMoeda(valorSelicTotal)}</td>
+                    <td>${(resultados.percentualselic * 100).toFixed(4)}%</td>
                 </tr>
                 ` : ''}
                 <tr class="highlight">
@@ -140,12 +144,57 @@ function gerarDemonstrativoValores(dados, resultados, dataAtual) {
                     <td><strong>R$ ${formatarMoeda(valorTotalOriginal)}</strong></td>
                     <td><strong>${indiceTotal}</strong></td>
                     <td><strong>R$ ${formatarMoeda(resultados.valortotatt)}</strong></td>
+                    <td><strong>100.00%</strong></td>
                 </tr>
+                ${gerarLinhaBase(resultados, dados)}
             </table>
             <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
                 *Atualização Monetária conforme Resolução CNJ nº 303/2019, com índices de correção monetária, conforme caput do Art.21- A e Emendas Constitucionais nº 62, 113 e 136. - <strong>Período de Correção</strong>: Os valores foram atualizados desde a base <strong>${textoDataBase}</strong> até <strong>${dataAtual}</strong>.
             </div>
         </div>
     `;
+}
+
+
+function gerarLinhaBase(resultados, dados) {
+    const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
+
+    if (dados.somenteHonorarioSucumbencial && dados.tipoCalculo === 'parcial') {
+        return `
+            <tr class="highlight">
+                <td><strong>Valor Disponível para Pagamento</strong></td>
+                <td colspan="3"><strong>R$ ${formatarMoeda(dados.saldoParcial)}</strong></td>
+                <td><strong>100.00%</strong></td>
+            </tr>
+        `;
+    } else if (temHerdeiros && dados.tipoCalculo === 'preferencia') {
+        const herdeirosPreferenciais = resultados.herdeiros.filter(h => h.temPreferencia);
+        if (herdeirosPreferenciais.length > 0) {
+            return `
+                <tr class="highlight">
+                    <td colspan="5"><strong>Base para Pagamento</strong></td>
+                </tr>
+                ${herdeirosPreferenciais.map(h => `
+                    <tr class="highlight">
+                        <td><strong>${h.nome}</strong></td>
+                        <td colspan="2"><strong>R$ ${formatarMoeda(h.valorTotal)}</strong></td>
+                        <td><strong>R$ ${formatarMoeda(h.valorTotal)}</strong></td>
+                        <td><strong>${((h.valorTotal / resultados.valortotatt) * 100).toFixed(2)}%</strong></td>
+                    </tr>
+                `).join('')}
+            `;
+        }
+    } else {
+        return `
+            <tr class="highlight">
+                <td><strong>Base para Pagamento</strong></td>
+                <td>-</td>
+                <td>-</td>
+                <td><strong>R$ ${formatarMoeda(resultados.valorBase)}</strong></td>
+                <td><strong>${((resultados.valorBase / resultados.valortotatt) * 100).toFixed(2)}%</strong></td>
+            </tr>
+        `;
+    }
+    return '';
 }
 
