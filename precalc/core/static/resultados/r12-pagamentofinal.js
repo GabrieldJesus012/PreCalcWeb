@@ -23,7 +23,13 @@ function gerarSecoesPagamentos(resultados, dados) {
 function gerarTabelaPagamentosAcordo(resultados, dados) {
     if (dados.tipoCalculo !== 'acordo') return '';
     
-    const adesoes = obterAdesaoAcordo();
+    let adesoes;
+    if (typeof obterAdesaoAcordo === 'function') {
+        adesoes = obterAdesaoAcordo();
+    } else {
+        adesoes = dados.adesaoAcordo || {};
+    }
+    
     const percentualDesagio = dados.percentualAcordo || 0;
     const pagamentosAcordo = [];
     

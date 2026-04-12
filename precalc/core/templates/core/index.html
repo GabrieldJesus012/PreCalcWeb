@@ -2900,6 +2900,10 @@
         async function confirmarCalculo() {
             fecharModalResumo();
             const dados = _dadosPendentes || coletarDados();
+
+            if (dados.tipoCalculo === 'acordo') {
+                dados.adesaoAcordo = obterAdesaoAcordo();
+            }
             
             try {
                 const response = await fetch('/calcular/', {

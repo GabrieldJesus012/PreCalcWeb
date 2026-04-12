@@ -11,7 +11,7 @@ function gerarSecaoDeducoes(resultados, dados) {
     if (!temPrevidencia && !temIR) return '';
 
     if (dados.tipoCalculo === 'acordo') {
-        if (!validarAdesaoParaAcordo(dados)) return '';
+        if (!validarAdesaoParaAcordo(dados, resultados)) return '';
     }
 
     const resultadosParaUsar = resultados.saldosFinais 
@@ -38,11 +38,17 @@ function gerarSecaoDeducoes(resultados, dados) {
         : gerarDeducoesOrdem(resultadosParaUsar, dados, config);
 }
 
-function validarAdesaoParaAcordo(dados) {
-    const adesoes = obterAdesaoAcordo();
-    const beneficiarioOuHerdeirosAderiram = adesoes.beneficiario || adesoes.herdeiros.length > 0;
+function validarAdesaoParaAcordo(dados, resultados) {
+    let adesoes;
+    if (typeof obterAdesaoAcordo === 'function') {
+        adesoes = obterAdesaoAcordo();
+    } else {
+        adesoes = dados.adesaoAcordo || {};
+    }
     
-    const cessionarioRelevante = adesoes.cessionarios.some(cessaoIndex => {
+    const beneficiarioOuHerdeirosAderiram = adesoes.beneficiario || (adesoes.herdeiros || []).length > 0;
+    
+    const cessionarioRelevante = (adesoes.cessionarios || []).some(cessaoIndex => {
         const cessao = dados.cessoes?.[cessaoIndex];
         return cessao?.tipo === 'cessaobenPrincipal' || cessao?.tipo === 'cessaoherdeiro';
     });
@@ -522,36 +528,54 @@ function gerarDetalheIR(resultados, dados, temPrevidencia, temCessoes) {
                 <th>(-) SINDICATOS (${(percentualTotalSind * 100).toFixed(2)}%):</th>
                 <td>R$ ${formatarMoeda(resultados.baseIRSindi)}</td>
             </tr>` : ''}
-            ${baseComDesagio}
-            ${temPrevidencia ? `
             <tr>
-                <th>Previdência:</th>
-                <td>R$ ${formatarMoeda(resultados.valorPrevidencia)}</td>
+                <th>Rendimento Tributável:</th>
+                <td>R$ ${formatarMoeda(resultados.baseIRSindi)}</td>
+            </tr>
+            ${isAcordo && resultados.percentualDesagioIR > 0 ? `
+            <tr>
+                <th>(-) Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
+                <td>R$ ${formatarMoeda(resultados.baseIRSindi * percentualDesagio)}</td>
             </tr>
             <tr>
-                <th>(-) PREVIDÊNCIA:</th>
-                <td>R$ ${formatarMoeda(resultados.baseIRPrev)}</td>
+                <th>Rendimento Tributável após deságio:</th>
+                <td>R$ ${formatarMoeda(resultados.principalComDesagio)}</td>
             </tr>` : ''}
             <tr>
-                <th>RRA Pagamento:</th>
+                <th>RRA:</th>
                 <td>${arredondarRRA(resultados.rraComDesagio || resultados.rrapagamento)}</td>
             </tr>
             <tr>
-                <th>Rendimento Tributável Mensal</th>
-                <td>R$ ${formatarMoeda(resultados.baseIRRRA)}</td>
+                <th>Rendimento Tributável Mensal:</th>
+                <td>R$ ${formatarMoeda(resultados.rendimentoMensal)}</td>
             </tr>
             <tr>
-                <th>Alíquota IR:</th>
+                <th>(-) Desconto Simplificado:</th>
+                <td>R$ ${formatarMoeda(resultados.descontoSimplificado)}</td>
+            </tr>
+            <tr>
+                <th><strong>Base de Cálculo Mensal:</strong></th>
+                <td><strong>R$ ${formatarMoeda(resultados.baseIRRRA)}</strong></td>
+            </tr>
+            <tr>
+                <th>Alíquota:</th>
                 <td>${(resultados.aliquotaIR * 100).toFixed(2)}%</td>
             </tr>
-            ${secaoDesconto2026}
-            ${!temDesconto2026 ? `
             <tr>
-                <th>Base de Cálculo Mensal</th>
-                <td>R$ ${formatarMoeda(resultados.valorIRUnitario)}</td>
-            </tr>` : ''}
+                <th>IR Mensal:</th>
+                <td>R$ ${formatarMoeda(resultados.valorIRSemDesconto)}</td>
+            </tr>
+            ${resultados.descontoAdicional2026 > 0 ? `
+            <tr style="background-color: #e8f5e9; color: #2e7d32;">
+                <th>Redutor 2026:</th>
+                <td>R$ ${formatarMoeda(resultados.descontoAdicional2026)}</td>
+            </tr>` : `
+            <tr>
+                <th>Redutor 2026:</th>
+                <td>R$ 0,00</td>
+            </tr>`}
             <tr class="total-row">
-                <th>Valor IR Devido Total:</th>
+                <th>TOTAL A SER RECOLHIDO (${arredondarRRA(resultados.rraComDesagio || resultados.rrapagamento)} meses):</th>
                 <td><strong>R$ ${formatarMoeda(resultados.valorIR)}</strong></td>
             </tr>
             ${distribuicaoCessoes}

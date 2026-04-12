@@ -54,7 +54,8 @@ def calcular_ir_isolado(dados, valortotatt, valor_base, principal_base, valor_pr
         'valorIR': 0, 'aliquotaIR': 0, 'baseIRHonora': 0,
         'baseIRSindi': 0, 'baseIRPrev': 0, 'principalComDesagio': 0,
         'percentualDesagioIR': 0, 'rraComDesagio': 0, 'baseIRRRA': 0,
-        'valorIRUnitario': 0, 'descontoAdicional2026': 0, 'valorIRSemDesconto': 0
+        'valorIRUnitario': 0, 'descontoAdicional2026': 0, 'valorIRSemDesconto': 0,
+        'descontoSimplificado': 0, 'rendimentoMensal': 0
     }
 
     tem_ir = any(
@@ -91,11 +92,17 @@ def calcular_ir_isolado(dados, valortotatt, valor_base, principal_base, valor_pr
         if dados.get('tipoCalculo') == 'acordo' else base_ir_sindi
 
     rra_com_desagio = max(1, rra_pagamento_recalculado) if rra_pagamento_recalculado > 0 else 0
-    base_ir_prev = principal_com_desagio - valor_previdencia
-    base_ir_rra = base_ir_prev / rra_com_desagio
+    
+    rendimento_mensal = principal_com_desagio / rra_com_desagio
+    
+    previdencia_mensal = valor_previdencia / rra_com_desagio
+    desconto_simplificado = max(607.20, previdencia_mensal)
+
+    base_ir_rra = rendimento_mensal - desconto_simplificado
 
     valor_ir_sem_desconto = calcular_ir(base_ir_rra)
-    desconto_adicional_2026 = calcular_desconto_adicional_2026(base_ir_rra, valor_ir_sem_desconto)
+    
+    desconto_adicional_2026 = calcular_desconto_adicional_2026(rendimento_mensal, valor_ir_sem_desconto)
     valor_ir_unitario = max(0, valor_ir_sem_desconto - desconto_adicional_2026)
     valor_ir = valor_ir_unitario * rra_com_desagio
     aliquota_ir = obter_aliquota_ir(base_ir_rra)
@@ -103,10 +110,11 @@ def calcular_ir_isolado(dados, valortotatt, valor_base, principal_base, valor_pr
     return {
         'valorIR': valor_ir, 'aliquotaIR': aliquota_ir,
         'baseIRHonora': base_ir_honora, 'baseIRSindi': base_ir_sindi,
-        'baseIRPrev': base_ir_prev, 'principalComDesagio': principal_com_desagio,
+        'baseIRPrev': base_ir_rra * rra_com_desagio, 'principalComDesagio': principal_com_desagio,
         'percentualDesagioIR': percentual_desagio_ir, 'rraComDesagio': rra_com_desagio,
         'baseIRRRA': base_ir_rra, 'valorIRUnitario': valor_ir_unitario,
-        'descontoAdicional2026': desconto_adicional_2026, 'valorIRSemDesconto': valor_ir_sem_desconto
+        'descontoAdicional2026': desconto_adicional_2026, 'valorIRSemDesconto': valor_ir_sem_desconto,
+        'descontoSimplificado': desconto_simplificado, 'rendimentoMensal': rendimento_mensal
     }
 
 

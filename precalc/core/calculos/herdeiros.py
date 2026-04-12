@@ -161,6 +161,8 @@ def calcular_herdeiros(dados, valortotatt, valorprincatt, valorjurosatt, detalha
             'percentualDesagioIR': ir['percentualDesagioIR'],
             'descontoAdicional2026': ir['descontoAdicional2026'],
             'valorIRSemDesconto': ir['valorIRSemDesconto'],
+            'descontoSimplificado': ir['descontoSimplificado'],
+            'rendimentoMensal': ir['rendimentoMensal'],
             'valorPrevidenciaFinal': cessoes['valorPrevidenciaHerdeiroFinal'],
             'valorIRFinal': cessoes['valorIRHerdeiroFinal'],
             'percentualBeneficiarioFinal': det_total['percentualBeneficiarioFinal'],

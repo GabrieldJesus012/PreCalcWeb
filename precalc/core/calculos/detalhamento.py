@@ -149,6 +149,8 @@ def calcular_global(dados, valortotatt, percentualprinc, percentualjur, totais_p
         'valorIRUnitario': res_ir['valorIRUnitario'],
         'descontoAdicional2026': res_ir['descontoAdicional2026'],
         'valorIRSemDesconto': res_ir['valorIRSemDesconto'],
+        'descontoSimplificado': res_ir['descontoSimplificado'],
+        'rendimentoMensal': res_ir['rendimentoMensal'],
         'valorBeneficiarioBruto': res_cess['valorBeneficiarioBruto'],
         'valorCessoesBeneficiario': res_cess['valorCessoesBeneficiario'],
         'percentualBeneficiarioFinal': res_cess['percentualBeneficiarioFinal'],

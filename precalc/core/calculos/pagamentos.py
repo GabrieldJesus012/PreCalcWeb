@@ -409,7 +409,8 @@ def calcular_totais_e_tributos(resultados, dados, saldos):
         'baseIRPrev': res_ir['baseIRPrev'], 'baseIRRRA': res_ir['baseIRRRA'],
         'valorIRUnitario': res_ir['valorIRUnitario'], 'principalComDesagio': res_ir['principalComDesagio'],
         'percentualDesagioIR': res_ir['percentualDesagioIR'], 'rraComDesagio': res_ir['rraComDesagio'],
-        'descontoAdicional2026': res_ir['descontoAdicional2026'], 'valorIRSemDesconto': res_ir['valorIRSemDesconto']
+        'descontoAdicional2026': res_ir['descontoAdicional2026'], 'valorIRSemDesconto': res_ir['valorIRSemDesconto'],
+        'descontoSimplificado': res_ir['descontoSimplificado'], 'rendimentoMensal': res_ir['rendimentoMensal']
     })
 
     saldos['totalLiquido'] = total_sem_hon_suc - saldos['previdenciaTotal'] - saldos['irTotal']
