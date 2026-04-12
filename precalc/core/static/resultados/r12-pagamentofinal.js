@@ -29,7 +29,7 @@ function gerarTabelaPagamentosAcordo(resultados, dados) {
     } else {
         adesoes = dados.adesaoAcordo || {};
     }
-    
+
     const percentualDesagio = dados.percentualAcordo || 0;
     const pagamentosAcordo = [];
     
@@ -1128,6 +1128,64 @@ function montarTabelasAcordo(pagamentosAcordo, percentualDesagio) {
             </div>
         </div>
     `;
+}
+
+function coletarPagamentosAcordoParaSalvar(resultados, dados) {
+    const adesoes = dados.adesaoAcordo || {};
+    const percentualDesagio = dados.percentualAcordo || 0;
+    const pagamentosAcordo = [];
+
+    if (adesoes.beneficiario && resultados.valorBeneficiarioFinal > 0) {
+        const p = criarPagamentoAcordo(`${dados.beneficiario} (Beneficiário)`, resultados.valorBeneficiarioAposCessoes, percentualDesagio, resultados.valorPrevidenciaBeneficiario, resultados.valorIRBeneficiario, resultados.rraComDesagio || resultados.rrapagamento);
+        pagamentosAcordo.push({ credor: p.credor, valorDevido: p.valorAposDesagio, previdencia: p.previdencia, ir: p.ir, valorLiquido: p.valorLiquido });
+    }
+
+    if (resultados.temHerdeiros) {
+        (adesoes.herdeiros || []).forEach(index => {
+            const herdeiro = resultados.herdeiros?.[index];
+            if (herdeiro?.valorLiquido > 0) {
+                const valores = extrairValoresHerdeiro(herdeiro);
+                const p = criarPagamentoAcordo(`${herdeiro.nome} (Herdeiro)`, valores.valorDevido, percentualDesagio, valores.previdencia, valores.ir, herdeiro.rraComDesagio || herdeiro.rrapagamento);
+                pagamentosAcordo.push({ credor: p.credor, valorDevido: p.valorAposDesagio, previdencia: p.previdencia, ir: p.ir, valorLiquido: p.valorLiquido });
+            }
+        });
+    }
+
+    (adesoes.advogados || []).forEach(index => {
+        const adv = resultados.honorarios?.[index];
+        if (adv?.valorBrutoAdvogado > 0) {
+            const p = criarPagamentoAcordo(`${adv.nome} (Adv. ${adv.tipo})`, adv.valorBrutoAdvogado, percentualDesagio, 0, adv.irAdvogado || 0, '-');
+            pagamentosAcordo.push({ credor: p.credor, valorDevido: p.valorAposDesagio, previdencia: p.previdencia, ir: p.ir, valorLiquido: p.valorLiquido });
+        }
+    });
+
+    if (resultados.honorariosSucumbenciais?.temHonorariosSucumbenciais) {
+        (adesoes.advogadosSucumbenciais || []).forEach(index => {
+            const adv = resultados.honorariosSucumbenciais.honorarios?.[index];
+            if (adv?.valorBrutoAdvogado > 0) {
+                const p = criarPagamentoAcordo(`${adv.nome} (Adv. Sucumb. ${adv.tipo})`, adv.valorBrutoAdvogado, percentualDesagio, 0, adv.irAdvogado || 0, '-');
+                pagamentosAcordo.push({ credor: p.credor, valorDevido: p.valorAposDesagio, previdencia: p.previdencia, ir: p.ir, valorLiquido: p.valorLiquido });
+            }
+        });
+    }
+
+    (adesoes.sindicatos || []).forEach(index => {
+        const sind = resultados.sindicatos?.[index];
+        if (sind?.valorBrutoSindicato > 0) {
+            const p = criarPagamentoAcordo(`${sind.nome} (Sindicato)`, sind.valorBrutoSindicato, percentualDesagio, 0, sind.irSindicato || 0, '-');
+            pagamentosAcordo.push({ credor: p.credor, valorDevido: p.valorAposDesagio, previdencia: p.previdencia, ir: p.ir, valorLiquido: p.valorLiquido });
+        }
+    });
+
+    coletarCessionariosAcordo(adesoes, dados, resultados, percentualDesagio, pagamentosAcordo);
+    
+    return pagamentosAcordo.map(p => ({
+        credor: p.credor,
+        valorDevido: p.valorAposDesagio || p.valorDevido,
+        previdencia: p.previdencia,
+        ir: p.ir,
+        valorLiquido: p.valorLiquido
+    }));
 }
 
 function montarTabelaPagamentosSemHerdeiros(todosPagamentos, totais) {
