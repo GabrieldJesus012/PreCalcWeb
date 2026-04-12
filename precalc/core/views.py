@@ -55,13 +55,51 @@ def historico(request):
         'filtros': request.GET
     })
 
+def formatar_moeda(valor):
+    if not valor:
+        return 'R$ 0,00'
+    try:
+        num = float(valor)
+        return f'R$ {num:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
+    except:
+        return 'R$ 0,00'
 
+def formatar_data_graca(data_str):
+    if not data_str:
+        return ''
+    try:
+        from datetime import datetime
+        d = datetime.strptime(data_str, '%Y-%m-%d')
+        meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
+        return f"{meses[d.month-1]}/{d.year}"
+    except:
+        return data_str
+    
 def resultado(request, pk):
     calculo = get_object_or_404(Calculo, pk=pk)
+    dados = calculo.dados_entrada
+    resultados = calculo.resultado_completo
+    
+    hist_principal = float(calculo.hist_principal or 0)
+    hist_juros = float(calculo.hist_juros or 0)
+    hist_total = float(calculo.hist_total or 0)
+    
+    indice_principal = round(float(calculo.valor_principal) / hist_principal, 6) if hist_principal else 1
+    indice_juros = round(float(calculo.valor_juros) / hist_juros, 6) if hist_juros else 1
+    indice_total = round(float(calculo.valor_total) / hist_total, 6) if hist_total else 1
+
     return render(request, 'core/resultado.html', {
         'calculo': calculo,
-        'dados_json': json.dumps(calculo.dados_entrada),
-        'resultados_json': json.dumps(calculo.resultado_completo)
+        'dados': dados,
+        'resultados': resultados,
+        'data_atual': calculo.data_atualizacao.strftime('%d/%m/%Y'),
+        'indice_principal': indice_principal,
+        'indice_juros': indice_juros,
+        'indice_total': indice_total,
+        'inicio_graca': formatar_data_graca(resultados.get('inicioGraca', '')),
+        'fim_graca': formatar_data_graca(resultados.get('fimGraca', '')),
+        'dados_json': json.dumps(dados),
+        'resultados_json': json.dumps(resultados)
     })
 
 def carregar(request, pk):

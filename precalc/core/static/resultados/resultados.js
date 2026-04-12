@@ -5,7 +5,8 @@
 function exibirResultados(resultados, dados) {
     const container = document.getElementById('resultadosContent');
     const dataAtual = obterDataAtual();
-    const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
+    const inicioGraca = resultados.inicioGraca ? new Date(resultados.inicioGraca) : null;
+    const fimGraca = resultados.fimGraca ? new Date(resultados.fimGraca) : null;
     
     const contexto = {
         dataAtual,
@@ -169,9 +170,8 @@ function gerarBotaoImprimir() {
                 border-radius: 5px;
                 cursor: pointer;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                transition: background-color 0.3s;
                 margin-right: 10px;
-            " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#343A40'">
+            ">
                 🖨️ Imprimir / Salvar PDF
             </button>
             <button onclick="exportarExcel()" style="
@@ -183,9 +183,42 @@ function gerarBotaoImprimir() {
                 border-radius: 5px;
                 cursor: pointer;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                transition: background-color 0.3s;
-            " onmouseover="this.style.backgroundColor='#145c38'" onmouseout="this.style.backgroundColor='#1a7a4a'">
+                margin-right: 10px;
+            ">
                 📊 Exportar Excel
+            </button>
+            <button onclick="window.location.href='/'" style="
+                background-color: #1a2b4a;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                font-size: 16px;
+                border-radius: 5px;
+                cursor: pointer;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            ">
+                ➕ Novo Cálculo
+            </button>
+            <button onclick="abrirFeedback()" title="Reportar problema ou sugestão" style="
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                width: 48px;
+                height: 48px;
+                border-radius: 50%;
+                background: var(--primary-navy, #1a2b4a);
+                color: white;
+                border: none;
+                cursor: pointer;
+                font-size: 20px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 1000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: transform 0.2s;
+            " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+            💬
             </button>
         </div>
     `;
@@ -228,4 +261,38 @@ function exportarExcel() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+//auxiliar
+function calcularIR(valorBruto) {
+    if (valorBruto <= 2428.80) return 0;
+    else if (valorBruto <= 2826.65) return (valorBruto * 0.075) - 182.16;
+    else if (valorBruto <= 3751.05) return (valorBruto * 0.15) - 394.16;
+    else if (valorBruto <= 4664.68) return (valorBruto * 0.225) - 675.49;
+    else return (valorBruto * 0.275) - 908.73;
+}
+
+function calcularDescontoAdicional2026(baseIRRRA, valorIRCalculado) {
+    if (baseIRRRA <= 5000.00) return Math.min(valorIRCalculado, 312.89);
+    if (baseIRRRA <= 7350.00) return Math.max(0, 978.62 - (0.133145 * baseIRRRA));
+    return 0;
+}
+
+function arredondarRRA(valor) {
+    if (typeof valor !== 'number' || isNaN(valor)) return 0;
+    const valorStr = valor.toFixed(3);
+    const partes = valorStr.split('.');
+    if (partes.length !== 2) return Math.round(valor * 10) / 10;
+    const parteInteira = partes[0];
+    const parteDecimal = partes[1].padEnd(3, '0');
+    const primeiraDecimal = parseInt(parteDecimal[0]);
+    const segundaDecimal = parseInt(parteDecimal[1]);
+    const terceiraDecimal = parseInt(parteDecimal[2]);
+    let novaParteDecimal = primeiraDecimal;
+    if (segundaDecimal > 5) {
+        novaParteDecimal = primeiraDecimal + 1;
+    } else if (segundaDecimal === 5) {
+        if (terceiraDecimal >= 5) novaParteDecimal = primeiraDecimal + 1;
+    }
+    return parseFloat(`${parteInteira}.${novaParteDecimal}`);
 }
