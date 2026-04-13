@@ -805,7 +805,9 @@ function calcularTotaisETributos(resultados, dados, saldosFinais) {
         percentualDesagioIR: resultadoIR.percentualDesagioIR,
         rraComDesagio: resultadoIR.rraComDesagio,
         descontoAdicional2026: resultadoIR.descontoAdicional2026,
-        valorIRSemDesconto: resultadoIR.valorIRSemDesconto  
+        valorIRSemDesconto: resultadoIR.valorIRSemDesconto,
+        descontoSimplificado: resultadoIR.descontoSimplificado,
+        rendimentoMensal: resultadoIR.rendimentoMensal
     });
     
     saldosFinais.totalLiquido = totalSemHonSuc - saldosFinais.previdenciaTotal - saldosFinais.irTotal;
@@ -949,7 +951,9 @@ function ajustarHerdeiros(resultadosAjustados, saldos, dados, resultados) {
                 baseIRRRA: resultadoIR.baseIRRRA,
                 valorIRUnitario: resultadoIR.valorIRUnitario,
                 descontoAdicional2026: resultadoIR.descontoAdicional2026,  
-                valorIRSemDesconto: resultadoIR.valorIRSemDesconto 
+                valorIRSemDesconto: resultadoIR.valorIRSemDesconto,
+                descontoSimplificado: resultadoIR.descontoSimplificado,
+                rendimentoMensal: resultadoIR.rendimentoMensal
             });
         }
         

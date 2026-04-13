@@ -137,6 +137,8 @@ function calcularHerdeiros(dados, valortotatt, valorprincatt, valorjurosatt, det
             principalComDesagio: ir.principalComDesagio,
             percentualDesagioIR: ir.percentualDesagioIR,
             descontoAdicional2026: ir.descontoAdicional2026,
+            descontoSimplificado: ir.descontoSimplificado,
+            rendimentoMensal: ir.rendimentoMensal,
             valorIRSemDesconto: ir.valorIRSemDesconto, 
             valorPrevidenciaFinal: cessoes.valorPrevidenciaHerdeiroFinal,
             valorIRFinal: cessoes.valorIRHerdeiroFinal,

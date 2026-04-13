@@ -4,18 +4,11 @@
 
 function calcularIRIsolado(dados, valortotatt, valorBase, principalBase, valorPrevidencia, rrapagamentoRecalculado) {
     const resultadoVazio = {
-        valorIR: 0,
-        aliquotaIR: 0,
-        baseIRHonora: 0,
-        baseIRSindi: 0,
-        baseIRPrev: 0,
-        principalComDesagio: 0,
-        percentualDesagioIR: 0,
-        rraComDesagio: 0,
-        baseIRRRA: 0,
-        valorIRUnitario: 0,
-        descontoAdicional2026: 0,
-        valorIRSemDesconto: 0
+        valorIR: 0, aliquotaIR: 0, baseIRHonora: 0,
+        baseIRSindi: 0, baseIRPrev: 0, principalComDesagio: 0,
+        percentualDesagioIR: 0, rraComDesagio: 0, baseIRRRA: 0,
+        valorIRUnitario: 0, descontoAdicional2026: 0, valorIRSemDesconto: 0,
+        descontoSimplificado: 0, rendimentoMensal: 0
     };
     
     const temIR = dados.valoresPrincipais?.some(item => item.tributacao?.ir === true);
@@ -62,19 +55,20 @@ function calcularIRIsolado(dados, valortotatt, valorBase, principalBase, valorPr
         : baseIRSindi;
     
     const rraComDesagio = rrapagamentoRecalculado > 0 ? Math.max(1, rrapagamentoRecalculado) : 0;
-    const baseIRPrev = principalComDesagio - valorPrevidencia;
-    const baseIRRRA = baseIRPrev / rraComDesagio;
+
+    const rendimentoMensal = principalComDesagio / rraComDesagio;
+
+    const previdenciamensal = valorPrevidencia / rraComDesagio;
+    const descontoSimplificado = Math.max(607.20, previdenciamensal);
+
+    const baseIRRRA = rendimentoMensal - descontoSimplificado;
     
-    // ✅ 1. Calcular IR pela tabela (base unitária)
     const valorIRSemDesconto = calcularIR(baseIRRRA);
+
+    const descontoAdicional2026 = calcularDescontoAdicional2026(rendimentoMensal, valorIRSemDesconto);
     
-    // ✅ 2. Aplicar desconto 2026 (sobre o IR unitário)
-    const descontoAdicional2026 = calcularDescontoAdicional2026(baseIRRRA, valorIRSemDesconto);
-    
-    // ✅ 3. IR unitário com desconto
     const valorIRUnitario = Math.max(0, valorIRSemDesconto - descontoAdicional2026);
     
-    // ✅ 4. Multiplicar pelo RRA (APENAS NO FINAL)
     const valorIR = valorIRUnitario * rraComDesagio;
     
     const aliquotaIR = obterAliquotaIR(baseIRRRA);
@@ -84,14 +78,16 @@ function calcularIRIsolado(dados, valortotatt, valorBase, principalBase, valorPr
         aliquotaIR,
         baseIRHonora,
         baseIRSindi,
-        baseIRPrev,
+        baseIRPrev: baseIRRRA * rraComDesagio,
         principalComDesagio,
         percentualDesagioIR,
         rraComDesagio,
         baseIRRRA,
         valorIRUnitario,                
         descontoAdicional2026,          
-        valorIRSemDesconto             
+        valorIRSemDesconto,
+        descontoSimplificado,
+        rendimentoMensal         
     };
 }
 
