@@ -10,6 +10,9 @@ function gerarCalculos(dados, resultados, inicioGraca, fimGraca) {
     const temJurosMora = dados.valoresPrincipais?.some(item => 
         item.indices.jurosMora && (resultados.itensCalculados?.find(calc => calc.id === item.id)?.jurosMoraCalculado || 0) > 0
     );
+
+    const notaSelicInformado = temSelicInformado ? gerarNotaSelicInformado(dados, resultados) : '';
+    const notaJurosMora = temJurosMora ? '*Juros calculados de forma simples (até Novembro/2021), conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ, SV nº 17 do STF e a partir de 01.08.2025 juros de 2% ao ano (quando aplicável).' : '';
     
     let memoriaisCalculos = '';
     
@@ -18,26 +21,17 @@ function gerarCalculos(dados, resultados, inicioGraca, fimGraca) {
         
         dados.valoresPrincipais.forEach((item, index) => {
             const itemCalculado = resultados.itensCalculados?.find(calc => calc.id === item.id) || {};
-            memoriaisCalculos += gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado);
+            const isLast = index === dados.valoresPrincipais.length - 1;
+            memoriaisCalculos += gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado, isLast ? notaSelicInformado : '', isLast ? notaJurosMora : '');
         });
     }
 
-    const notaSelicInformado = temSelicInformado 
-        ? gerarNotaSelicInformado(dados, resultados)
-        : '';
-    
-    return `
-        ${memoriaisCalculos}
-        ${(notaSelicInformado || temJurosMora) ? `
-        <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
-            ${notaSelicInformado}${temJurosMora ? '*Juros calculados de forma simples (até Novembro/2021), conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ, SV nº 17 do STF e a partir de 01.08.2025 juros de 2% ao ano (quando aplicável).' : ''}
-        </div>` : ''}
-    `;
+    return memoriaisCalculos;
 }
 
 // ========== FUNÇÕES AUXILIARES DE GERAR CALCULOS==========
 
-function gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado) {
+function gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado,notaSelicInformado = '', notaJurosMora = '') {
     const indices = obterIndicesItem(itemCalculado);
     const valoresCalculados = calcularValoresPassoAPasso(item, itemCalculado, indices);
     const periodoGraca = `Graça Constitucional: ${inicioGracaFormatado} a ${fimGracaFormatado}`;
@@ -85,6 +79,11 @@ function gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGraca
             ${valorSelicFinal > 0 ? gerarTabelaSelic(itemCalculado, valoresCalculados) : ''}
             
             ${totalDoItem}
+
+            ${(notaSelicInformado || notaJurosMora) ? `
+            <div class="res-nota-legal">
+                ${notaSelicInformado}${notaJurosMora}
+            </div>` : ''}
         </div>
     `;
 }

@@ -139,17 +139,18 @@ function gerarDemonstrativoValores(dados, resultados, dataAtual) {
                     <td>${(resultados.percentualselic * 100).toFixed(4)}%</td>
                 </tr>
                 ` : ''}
-                <tr class="highlight">
-                    <td><strong>Total Atualizado</strong></td>
-                    <td><strong>R$ ${formatarMoeda(valorTotalOriginal)}</strong></td>
-                    <td><strong>${indiceTotal}</strong></td>
-                    <td><strong>R$ ${formatarMoeda(resultados.valortotatt)}</strong></td>
-                    <td><strong>100.00%</strong></td>
+                <tr class="linha-gold">
+                    <td class="bold">Total Atualizado</td>
+                    <td class="right bold">R$ ${formatarMoeda(valorTotalOriginal)}</td>
+                    <td class="right bold">${indiceTotal}</td>
+                    <td class="right bold">R$ ${formatarMoeda(resultados.valortotatt)}</td>
+                    <td class="right bold">100,00%</td>
                 </tr>
                 ${gerarLinhaBase(resultados, dados)}
             </table>
-            <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
-                *Atualização Monetária conforme Resolução CNJ nº 303/2019, com índices de correção monetária, conforme caput do Art.21- A e Emendas Constitucionais nº 62, 113 e 136. - <strong>Período de Correção</strong>: Os valores foram atualizados desde a base <strong>${textoDataBase}</strong> até <strong>${dataAtual}</strong>.
+            <div class="res-nota-legal">
+                * Atualização Monetária conforme Resolução CNJ nº 303/2019, com índices de correção monetária, conforme caput do Art. 21-A e Emendas Constitucionais nº 62, 113 e 136.
+                Período de Correção: Os valores foram atualizados desde a base <strong>${textoDataBase}</strong> até <strong>${dataAtual}</strong>.
             </div>
         </div>
     `;
@@ -160,37 +161,35 @@ function gerarLinhaBase(resultados, dados) {
 
     if (dados.somenteHonorarioSucumbencial && dados.tipoCalculo === 'parcial') {
         return `
-            <tr class="highlight">
-                <td><strong>Valor Disponível para Pagamento</strong></td>
-                <td colspan="3"><strong>R$ ${formatarMoeda(dados.saldoParcial)}</strong></td>
-                <td><strong>100.00%</strong></td>
+            <tr class="linha-gold">
+                <td class="bold">Valor Disponível para Pagamento</td>
+                <td class="right muted">—</td>
+                <td class="right muted">—</td>
+                <td class="right bold">R$ ${formatarMoeda(dados.saldoParcial)}</td>
+                <td class="right bold">100,00%</td>
             </tr>
         `;
     } else if (temHerdeiros && dados.tipoCalculo === 'preferencia') {
         const herdeirosPreferenciais = resultados.herdeiros.filter(h => h.temPreferencia);
         if (herdeirosPreferenciais.length > 0) {
-            return `
-                <tr class="highlight">
-                    <td colspan="5"><strong>Base para Pagamento</strong></td>
+            return herdeirosPreferenciais.map(h => `
+                <tr class="linha-gold">
+                    <td class="bold">Base para Pagamento — ${h.nome}</td>
+                    <td class="right muted">—</td>
+                    <td class="right muted">—</td>
+                    <td class="right bold">R$ ${formatarMoeda(h.valorTotal)}</td>
+                    <td class="right bold">${((h.valorTotal / resultados.valortotatt) * 100).toFixed(2)}%</td>
                 </tr>
-                ${herdeirosPreferenciais.map(h => `
-                    <tr class="highlight">
-                        <td><strong>${h.nome}</strong></td>
-                        <td colspan="2"><strong>R$ ${formatarMoeda(h.valorTotal)}</strong></td>
-                        <td><strong>R$ ${formatarMoeda(h.valorTotal)}</strong></td>
-                        <td><strong>${((h.valorTotal / resultados.valortotatt) * 100).toFixed(2)}%</strong></td>
-                    </tr>
-                `).join('')}
-            `;
+            `).join('');
         }
     } else {
         return `
-            <tr class="highlight">
-                <td><strong>Base para Pagamento</strong></td>
-                <td>-</td>
-                <td>-</td>
-                <td><strong>R$ ${formatarMoeda(resultados.valorBase)}</strong></td>
-                <td><strong>${((resultados.valorBase / resultados.valortotatt) * 100).toFixed(2)}%</strong></td>
+            <tr class="linha-gold">
+                <td class="bold">Base para Pagamento</td>
+                <td class="right muted">—</td>
+                <td class="right muted">—</td>
+                <td class="right bold">R$ ${formatarMoeda(resultados.valorBase)}</td>
+                <td class="right bold">${((resultados.valorBase / resultados.valortotatt) * 100).toFixed(2)}%</td>
             </tr>
         `;
     }

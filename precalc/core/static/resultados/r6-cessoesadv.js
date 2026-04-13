@@ -83,10 +83,10 @@ function gerarCessoesAdvogadosOrdem(resultados, dados, isParcial) {
                         <td>R$ ${formatarMoeda(valorAdvogado)}</td>
                     </tr>
                     ${linhasCessionarios}
-                    <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
-                        <td>TOTAL</td>
-                        <td>${(adv.percentual * 100).toFixed(2)}%</td>
-                        <td>R$ ${formatarMoeda(valorTotalSobrePrecatorio)}</td>
+                    <tr class="linha-gold">
+                        <td class="bold">TOTAL</td>
+                        <td class="bold">${(adv.percentual * 100).toFixed(2)}%</td>
+                        <td class="bold">R$ ${formatarMoeda(valorTotalSobrePrecatorio)}</td>
                     </tr>
                 </table>
             </div>
@@ -164,10 +164,10 @@ function gerarCessoesAdvogadosPreferencia(resultados, dados) {
                             <td>R$ ${formatarMoeda(valorAdvogadoAposCessao)}</td>
                         </tr>
                         ${linhasCessionarios}
-                        <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
-                            <td>TOTAL</td>
-                            <td>${(adv.percentual * 100).toFixed(2)}%</td>
-                            <td>R$ ${formatarMoeda(valorHonorarioAdvogado)}</td>
+                        <tr class="linha-gold">
+                            <td class="bold">TOTAL</td>
+                            <td class="bold">${(adv.percentual * 100).toFixed(2)}%</td>
+                            <td class="bold">R$ ${formatarMoeda(valorHonorarioAdvogado)}</td>
                         </tr>
                     </table>
                 </div>
@@ -286,10 +286,10 @@ function gerarCessoesAdvogadosSemHerdeiros(resultados, dados) {
                         <td>R$ ${formatarMoeda(valorAdvogado)}</td>
                     </tr>
                     ${linhasCessionarios}
-                    <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
-                        <td>TOTAL</td>
-                        <td>${(adv.percentual * 100).toFixed(2)}%</td>
-                        <td>R$ ${formatarMoeda(valorHonorario)}</td>
+                    <tr class="linha-gold">
+                        <td class="bold">TOTAL</td>
+                        <td class="bold">${(adv.percentual * 100).toFixed(2)}%</td>
+                        <td class="bold">R$ ${formatarMoeda(valorHonorario)}</td>
                     </tr>
                 </table>
             </div>

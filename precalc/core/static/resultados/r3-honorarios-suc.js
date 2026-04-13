@@ -48,9 +48,9 @@ function gerarSecaoHonorariosSucumbenciais(resultados, dados) {
                     <th>Valor Bruto</th>
                 </tr>
                 ${linhasAdvogados}
-                <tr class="highlight">
-                    <td colspan="3"><strong>Total dos Honorários Sucumbenciais</strong></td>
-                    <td><strong>R$ ${formatarMoeda(totalHonorariosBrutos)}</strong></td>
+                <tr class="linha-gold">
+                    <td colspan="3" class="bold"><strong>Total dos Honorários Sucumbenciais</td>
+                    <td class="right bold">R$ ${formatarMoeda(totalHonorariosBrutos)}</td>
                 </tr>
             </table>
         </div>

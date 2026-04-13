@@ -279,6 +279,38 @@ body {
     font-weight: 600;
 }
 
+.res-subsecao {
+    font-size: 10px;
+    font-weight: 700;
+    color: #1a2b4a;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 5px 10px;
+    background: #e8edf5;
+    border-left: 3px solid #1a2b4a;
+    margin: 14px 0 6px;
+}
+
+#resultadosContent tr.linha-gold td {
+    background: #f5f0e8 !important;
+    color: #1a2b4a !important;
+    font-weight: 700 !important;
+    border-top: 2px solid #b8962e !important;
+    border-bottom: 2px solid #b8962e !important;
+}
+
+.res-nota-legal {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-left: 3px solid #b8962e;
+    padding: 10px 14px;
+    font-size: 10px;
+    color: #6c757d;
+    line-height: 1.7;
+    margin-top: 8px;
+    border-radius: 0 3px 3px 0;
+}
+
 /* Seção de Cessões do Beneficiário */
 .cessoes-beneficiario {
     border-left: 3px solid #3B82F6;

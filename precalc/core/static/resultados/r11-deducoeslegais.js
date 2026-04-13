@@ -246,39 +246,38 @@ function montarResultadoFinal(secoes, tipo) {
 function gerarDeducoesSimples(resultados, dados, temPrevidencia, temIR) {
     const temCessoes = resultados.cessoesBeneficiarioCalculadas && resultados.cessoesBeneficiarioCalculadas.length > 0;
     const isPJ = dados.natureza === 'comum' && dados.tipoBeneficiario === 'pj';
-
     const tipoPrevidencia = dados.valoresPrincipais?.find(item => item.tributacao?.tipoPrevidencia)?.tributacao.tipoPrevidencia || null;
     
     let secaoPrevidencia = '';
-    if (temPrevidencia && !isPJ) { // PJ não tem previdência
-        if (tipoPrevidencia === 'fixa') {
-            secaoPrevidencia = gerarDetalhePrevidenciaFixa(resultados, dados, temCessoes);
-        } else {
-            secaoPrevidencia = gerarDetalhePrevidenciaINSS(resultados, dados, temCessoes);
-        }
+    if (temPrevidencia && !isPJ) {
+        secaoPrevidencia = tipoPrevidencia === 'fixa'
+            ? gerarDetalhePrevidenciaFixa(resultados, dados, temCessoes)
+            : gerarDetalhePrevidenciaINSS(resultados, dados, temCessoes);
     }
     
     let secaoIR = '';
     if (temIR) {
-        if (isPJ) {
-            secaoIR = gerarDetalheIRPJ(resultados, dados, temCessoes);
-        } else {
-            secaoIR = gerarDetalheIR(resultados, dados, temPrevidencia, temCessoes);
-        }
+        secaoIR = isPJ
+            ? gerarDetalheIRPJ(resultados, dados, temCessoes)
+            : gerarDetalheIR(resultados, dados, temPrevidencia, temCessoes);
     }
 
-    if (!secaoPrevidencia && !secaoIR) {
-        return '';
-    }
+    if (!secaoPrevidencia && !secaoIR) return '';
     
     const titulo = isPJ ? '🏦 Deduções Legais - Pessoa Jurídica' : '🏦 Deduções Legais';
+    
+    const conteudo = (secaoPrevidencia && secaoIR)
+        ? `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start;">
+               <div>${secaoPrevidencia}</div>
+               <div>${secaoIR}</div>
+           </div>`
+        : `${secaoPrevidencia}${secaoIR}`;
     
     return `
         <div class="deducoes-legais">
             <div class="table-container">
                 <h3>${titulo}</h3>
-                ${secaoPrevidencia}
-                ${secaoIR}
+                ${conteudo}
             </div>
         </div>
     `;
@@ -331,18 +330,18 @@ function gerarDetalhePrevidenciaFixa(resultados, dados, temCessoes) {
                 <th>Alíquota Fixa:</th>
                 <td>${(aliquotaFixa * 100).toFixed(2)}%</td>
             </tr>
-            <tr ${!isAcordo ? 'class="total-row"' : ''}>
-                <th>Valor Previdência ${isAcordo ? 'sem Deságio' : ''}:</th>
-                <td>${!isAcordo ? '<strong>' : ''}R$ ${formatarMoeda(valorSemDesagio)}${!isAcordo ? '</strong>' : ''}</td>
+            <tr ${!isAcordo ? 'class="linha-gold"' : ''}>
+                <td class="bold">Valor Previdência${isAcordo ? ' sem Deságio' : ''}:</td>
+                <td class="bold">R$ ${formatarMoeda(valorSemDesagio)}</td>
             </tr>
             ${isAcordo && valorDesagio > 0 ? `
             <tr style="color: #dc3545;">
                 <th>(-) Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                 <td>R$ ${formatarMoeda(valorDesagio)}</td>
             </tr>
-            <tr class="total-row">
-                <th>Valor Previdência com Deságio:</th>
-                <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
+            <tr class="linha-gold">
+                <td class="bold">Valor Previdência com Deságio:</td>
+                <td class="bold">R$ ${formatarMoeda(valorComDesagio)}</td>
             </tr>` : ''}
             ${distribuicaoCessoes}
         </table>
@@ -408,18 +407,18 @@ function gerarDetalhePrevidenciaINSS(resultados, dados, temCessoes) {
                 <th>Valor INSS por RRA:</th>
                 <td>R$ ${formatarMoeda(valorSemDesagio / (resultados.rrapagamento || 1))} ${base > 8157.41 ? '(TETO)' : ''}</td>
             </tr>
-            <tr ${!isAcordo ? 'class="total-row"' : ''}>
-                <th>Valor Previdência ${isAcordo ? 'sem Deságio' : ''}:</th>
-                <td>${!isAcordo ? '<strong>' : ''}R$ ${formatarMoeda(valorSemDesagio)}${!isAcordo ? '</strong>' : ''}</td>
+            <tr ${!isAcordo ? 'class="linha-gold"' : ''}>
+                <td class="bold">Valor Previdência${isAcordo ? ' sem Deságio' : ''}:</td>
+                <td class="bold">R$ ${formatarMoeda(valorSemDesagio)}</td>
             </tr>
             ${isAcordo && valorDesagio > 0 ? `
             <tr style="color: #dc3545;">
                 <th>(-) Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                 <td>R$ ${formatarMoeda(valorDesagio)}</td>
             </tr>
-            <tr class="total-row">
-                <th>Valor Previdência com Deságio:</th>
-                <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
+            <tr class="linha-gold">
+                <td class="bold">Valor Previdência com Deságio:</td>
+                <td class="bold">R$ ${formatarMoeda(valorComDesagio)}</td>
             </tr>` : ''}
             ${distribuicaoCessoes}
         </table>
@@ -575,9 +574,9 @@ function gerarDetalheIR(resultados, dados, temPrevidencia, temCessoes) {
                 <th>Redutor 2026:</th>
                 <td>R$ 0,00</td>
             </tr>`}
-            <tr class="total-row">
-                <th>TOTAL A SER RECOLHIDO (${arredondarRRA(resultados.rraComDesagio || resultados.rrapagamento)} meses):</th>
-                <td><strong>R$ ${formatarMoeda(resultados.valorIR)}</strong></td>
+            <tr class="linha-gold">
+                <td class="bold">TOTAL A SER RECOLHIDO (${arredondarRRA(resultados.rraComDesagio || resultados.rrapagamento)} meses):</td>
+                <td class="bold">R$ ${formatarMoeda(resultados.valorIR)}</td>
             </tr>
             ${distribuicaoCessoes}
         </table>
@@ -648,9 +647,9 @@ function gerarDetalheIRPJ(resultados, dados, temCessoes) {
                 <th>Alíquota IR:</th>
                 <td>3,0%</td>
             </tr>
-            <tr class="total-row">
-                <th>Valor IR Devido Total:</th>
-                <td><strong>R$ ${formatarMoeda(resultados.valorIR)}</strong></td>
+            <tr class="linha-gold">
+                <td class="bold">Valor IR Devido Total:</td>
+                <td class="bold">R$ ${formatarMoeda(resultados.valorIR)}</td>
             </tr>
             ${distribuicaoCessoes}
         </table>
@@ -693,14 +692,14 @@ function gerarDetalhePrevidenciaFixaHerdeirosSemCessao(herdeiros, dados, valorBa
                 <th>Alíquota Fixa:</th>
                 <td>${(aliquotaFixa * 100).toFixed(2)}%</td>
             </tr>
-            <tr ${!isAcordo ? 'class="total-row"' : ''}>
-                <th>Valor Previdência ${isAcordo ? 'sem Deságio' : 'por Herdeiro'}:</th>
-                <td>${!isAcordo ? '<strong>' : ''}R$ ${formatarMoeda(valorSemDesagio)}${!isAcordo ? '</strong>' : ''}</td>
+            <tr ${!isAcordo ? 'class="linha-gold"' : ''}>
+                <td class="bold">Valor Previdência ${isAcordo ? 'sem Deságio' : 'por Herdeiro'}:</td>
+                <td class="bold">${!isAcordo ? '<strong>' : ''}R$ ${formatarMoeda(valorSemDesagio)}${!isAcordo ? '</strong>' : ''}</td>
             </tr>
             ${isAcordo && primeiroHerdeiro.valorDesagioPrevidencia > 0 ? `
-            <tr class="total-row">
-                <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
-                <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
+            <tr class="linha-gold">
+                <td class="bold">Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</td>
+                <td class="bold">R$ ${formatarMoeda(valorComDesagio)}</td>
             </tr>` : ''}
             <tr style="border-top: 1px solid #dee2e6;">
                 <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
@@ -758,14 +757,14 @@ function gerarDetalhePrevidenciaINSSHerdeirosSemCessao(herdeiros, dados, valorBa
                 <th>Valor INSS por RRA:</th>
                 <td>R$ ${formatarMoeda(valorSemDesagio / (primeiroHerdeiro.rrapagamento || 1))} ${base > 8157.41 ? '(TETO)' : ''}</td>
             </tr>
-            <tr ${!isAcordo ? 'class="total-row"' : ''}>
-                <th>Valor Previdência ${isAcordo ? 'sem Deságio' : 'por Herdeiro'}:</th>
-                <td>${!isAcordo ? '<strong>' : ''}R$ ${formatarMoeda(valorSemDesagio)}${!isAcordo ? '</strong>' : ''}</td>
+            <tr ${!isAcordo ? 'class="linha-gold"' : ''}>
+                <td class="bold">Valor Previdência ${isAcordo ? 'sem Deságio' : 'por Herdeiro'}:</td>
+                <td class="bold">${!isAcordo ? '<strong>' : ''}R$ ${formatarMoeda(valorSemDesagio)}${!isAcordo ? '</strong>' : ''}</td>
             </tr>
             ${isAcordo && primeiroHerdeiro.valorDesagioPrevidencia > 0 ? `
-            <tr class="total-row">
-                <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
-                <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
+            <tr class="linha-gold">
+                <td class="bold">Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</td>
+                <td class="bold"><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
             </tr>` : ''}
             <tr style="border-top: 1px solid #dee2e6;">
                 <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
@@ -863,9 +862,9 @@ function gerarDetalheIRHerdeirosSemCessao(herdeiros, dados, valorBase, temPrevid
                 <th>Redutor 2026:</th>
                 <td>R$ 0,00</td>
             </tr>`}
-            <tr class="total-row">
-                <th>TOTAL A SER RECOLHIDO (${arredondarRRA(primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento)} meses):</th>
-                <td><strong>R$ ${formatarMoeda(primeiroHerdeiro.valorIR)}</strong></td>
+            <tr class="linha-gold">
+                <td class="bold">TOTAL A SER RECOLHIDO (${arredondarRRA(primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento)} meses):</td>
+                <td class="bold">R$ ${formatarMoeda(primeiroHerdeiro.valorIR)}</td>
             </tr>
             <tr style="border-top: 1px solid #dee2e6;">
                 <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
@@ -942,14 +941,14 @@ function gerarDetalhePrevidenciaFixaHerdeiros(herdeiros, dados, valorBase) {
                 <th>Alíquota Fixa:</th>
                 <td>${(aliquotaFixa * 100).toFixed(2)}%</td>
             </tr>
-            <tr ${!isAcordo ? 'class="total-row"' : ''}>
-                <th>Valor Previdência ${isAcordo ? 'sem Deságio' : 'por Herdeiro'}:</th>
-                <td>${!isAcordo ? '<strong>' : ''}R$ ${formatarMoeda(valorSemDesagio)}${!isAcordo ? '</strong>' : ''}</td>
+            <tr ${!isAcordo ? 'class="linha-gold"' : ''}>
+                <td class="bold">Valor Previdência ${isAcordo ? 'sem Deságio' : 'por Herdeiro'}:</td>
+                <td class="bold">${!isAcordo ? '<strong>' : ''}R$ ${formatarMoeda(valorSemDesagio)}${!isAcordo ? '</strong>' : ''}</td>
             </tr>
             ${isAcordo && primeiroHerdeiro.valorDesagioPrevidencia > 0 ? `
-            <tr class="total-row">
-                <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
-                <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
+            <tr class="linha-gold">
+                <td class="bold">Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</td>
+                <td class="bold">R$ ${formatarMoeda(valorComDesagio)}</td>
             </tr>` : ''}
             <tr style="border-top: 1px solid #dee2e6;">
                 <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
@@ -1038,14 +1037,14 @@ function gerarDetalhePrevidenciaINSSHerdeiros(herdeiros, dados, valorBase) {
                 <th>Valor INSS por RRA:</th>
                 <td>R$ ${formatarMoeda(valorSemDesagio / (primeiroHerdeiro.rrapagamento || 1))} ${base > 8157.41 ? '(TETO)' : ''}</td>
             </tr>
-            <tr ${!isAcordo ? 'class="total-row"' : ''}>
-                <th>Valor Previdência ${isAcordo ? 'sem Deságio' : 'por Herdeiro'}:</th>
-                <td>${!isAcordo ? '<strong>' : ''}R$ ${formatarMoeda(valorSemDesagio)}${!isAcordo ? '</strong>' : ''}</td>
+            <tr ${!isAcordo ? 'class="linha-gold"' : ''}>
+                <td class="bold">Valor Previdência ${isAcordo ? 'sem Deságio' : 'por Herdeiro'}:</td>
+                <td class="bold">${!isAcordo ? '<strong>' : ''}R$ ${formatarMoeda(valorSemDesagio)}${!isAcordo ? '</strong>' : ''}</td>
             </tr>
             ${isAcordo && primeiroHerdeiro.valorDesagioPrevidencia > 0 ? `
-            <tr class="total-row">
-                <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
-                <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
+            <tr class="linha-gold">
+                <td class="bold">Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</td>
+                <td class="bold">R$ ${formatarMoeda(valorComDesagio)}</td>
             </tr>` : ''}
             <tr style="border-top: 1px solid #dee2e6;">
                 <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
@@ -1173,9 +1172,9 @@ function gerarDetalheIRHerdeiros(herdeiros, dados, valorBase, temPrevidencia, te
                 <th>Redutor 2026:</th>
                 <td>R$ 0,00</td>
             </tr>`}
-            <tr class="total-row">
-                <th>TOTAL A SER RECOLHIDO (${arredondarRRA(primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento)} meses):</th>
-                <td><strong>R$ ${formatarMoeda(primeiroHerdeiro.valorIR)}</strong></td>
+            <tr class="linha-gold">
+                <td class="bold">TOTAL A SER RECOLHIDO (${arredondarRRA(primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento)} meses):</td>
+                <td class="bold">R$ ${formatarMoeda(primeiroHerdeiro.valorIR)}/td>
             </tr>
             <tr style="border-top: 1px solid #dee2e6;">
                 <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>

@@ -6,7 +6,6 @@ import json
 from core.calculos.base import calcular_valores
 from core.models import Calculo, CalculoCredor
 
-
 def index(request):
     return render(request, 'core/index.html')
 

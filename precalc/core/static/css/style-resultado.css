@@ -1,0 +1,506 @@
+/*
+ * style-resultado.css
+ * Visual jurídico para a página de resultado do PreCalc - TJPI
+ * Sobrescreve apenas as classes usadas no resultado, sem afetar o formulário
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@300;400;600;700&display=swap');
+
+:root {
+    --res-navy: #1a2b4a;
+    --res-navy-mid: #2c3e5a;
+    --res-gold: #b8962e;
+    --res-gold-light: #d4af5a;
+    --res-gold-pale: #f5f0e8;
+    --res-green: #2d6a4f;
+    --res-green-light: #e8f5ee;
+    --res-gray-1: #f8f9fa;
+    --res-gray-2: #e9ecef;
+    --res-gray-3: #dee2e6;
+    --res-gray-4: #6c757d;
+    --res-border: #d0ccc4;
+}
+
+/* ===== IDENTIFICAÇÃO DO PROCESSO ===== */
+#resultadosContent .res-identificacao {
+    border-left: 3px solid var(--res-gold) !important;
+    padding: 0 !important;
+    overflow: hidden;
+}
+
+.res-id-header {
+    background: var(--res-navy);
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+}
+
+.res-id-header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--res-gold), var(--res-gold-light), var(--res-gold));
+}
+
+.res-id-tribunal {
+    font-size: 9px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.res-id-titulo {
+    font-size: 15px;
+    font-weight: 600;
+    color: white;
+}
+
+.res-id-header-right {
+    text-align: right;
+}
+
+.res-id-processo-label {
+    font-size: 9px;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.res-id-processo-num {
+    font-size: 12px;
+    color: var(--res-gold-light);
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+.res-id-data {
+    font-size: 10px;
+    color: rgba(255,255,255,0.45);
+    margin-top: 3px;
+}
+
+.res-id-faixa {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    background: var(--res-gold-pale);
+    border-top: 1px solid var(--res-gold);
+    padding: 12px 20px;
+    gap: 20px;
+}
+
+.res-id-field {
+    min-width: 120px;
+}
+
+.res-id-field-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--res-gray-4);
+    font-weight: 600;
+}
+
+.res-id-field-valor {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--res-navy);
+    margin-top: 2px;
+}
+
+.container .header {
+    display: none !important;
+}
+
+.container {
+    display: none !important;
+}
+
+/* ===== CONTAINER DO RESULTADO ===== */
+#resultadosContent {
+    font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #1a1a2e;
+    background: white;
+    border-radius: 8px;
+    padding: 8px 0;
+}
+
+/* ===== TABLE CONTAINER ===== */
+#resultadosContent .table-container {
+    background: white;
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+    border: none;
+    border-left: 3px solid var(--res-navy);
+}
+
+#resultadosContent .table-container h3 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--res-navy);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--res-gray-2);
+}
+
+#resultadosContent .table-container h4 {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--res-navy-mid);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 5px 10px;
+    background: #e8edf5;
+    border-left: 3px solid var(--res-navy);
+    margin: 14px 0 6px;
+}
+
+/* ===== TABELAS ===== */
+#resultadosContent table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin: 8px 0;
+    border-radius: 0;
+    overflow: visible;
+    box-shadow: none;
+    font-size: 12px;
+}
+
+#resultadosContent th {
+    background: var(--res-navy);
+    color: white;
+    font-weight: 600;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-right: 1px solid rgba(255,255,255,0.1);
+}
+
+#resultadosContent th:last-child {
+    border-right: none;
+}
+
+#resultadosContent td {
+    padding: 7px 12px;
+    background: white;
+    border-bottom: 1px solid var(--res-gray-3);
+    border-right: 1px solid var(--res-gray-3);
+    color: #1a1a2e;
+    font-weight: 400;
+    font-size: 12px;
+}
+
+#resultadosContent td:last-child {
+    border-right: none;
+}
+
+#resultadosContent tr:nth-child(even):not(.highlight) td {
+    background: var(--res-gray-1);
+}
+
+#resultadosContent tr:hover td {
+    background: #f0ede6;
+}
+
+/* ===== LINHA HIGHLIGHT ===== */
+#resultadosContent tr.highlight {
+    background: var(--res-gold-pale) !important;
+    font-weight: 700;
+    color: var(--res-navy) !important;
+}
+
+#resultadosContent tr.highlight td {
+    background: var(--res-gold-pale) !important;
+    color: var(--res-navy) !important;
+    font-weight: 700;
+    border-top: 2px solid var(--res-gold) !important;
+    border-bottom: 2px solid var(--res-gold) !important;
+}
+
+/* ===== SUCCESS BOX ===== */
+#resultadosContent .success-box {
+    background: var(--res-gray-1);
+    border: 1px solid var(--res-gray-3);
+    border-left: 3px solid var(--res-gold);
+    border-radius: 0 3px 3px 0;
+    padding: 10px 14px;
+    color: var(--res-gray-4);
+    font-size: 10px;
+    line-height: 1.7;
+    font-weight: 400;
+    margin-top: 8px;
+}
+
+/* ===== IR TABLE ===== */
+#resultadosContent .ir-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 16px;
+    background: white;
+    border-radius: 0;
+    overflow: visible;
+    box-shadow: 0 0 0 1px var(--res-gray-3);
+    border: none;
+    font-size: 12px;
+}
+
+#resultadosContent .ir-table th {
+    background: var(--res-gray-1);
+    color: var(--res-navy);
+    font-weight: 500;
+    padding: 7px 12px;
+    text-align: left;
+    font-size: 12px;
+    border-right: 1px solid var(--res-gray-3);
+    border-bottom: 1px solid var(--res-gray-3);
+    text-transform: none;
+    letter-spacing: normal;
+    width: 55%;
+}
+
+#resultadosContent .ir-table td {
+    padding: 7px 12px;
+    font-weight: 600;
+    color: #1a1a2e;
+    background: white;
+    border-bottom: 1px solid var(--res-gray-3);
+    text-align: right;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 12px;
+    border-right: none;
+}
+
+#resultadosContent .ir-table tr:hover {
+    background: var(--res-gray-1);
+}
+
+#resultadosContent .ir-table .section-header {
+    background: var(--res-navy) !important;
+    color: white !important;
+    text-align: center !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    padding: 8px 12px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#resultadosContent .ir-table .total-row th {
+    background: var(--res-navy) !important;
+    color: white !important;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+#resultadosContent .ir-table .total-row td {
+    background: var(--res-navy) !important;
+    color: white !important;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+/* ===== DEDUÇÕES ACESSÓRIAS ===== */
+#resultadosContent .deducoes-acessorias {
+    border-left: 3px solid #DC2626;
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 4px 4px 0;
+    background: #fdf8f8;
+}
+
+#resultadosContent .deducoes-acessorias h3 {
+    color: #DC2626;
+    font-weight: 700;
+    font-size: 12px;
+    font-family: 'Source Serif 4', Georgia, serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin-bottom: 10px;
+}
+
+/* ===== DEDUÇÕES LEGAIS ===== */
+#resultadosContent .deducoes-legais {
+    border-left: 3px solid var(--res-navy);
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 4px 4px 0;
+    background: var(--res-gray-1);
+}
+
+#resultadosContent .deducoes-legais h3 {
+    color: var(--res-navy);
+    font-weight: 700;
+    font-size: 12px;
+    font-family: 'Source Serif 4', Georgia, serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin-bottom: 10px;
+}
+
+/* ===== CESSÕES BENEFICIÁRIO ===== */
+#resultadosContent .cessoes-beneficiario {
+    border-left: 3px solid #2563eb;
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 4px 4px 0;
+    background: #f0f4ff;
+}
+
+#resultadosContent .cessoes-beneficiario h3 {
+    color: #1e40af;
+    font-weight: 700;
+    font-size: 12px;
+    font-family: 'Source Serif 4', Georgia, serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin-bottom: 10px;
+}
+
+/* ===== PAGAMENTOS FINAIS ===== */
+#resultadosContent .pagamentos-finais {
+    margin: 16px 0;
+}
+
+#resultadosContent .pagamentos-finais .table-container {
+    border-left-color: var(--res-green);
+}
+
+#resultadosContent .pagamentos-finais .table-container h3 {
+    color: var(--res-green);
+}
+
+/* ===== PAGAMENTOS ACORDO ===== */
+#resultadosContent .pagamentos-acordo .table-container {
+    border-left-color: #b8962e !important;
+}
+
+#resultadosContent .pagamentos-acordo .table-container h3 {
+    color: #7a6020 !important;
+}
+
+/* Caixa de informações do acordo */
+#resultadosContent .pagamentos-acordo div[style*="background-color: #fff3cd"],
+#resultadosContent .pagamentos-acordo div[style*="fff3cd"] {
+    background: var(--res-gold-pale) !important;
+    border-left: 3px solid var(--res-gold) !important;
+    border-radius: 0 3px 3px 0 !important;
+    padding: 10px 14px !important;
+    font-size: 11px !important;
+    margin-top: 8px !important;
+}
+
+/* ===== NOTAS EXPLICATIVAS ===== */
+#resultadosContent .notas-explicativas {
+    background: white;
+    border-radius: 4px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    border: 1px dashed var(--res-gray-3);
+    box-shadow: none;
+    position: relative;
+    overflow: visible;
+}
+
+#resultadosContent .notas-explicativas::before {
+    display: none;
+}
+
+#resultadosContent .notas-explicativas h3 {
+    color: var(--res-navy);
+    margin-bottom: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'Source Serif 4', Georgia, serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--res-gray-2);
+    padding-bottom: 8px;
+}
+
+
+
+#resultadosContent .textarea-notas {
+    width: 100%;
+    height: 100px;
+    padding: 10px 12px;
+    border: 1px solid var(--res-gray-3);
+    border-radius: 3px;
+    font-size: 12px;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    color: #1a1a2e;
+    resize: vertical;
+    background: var(--res-gray-1);
+}
+
+/* ===== BOTÃO IMPRIMIR ===== */
+#resultadosContent .print-button-container {
+    text-align: center;
+    margin: 24px 0 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--res-gray-2);
+    display: flex !important;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* ===== SEÇÃO HEADER (verde nas tabelas IR) ===== */
+#resultadosContent .section-header {
+    background: var(--res-navy) !important;
+    color: white !important;
+    text-align: center !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    padding: 8px 12px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ===== RODAPÉ JURÍDICO ===== */
+#resultadosContent .rodape-juridico {
+    margin-top: 24px;
+    padding: 16px 20px;
+    background: var(--res-navy);
+    border-radius: 4px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    color: rgba(255,255,255,0.5);
+    font-size: 9px;
+    line-height: 1.8;
+}
+
+#resultadosContent .rodape-assinatura {
+    text-align: right;
+}
+
+#resultadosContent .rodape-assinatura .linha {
+    border-top: 1px solid rgba(255,255,255,0.2);
+    margin-top: 24px;
+    padding-top: 6px;
+    font-size: 9px;
+    color: rgba(255,255,255,0.4);
+}

@@ -22,6 +22,18 @@ body {
     margin: 0 !important;
 }
 
+.print-button-container,
+.print-button-container * {
+    display: none !important;
+}
+
+button[onclick*="window.print"],
+button[onclick*="exportarExcel"],
+button[onclick*="location.href"],
+button[onclick*="abrirFeedback"] {
+    display: none !important;
+}
+
 .container {
     box-shadow: none !important;
     margin: 0 !important;

@@ -16,17 +16,18 @@ function gerarSecaoDeducoesAcessorias(resultados, dados) {
         ? gerarSecaoHonorarios(resultados, dados, honorariosParaMostrar, temHerdeiros)
         : '';
 
+    const conteudo = (secaoSindicatos && secaoHonorarios)
+        ? `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start;">
+               <div>${secaoSindicatos}</div>
+               <div>${secaoHonorarios}</div>
+           </div>`
+        : `${secaoSindicatos}${secaoHonorarios}`;
+
     return `
         <div class="deducoes-acessorias">
             <div class="table-container">
                 <h3>📄➖ Deduções Acessórias</h3>
-                <div class="explicacao-juridica">
-                    <div class="titulo">Entenda as Deduções Acessórias</div>
-                    <p><strong>Contribuições Sindicais:</strong> Percentual devido aos sindicatos quando aplicável.</p>
-                    <p><strong>Honorários Advocatícios:</strong> Percentual devido aos advogados conforme contrato.</p>
-                </div>
-                ${secaoSindicatos}
-                ${secaoHonorarios}
+                ${conteudo}
             </div>
         </div>
     `;
@@ -73,47 +74,54 @@ function gerarSecaoSindicatos(resultados, dados) {
     const linhasSindicatos = resultados.sindicatos.map(s => `
         <tr>
             <td>${s.nome}</td>
-            <td>R$ ${formatarMoeda(baseCalculoSindicato)}</td>
-            <td>${(s.percentual * 100).toFixed(2)}%</td>
-            <td>R$ ${formatarMoeda(s.valorBruto)}</td>
+            <td class="right">R$ ${formatarMoeda(baseCalculoSindicato)}</td>
+            <td class="right">${(s.percentual * 100).toFixed(2)}%</td>
+            <td class="right bold">R$ ${formatarMoeda(s.valorBruto)}</td>
         </tr>
     `).join('');
     
     const totalSindicatos = resultados.sindicatos.reduce((sum, s) => sum + s.valorBruto, 0);
     
     return `
-        <h3>🏛️ Sindicatos</h3>
+        <div class="res-subsecao">🏛️ Sindicatos</div>
         <table>
-            <tr><th>Nome Sindicato</th><th>Base de Cálculo</th><th>Percentual</th><th>Valor Bruto</th></tr>
-            ${linhasSindicatos}
-            <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
-                <td colspan="3"><strong>TOTAL SINDICATOS</strong></td>
-                <td><strong>R$ ${formatarMoeda(totalSindicatos)}</strong></td>
-            </tr>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th class="right">Base</th>
+                    <th class="right">%</th>
+                    <th class="right">Valor</th>
+                </tr>
+            </thead>
+            <tbody>${linhasSindicatos}</tbody>
+            <tfoot>
+                <tr class="linha-gold">
+                    <td colspan="3" class="bold">Total Sindicatos</td>
+                    <td class="right bold">R$ ${formatarMoeda(totalSindicatos)}</td>
+                </tr>
+            </tfoot>
         </table>
     `;
 }
 
 function gerarSecaoHonorarios(resultados, dados, honorariosParaMostrar, temHerdeiros) {
     const baseGroups = agruparPorBaseCalculo(resultados, dados, temHerdeiros);
-    
     const secoes = [];
     
     baseGroups.forEach((herdeiros, base) => {
         const valorBase = (base === 'PRINCIPAL') ? herdeiros[0].valorTotal : parseFloat(base);
         const herdeirosNomes = herdeiros.map(h => h.nome).join(', ');
         
-        const titulo = dados.tipoCalculo === 'preferencia' && valorBase < resultados.valortotatt
-            ? '👩‍💼 Advogados (H.Contratuais) - Honorários da Preferência'
-            : '👩‍💼 Advogados (H.Contratuais)';
+        const subtitulo = dados.tipoCalculo === 'preferencia' && valorBase < resultados.valortotatt
+            ? '👩‍💼 Honorários Contratuais — Preferência'
+            : '👩‍💼 Honorários Contratuais';
 
         const linhasAdvogados = honorariosParaMostrar.map(a => `
             <tr>
                 <td>${a.nome}</td>
-                <td>${a.tipo}</td>
-                <td>R$ ${formatarMoeda(valorBase)}</td>
-                <td>${(a.percentual * 100).toFixed(2)}%</td>
-                <td>R$ ${formatarMoeda(valorBase * a.percentual)}</td>
+                <td class="muted">${a.tipo}</td>
+                <td class="right">${(a.percentual * 100).toFixed(2)}%</td>
+                <td class="right bold">R$ ${formatarMoeda(valorBase * a.percentual)}</td>
             </tr>
         `).join('');
 
@@ -121,19 +129,28 @@ function gerarSecaoHonorarios(resultados, dados, honorariosParaMostrar, temHerde
         const totalValor = valorBase * totalPercentual;
 
         secoes.push(`
-            <h3>${titulo}</h3>
-            <p style="color: #155724; font-style: italic;">
-                Valores calculados sobre: R$ ${formatarMoeda(valorBase)}
-                <span style="color: #856404;"> - ${herdeirosNomes}</span>
-            </p>
+            <div class="res-subsecao">${subtitulo}</div>
+            <div style="font-size:11px; color:#6c757d; margin: 4px 0 8px; padding: 0 2px;">
+                Base: <strong>R$ ${formatarMoeda(valorBase)}</strong>
+                ${herdeirosNomes !== 'Beneficiário Principal' ? ` — ${herdeirosNomes}` : ''}
+            </div>
             <table>
-                <tr><th>Nome Advogado</th><th>PF/PJ</th><th>Base de Cálculo</th><th>Percentual</th><th>Valor Bruto</th></tr>
-                ${linhasAdvogados}
-                <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
-                    <td colspan="3"><strong>TOTAL HONORÁRIOS</strong></td>
-                    <td><strong>${(totalPercentual * 100).toFixed(2)}%</strong></td>
-                    <td><strong>R$ ${formatarMoeda(totalValor)}</strong></td>
-                </tr>
+                <thead>
+                    <tr>
+                        <th>Advogado</th>
+                        <th>Tipo</th>
+                        <th class="right">%</th>
+                        <th class="right">Valor</th>
+                    </tr>
+                </thead>
+                <tbody>${linhasAdvogados}</tbody>
+                <tfoot>
+                    <tr class="linha-gold">
+                        <td colspan="2" class="bold">Total Honorários</td>
+                        <td class="right bold">${(totalPercentual * 100).toFixed(2)}%</td>
+                        <td class="right bold">R$ ${formatarMoeda(totalValor)}</td>
+                    </tr>
+                </tfoot>
             </table>
         `);
     });

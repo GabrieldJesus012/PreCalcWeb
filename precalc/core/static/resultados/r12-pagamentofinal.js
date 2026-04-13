@@ -882,12 +882,12 @@ function gerarSecaoCessionariosBeneficiario(resultados, dados) {
                         ${linhasCessionarios}
                     </tbody>
                     <tfoot>
-                        <tr class="highlight">
-                            <td><strong>TOTAL CESSIONÁRIOS</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totalDevido)}</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totalPrevidencia)}</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totalIR)}</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totalLiquido)}</strong></td>
+                        <tr class="linha-gold">
+                            <td class="bold">TOTAL CESSIONÁRIOS</td>
+                            <td class="bold">R$ ${formatarMoeda(totalDevido)}</td>
+                            <td class="bold">R$ ${formatarMoeda(totalPrevidencia)}</td>
+                            <td class="bold">R$ ${formatarMoeda(totalIR)}</td>
+                            <td class="bold">R$ ${formatarMoeda(totalLiquido)}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -944,12 +944,12 @@ function montarTabelaHerdeiro(herdeiro, pagamentosHerdeiro, isPreferencia, total
                     </thead>
                     <tbody>${linhas}</tbody>
                     <tfoot>
-                        <tr class="highlight">
-                            <td><strong>TOTAL</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.totalDevido)}</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.totalPrevidencia)}</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.totalIR)}</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.totalLiquido)}</strong></td>
+                        <tr class="linha-gold">
+                            <td class="bold">TOTAL</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.totalDevido)}</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.totalPrevidencia)}</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.totalIR)}</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.totalLiquido)}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -988,12 +988,12 @@ function montarTabelaHonorariosSucumbenciais(pagamentos) {
                     </thead>
                     <tbody>${linhas}</tbody>
                     <tfoot>
-                        <tr class="highlight">
-                            <td><strong>Total Honorários Sucumbenciais</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.totalDevido)}</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.totalPrevidencia)}</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.totalIR)}</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.totalLiquido)}</strong></td>
+                        <tr class="linha-gold">
+                            <td class="bold">Total Honorários Sucumbenciais</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.totalDevido)}</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.totalPrevidencia)}</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.totalIR)}</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.totalLiquido)}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -1018,12 +1018,12 @@ function montarResumoGeral(totais) {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr class="highlight" style="font-weight: bold; font-size: 1.1em;">
-                            <td><strong>TOTAL FINAL</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.totalDevido)}</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.totalPrevidencia)}</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.totalIR)}</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.totalLiquido)}</strong></td>
+                        <tr class="linha-gold">
+                            <td class="bold">TOTAL FINAL</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.totalDevido)}</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.totalPrevidencia)}</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.totalIR)}</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.totalLiquido)}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -1083,11 +1083,11 @@ function montarTabelasAcordo(pagamentosAcordo, percentualDesagio) {
                 </thead>
                 <tbody>${linhasCalculo}</tbody>
                 <tfoot>
-                    <tr class="highlight">
-                        <td><strong>TOTAL</strong></td>
-                        <td><strong>R$ ${formatarMoeda(totais.valorDevido)}</strong></td>
-                        <td><strong>R$ ${formatarMoeda(totais.valorDesagio)}</strong></td>
-                        <td><strong>R$ ${formatarMoeda(totais.valorAposDesagio)}</strong></td>
+                    <tr class="linha-gold">
+                        <td class="bold">TOTAL</strong></td>
+                        <td class="bold">R$ ${formatarMoeda(totais.valorDevido)}</td>
+                        <td class="bold">R$ ${formatarMoeda(totais.valorDesagio)}</td>
+                        <td class="bold">R$ ${formatarMoeda(totais.valorAposDesagio)}</td>
                     </tr>
                 </tfoot>
             </table>
@@ -1109,21 +1109,21 @@ function montarTabelasAcordo(pagamentosAcordo, percentualDesagio) {
                     </thead>
                     <tbody>${linhasPagamento}</tbody>
                     <tfoot>
-                        <tr class="highlight">
-                            <td><strong>TOTAL</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.valorAposDesagio)}</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.previdencia)}</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.ir)}</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.valorLiquido)}</strong></td>
-                            <td><strong>-</strong></td>
+                        <tr class="linha-gold">
+                            <td class="bold">TOTAL</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.valorAposDesagio)}</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.previdencia)}</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.ir)}</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.valorLiquido)}</td>
+                            <td class="bold">-</td>
                         </tr>
                     </tfoot>
                 </table>
-                <div style="margin-top: 15px; padding: 10px; background-color: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">
-                    <h4>⚖️ Informações do Acordo:</h4>
-                    <p style="margin: 5px 0;"><strong>Deságio aplicado:</strong> ${(percentualDesagio * 100).toFixed(2)}% sobre o valor devido</p>
-                    <p style="margin: 5px 0;"><strong>Tributos calculados:</strong> Sobre o valor após deságio</p>
-                    <p style="margin: 5px 0;"><strong>Apenas credores que aderiram</strong> ao acordo aparecem nesta tabela</p>
+                <div class="res-nota-legal" style="margin-top: 8px;">
+                    <strong>⚖️ Informações do Acordo:</strong><br>
+                    <strong>Deságio aplicado:</strong> ${(percentualDesagio * 100).toFixed(2)}% sobre o valor devido &nbsp;·&nbsp;
+                    <strong>Tributos calculados:</strong> Sobre o valor após deságio &nbsp;·&nbsp;
+                    Apenas credores que aderiram ao acordo aparecem nesta tabela
                 </div>
             </div>
         </div>
@@ -1222,12 +1222,12 @@ function montarTabelaPagamentosSemHerdeiros(todosPagamentos, totais) {
                     </thead>
                     <tbody>${linhas}</tbody>
                     <tfoot>
-                        <tr class="highlight">
-                            <td><strong>TOTAL</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.totalDevido)}</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.totalPrevidencia)}</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.totalIR)}</strong></td>
-                            <td><strong>R$ ${formatarMoeda(totais.totalLiquido)}</strong></td>
+                        <tr class="linha-gold">
+                            <td class="bold">TOTAL</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.totalDevido)}</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.totalPrevidencia)}</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.totalIR)}</td>
+                            <td class="bold">R$ ${formatarMoeda(totais.totalLiquido)}</td>
                         </tr>
                     </tfoot>
                 </table>

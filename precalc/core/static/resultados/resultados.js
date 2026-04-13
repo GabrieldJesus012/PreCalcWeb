@@ -159,18 +159,8 @@ function limparNotasExplicativas() {
 function gerarBotaoImprimir() {
     return `
         <div class="print-button-container" style="text-align: center; margin: 20px 0; display: block;">
-            <button onclick="prepararTextareaParaImpressao(); window.print();" style="
-                background-color: #343A40;
-                color: white;
-                border: none;
-                padding: 12px 24px;
-                font-size: 16px;
-                border-radius: 5px;
-                cursor: pointer;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                margin-right: 10px;
-            ">
-                🖨️ Imprimir / Salvar PDF
+            <button onclick="window.location.href='/pdf/${resultados._id}/'" style="...">
+                🖨️ Gerar PDF
             </button>
             <button onclick="exportarExcel()" style="
                 background-color: #1a7a4a;

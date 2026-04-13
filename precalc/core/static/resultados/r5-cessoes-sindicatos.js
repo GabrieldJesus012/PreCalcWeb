@@ -38,10 +38,10 @@ function gerarSecaoCessoesSindicatos(resultados, dados) {
                         <td>R$ ${formatarMoeda(sind.valorBrutoSindicato)}</td>
                     </tr>
                     ${linhasCessionarios}
-                    <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
-                        <td>TOTAL</td>
-                        <td>100.00%</td>
-                        <td>R$ ${formatarMoeda(sind.valorBruto)}</td>
+                    <tr class="linha-gold">
+                        <td class="bold">TOTAL</td>
+                        <td class="bold">100.00%</td>
+                        <td class="bold">R$ ${formatarMoeda(sind.valorBruto)}</td>
                     </tr>
                 </table>
             </div>
