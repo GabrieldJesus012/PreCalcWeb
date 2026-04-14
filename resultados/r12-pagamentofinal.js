@@ -412,7 +412,7 @@ function coletarCessionariosAcordo(adesoes, dados, resultados, percentualDesagio
         }
 
         // Cessionários de sindicatos
-        if (cessao.tipo === 'cessaoSind') {
+        if (cessao.tipo === 'cessaoSindicato') {
             adicionarCessionarioSindicatoAcordo(cessao, resultados, percentualDesagio, pagamentosAcordo);
         }
     });
