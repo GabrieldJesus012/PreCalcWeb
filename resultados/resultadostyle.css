@@ -79,6 +79,16 @@
     background: #a9312686 !important;
 }
 
+.results .table-container h3 + p {
+    padding: 8px 16px;
+}
+
+.results .table-container table + h3 {
+    margin-top: 20px;
+    border-top: 1px solid var(--sr-gray-mid);
+    padding-top: 16px;
+}
+
 
 /* ── TABLE CONTAINER (substitui o existente nos resultados) ── */
 .results .table-container {

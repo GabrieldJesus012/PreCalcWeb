@@ -18,26 +18,22 @@ function gerarCalculos(dados, resultados, inicioGraca, fimGraca) {
         
         dados.valoresPrincipais.forEach((item, index) => {
             const itemCalculado = resultados.itensCalculados?.find(calc => calc.id === item.id) || {};
-            memoriaisCalculos += gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado);
+            const temSelicItem = (item.tipoSelic === 'valor' && item.valorSelic > 0) || 
+                                (item.tipoSelic === 'percentual' && item.percentualSelic > 0);
+            const notaItem = temSelicItem ? gerarNotaSelicInformado(dados, resultados, item) : '';
+
+            memoriaisCalculos += gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado, notaItem, temJurosMora);
         });
     }
-
-    const notaSelicInformado = temSelicInformado 
-        ? gerarNotaSelicInformado(dados, resultados)
-        : '';
     
     return `
         ${memoriaisCalculos}
-        ${(notaSelicInformado || temJurosMora) ? `
-        <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
-            ${notaSelicInformado}${temJurosMora ? 'Juros calculados de forma simples (até Novembro/2021), conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ, SV nº 17 do STF e a partir de 01.08.2025 juros de 2% ao ano (quando aplicável).' : ''}
-        </div>` : ''}
     `;
 }
 
 // ========== FUNÇÕES AUXILIARES DE GERAR CALCULOS==========
 
-function gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado) {
+function gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado, notaItem = '', temJurosMora = false) {
     const indices = obterIndicesItem(itemCalculado);
     const valoresCalculados = calcularValoresPassoAPasso(item, itemCalculado, indices);
     const periodoGraca = `Graça Constitucional: ${inicioGracaFormatado} a ${fimGracaFormatado}`;
@@ -85,6 +81,11 @@ function gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGraca
             ${valorSelicFinal > 0 ? gerarTabelaSelic(itemCalculado, valoresCalculados) : ''}
             
             ${totalDoItem}
+
+            ${(notaItem || temJurosMora) ? `
+            <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
+                ${notaItem}${temJurosMora ? '*Juros calculados de forma simples (até Novembro/2021), conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ, SV nº 17 do STF e a partir de 01.08.2025 juros de 2% ao ano (quando aplicável).' : ''}
+            </div>` : ''}
         </div>
     `;
 }

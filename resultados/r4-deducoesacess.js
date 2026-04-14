@@ -51,18 +51,17 @@ function obterHonorariosParaExibir(resultados, temHerdeiros) {
             if (h.honorarios && h.honorarios.length > 0) {
                 h.honorarios.forEach(a => {
                     if (!honorariosMap.has(a.nome)) {
-                        honorariosMap.set(a.nome, {
-                            nome: a.nome,
-                            tipo: a.tipo,
-                            percentual: a.percentual
-                        });
+                        honorariosMap.set(a.nome, a.nome);
                     }
                 });
             }
         });
-        
-        honorariosParaMostrar = Array.from(honorariosMap.values());
+
+        // ✅ Buscar dados COMPLETOS (com cessoesAdv e cessionarios) de resultados.honorarios
+        const nomes = honorariosMap;
+        honorariosParaMostrar = (resultados.honorarios || []).filter(a => nomes.has(a.nome));
         temHonorarios = honorariosParaMostrar.length > 0;
+
     } else {
         temHonorarios = resultados.honorarios && resultados.honorarios.length > 0;
         honorariosParaMostrar = resultados.honorarios || [];
@@ -170,7 +169,9 @@ function gerarSecaoHonorarios(resultados, dados, honorariosParaMostrar, temHerde
             ? 'Beneficiário Principal'
             : herdeiros.map(h => h.nome).join(', ');
 
-        const isPreferenciaParcial = isPreferencia && valorBase < resultados.valortotatt;
+        const isPreferenciaParcial = isPreferencia && 
+        base !== 'PRINCIPAL' &&
+        herdeiros.some(h => h.isPreferenciaParcial);
 
         const titulo = isPreferenciaParcial
             ? '👩‍💼 Advogados (H.Contratuais) — Honorários da Preferência'
