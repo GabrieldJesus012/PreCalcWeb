@@ -75,7 +75,7 @@ def calcular_honorarios_sucumbenciais(dados, valor_total_divida, totais_por_tipo
         ]
 
         percentual_cessionario = sum(c['percentual'] for c in cessao_adv)
-        percentual_advogado = max(0, 1 - percentual_cessionario)
+        percentual_advogado = max(0, adv['percentual'] - percentual_cessionario)/adv['percentual']
 
         valor_adv_apos_cessoes = valor_bruto_total * percentual_advogado
         valor_cess_total = valor_bruto_total * percentual_cessionario
@@ -106,7 +106,7 @@ def calcular_honorarios_sucumbenciais(dados, valor_total_divida, totais_por_tipo
 
         cessionarios = []
         for cessao in cessao_adv:
-            valor_bruto_cessao = valor_final_honorario * cessao['percentual']
+            valor_bruto_cessao = valor_base_sucumbencial * cessao['percentual']
             valor_apos_desagio = valor_bruto_cessao * (1 - percentual_desagio) if is_acordo else valor_bruto_cessao
 
             if not adv.get('incidenciaIR'):
