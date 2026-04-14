@@ -21,6 +21,7 @@
     <script src="resultados/r12-pagamentofinal.js"></script>
     <script src="resultados/resultados.js"></script>
     <script src="js/modelos-sindifaz.js"></script>
+    <script src="js/modelos-sindifaz-sem-alt.js"></script>
     <script src="js/modelos-sinafepi15.js"></script>
     <script src="js/modelos-sinafepi2.js"></script>
     <script src="js/modelos.js"></script>
@@ -2187,9 +2188,15 @@
         const MODELOS_DISPONIVEIS = [
             {
                 id: 'sindifaz',
-                nome: 'SindiFaz',
+                nome: 'SindiFaz - Com Alt',
                 icone: '⚖️',
                 fn: configurarSindiFaz
+            },
+            {
+                id: 'sindifazsemalt',
+                nome: 'SindiFaz - Sem Alt',
+                icone: '⚖️',
+                fn: configurarSindiFazSemAlt
             },
             {
                 id: 'sinafepi',
