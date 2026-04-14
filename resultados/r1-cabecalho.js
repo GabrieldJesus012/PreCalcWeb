@@ -170,7 +170,7 @@ function gerarDemonstrativoValores(dados, resultados, dataAtual) {
                 ${gerarLinhaBase(resultados, dados)}
             </table>
             <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
-                *Atualização Monetária conforme Resolução CNJ nº 303/2019, com índices de correção monetária, conforme caput do Art.21- A e Emendas Constitucionais nº 62, 113 e 136. - <strong>Período de Correção</strong>: Os valores foram atualizados desde a base <strong>${textoDataBase}</strong> até <strong>${dataAtual}</strong>.
+                Atualização Monetária conforme Resolução CNJ nº 303/2019, com índices de correção monetária, conforme caput do Art.21- A e Emendas Constitucionais nº 62, 113 e 136. - <strong>Período de Correção</strong>: Os valores foram atualizados desde a base <strong>${textoDataBase}</strong> até <strong>${dataAtual}</strong>.
             </div>
         </div>
     `;

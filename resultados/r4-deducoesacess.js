@@ -20,13 +20,18 @@ function gerarSecaoDeducoesAcessorias(resultados, dados) {
         <div class="deducoes-acessorias">
             <div class="table-container">
                 <h3>📄➖ Deduções Acessórias</h3>
-                <div class="explicacao-juridica">
-                    <div class="titulo">Entenda as Deduções Acessórias</div>
+                <div class="success-box" style="margin-bottom: 5px;margin-top: 5px; padding: 10px; border-radius: 4px;">
                     <p><strong>Contribuições Sindicais:</strong> Percentual devido aos sindicatos quando aplicável.</p>
                     <p><strong>Honorários Advocatícios:</strong> Percentual devido aos advogados conforme contrato.</p>
                 </div>
+
+                <div style="margin-bottom:16px;">
                 ${secaoSindicatos}
-                ${secaoHonorarios}
+                </div>
+                
+                <div style="margin-bottom:16px;">
+                    ${secaoHonorarios}
+                </div>
             </div>
         </div>
     `;
@@ -70,23 +75,82 @@ function gerarSecaoSindicatos(resultados, dados) {
     const isParcial = dados.tipoCalculo === 'parcial';
     const baseCalculoSindicato = isParcial ? resultados.valorBase : resultados.valortotatt;
     
-    const linhasSindicatos = resultados.sindicatos.map(s => `
-        <tr>
-            <td>${s.nome}</td>
-            <td>R$ ${formatarMoeda(baseCalculoSindicato)}</td>
-            <td>${(s.percentual * 100).toFixed(2)}%</td>
-            <td>R$ ${formatarMoeda(s.valorBruto)}</td>
-        </tr>
-    `).join('');
+    const linhasSindicatos = resultados.sindicatos.map(s => {
+        const temCessoes = s.cessoesSind?.length > 0;
+        const percentualSindicato = s.percentualSindicato || 0;
+        const valorSindicato = s.valorBrutoSindicato || 0;
+
+        let linhas = '';
+
+        if (temCessoes) {
+            if (percentualSindicato === 0) {
+                // Cedeu tudo
+                linhas = `
+                    <tr style="background:#F8F9FA !important;">
+                        <td style="color:var(--sr-gray); font-style:italic;">
+                            ${s.nome}
+                            <small>(cedeu integralmente — valor original: R$ ${formatarMoeda(s.valorBruto)})</small>
+                        </td>
+                        <td style="color:var(--sr-gray);">—</td>
+                        <td style="color:var(--sr-gray);">—</td>
+                        <td style="color:var(--sr-gray);">—</td>
+                    </tr>
+                `;
+            } else {
+                // Cedeu parcialmente
+                linhas = `
+                    <tr>
+                        <td>${s.nome}</td>
+                        <td>R$ ${formatarMoeda(baseCalculoSindicato)}</td>
+                        <td>${(percentualSindicato * 100).toFixed(2)}%</td>
+                        <td>R$ ${formatarMoeda(valorSindicato)}</td>
+                    </tr>
+                `;
+            }
+
+            // Cessionários
+            (s.cessionarios || []).forEach(c => {
+                linhas += `
+                    <tr style="background:#FEF5E7 !important;">
+                        <td style="padding-left:28px; color:var(--sr-orange-dark);">
+                            ↳ ${c.nome}
+                            <small style="color:var(--sr-gray);">(Cessionário de ${s.nome})</small>
+                        </td>
+                        <td style="color:var(--sr-gray); font-size:12px;">—</td>
+                        <td style="color:var(--sr-orange-dark);">${(c.percentual * 100).toFixed(2)}%</td>
+                        <td style="color:var(--sr-orange-dark);">R$ ${formatarMoeda(c.valorBruto)}</td>
+                    </tr>
+                `;
+            });
+
+        } else {
+            // Sem cessão
+            linhas = `
+                <tr>
+                    <td>${s.nome}</td>
+                    <td>R$ ${formatarMoeda(baseCalculoSindicato)}</td>
+                    <td>${(s.percentual * 100).toFixed(2)}%</td>
+                    <td>R$ ${formatarMoeda(s.valorBruto)}</td>
+                </tr>
+            `;
+        }
+
+        return linhas;
+    }).join('');
     
     const totalSindicatos = resultados.sindicatos.reduce((sum, s) => sum + s.valorBruto, 0);
     
     return `
         <h3>🏛️ Sindicatos</h3>
         <table>
-            <tr><th>Nome Sindicato</th><th>Base de Cálculo</th><th>Percentual</th><th>Valor Bruto</th></tr>
+            <tr>
+                <th>Nome Sindicato</th>
+                <th>Base de Cálculo</th>
+                <th>Percentual</th>
+                <th>Valor Bruto</th>
+            </tr>
             ${linhasSindicatos}
-            <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
+            <tr class="highlight">
                 <td colspan="3"><strong>TOTAL SINDICATOS</strong></td>
                 <td><strong>R$ ${formatarMoeda(totalSindicatos)}</strong></td>
             </tr>

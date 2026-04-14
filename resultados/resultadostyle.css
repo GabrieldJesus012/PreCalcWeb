@@ -69,6 +69,15 @@
     background: var(--sr-green-dark) !important;
 }
 
+.results .deducoes-acessorias tr.highlight td {
+    background: #c03a2b9c !important;
+    color: var(--sr-white) !important;
+    font-weight: 700 !important;
+}
+
+.results .deducoes-acessorias tr.highlight:hover td {
+    background: #a9312686 !important;
+}
 
 
 /* ── TABLE CONTAINER (substitui o existente nos resultados) ── */

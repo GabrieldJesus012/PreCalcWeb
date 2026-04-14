@@ -30,7 +30,7 @@ function gerarCalculos(dados, resultados, inicioGraca, fimGraca) {
         ${memoriaisCalculos}
         ${(notaSelicInformado || temJurosMora) ? `
         <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
-            ${notaSelicInformado}${temJurosMora ? '*Juros calculados de forma simples (até Novembro/2021), conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ, SV nº 17 do STF e a partir de 01.08.2025 juros de 2% ao ano (quando aplicável).' : ''}
+            ${notaSelicInformado}${temJurosMora ? 'Juros calculados de forma simples (até Novembro/2021), conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ, SV nº 17 do STF e a partir de 01.08.2025 juros de 2% ao ano (quando aplicável).' : ''}
         </div>` : ''}
     `;
 }
