@@ -127,7 +127,7 @@ function gerarDemonstrativoValores(dados, resultados, dataAtual) {
         : '-';
 
     return `
-        <div class="table-container">
+        <div class="table-container table-container-orange">
             <h3>💰 Demonstrativo de Atualização Monetária</h3>
             <table>
                 <tr>
@@ -182,7 +182,7 @@ function gerarLinhaBase(resultados, dados) {
 
     if (dados.somenteHonorarioSucumbencial && dados.tipoCalculo === 'parcial') {
         return `
-            <tr class="highlight">
+            <tr class="highlight-green">
                 <td><strong>Valor Disponível para Pagamento</strong></td>
                 <td colspan="3"><strong>R$ ${formatarMoeda(dados.saldoParcial)}</strong></td>
                 <td><strong>100.00%</strong></td>
@@ -192,11 +192,11 @@ function gerarLinhaBase(resultados, dados) {
         const herdeirosPreferenciais = resultados.herdeiros.filter(h => h.temPreferencia);
         if (herdeirosPreferenciais.length > 0) {
             return `
-                <tr class="highlight">
+                <tr class="highlight-green">
                     <td colspan="5"><strong>Base para Pagamento</strong></td>
                 </tr>
                 ${herdeirosPreferenciais.map(h => `
-                    <tr class="highlight">
+                    <tr class="highlight-green">
                         <td><strong>${h.nome}</strong></td>
                         <td colspan="2"><strong>R$ ${formatarMoeda(h.valorTotal)}</strong></td>
                         <td><strong>R$ ${formatarMoeda(h.valorTotal)}</strong></td>
@@ -207,7 +207,7 @@ function gerarLinhaBase(resultados, dados) {
         }
     } else {
         return `
-            <tr class="highlight">
+            <tr class="highlight-green">
                 <td><strong>Base para Pagamento</strong></td>
                 <td>-</td>
                 <td>-</td>

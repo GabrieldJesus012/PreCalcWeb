@@ -47,6 +47,30 @@
     color: var(--sr-text);
 }
 
+.results .table-container.table-container-orange h3 {
+    background: var(--sr-orange) !important;
+}
+
+.results tr.highlight-green td {
+    background: var(--sr-green) !important;
+    color: var(--sr-white) !important;
+    font-weight: 700 !important;
+}
+
+/* ── sucumbencial── */
+
+.results tr.highlight-green td {
+    background: var(--sr-green) !important;
+    color: var(--sr-white) !important;
+    font-weight: 700 !important;
+}
+
+.results tr.highlight-green:hover td {
+    background: var(--sr-green-dark) !important;
+}
+
+
+
 /* ── TABLE CONTAINER (substitui o existente nos resultados) ── */
 .results .table-container {
     background: var(--sr-white);

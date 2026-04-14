@@ -74,7 +74,7 @@ function calcularHonorariosSucumbenciais(dados, valorTotalDivida, totaisPorTipo 
         ) || [];
         
         const percentualCessionarioAdv = cessaoAdv.reduce((sum, c) => sum + c.percentual, 0);
-        const percentualAdvogado = Math.max(0, 1 - percentualCessionarioAdv);
+        const percentualAdvogado = Math.max(0, adv.percentual - percentualCessionarioAdv) / adv.percentual;
         
         const valorAdvogadoAposCessoes = valorBrutoTotal * percentualAdvogado;
         const valorCessionariosTotal = valorBrutoTotal * percentualCessionarioAdv;
@@ -121,7 +121,7 @@ function calcularHonorariosSucumbenciais(dados, valorTotalDivida, totaisPorTipo 
         const valorLiquidoCessionario = valorCessionariosAposDesagio - irCessionarioAdv;
         
         const cessionarios = cessaoAdv.map(cessao => {
-            const valorBrutoCessao = valorFinalHonorario * cessao.percentual;
+            const valorBrutoCessao = valorBaseSucumbencial * cessao.percentual;
             const valorAposDesagio = isAcordo
                 ? valorBrutoCessao * (1 - percentualDesagio)
                 : valorBrutoCessao;

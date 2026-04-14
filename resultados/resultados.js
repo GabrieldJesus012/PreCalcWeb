@@ -30,7 +30,6 @@ function gerarVisualizacaoSucumbencial(resultados, dados, contexto) {
         ${gerarCalculos(dados, resultados, contexto.inicioGraca, contexto.fimGraca)}
         
         ${gerarSecaoHonorariosSucumbenciais(resultados, dados)}
-        ${gerarSecaoCessoesHonorariosSucumbenciais(resultados, dados)}
         ${gerarSecaoPagamentosOcorridos(resultados, dados)}
         ${gerarDemonstrativoSaldoRemanescente(resultados)}
         ${gerarTabelaHonorariosSucumbenciais(resultados, dados)}
@@ -48,7 +47,6 @@ function gerarVisualizacaoCompleta(resultados, dados, contexto) {
         ${gerarCalculos(dados, resultados, contexto.inicioGraca, contexto.fimGraca)}
         
         ${gerarSecaoHonorariosSucumbenciais(resultados, dados)}
-        ${gerarSecaoCessoesHonorariosSucumbenciais(resultados, dados)}
         ${gerarSecaoDeducoesAcessorias(resultados, dados)}
         ${gerarSecaoCessoesSindicatos(resultados, dados)}
         ${gerarSecaoCessoesAdvogados(resultados, dados)}
