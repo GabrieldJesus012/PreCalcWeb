@@ -1,0 +1,236 @@
+/* ============================================================
+   resultadostyle.css — Estilo SAPRe para área de resultados
+   Importado apenas na tab7 de resultados
+   ============================================================ */
+
+/* ── VARIÁVEIS SAPRE ── */
+.results {
+    --sr-blue: #1E6EA6;
+    --sr-blue-dark: #155A8A;
+    --sr-blue-light: #EBF4FB;
+    --sr-orange: #E67E22;
+    --sr-orange-dark: #CA6F1E;
+    --sr-orange-light: #FEF5E7;
+    --sr-green: #27AE60;
+    --sr-green-dark: #1E8449;
+    --sr-green-light: #EAFAF1;
+    --sr-gray: #566573;
+    --sr-gray-light: #F2F3F4;
+    --sr-gray-mid: #D5D8DC;
+    --sr-text: #2C3E50;
+    --sr-white: #FFFFFF;
+    --sr-border: #D6EAF8;
+    font-family: 'Roboto', 'DM Sans', sans-serif;
+    background: #F0F3F4;
+    padding: 20px;
+}
+
+/* titulo */
+.results .tabela-id-processo td:nth-child(odd) {
+    background: var(--sr-blue-light);
+    color: var(--sr-blue-dark);
+    font-weight: 600;
+    font-size: 12px;
+    border-right: 1px solid var(--sr-border);
+}
+
+.results .tabela-id-processo td:nth-child(even) {
+    background: var(--sr-white);
+    color: var(--sr-text);
+    font-weight: 400;
+}
+
+/* Linha com colspan=3 — só o primeiro td é escuro */
+.results .tabela-id-processo td[colspan] {
+    background: var(--sr-white);
+    font-weight: 400;
+    color: var(--sr-text);
+}
+
+/* ── TABLE CONTAINER (substitui o existente nos resultados) ── */
+.results .table-container {
+    background: var(--sr-white);
+    border: 1px solid var(--sr-gray-mid);
+    border-radius: 4px;
+    margin-bottom: 16px;
+    padding: 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.results .table-container h3 {
+    background: var(--sr-blue);
+    color: var(--sr-white);
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    margin: 0;
+    border-radius: 4px 4px 0 0;
+    font-family: 'Roboto', sans-serif;
+    letter-spacing: 0.3px;
+}
+
+.results .table-container h4 {
+    background: var(--sr-orange);
+    color: var(--sr-white);
+    padding: 9px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    margin: 0;
+    font-family: 'Roboto', sans-serif;
+    letter-spacing: 0.3px;
+}
+
+/* ── TABELAS ── */
+.results table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    border-radius: 0;
+    box-shadow: none;
+    margin: 0;
+}
+
+.results th {
+    background: var(--sr-blue);
+    color: var(--sr-white);
+    padding: 9px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    text-align: left;
+    border-right: 1px solid rgba(255,255,255,0.15);
+    font-family: 'Roboto', sans-serif;
+}
+
+.results th:last-child { border-right: none; }
+
+.results td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--sr-gray-mid);
+    border-right: 1px solid var(--sr-gray-mid);
+    color: var(--sr-text);
+    font-size: 13px;
+    background: var(--sr-white);
+    font-weight: 400;
+}
+
+.results td:last-child { border-right: none; }
+
+.results tr:nth-child(even) td { background: var(--sr-gray-light); }
+.results tr:hover td { background: var(--sr-blue-light); }
+
+/* ── HIGHLIGHT (total row) ── */
+.results tr.highlight td,
+.results tr.highlight {
+    background: var(--sr-blue) !important;
+    color: var(--sr-white) !important;
+    font-weight: 700 !important;
+}
+
+.results tr.highlight:hover td {
+    background: var(--sr-blue-dark) !important;
+}
+
+/* ── SUCCESS BOX ── */
+.results .success-box {
+    background: var(--sr-blue-light);
+    border-left: 3px solid var(--sr-blue);
+    color: var(--sr-blue-dark);
+    border-radius: 0 0 4px 4px;
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 400;
+    margin: 0;
+}
+
+/* ── TOTAL FINAL ── */
+.results .total-final-sapre {
+    background: var(--sr-green);
+    color: var(--sr-white);
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-family: 'Roboto', sans-serif;
+}
+
+.results .total-final-sapre-label {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.results .total-final-sapre-valor {
+    font-size: 22px;
+    font-weight: 700;
+    font-family: 'Roboto Mono', monospace;
+}
+
+/* ── SEÇÃO LARANJA (memorial) ── */
+.results .secao-laranja h4 {
+    background: var(--sr-orange) !important;
+}
+
+.results .secao-laranja th {
+    background: var(--sr-orange) !important;
+}
+
+.results .secao-laranja tr.highlight td {
+    background: var(--sr-orange-dark) !important;
+}
+
+/* ── BOTÃO IMPRIMIR ── */
+.results .print-button-container button {
+    background: var(--sr-blue);
+    color: var(--sr-white);
+    border: none;
+    padding: 10px 28px;
+    font-size: 13px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: background 0.2s;
+}
+
+.results .print-button-container button:hover {
+    background: var(--sr-blue-dark);
+}
+
+/* ── NOTAS EXPLICATIVAS ── */
+.results .notas-explicativas {
+    background: var(--sr-white);
+    border: 1px solid var(--sr-gray-mid);
+    border-radius: 4px;
+    padding: 16px;
+    margin: 16px 0;
+    box-shadow: none;
+}
+
+.results .notas-explicativas::before { display: none; }
+
+.results .notas-explicativas h3 {
+    background: var(--sr-gray);
+    color: var(--sr-white);
+    padding: 9px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    margin: -16px -16px 16px -16px;
+    border-radius: 4px 4px 0 0;
+    font-family: 'Roboto', sans-serif;
+    border-bottom: none;
+}
+
+.results .textarea-notas {
+    border: 1px solid var(--sr-gray-mid);
+    border-radius: 3px;
+    font-size: 13px;
+}
+
+.results .textarea-notas:focus {
+    border-color: var(--sr-blue);
+    box-shadow: 0 0 0 2px rgba(30,110,166,0.15);
+}

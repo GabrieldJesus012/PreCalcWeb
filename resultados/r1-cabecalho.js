@@ -1,8 +1,4 @@
 function gerarCabecalhoProcesso(dados, resultados, dataAtual) {
-    const secaoRRA = (resultados.rraTotal && resultados.rraTotal !== 0)
-        ? `<tr><td>Rendimentos Recebidos Acumuladamente Total (RRA):</td><td>${resultados.rraTotal} meses</td></tr>`
-        : '';
-
     const tipos = {
         ordem: "Ordem Cronológica",
         preferencia: "Preferencial",
@@ -10,40 +6,65 @@ function gerarCabecalhoProcesso(dados, resultados, dataAtual) {
         parcial: "Parcial"
     };
     const tipoCalculo = tipos[dados.tipoCalculo] || "Não definido";
+    const natureza = dados.natureza === 'alimentar' ? 'Alimentar' : 'Comum';
 
-    const natureza = dados.natureza === 'alimentar' ? '⚖️ Alimentar' : '⚖️ Comum';
+    const secaoRRA = (resultados.rraTotal && resultados.rraTotal !== 0)
+        ? `<tr>
+            <td><strong>RRA</strong></td>
+            <td>${resultados.rraTotal} meses</td>
+            <td></td><td></td>
+           </tr>`
+        : '';
 
-    let secaoDataBase = '<tr><td>Data-base do cálculo homologado na execução</td><td>Não informado</td></tr>';
-    
-    if (dados.valoresPrincipais && dados.valoresPrincipais.length > 0) {
+    let datasBase = 'Não informado';
+    if (dados.valoresPrincipais?.length > 0) {
         const datasUnicas = [...new Set(
             dados.valoresPrincipais
-                .filter(item => item.mesBase && item.anoBase)
-                .map(item => `${item.mesBase}/${item.anoBase}`)
+                .filter(i => i.mesBase && i.anoBase)
+                .map(i => `${i.mesBase}/${i.anoBase}`)
         )];
-        
-        if (datasUnicas.length > 0) {
-            const label = datasUnicas.length === 1 
-                ? 'Data-base do cálculo homologado na execução'
-                : 'Datas-base dos cálculos homologados';
-            secaoDataBase = `<tr><td>${label}</td><td>${datasUnicas.join(', ')}</td></tr>`;
-        }
+        if (datasUnicas.length > 0) datasBase = datasUnicas.join(', ');
     }
-    
+
     return `
         <div class="table-container">
             <h3>📋 Identificação do Processo</h3>
-            <table>
-                <tr><th>Descrição</th><th>Informação</th></tr>
-                <tr><td>Número do Processo</td><td>${dados.numProcesso || 'Não informado'}</td></tr>
-                <tr><td>Ano do orçamento do Precatório</td><td>${dados.anoOrcamento || 'Não informado'}</td></tr>
-                <tr><td>Natureza do Processo</td><td>${natureza}</td></tr>
-                ${secaoRRA}
-                ${secaoDataBase}
-                <tr><td>Beneficiário Principal</td><td>${dados.beneficiario || 'Não informado'}</td></tr>
-                <tr><td>Devedor</td><td>${dados.credor || 'Não informado'}</td></tr>
-                <tr><td>Data do Cálculo</td><td>${dataAtual}</td></tr>
-                <tr><td>Tipo de Cálculo</td><td>${tipoCalculo}</td></tr>
+            <table class="tabela-id-processo">
+                <colgroup>
+                    <col style="width:22%">
+                    <col style="width:28%">
+                    <col style="width:22%">
+                    <col style="width:28%">
+                </colgroup>
+                <tbody>
+                    <tr>
+                        <td><strong>Número do Processo</strong></td>
+                        <td>${dados.numProcesso || 'Não informado'}</td>
+                        <td><strong>Natureza</strong></td>
+                        <td>${natureza}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Ano do Orçamento</strong></td>
+                        <td>${dados.anoOrcamento || 'Não informado'}</td>
+                        <td><strong>Data-base</strong></td>
+                        <td>${datasBase}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Beneficiário Principal</strong></td>
+                        <td colspan="3">${dados.beneficiario || 'Não informado'}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Devedor</strong></td>
+                        <td colspan="3">${dados.credor || 'Não informado'}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tipo de Cálculo</strong></td>
+                        <td>${tipoCalculo}</td>
+                        <td><strong>Data do Cálculo</strong></td>
+                        <td>${dataAtual}</td>
+                    </tr>
+                    ${secaoRRA}
+                </tbody>
             </table>
         </div>
     `;
