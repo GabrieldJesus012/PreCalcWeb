@@ -48,7 +48,6 @@ function gerarVisualizacaoCompleta(resultados, dados, contexto) {
         
         ${gerarSecaoHonorariosSucumbenciais(resultados, dados)}
         ${gerarSecaoDeducoesAcessorias(resultados, dados)}
-        ${gerarSecaoCessoesSindicatos(resultados, dados)}
         ${gerarSecaoCessoesAdvogados(resultados, dados)}
         ${gerarSecaoCessoesBeneficiario(resultados, dados)}
         ${contexto.temHerdeiros ? gerarSecaoHerdeiros(resultados, dados) : ''}

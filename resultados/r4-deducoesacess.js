@@ -160,41 +160,97 @@ function gerarSecaoSindicatos(resultados, dados) {
 
 function gerarSecaoHonorarios(resultados, dados, honorariosParaMostrar, temHerdeiros) {
     const baseGroups = agruparPorBaseCalculo(resultados, dados, temHerdeiros);
-    
+    const isPreferencia = dados.tipoCalculo === 'preferencia';
+    const isParcial = dados.tipoCalculo === 'parcial';
     const secoes = [];
-    
+
     baseGroups.forEach((herdeiros, base) => {
         const valorBase = (base === 'PRINCIPAL') ? herdeiros[0].valorTotal : parseFloat(base);
-        const herdeirosNomes = herdeiros.map(h => h.nome).join(', ');
-        
-        const titulo = dados.tipoCalculo === 'preferencia' && valorBase < resultados.valortotatt
-            ? '👩‍💼 Advogados (H.Contratuais) - Honorários da Preferência'
+        const herdeirosNomes = base === 'PRINCIPAL'
+            ? 'Beneficiário Principal'
+            : herdeiros.map(h => h.nome).join(', ');
+
+        const isPreferenciaParcial = isPreferencia && valorBase < resultados.valortotatt;
+
+        const titulo = isPreferenciaParcial
+            ? '👩‍💼 Advogados (H.Contratuais) — Honorários da Preferência'
             : '👩‍💼 Advogados (H.Contratuais)';
 
-        const linhasAdvogados = honorariosParaMostrar.map(a => `
-            <tr>
-                <td>${a.nome}</td>
-                <td>${a.tipo}</td>
-                <td>R$ ${formatarMoeda(valorBase)}</td>
-                <td>${(a.percentual * 100).toFixed(2)}%</td>
-                <td>R$ ${formatarMoeda(valorBase * a.percentual)}</td>
-            </tr>
-        `).join('');
+        let totalPercentual = 0;
+        let totalValor = 0;
+        let linhas = '';
 
-        const totalPercentual = honorariosParaMostrar.reduce((sum, h) => sum + h.percentual, 0);
-        const totalValor = valorBase * totalPercentual;
+        honorariosParaMostrar.forEach(a => {
+            const valorHonorario = valorBase * a.percentual;
+            const temCessoes = a.cessoesAdv?.length > 0;
+            const percentualAdvogado = temCessoes
+                ? a.percentual - a.percentualCessionarioAdv
+                : a.percentual;
+            const valorAdvogado = valorBase * percentualAdvogado;
+
+            totalPercentual += a.percentual;
+            totalValor += valorHonorario;
+
+            // Linha do advogado
+            if (temCessoes && percentualAdvogado === 0) {
+                linhas += `
+                    <tr style="background:#F8F9FA !important;">
+                        <td style="color:var(--sr-gray); font-style:italic;">
+                            ${a.nome} <small style="color:var(--sr-gray);">(${a.tipo})</small>
+                            <small>(cedeu integralmente — valor original: R$ ${formatarMoeda(valorHonorario)})</small>
+                        </td>
+                        <td style="color:var(--sr-gray);">—</td>
+                        <td style="color:var(--sr-gray);">—</td>
+                        <td style="color:var(--sr-gray);">—</td>
+                        <td style="color:var(--sr-gray);">—</td>
+                    </tr>
+                `;
+            } else {
+                linhas += `
+                    <tr>
+                        <td>${a.nome} <small style="color:var(--sr-gray);">(${a.tipo})</small></td>
+                        <td>R$ ${formatarMoeda(valorBase)}</td>
+                        <td>${(percentualAdvogado * 100).toFixed(2)}%</td>
+                        <td>R$ ${formatarMoeda(valorAdvogado)}</td>
+                    </tr>
+                `;
+            }
+
+            // Cessionários
+            if (temCessoes) {
+                (a.cessionarios || []).forEach(c => {
+                    const aguarda = isPreferenciaParcial;
+                    linhas += `
+                        <tr style="background:#FEF5E7 !important;">
+                            <td style="padding-left:28px; color:var(--sr-orange-dark);">
+                                ↳ ${c.nome}
+                                <small style="color:var(--sr-gray);">(Cessionário de ${a.nome})${aguarda ? ' — <em>aguarda</em>' : ''}</small>
+                            </td>
+                            <td style="color:var(--sr-gray); font-size:12px;">—</td>
+                            <td style="color:var(--sr-orange-dark);">${(c.percentual * 100).toFixed(2)}%</td>
+                            <td style="color:var(--sr-orange-dark);">R$ ${formatarMoeda(c.valorBruto || (valorBase * c.percentual))}</td>
+                        </tr>
+                    `;
+                });
+            }
+        });
 
         secoes.push(`
             <h3>${titulo}</h3>
-            <p style="color: #155724; font-style: italic;">
+            <p style="color:#155724; font-style:italic; padding: 8px 16px;">
                 Valores calculados sobre: R$ ${formatarMoeda(valorBase)}
-                <span style="color: #856404;"> - ${herdeirosNomes}</span>
+                <span style="color:#856404;"> — ${herdeirosNomes}</span>
             </p>
             <table>
-                <tr><th>Nome Advogado</th><th>PF/PJ</th><th>Base de Cálculo</th><th>Percentual</th><th>Valor Bruto</th></tr>
-                ${linhasAdvogados}
-                <tr class="highlight" style="background-color: #e9ecef; font-weight: bold; border-top: 2px solid #dee2e6;">
-                    <td colspan="3"><strong>TOTAL HONORÁRIOS</strong></td>
+                <tr>
+                    <th>Nome Advogado / Cessionário</th>
+                    <th>Base de Cálculo</th>
+                    <th>Percentual</th>
+                    <th>Valor Bruto</th>
+                </tr>
+                ${linhas}
+                <tr class="highlight">
+                    <td colspan="2"><strong>TOTAL HONORÁRIOS</strong></td>
                     <td><strong>${(totalPercentual * 100).toFixed(2)}%</strong></td>
                     <td><strong>R$ ${formatarMoeda(totalValor)}</strong></td>
                 </tr>

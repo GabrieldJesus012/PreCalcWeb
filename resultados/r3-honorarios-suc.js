@@ -79,3 +79,8 @@ function gerarSecaoHonorariosSucumbenciais(resultados, dados) {
         </div>
     `;
 }
+
+function gerarTabelaHonorariosSucumbenciais(resultados, dados) {
+    return '';
+}
+
