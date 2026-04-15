@@ -914,18 +914,11 @@ function montarTabelaHerdeiro(herdeiro, pagamentosHerdeiro, isPreferencia, total
         ? (herdeiro.isPreferenciaParcial ? ' (Preferência Parcial)' : ' (Preferência Total)') 
         : ' (Ordem Cronológica)';
 
-    const notaTributacao = totalHerdeiros === 1 ? `
-        <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
-            <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nª 15.270, DE 11 DE NOVEMBRO DE 2025</p>
-            <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
-        </div>
-    ` : '';
 
     return `
         <div class="pagamentos-finais" style="margin-bottom: 20px;">
             <div class="table-container">
-                <h3>📊 Pagamentos - ${herdeiro.nome}${statusHerdeiro}</h3>
+                <h3>Pagamentos - ${herdeiro.nome}${statusHerdeiro}</h3>
                 <table>
                     <thead>
                         <tr>
@@ -947,7 +940,6 @@ function montarTabelaHerdeiro(herdeiro, pagamentosHerdeiro, isPreferencia, total
                         </tr>
                     </tfoot>
                 </table>
-                ${notaTributacao}
             </div>
         </div>
     `;
@@ -1000,7 +992,7 @@ function montarResumoGeral(totais) {
     return `
         <div class="pagamentos-finais" style="margin-top: 30px;">
             <div class="table-container">
-                <h3>🎯 RESUMO GERAL DE TODOS OS PAGAMENTOS</h3>
+                <h3>RESUMO GERAL DE TODOS OS PAGAMENTOS</h3>
                 <table style="background-color: #f8f9fa;">
                     <thead>
                         <tr style="background-color: #e9ecef;">
@@ -1021,12 +1013,6 @@ function montarResumoGeral(totais) {
                         </tr>
                     </tbody>
                 </table>
-                <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
-                    <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-                    <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nª 15.270, DE 11 DE NOVEMBRO DE 2025</p>
-                    <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
-                    <p style="margin: 5px 0;"><strong>Sindicatos:</strong> Tributação conforme Art. 27, da Lei nº 10.833/03 ou alíquota fixa quando aplicável</p>
-                </div>
             </div>
         </div>
     `;
@@ -1089,7 +1075,7 @@ function montarTabelasAcordo(pagamentosAcordo, percentualDesagio) {
         <div class="pagamentos-acordo">
             <!-- 2ª TABELA: Valores Finais para Pagamento -->
             <div class="table-container">
-                <h3>💰 Pagamento do Acordo</h3>
+                <h3>Pagamento do Acordo</h3>
                 <table>
                     <thead>
                         <tr>
@@ -1145,7 +1131,7 @@ function montarTabelaPagamentosSemHerdeiros(todosPagamentos, totais) {
     return `
         <div class="pagamentos-finais">
             <div class="table-container">
-                <h3>💰 Resumo de Pagamentos</h3>
+                <h3>Resumo de Pagamentos</h3>
                 <table>
                     <thead>
                         <tr>
@@ -1167,12 +1153,6 @@ function montarTabelaPagamentosSemHerdeiros(todosPagamentos, totais) {
                         </tr>
                     </tfoot>
                 </table>
-                <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
-                    <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-                    <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nª 15.270, DE 11 DE NOVEMBRO DE 2025</p>
-                    <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
-                    <p style="margin: 5px 0;"><strong>Sindicatos:</strong> Tributação conforme Art. 27, da Lei nº 10.833/03 ou alíquota fixa quando aplicável</p>
-                </div>
             </div>
         </div>
     `;

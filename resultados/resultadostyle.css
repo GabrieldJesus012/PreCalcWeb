@@ -69,14 +69,16 @@
     background: var(--sr-green-dark) !important;
 }
 
-.results .deducoes-acessorias tr.highlight td {
-    background: #c03a2b9c !important;
+.results .deducoes-legais .ir-table .total-row th,
+.results .deducoes-legais .ir-table .total-row td {
+    background: #C03A2B9C !important;
     color: var(--sr-white) !important;
     font-weight: 700 !important;
 }
 
-.results .deducoes-acessorias tr.highlight:hover td {
-    background: #a9312686 !important;
+.results .deducoes-legais .ir-table .total-row:hover th,
+.results .deducoes-legais .ir-table .total-row:hover td {
+    background: #A9312686 !important;
 }
 
 .results .table-container h3 + p {
@@ -276,4 +278,143 @@
 .results .textarea-notas:focus {
     border-color: var(--sr-blue);
     box-shadow: 0 0 0 2px rgba(30,110,166,0.15);
+}
+
+
+/* ── IR TABLE — substituir estilo atual ── */
+.results .ir-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 12px;
+    border: 1px solid var(--sr-gray-mid);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.results .ir-table th {
+    background: var(--sr-gray-light);
+    color: var(--sr-text);
+    font-weight: 500;
+    padding: 8px 14px;
+    text-align: left;
+    font-size: 12.5px;
+    border-bottom: 1px solid var(--sr-gray-mid);
+    border-right: 1px solid var(--sr-gray-mid);
+    width: 65%;
+}
+
+.results .ir-table td {
+    padding: 8px 14px;
+    font-weight: 400;
+    color: var(--sr-text);
+    background: var(--sr-white) !important;
+    border-bottom: 1px solid var(--sr-gray-mid);
+    text-align: right;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 12.5px;
+}
+
+.results .ir-table tr:nth-child(even) td {
+    background: var(--sr-white) !important;
+}
+
+.results .ir-table tr:nth-child(odd) td {
+    background: var(--sr-white) !important;
+}
+
+/* Header verde da seção */
+.results .ir-table .section-header {
+    background: var(--sr-blue) !important;
+    color: var(--sr-white) !important;
+    text-align: center !important;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 9px 14px !important;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+/* Total row — azul suave em vez de preto */
+.results .ir-table .total-row th,
+.results .ir-table .total-row td {
+    background: var(--sr-blue) !important;
+    color: var(--sr-white) !important;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+/* Distribuição header */
+.results .ir-table tr th[colspan="2"] {
+    background: var(--sr-blue-light) !important;
+    color: var(--sr-blue-dark) !important;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+/* Redutor 2026 — verde claro */
+.results .ir-table tr[style*="e8f5e9"] th,
+.results .ir-table tr[style*="e8f5e9"] td {
+    background: var(--sr-green-light) !important;
+    color: var(--sr-green-dark) !important;
+}
+
+/* Container das deduções — borda esquerda azul em vez de vermelha */
+.results .deducoes-legais .table-container {
+    border-left: 4px solid var(--sr-blue) !important;
+}
+
+/* Seção individual de herdeiro/beneficiário */
+.results .deducoes-legais [style*="border: 1px solid #dee2e6"] {
+    border: 1px solid var(--sr-gray-mid) !important;
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 16px;
+}
+
+/* Explicação no final */
+.results .deducoes-legais [style*="border-left: 4px solid #007bff"] {
+    background: var(--sr-blue-light) !important;
+    border-left: 3px solid var(--sr-blue) !important;
+    border-radius: 4px;
+    font-size: 12.5px;
+    color: var(--sr-blue-dark) !important;
+    padding: 10px 14px;
+}
+
+
+/* Pagamentos finais — header verde */
+.results .pagamentos-finais .table-container h3 {
+    background: var(--sr-green) !important;
+}
+
+.results .pagamentos-finais th {
+    background: var(--sr-green-dark) !important;
+}
+
+.results .pagamentos-finais tr.highlight td {
+    background: var(--sr-green) !important;
+    color: var(--sr-white) !important;
+    font-weight: 700 !important;
+}
+
+.results .pagamentos-finais tr.highlight:hover td {
+    background: var(--sr-green-dark) !important;
+}
+
+/* Notas de tributação */
+.results .pagamentos-finais [style*="f9f9f9"] {
+    background: var(--sr-blue-light) !important;
+    border-left: 3px solid var(--sr-blue) !important;
+    border-radius: 4px;
+    padding: 10px 14px !important;
+    font-size: 12.5px;
+}
+
+/* Acordo — info box amarela */
+.results .pagamentos-acordo [style*="fff3cd"] {
+    background: #FFF8EC !important;
+    border-left: 3px solid var(--sr-orange) !important;
+    border-radius: 4px;
+    padding: 10px 14px !important;
 }
