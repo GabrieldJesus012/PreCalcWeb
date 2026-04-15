@@ -7,6 +7,7 @@ from core.calculos.tributacao import (
     calcular_ir, calcular_desconto_adicional_2026, arredondar_rra,
     calcular_previdencia_isolada, calcular_ir_isolado
 )
+import copy
 import requests
 
 
@@ -364,6 +365,38 @@ def calcular_saldos_cessionarios(resultados, pag_por_ben, cessoes100, saldos, da
             saldos['totalGeralBruto'] += saldo
             saldos['totalGeralOriginal'] += valor_bruto
 
+    _processar_cessionarios_de_cedentes(resultados.get('honorarios'), pag_por_ben, cessoes100['advogados'], saldos, 'Cessionário de Advogado')
+    _processar_cessionarios_de_cedentes(resultados.get('honorariosSucumbenciais', {}).get('honorarios'), pag_por_ben, cessoes100['advogadosSucumbenciais'], saldos, 'Cessionário de Adv. Sucumbencial')
+    _processar_cessionarios_de_cedentes(resultados.get('sindicatos'), pag_por_ben, cessoes100['sindicatos'], saldos, 'Cessionário de Sindicato')
+
+
+def _processar_cessionarios_de_cedentes(cedentes, pag_por_ben, cessoes100, saldos, tipo_cessionario):
+    if not cedentes:
+        return
+    for cedente in cedentes:
+        if not cedente.get('cessionarios'):
+            continue
+        pag_cedente = pag_por_ben.get(cedente['nome'], {}).get('totalPago', 0)
+        cedeu100 = cessoes100.get(cedente['nome'])
+        for cess in cedente['cessionarios']:
+            pag_direto = pag_por_ben.get(cess['nome'], {}).get('totalPago', 0)
+            pag_total = pag_direto
+            if cedeu100:
+                pag_total += pag_cedente * cess['percentual']
+            valor_bruto = cess.get('valorBruto', 0)
+            saldo = valor_bruto - pag_total
+            saldos['cessionarios'].append({
+                'nome': cess['nome'],
+                'cedente': cedente['nome'],
+                'tipo': tipo_cessionario,
+                'valorBruto': valor_bruto,
+                'pagamento': pag_total,
+                'pagamentoDireto': pag_direto,
+                'saldo': saldo
+            })
+            saldos['totalGeralBruto'] += saldo
+            saldos['totalGeralOriginal'] += valor_bruto
+
 
 def calcular_totais_e_tributos(resultados, dados, saldos):
     total_sem_hon_suc = saldos['totalGeralBruto']
@@ -414,3 +447,279 @@ def calcular_totais_e_tributos(resultados, dados, saldos):
     })
 
     saldos['totalLiquido'] = total_sem_hon_suc - saldos['previdenciaTotal'] - saldos['irTotal']
+
+
+# ====================================
+# AJUSTAR RESULTADOS COM PAGAMENTOS
+# ====================================
+
+def ajustar_resultados_com_pagamentos(resultados, dados):
+    if not resultados.get('saldosFinais'):
+        return resultados
+
+    saldos = resultados['saldosFinais']
+    res = copy.deepcopy(resultados)
+
+    if saldos['totalGeralBruto'] <= 0:
+        return res
+
+    total_para_calculo = saldos.get('totalSemHonorariosSucumbenciais') or saldos['totalGeralBruto']
+
+    res.update({
+        'principal': saldos['principalTotal'],
+        'valorBase': total_para_calculo,
+        'valortotatt': total_para_calculo,
+        'rrapagamento': saldos.get('rraAjustado') or saldos.get('rraOriginal'),
+        'valorPrevidencia': saldos['previdenciaTotal'],
+        'aliquotaEfetiva': saldos['aliquotaEfetiva'],
+        'valorDesagioPrevidencia': saldos['valorDesagioPrevidencia'],
+        'percentualDesagioPrevidencia': saldos['percentualDesagioPrevidencia'],
+        'valorIR': saldos['irTotal'],
+        'aliquotaIR': saldos['aliquotaIR'],
+        'baseIRHonora': saldos['baseIRHonora'],
+        'baseIRSindi': saldos['baseIRSindi'],
+        'baseIRPrev': saldos['baseIRPrev'],
+        'baseIRRRA': saldos['baseIRRRA'],
+        'valorIRUnitario': saldos['valorIRUnitario'],
+        'principalComDesagio': saldos['principalComDesagio'],
+        'percentualDesagioIR': saldos['percentualDesagioIR'],
+        'rraComDesagio': saldos['rraComDesagio'],
+        'descontoAdicional2026': saldos['descontoAdicional2026'],
+        'valorIRSemDesconto': saldos['valorIRSemDesconto'],
+    })
+
+    if saldos.get('beneficiarioPrincipal') and saldos['beneficiarioPrincipal']['saldo'] > 0:
+        bp = saldos['beneficiarioPrincipal']
+        res['valorBeneficiarioAposCessoes'] = bp['saldo']
+        res['valorPrevidenciaBeneficiario'] = saldos['previdenciaTotal']
+        res['valorIRBeneficiario'] = saldos['irTotal']
+        res['valorBeneficiarioFinal'] = bp['saldo'] - saldos['previdenciaTotal'] - saldos['irTotal']
+
+    _ajustar_grupo_com_ir(res, 'honorarios', saldos['advogados'], _calcular_ir_advogado)
+    _ajustar_grupo_com_ir(res.get('honorariosSucumbenciais') or {}, 'honorarios', saldos['advogadosSucumbenciais'], _calcular_ir_advogado)
+    _ajustar_grupo_com_ir(res, 'sindicatos', saldos['sindicatos'], _calcular_ir_sindicato)
+
+    _ajustar_herdeiros(res, saldos, dados)
+    _ajustar_cessionarios(res, saldos, dados, resultados)
+
+    return res
+
+
+def _calcular_ir_advogado(item, valor):
+    if not item.get('incidenciaIR') or valor <= 0:
+        return 0
+    if item.get('tipo') != 'PF':
+        return valor * 0.015
+    ir_sem_desconto = calcular_ir(valor)
+    desconto = calcular_desconto_adicional_2026(valor, ir_sem_desconto)
+    return max(0, ir_sem_desconto - desconto)
+
+
+def _calcular_ir_sindicato(item, valor):
+    if not item.get('incidenciaIR'):
+        return 0
+    if item.get('tipoTributacao') == 'pj':
+        return valor * 0.015
+    if item.get('aliquotaFixaIR'):
+        return valor * item['aliquotaFixaIR']
+    return valor * 0.015
+
+
+def _ajustar_grupo_com_ir(container, chave, saldos_grupo, calcular_ir_fn):
+    if not saldos_grupo or not container.get(chave):
+        return
+    container[chave] = [
+        {
+            **item,
+            'valorBrutoAdvogado': s['saldo'],
+            'valorBrutoSindicato': s['saldo'],
+            'irAdvogado': calcular_ir_fn(item, s['saldo']),
+            'irSindicato': calcular_ir_fn(item, s['saldo']),
+            'valorLiquidoAdvogado': s['saldo'] - calcular_ir_fn(item, s['saldo']),
+            'valorLiquidoSindicato': s['saldo'] - calcular_ir_fn(item, s['saldo']),
+        } if (s := next((x for x in saldos_grupo if x['nome'] == item['nome']), None)) and s['saldo'] > 0
+        else item
+        for item in container[chave]
+    ]
+
+
+def _ajustar_herdeiros(res, saldos, dados):
+    if not saldos.get('herdeiros') or not res.get('herdeiros'):
+        return
+
+    tem_ir = any(item.get('tributacao', {}).get('ir') for item in (dados.get('valoresPrincipais') or []))
+    novos = []
+
+    for i, herd in enumerate(res['herdeiros']):
+        saldo = saldos['herdeiros'][i] if i < len(saldos['herdeiros']) else None
+        if not saldo or saldo['saldo'] <= 0:
+            novos.append(herd)
+            continue
+
+        proporcao = saldo['saldo'] / saldo['valorBruto']
+        h = {
+            **herd,
+            'principal': herd['principal'] * proporcao,
+            'valorTotal': saldo['saldo'],
+            'valorBruto': saldo['saldo'],
+            'valorLiquido': herd['valorLiquido'] * proporcao if herd.get('valorLiquido') else saldo['saldo'],
+        }
+
+        if any(item.get('tributacao', {}).get('previdencia') for item in (dados.get('valoresPrincipais') or [])):
+            res_prev = calcular_previdencia_isolada(dados, h['principal'], herd.get('rrapagamento', 0))
+            h.update({
+                'valorPrevidencia': res_prev['valorPrevidencia'],
+                'aliquotaEfetiva': res_prev['aliquotaEfetiva'],
+                'valorDesagioPrevidencia': res_prev['valorDesagioPrevidencia'],
+                'percentualDesagioPrevidencia': res_prev['percentualDesagioPrevidencia'],
+            })
+
+        if tem_ir and herd.get('rrapagamento') != 0:
+            res_ir = calcular_ir_isolado(dados, h['valorTotal'], h['valorTotal'],
+                                         h['principal'], h.get('valorPrevidencia', 0), herd.get('rrapagamento', 0))
+            h.update({
+                'valorIR': res_ir['valorIR'],
+                'aliquotaIR': res_ir['aliquotaIR'],
+                'baseIRHonora': res_ir['baseIRHonora'],
+                'baseIRSindi': res_ir['baseIRSindi'],
+                'baseIRPrev': res_ir['baseIRPrev'],
+                'baseIRRRA': res_ir['baseIRRRA'],
+                'valorIRUnitario': res_ir['valorIRUnitario'],
+                'descontoAdicional2026': res_ir['descontoAdicional2026'],
+                'valorIRSemDesconto': res_ir['valorIRSemDesconto'],
+                'descontoSimplificado': res_ir['descontoSimplificado'],
+                'rendimentoMensal': res_ir['rendimentoMensal'],
+            })
+
+        novos.append(h)
+
+    res['herdeiros'] = novos
+
+
+def _ajustar_cessionarios(res, saldos, dados, resultados):
+    if not saldos.get('cessionarios'):
+        return
+
+    tem_ir = any(item.get('tributacao', {}).get('ir') for item in (dados.get('valoresPrincipais') or []))
+
+    if res.get('cessoesBeneficiarioFinais'):
+        res['cessoesBeneficiarioFinais'] = _ajustar_cessionarios_beneficiario(
+            res['cessoesBeneficiarioFinais'], saldos['cessionarios'], dados, resultados, tem_ir, saldos
+        )
+
+    _ajustar_cessionarios_de_grupo(res, 'honorarios', saldos['cessionarios'], 'Advogado', _calcular_ir_advogado, dados)
+    _ajustar_cessionarios_de_grupo(res.get('honorariosSucumbenciais') or {}, 'honorarios', saldos['cessionarios'], 'Adv. Sucumbencial', _calcular_ir_advogado, dados)
+    _ajustar_cessionarios_de_grupo(res, 'sindicatos', saldos['cessionarios'], 'Sindicato', _calcular_ir_sindicato, dados)
+    _ajustar_cessionarios_herdeiros(res, saldos['cessionarios'], dados, tem_ir)
+
+
+def _ajustar_cessionarios_beneficiario(cessionarios, saldos_cess, dados, resultados, tem_ir, saldos):
+    resultado = []
+    for cess in cessionarios:
+        saldo_cess = next((c for c in saldos_cess
+                           if c['nome'] == cess['cessionario'] and c['tipo'] == 'Cessionário do Beneficiário'), None)
+        if not saldo_cess or saldo_cess['saldo'] <= 0:
+            resultado.append(cess)
+            continue
+
+        cedeu100 = (cess.get('percentual') or 0) >= 1.0
+
+        if cedeu100:
+            previdencia = saldos.get('previdenciaTotal') or resultados.get('valorPrevidencia') or 0
+            novo_ir = saldos.get('irTotal') or resultados.get('valorIR') or 0 if tem_ir else 0
+        else:
+            valor_bruto_ben = resultados.get('valorBeneficiarioBruto') or resultados.get('valortotatt') or 0
+            principal_ben = resultados.get('principal') or 0
+            prop_principal = (principal_ben / valor_bruto_ben) if valor_bruto_ben > 0 else 0.5
+            principal_cess = saldo_cess['saldo'] * prop_principal
+            rra_cess = saldos.get('rraAjustado') or resultados.get('rrapagamento') or 0
+
+            res_prev = calcular_previdencia_isolada(dados, principal_cess, rra_cess)
+            previdencia = res_prev['valorPrevidencia']
+
+            if tem_ir and rra_cess != 0:
+                res_ir = calcular_ir_isolado(dados, saldo_cess['saldo'], saldo_cess['saldo'],
+                                             principal_cess, previdencia, rra_cess)
+                novo_ir = res_ir['valorIR']
+            else:
+                novo_ir = 0
+
+        resultado.append({
+            **cess,
+            'valorBruto': saldo_cess['saldo'],
+            'previdenciaCessao': previdencia,
+            'irCessao': novo_ir,
+            'valorLiquido': saldo_cess['saldo'] - previdencia - novo_ir,
+        })
+
+    return resultado
+
+
+def _ajustar_cessionarios_de_grupo(container, chave, saldos_cess, tipo_grupo, calcular_ir_fn, dados):
+    if not container or not container.get(chave):
+        return
+
+    is_acordo = dados.get('tipoCalculo') == 'acordo'
+    percentual_desagio = dados.get('percentualAcordo') or 0
+
+    for item in container[chave]:
+        if not item.get('cessionarios'):
+            continue
+        novos = []
+        for cess in item['cessionarios']:
+            saldo_cess = next((c for c in saldos_cess
+                               if c['nome'] == cess['nome']
+                               and c.get('cedente') == item['nome']
+                               and tipo_grupo in c['tipo']), None)
+            if not saldo_cess or saldo_cess['saldo'] <= 0:
+                novos.append(cess)
+                continue
+
+            valor_para_ir = saldo_cess['saldo'] * (1 - percentual_desagio) if is_acordo else saldo_cess['saldo']
+            novo_ir = calcular_ir_fn(item, valor_para_ir)
+
+            novos.append({
+                **cess,
+                'valorBruto': saldo_cess['saldo'],
+                'ir': novo_ir,
+                'valorLiquido': saldo_cess['saldo'] - novo_ir,
+            })
+        item['cessionarios'] = novos
+
+
+def _ajustar_cessionarios_herdeiros(res, saldos_cess, dados, tem_ir):
+    if not res.get('herdeiros'):
+        return
+
+    for herd in res['herdeiros']:
+        if not herd.get('cessoesHerdeiro'):
+            continue
+        novos = []
+        for cess in herd['cessoesHerdeiro']:
+            saldo_cess = next((c for c in saldos_cess
+                               if c['nome'] == cess['cessionario']
+                               and c.get('cedente') == herd['nome']
+                               and c['tipo'] == 'Cessionário de Herdeiro'), None)
+            if not saldo_cess or saldo_cess['saldo'] <= 0:
+                novos.append(cess)
+                continue
+
+            prop_principal = herd['principal'] / herd['valorBruto'] if herd.get('valorBruto') else 0
+            principal_cess = saldo_cess['saldo'] * prop_principal
+            rra_cess = herd.get('rrapagamento') or 0
+
+            res_prev = calcular_previdencia_isolada(dados, principal_cess, rra_cess)
+            novo_ir = 0
+            if tem_ir and rra_cess != 0:
+                res_ir = calcular_ir_isolado(dados, saldo_cess['saldo'], saldo_cess['saldo'],
+                                             principal_cess, res_prev['valorPrevidencia'], rra_cess)
+                novo_ir = res_ir['valorIR']
+
+            novos.append({
+                **cess,
+                'valorBruto': saldo_cess['saldo'],
+                'previdenciaCessao': res_prev['valorPrevidencia'],
+                'irCessao': novo_ir,
+                'valorLiquido': saldo_cess['saldo'] - res_prev['valorPrevidencia'] - novo_ir,
+            })
+        herd['cessoesHerdeiro'] = novos

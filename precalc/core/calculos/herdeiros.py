@@ -10,7 +10,7 @@ def calcular_totais_para_herdeiros(dados, valortotatt, percentualprinc, percentu
     return calcular_global(dados_ordem, valortotatt, percentualprinc, percentualjur, totais_por_tipo)
 
 
-def calcular_composicao_inicial_herdeiro(dados, valor_base, valor_total, percentual_herdeiro, ctx):
+def calcular_composicao_inicial_herdeiro(dados, valor_base, valor_total, ctx):
     if ctx['temTributacaoIR'] and dados.get('tributacaoIR'):
         perc_princ = dados['tributacaoIR']['percentuais']['principalTributado']
         perc_juros = dados['tributacaoIR']['percentuais']['jurosTributado']
@@ -22,9 +22,9 @@ def calcular_composicao_inicial_herdeiro(dados, valor_base, valor_total, percent
 
     if ctx['isParcial']:
         proporcao = valor_base / valor_total
-        rra = arredondar_rra(ctx['rraTotal'] * percentual_herdeiro * proporcao) if ctx['rraTotal'] else 0
+        rra = arredondar_rra(ctx['rraTotal'] * proporcao) if ctx['rraTotal'] else 0
     else:
-        rra = arredondar_rra(ctx['rraTotal'] * percentual_herdeiro) if ctx['rraTotal'] else 0
+        rra = arredondar_rra(ctx['rraTotal']) if ctx['rraTotal'] else 0
 
     return {'principal': principal, 'juros': juros, 'rra': rra}
 
@@ -37,7 +37,7 @@ def recalcular_principal_juros_rra_herdeiro(dados, valor_base, valor_total, perc
         else:
             principal = valor_base * ctx['percentualprinc']
         proporcao = valor_base / valor_total
-        rra = arredondar_rra(ctx['rraTotal'] * percentual_herdeiro * proporcao) if ctx['rraTotal'] else 0
+        rra = arredondar_rra(ctx['rraTotal'] * proporcao) if ctx['rraTotal'] else 0
         juros = None
 
     else:  # isParcial
@@ -48,7 +48,7 @@ def recalcular_principal_juros_rra_herdeiro(dados, valor_base, valor_total, perc
         else:
             principal = valor_base * ctx['percentualprinc']
             juros = valor_base * ctx['percentualjur']
-        rra = arredondar_rra(ctx['rraTotal'] * percentual_herdeiro * proporcao) if ctx['rraTotal'] else 0
+        rra = arredondar_rra(ctx['rraTotal'] * proporcao) if ctx['rraTotal'] else 0
 
     return {'principal': principal, 'juros': juros, 'rra': rra}
 
@@ -95,7 +95,7 @@ def calcular_herdeiros(dados, valortotatt, valorprincatt, valorjurosatt, detalha
 
         is_pref_parcial = dados.get('tipoCalculo') == 'preferencia' and valor_base_herdeiro < valor_total_herdeiro
 
-        comp = calcular_composicao_inicial_herdeiro(dados, valor_base_herdeiro, valor_total_herdeiro, percentual_herdeiro, ctx)
+        comp = calcular_composicao_inicial_herdeiro(dados, valor_base_herdeiro, valor_total_herdeiro, ctx)
         principal, juros, rra = comp['principal'], comp['juros'], comp['rra']
 
         res_hon = calcular_honorarios(dados, valor_base_herdeiro, valor_total_herdeiro, totais_por_tipo)
@@ -136,7 +136,7 @@ def calcular_herdeiros(dados, valortotatt, valorprincatt, valorjurosatt, detalha
             'valorTotalOriginal': valor_total_herdeiro,
             'principalOriginal': valorprincatt * percentual_herdeiro,
             'jurosOriginal': valorjurosatt * percentual_herdeiro,
-            'rrapagamentoOriginal': arredondar_rra(ctx['rraTotal'] * percentual_herdeiro) if ctx['rraTotal'] else 0,
+            'rrapagamentoOriginal': arredondar_rra(ctx['rraTotal']) if ctx['rraTotal'] else 0,
             'valorTotal': valor_base_herdeiro,
             'principal': principal_final,
             'jurosBase': juros_final,

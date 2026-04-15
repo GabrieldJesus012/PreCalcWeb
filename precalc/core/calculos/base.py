@@ -222,7 +222,7 @@ def calcular_valores(dados, data_atualizacao):
     from core.calculos.detalhamento import calcular_global
     from core.calculos.honorarios_suc import calcular_honorarios_sucumbenciais
     from core.calculos.herdeiros import calcular_herdeiros
-    from core.calculos.pagamentos import calcular_pagamentos, calcular_saldo_final_com_pagamentos
+    from core.calculos.pagamentos import calcular_pagamentos, calcular_saldo_final_com_pagamentos, ajustar_resultados_com_pagamentos
     
     if not dados.get('valoresPrincipais'):
         return None
@@ -325,7 +325,11 @@ def calcular_valores(dados, data_atualizacao):
 
     # 10. Saldos finais
     resultado_final['saldosFinais'] = calcular_saldo_final_com_pagamentos(resultado_final, pagamentos_calculados, dados)
-    
+
+    # 11. Ajustar valores com pagamentos (IR com deságio, cessionários, herdeiros)
+    if resultado_final['saldosFinais']:
+        resultado_final = ajustar_resultados_com_pagamentos(resultado_final, dados)
+
     # Período de graça para o frontend
     inicio_graca, fim_graca = calcular_periodo_graca(dados['anoOrcamento'])
     resultado_final['inicioGraca'] = inicio_graca.strftime('%Y-%m-%d')
