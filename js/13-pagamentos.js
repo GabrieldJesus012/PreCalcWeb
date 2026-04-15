@@ -982,9 +982,9 @@ function ajustarCessionarios(resultadosAjustados, saldos, dados, resultados) {
     }
     
     // Cessionários de outros grupos
-    ajustarCessionariosDeGrupo(resultadosAjustados, 'honorarios', saldos.cessionarios, 'Advogado', calcularIRAdvogado);
-    ajustarCessionariosDeGrupo(resultadosAjustados.honorariosSucumbenciais, 'honorarios', saldos.cessionarios, 'Adv. Sucumbencial', calcularIRAdvogado);
-    ajustarCessionariosDeGrupo(resultadosAjustados, 'sindicatos', saldos.cessionarios, 'Sindicato', calcularIRSindicato);
+    ajustarCessionariosDeGrupo(resultadosAjustados, 'honorarios', saldos.cessionarios, 'Advogado', calcularIRAdvogado, dados);
+    ajustarCessionariosDeGrupo(resultadosAjustados.honorariosSucumbenciais, 'honorarios', saldos.cessionarios, 'Adv. Sucumbencial', calcularIRAdvogado, dados);
+    ajustarCessionariosDeGrupo(resultadosAjustados, 'sindicatos', saldos.cessionarios, 'Sindicato', calcularIRSindicato, dados);
     ajustarCessionariosHerdeiros(resultadosAjustados, saldos.cessionarios, dados, temIR);
 }
 
@@ -1043,23 +1043,30 @@ function ajustarCessionariosBeneficiario(cessionarios, saldosCessionarios, dados
     });
 }
 
-function ajustarCessionariosDeGrupo(container, chave, saldosCessionarios, tipoGrupo, calcularIRFn) {
+function ajustarCessionariosDeGrupo(container, chave, saldosCessionarios, tipoGrupo, calcularIRFn, dados) {
     if (!container?.[chave]) return;
-    
+
+    const isAcordo = dados?.tipoCalculo === 'acordo';
+    const percentualDesagio = dados?.percentualAcordo || 0;
+
     container[chave] = container[chave].map(item => {
         if (!item.cessionarios?.length) return item;
-        
+
         return {
             ...item,
             cessionarios: item.cessionarios.map(cess => {
-                const saldoCess = saldosCessionarios.find(c => 
+                const saldoCess = saldosCessionarios.find(c =>
                     c.nome === cess.nome && c.cedente === item.nome && c.tipo.includes(tipoGrupo)
                 );
-                
+
                 if (!saldoCess || saldoCess.saldo <= 0) return cess;
-                
-                const novoIR = calcularIRFn(item, saldoCess.saldo);
-                
+
+                const valorParaIR = isAcordo
+                    ? saldoCess.saldo * (1 - percentualDesagio)
+                    : saldoCess.saldo;
+
+                const novoIR = calcularIRFn(item, valorParaIR);
+
                 return {
                     ...cess,
                     valorBruto: saldoCess.saldo,
