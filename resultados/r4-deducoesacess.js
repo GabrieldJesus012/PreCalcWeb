@@ -149,7 +149,7 @@ function gerarSecaoSindicatos(resultados, dados) {
                 <th>Valor Bruto</th>
             </tr>
             ${linhasSindicatos}
-            <tr class="highlight">
+            <tr class="highlight deducoes-total">
                 <td colspan="3"><strong>TOTAL SINDICATOS</strong></td>
                 <td><strong>R$ ${formatarMoeda(totalSindicatos)}</strong></td>
             </tr>
@@ -250,7 +250,7 @@ function gerarSecaoHonorarios(resultados, dados, honorariosParaMostrar, temHerde
                     <th>Valor Bruto</th>
                 </tr>
                 ${linhas}
-                <tr class="highlight">
+                <tr class="highlight deducoes-total">
                     <td colspan="2"><strong>TOTAL HONORÁRIOS</strong></td>
                     <td><strong>${(totalPercentual * 100).toFixed(2)}%</strong></td>
                     <td><strong>R$ ${formatarMoeda(totalValor)}</strong></td>

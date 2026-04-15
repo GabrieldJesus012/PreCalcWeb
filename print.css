@@ -6,6 +6,7 @@
 * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    color-adjust: exact !important;
 }
 
 .header {
@@ -37,6 +38,34 @@ body {
     page-break-after: avoid !important;
     border-radius: 4px !important;
 }
+
+.results .table-container:first-child {
+    margin-top: 0 !important;
+}
+
+.results .deducoes-acessorias table {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+}
+
+.results .deducoes-acessorias table tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+}
+
+/* 3. Cessionários — forçar cor laranja no print */
+.results tr[style*="FEF5E7"] td {
+    background: #FEF5E7 !important;
+    color: #CA6F1E !important;
+}
+
+/* Cessionários identificados pelo padding-left */
+.results td[style*="padding-left:28px"],
+.results td[style*="padding-left: 28px"] {
+    color: #CA6F1E !important;
+    background: #FEF5E7 !important;
+}
+
 
 .header::before,
 .header::after{
@@ -85,13 +114,60 @@ table {
 }
 
 th {
-    background: var(--gradient-primary) !important;
     color: var(--white) !important;
     padding: 8px 10px !important;
     font-weight: 600 !important;
     font-size: 11px !important;
-    border: 1px solid #34495e !important;
+    border: 1px solid rgba(0,0,0,0.15) !important;
     text-align: left !important;
+}
+
+/* Azul — padrão */
+.results .table-container th {
+    background: #1E6EA6 !important;
+}
+
+/* Laranja — demonstrativo (duas classes juntas = mais específico) */
+
+.results .deducoes-legais .table-container {
+    background: white !important;
+}
+
+.results .deducoes-legais h3 {
+    background: #1E6EA6 !important;
+    color: white !important;
+}
+
+.results .table-container.table-container-orange h3 {
+    background: #E67E22 !important;
+}
+
+/* Laranja — memorial e honorários (secao-laranja) */
+.results .secao-laranja th {
+    background: #E67E22 !important;
+}
+
+/* Vermelho — deduções acessórias */
+.results .deducoes-acessorias th {
+    background: #C03A2B !important;
+}
+
+/* Verde — pagamentos finais */
+.results .pagamentos-finais th {
+    background: #1E8449 !important;
+}
+
+/* IR table — cinza claro */
+.results .ir-table th {
+    background: #F2F3F4 !important;
+    color: #2C3E50 !important;
+    border-right: 1px solid #D5D8DC !important;
+}
+
+/* Section header da ir-table — azul */
+.results .ir-table .section-header {
+    background: #1E6EA6 !important;
+    color: white !important;
 }
 
 td {
@@ -421,13 +497,23 @@ tr:nth-child(even) td {
 }
 
 .success-box {
-    background: #D4EDDA !important;
-    color: #155724 !important;
+    background: #EBF4FB !important;
+    color: #155A8A !important;
+    border: 1px solid #D6EAF8 !important;
     padding: 8px 12px !important;
     border-radius: 4px !important;
-    border: 1px solid #b8dabd !important;
+    border-left: 3px solid #1E6EA6 !important;
     margin: 6px 0 !important;
-    box-shadow: 0 1px 3px rgba(21, 87, 36, 0.1) !important;
+    font-size: 10px !important;
+}
+
+/* Avisos — amarelo */
+.success-box[style*="fff3cd"],
+.success-box[style*="#fff3cd"] {
+    background: #FFF8EC !important;
+    color: #856404 !important;
+    border-left: 3px solid #E67E22 !important;
+    border-color: #F0B27A !important;
 }
 
 .selic-acumulada {

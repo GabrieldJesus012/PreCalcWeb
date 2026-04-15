@@ -121,7 +121,7 @@ function gerarSecaoBeneficiarioPrincipal(resultados, dados, temPrevidencia, temI
     if (!secaoPrevidencia && !secaoIR) return null;
     
     return `
-        <div style="margin-bottom: 30px; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px;">
+        <div style="margin-bottom: 16px; padding: 12px 16px; border-bottom: 1px solid var(--sr-gray-mid, #D5D8DC);">
             <p style="color: #155724; font-style: italic; margin-bottom: 15px;">
                 <strong>Deduções do Beneficiário Principal:</strong> ${dados.beneficiario}
                 <span style="color: #856404;"> - R$ ${formatarMoeda(resultados.valorBase)}</span>
@@ -172,7 +172,7 @@ function gerarSecoesHerdeiros(herdeirosFiltrados, dados, temPrevidencia, temIR, 
                 : '';
             
             secoes.push(`
-                <div style="margin-bottom: 30px; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px;">
+                <div style="margin-bottom: 16px; padding: 12px 16px; border-bottom: 1px solid var(--sr-gray-mid, #D5D8DC);">
                     <p style="color: #155724; font-style: italic; margin-bottom: 15px;">
                         <strong>Deduções de:</strong> ${herdeirosNomes}
                         <span style="color: #856404;"> - R$ ${formatarMoeda(valorBase)}</span>
@@ -228,7 +228,7 @@ function montarResultadoFinal(secoes, tipo) {
             <div class="table-container">
                 <h3>${titulos[tipo]}</h3>
                 ${secoes.join('')}
-                <div style="margin-top: 10px; padding: 12px; background-color: #f8f9fa; border-left: 4px solid #007bff; font-size: 0.9em;">
+                <div class="success-box" style="margin: 10px 16px 10px; padding: 10px; border-radius: 4px; font-size: 0.85em;">
                     <strong>💡 Explicação:</strong><br>
                     ${explicacoes[tipo]}
                 </div>
@@ -267,11 +267,11 @@ function gerarDeducoesSimples(resultados, dados, temPrevidencia, temIR) {
     
     const titulo = isPJ ? '🏦 Deduções Legais - Pessoa Jurídica' : '🏦 Deduções Legais';
     const conteudo = (secaoPrevidencia && secaoIR)
-        ? `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start;">
-            <div>${secaoPrevidencia}</div>
-            <div>${secaoIR}</div>
+        ? `<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:16px; align-items:start;">
+            ${secaoPrevidencia}
+            ${secaoIR}
         </div>`
-        : `${secaoPrevidencia}${secaoIR}`;
+        : `<div style="padding:16px;">${secaoPrevidencia}${secaoIR}</div>`;
     
     return `
         <div class="deducoes-legais">

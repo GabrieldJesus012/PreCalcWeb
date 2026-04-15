@@ -876,7 +876,7 @@ function gerarSecaoCessionariosBeneficiario(resultados, dados) {
                         ${linhasCessionarios}
                     </tbody>
                     <tfoot>
-                        <tr class="highlight">
+                        <tr class="highlight-green">
                             <td><strong>TOTAL CESSIONÁRIOS</strong></td>
                             <td><strong>R$ ${formatarMoeda(totalDevido)}</strong></td>
                             <td><strong>R$ ${formatarMoeda(totalPrevidencia)}</strong></td>
@@ -931,7 +931,7 @@ function montarTabelaHerdeiro(herdeiro, pagamentosHerdeiro, isPreferencia, total
                     </thead>
                     <tbody>${linhas}</tbody>
                     <tfoot>
-                        <tr class="highlight">
+                        <tr class="highlight-green">
                             <td><strong>TOTAL</strong></td>
                             <td><strong>R$ ${formatarMoeda(totais.totalDevido)}</strong></td>
                             <td><strong>R$ ${formatarMoeda(totais.totalPrevidencia)}</strong></td>
@@ -974,7 +974,7 @@ function montarTabelaHonorariosSucumbenciais(pagamentos) {
                     </thead>
                     <tbody>${linhas}</tbody>
                     <tfoot>
-                        <tr class="highlight">
+                        <tr class="highlight-green">
                             <td><strong>Total Honorários Sucumbenciais</strong></td>
                             <td><strong>R$ ${formatarMoeda(totais.totalDevido)}</strong></td>
                             <td><strong>R$ ${formatarMoeda(totais.totalPrevidencia)}</strong></td>
@@ -1004,7 +1004,7 @@ function montarResumoGeral(totais) {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr class="highlight" style="font-weight: bold; font-size: 1.1em;">
+                        <tr class="highlight-green" style="font-weight: bold; font-size: 1.1em;">
                             <td><strong>TOTAL FINAL</strong></td>
                             <td><strong>R$ ${formatarMoeda(totais.totalDevido)}</strong></td>
                             <td><strong>R$ ${formatarMoeda(totais.totalPrevidencia)}</strong></td>
@@ -1089,7 +1089,7 @@ function montarTabelasAcordo(pagamentosAcordo, percentualDesagio) {
                     </thead>
                     <tbody>${linhasPagamento}</tbody>
                     <tfoot>
-                        <tr class="highlight">
+                        <tr class="highlight-green">
                             <td><strong>TOTAL</strong></td>
                             <td><strong>R$ ${formatarMoeda(totais.valorAposDesagio)}</strong></td>
                             <td><strong>R$ ${formatarMoeda(totais.previdencia)}</strong></td>
@@ -1144,7 +1144,7 @@ function montarTabelaPagamentosSemHerdeiros(todosPagamentos, totais) {
                     </thead>
                     <tbody>${linhas}</tbody>
                     <tfoot>
-                        <tr class="highlight">
+                        <tr class="highlight-green">
                             <td><strong>TOTAL</strong></td>
                             <td><strong>R$ ${formatarMoeda(totais.totalDevido)}</strong></td>
                             <td><strong>R$ ${formatarMoeda(totais.totalPrevidencia)}</strong></td>

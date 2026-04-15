@@ -359,10 +359,31 @@
     color: var(--sr-green-dark) !important;
 }
 
-/* Container das deduções — borda esquerda azul em vez de vermelha */
+
 .results .deducoes-legais .table-container {
-    border-left: 4px solid var(--sr-blue) !important;
+    background: var(--sr-white) !important;
 }
+
+.results .deducoes-legais h3 {
+    background: var(--sr-blue) !important;
+    color: var(--sr-white) !important;
+}
+
+/* Remover borda interna do grid */
+.results .deducoes-legais .table-container > div[style*="grid"] {
+    padding: 12px !important;
+    background: transparent !important;
+}
+
+
+/* ir-table sem margem extra */
+.results .deducoes-legais .ir-table {
+    margin: 0 !important;
+    border: 1px solid var(--sr-gray-mid) !important;
+    box-shadow: none !important;
+}
+
+
 
 /* Seção individual de herdeiro/beneficiário */
 .results .deducoes-legais [style*="border: 1px solid #dee2e6"] {
@@ -417,4 +438,14 @@
     border-left: 3px solid var(--sr-orange) !important;
     border-radius: 4px;
     padding: 10px 14px !important;
+}
+
+.results .deducoes-acessorias tr.deducoes-total td {
+    background: #C03A2B9C !important;
+    color: var(--sr-white) !important;
+    font-weight: 700 !important;
+}
+
+.results .deducoes-acessorias tr.deducoes-total:hover td {
+    background: #A9312686 !important;
 }
