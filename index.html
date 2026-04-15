@@ -2793,9 +2793,12 @@
                 secaoSucumbencial + secaoHerdeiros + secaoSindicatos  + secaoCessoes + secaoPagamentos;
         }
 
-        document.getElementById('modalResumo').addEventListener('click', function(e) {
-            if (e.target === this) fecharModalResumo();
-        });
+        const modalResumo = document.getElementById('modalResumo');
+        if (modalResumo) {
+            modalResumo.addEventListener('click', function(e) {
+                if (e.target === this) fecharModalResumo();
+            });
+        }
 
         // ====================================
         // Detalhamentos
