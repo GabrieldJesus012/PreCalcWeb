@@ -5,9 +5,8 @@ function arredondarParaDuasCasas(valor) {
 }
 
 function gerarSecoesPagamentos(resultados, dados) {
-    const resultadosParaUsar = resultados.saldosFinais 
-        ? ajustarResultadosComPagamentos(resultados, dados) 
-        : resultados;
+    // Ajuste já feito pelo Python (ajustar_resultados_com_pagamentos em base.py)
+    const resultadosParaUsar = resultados;
     
     if (dados.tipoCalculo === 'acordo') {
         return gerarTabelaPagamentosAcordo(resultadosParaUsar, dados);

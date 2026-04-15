@@ -14,9 +14,8 @@ function gerarSecaoDeducoes(resultados, dados) {
         if (!validarAdesaoParaAcordo(dados, resultados)) return '';
     }
 
-    const resultadosParaUsar = resultados.saldosFinais 
-        ? ajustarResultadosComPagamentos(resultados, dados) 
-        : resultados;
+    // Ajuste já feito pelo Python (ajustar_resultados_com_pagamentos em base.py)
+    const resultadosParaUsar = resultados;
 
     const config = {
         temPrevidencia,
