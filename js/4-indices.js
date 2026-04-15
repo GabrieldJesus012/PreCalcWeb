@@ -294,40 +294,140 @@ function calcularSomaJurosMora(mesBase, anoBase, natureza, inicioGraca = null, f
 }
 
 // ====================================
+// Cache BCB (localStorage)
+// ====================================
+
+const BCB_CACHE_KEYS = {
+    selic:    'bcb_cache_4390',
+    ipcae:    'bcb_cache_10764',
+    ipca:     'bcb_cache_433',
+    selicPos: 'bcb_cache_4390_pos2025'
+};
+
+// Fallback hardcoded — preencher manualmente se necessário
+// Formato: [{ "data": "01/01/2025", "valor": "0,79" }, ...]
+const BCB_FALLBACK = {
+    [BCB_CACHE_KEYS.selic]:    [],
+    [BCB_CACHE_KEYS.ipcae]:    [],
+    [BCB_CACHE_KEYS.ipca]:     [],
+    [BCB_CACHE_KEYS.selicPos]: []
+};
+
+async function fetchBCBComCache(url, chaveCache) {
+    // 1. Tenta a API com timeout de 8 segundos
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeout);
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const dados = await response.json();
+
+        // Salva no cache
+        try {
+            localStorage.setItem(chaveCache, JSON.stringify({ dados, savedAt: new Date().toISOString(), url }));
+        } catch (e) {
+            console.warn('Não foi possível salvar no localStorage:', e);
+        }
+
+        return { dados, fonte: 'api' };
+
+    } catch (errApi) {
+        console.warn(`BCB API indisponível (${chaveCache}):`, errApi.message);
+    }
+
+    // 2. Tenta o cache do localStorage
+    try {
+        const cached = localStorage.getItem(chaveCache);
+        if (cached) {
+            const { dados, savedAt } = JSON.parse(cached);
+            if (dados && dados.length > 0) {
+                return { dados, fonte: 'cache', savedAt };
+            }
+        }
+    } catch (e) {
+        console.warn('Erro ao ler localStorage:', e);
+    }
+
+    // 3. Fallback hardcoded
+    const fallback = BCB_FALLBACK[chaveCache];
+    if (fallback && fallback.length > 0) {
+        return { dados: fallback, fonte: 'fallback' };
+    }
+
+    // 4. Sem dados disponíveis
+    return { dados: [], fonte: 'erro' };
+}
+
+function mostrarAvisoBCB(fonte, savedAt) {
+    if (fonte === 'api') return;
+    if (fonte === 'erro') { alertarErroBCB(); return; }
+
+    document.getElementById('alertaBCBCache')?.remove();
+
+    const alerta = document.createElement('div');
+    alerta.id = 'alertaBCBCache';
+
+    const isCache = fonte === 'cache';
+    const dataFormatada = savedAt
+        ? new Date(savedAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+        : null;
+
+    alerta.style.cssText = `
+        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+        background: var(--white); border: 2px solid ${isCache ? '#2196F3' : '#FF9800'};
+        border-radius: 12px; padding: 16px 24px; z-index: 9999;
+        box-shadow: var(--shadow-elevated); max-width: 480px; width: 90%;
+        font-family: var(--font-primary); text-align: center;
+    `;
+    alerta.innerHTML = `
+        <div style="font-size: 1.5em; margin-bottom: 8px;">${isCache ? 'ℹ️' : '⚠️'}</div>
+        <div style="font-weight: 700; color: var(--primary-navy); margin-bottom: 6px;">
+            ${isCache ? 'Usando dados em cache' : 'Usando dados de fallback'}
+        </div>
+        <div style="color: var(--medium-gray); font-size: 0.9em; margin-bottom: 12px;">
+            ${isCache
+                ? `API do BCB indisponível. Usando dados salvos em ${dataFormatada}. Os valores podem estar desatualizados.`
+                : 'API do BCB indisponível e sem cache salvo. Usando dados hardcoded. Verifique a conexão.'}
+        </div>
+        <button onclick="document.getElementById('alertaBCBCache').remove()" style="
+            background: var(--gradient-gold); color: var(--white);
+            border: none; border-radius: 20px; padding: 8px 20px;
+            cursor: pointer; font-weight: 600; font-family: var(--font-primary);
+        ">Entendido</button>
+    `;
+    document.body.appendChild(alerta);
+    setTimeout(() => alerta?.remove(), 12000);
+}
+
+// ====================================
 // Selic
 // ====================================
 
 
 async function calcularSelic(dataBase, inicioGraca, fimGraca) {
-    try {
-        // Descobre a data final como o último dia do mês anterior ao mês atual
-        const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
-        const [ano, mes, dia] = dataAtualizacaoInput.split('-');
-        const dataReferencia = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+    // Descobre a data final como o último dia do mês anterior ao mês atual
+    const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
+    const [ano, mes, dia] = dataAtualizacaoInput.split('-');
+    const dataReferencia = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
 
-        const primeiroDiaMesAtual = new Date(dataReferencia.getFullYear(), dataReferencia.getMonth(), 1);
-        const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
-        
-        // ⚠️ LIMITAR até 31/07/2025 para SELIC antiga
-        const dataLimite31Jul2025 = new Date(2025, 6, 31);
-        const dataFinalSelic = ultimoDiaMesAnterior < dataLimite31Jul2025 ? ultimoDiaMesAnterior : dataLimite31Jul2025;
-        
-        const dataFinal = dataFinalSelic.toLocaleDateString('pt-BR');
-        
-        const urlselic = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.4390/dados?formato=json&dataInicial=01/12/2021&dataFinal=${dataFinal}`;
-        
-        const response = await fetch(urlselic);
-        if (!response.ok) {
-            throw new Error(`Erro HTTP: ${response.status}`);
-        }
-        const dadosselic = await response.json();
-        
-        return processarDadosSelic(dadosselic, dataBase, inicioGraca, fimGraca);
-        
-    } catch (error) {
-        console.error(`Erro ao obter dados da SELIC: ${error}`);
-        alertarErroBCB();
-    }
+    const primeiroDiaMesAtual = new Date(dataReferencia.getFullYear(), dataReferencia.getMonth(), 1);
+    const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
+
+    // ⚠️ LIMITAR até 31/07/2025 para SELIC antiga
+    const dataLimite31Jul2025 = new Date(2025, 6, 31);
+    const dataFinalSelic = ultimoDiaMesAnterior < dataLimite31Jul2025 ? ultimoDiaMesAnterior : dataLimite31Jul2025;
+    const dataFinal = dataFinalSelic.toLocaleDateString('pt-BR');
+
+    const urlselic = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.4390/dados?formato=json&dataInicial=01/12/2021&dataFinal=${dataFinal}`;
+    const { dados: dadosselic, fonte, savedAt } = await fetchBCBComCache(urlselic, BCB_CACHE_KEYS.selic);
+    mostrarAvisoBCB(fonte, savedAt);
+
+    if (fonte === 'erro') return undefined;
+
+    return processarDadosSelic(dadosselic, dataBase, inicioGraca, fimGraca);
 }
 
 function processarDadosSelic(dadosselic, dataBase, inicioGraca, fimGraca) {
@@ -403,29 +503,22 @@ function processarDadosSelic(dadosselic, dataBase, inicioGraca, fimGraca) {
 // ====================================
 
 async function calcularIpcaE(dataBase, inicioGraca, fimGraca) {
-    try {
-        // Descobre a data final como o último dia do mês anterior ao mês atual
-        const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
-        const [ano, mes, dia] = dataAtualizacaoInput.split('-');
-        const dataReferencia = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+    // Descobre a data final como o último dia do mês anterior ao mês atual
+    const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
+    const [ano, mes, dia] = dataAtualizacaoInput.split('-');
+    const dataReferencia = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
 
-        const primeiroDiaMesAtual = new Date(dataReferencia.getFullYear(), dataReferencia.getMonth(), 1);
-        const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
-        const dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
-        const urlipcae = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.10764/dados?formato=json&dataInicial=01/12/2021&dataFinal=${dataFinal}`;
-        //10764 - IPCA.E
-        const response = await fetch(urlipcae);
-        if (!response.ok) {
-            throw new Error(`Erro HTTP: ${response.status}`);
-        }
-        const dadosipcae = await response.json();
-        
-        return processarDadosIpcaE(dadosipcae, dataBase, inicioGraca, fimGraca);
-        
-    } catch (error) {
-        console.error(`Erro ao obter dados do IPCA - E: ${error}`);
-        alertarErroBCB();
-    }
+    const primeiroDiaMesAtual = new Date(dataReferencia.getFullYear(), dataReferencia.getMonth(), 1);
+    const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
+    const dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
+    // 10764 - IPCA-E
+    const urlipcae = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.10764/dados?formato=json&dataInicial=01/12/2021&dataFinal=${dataFinal}`;
+    const { dados: dadosipcae, fonte, savedAt } = await fetchBCBComCache(urlipcae, BCB_CACHE_KEYS.ipcae);
+    mostrarAvisoBCB(fonte, savedAt);
+
+    if (fonte === 'erro') return 1.0;
+
+    return processarDadosIpcaE(dadosipcae, dataBase, inicioGraca, fimGraca);
 }
 
 function processarDadosIpcaE(dadosipcae, dataBase, inicioGraca, fimGraca) {
@@ -464,32 +557,23 @@ function processarDadosIpcaE(dadosipcae, dataBase, inicioGraca, fimGraca) {
 // ====================================
 
 async function calcularIpca(dataBase, inicioGraca, fimGraca) {
-    try {
-        // Descobre a data final como o último dia do mês anterior ao mês atual
-        const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
-        const [ano, mes, dia] = dataAtualizacaoInput.split('-');
-        const dataReferencia = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+    // Descobre a data final como o último dia do mês anterior ao mês atual
+    const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
+    const [ano, mes, dia] = dataAtualizacaoInput.split('-');
+    const dataReferencia = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
 
-        const primeiroDiaMesAtual = new Date(dataReferencia.getFullYear(), dataReferencia.getMonth(), 1);
-        const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
-        const dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
-        
-        // Série 433 = IPCA normal (não é o IPCA-E)
-        const urlipca = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados?formato=json&dataInicial=01/08/2025&dataFinal=${dataFinal}`;
-        
-        const response = await fetch(urlipca);
-        if (!response.ok) {
-            throw new Error(`Erro HTTP: ${response.status}`);
-        }
-        const dadosipca = await response.json();
-        
-        return processarDadosIpca(dadosipca, dataBase, inicioGraca, fimGraca);
-        
-    } catch (error) {
-        console.error(`Erro ao obter dados do IPCA (433): ${error}`);
-        alertarErroBCB();
-        return { indiceipca: 1.0, periodo: '', temDados: false };
-    }
+    const primeiroDiaMesAtual = new Date(dataReferencia.getFullYear(), dataReferencia.getMonth(), 1);
+    const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
+    const dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
+
+    // Série 433 = IPCA normal (não é o IPCA-E)
+    const urlipca = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados?formato=json&dataInicial=01/08/2025&dataFinal=${dataFinal}`;
+    const { dados: dadosipca, fonte, savedAt } = await fetchBCBComCache(urlipca, BCB_CACHE_KEYS.ipca);
+    mostrarAvisoBCB(fonte, savedAt);
+
+    if (fonte === 'erro') return { indiceipca: 1.0, periodo: '', temDados: false };
+
+    return processarDadosIpca(dadosipca, dataBase, inicioGraca, fimGraca);
 }
 
 function processarDadosIpca(dadosipca, dataBase, inicioGraca, fimGraca) {
@@ -557,92 +641,73 @@ function calcularJuros2PorcentoAA(quantidadeMeses) {
 // ====================================
 
 async function calcularSelicPosAgosto2025() {
-    try {
-        const dataAgosto2025 = new Date(2025, 7, 1); // 01/08/2025
-        
-        // Pega a data de atualização do formulário
-        const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
-        const [ano, mes, dia] = dataAtualizacaoInput.split('-');
-        const dataAtualizacao = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
-        
-        // Se data de atualização é antes de agosto/2025, retorna neutro
-        if (dataAtualizacao <= dataAgosto2025) {
-            return {
-                indiceSelecionado: 1.0,
-                tipoIndice: 'nenhum',
-                indiceSelic: 1.0,
-                indiceIpcaMais2: 1.0,
-                selicMaior: false,
-                quantidadeMeses: 0,
-                periodo: ''
-            };
-        }
-        
-        // 1. Buscar SELIC de agosto/2025 até data atual
-        const primeiroDiaMesAtual = new Date(dataAtualizacao.getFullYear(), dataAtualizacao.getMonth(), 1);
-        const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
-        const dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
-        
-        const urlselic = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.4390/dados?formato=json&dataInicial=01/08/2025&dataFinal=${dataFinal}`;
-        const responseSelic = await fetch(urlselic);
-        
-        if (!responseSelic.ok) {
-            throw new Error(`Erro ao buscar SELIC: ${responseSelic.status}`);
-        }
-        
-        const dadosSelic = await responseSelic.json();
-        
-        // Calcular índice SELIC acumulado
-        let indiceSelic = 1.0;
-        for (const item of dadosSelic) {
-            const valor = parseFloat(item.valor.replace(',', '.'));
-            indiceSelic *= 1 + (valor / 100);
-        }
-        
-        // 2. Buscar IPCA (433) de agosto/2025 até data atual
-        const dadosIpca = await calcularIpca(dataAgosto2025, null, null);
-        const juros2AA = calcularJuros2PorcentoAA(dadosIpca.quantidadeMeses);
-        const indiceIpcaMais2 = dadosIpca.indiceipca * (1 + juros2AA);
-        
-        // 4. Comparar: SELIC > IPCA+2%?
-        const selicMaior = indiceSelic > indiceIpcaMais2;
-        
-        // 5. Retornar o menor índice
-        const indiceSelecionado = selicMaior ? indiceIpcaMais2 : indiceSelic;
-        const tipoIndice = selicMaior ? 'ipca' : 'selic';
-        
-        // Período
-        let periodo = '';
-        if (dadosSelic.length > 0) {
-            periodo = `01/08/2025 a ${dadosSelic[dadosSelic.length - 1].data}`;
-        }
-        
+    const dataAgosto2025 = new Date(2025, 7, 1); // 01/08/2025
+
+    // Pega a data de atualização do formulário
+    const dataAtualizacaoInput = document.getElementById("dataatualizacao").value;
+    const [ano, mes, dia] = dataAtualizacaoInput.split('-');
+    const dataAtualizacao = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+
+    // Se data de atualização é antes de agosto/2025, retorna neutro
+    if (dataAtualizacao <= dataAgosto2025) {
         return {
-            indiceSelecionado,      // O menor (que será aplicado)
-            tipoIndice,             // 'selic' ou 'ipca'
-            indiceSelic,            // SELIC isolada
-            indiceIpcaMais2,        // IPCA + 2% a.a
-            selicMaior,             // true se SELIC > IPCA+2%
-            quantidadeMeses: dadosIpca.quantidadeMeses,
-            periodo,
-            percentualSelic: ((indiceSelic - 1) * 100).toFixed(4),
-            percentualIpcaMais2: ((indiceIpcaMais2 - 1) * 100).toFixed(4),
-            percentualJuros2AA: (juros2AA * 100).toFixed(4)
-        };
-        
-    } catch (error) {
-        console.error(`Erro em calcularSelicPosAgosto2025: ${error}`);
-        alertarErroBCB();
-        return {
-            indiceSelecionado: 1.0,
-            tipoIndice: 'erro',
-            indiceSelic: 1.0,
-            indiceIpcaMais2: 1.0,
-            selicMaior: false,
-            quantidadeMeses: 0,
-            periodo: ''
+            indiceSelecionado: 1.0, tipoIndice: 'nenhum', indiceSelic: 1.0,
+            indiceIpcaMais2: 1.0, selicMaior: false, quantidadeMeses: 0, periodo: ''
         };
     }
+
+    // 1. Buscar SELIC de agosto/2025 até data atual
+    const primeiroDiaMesAtual = new Date(dataAtualizacao.getFullYear(), dataAtualizacao.getMonth(), 1);
+    const ultimoDiaMesAnterior = new Date(primeiroDiaMesAtual - 1);
+    const dataFinal = ultimoDiaMesAnterior.toLocaleDateString('pt-BR');
+
+    const urlselic = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.4390/dados?formato=json&dataInicial=01/08/2025&dataFinal=${dataFinal}`;
+    const { dados: dadosSelic, fonte, savedAt } = await fetchBCBComCache(urlselic, BCB_CACHE_KEYS.selicPos);
+    mostrarAvisoBCB(fonte, savedAt);
+
+    if (fonte === 'erro') {
+        return {
+            indiceSelecionado: 1.0, tipoIndice: 'erro', indiceSelic: 1.0,
+            indiceIpcaMais2: 1.0, selicMaior: false, quantidadeMeses: 0, periodo: ''
+        };
+    }
+
+    // Calcular índice SELIC acumulado
+    let indiceSelic = 1.0;
+    for (const item of dadosSelic) {
+        const valor = parseFloat(item.valor.replace(',', '.'));
+        indiceSelic *= 1 + (valor / 100);
+    }
+
+    // 2. Buscar IPCA (433) de agosto/2025 até data atual
+    const dadosIpca = await calcularIpca(dataAgosto2025, null, null);
+    const juros2AA = calcularJuros2PorcentoAA(dadosIpca.quantidadeMeses);
+    const indiceIpcaMais2 = dadosIpca.indiceipca * (1 + juros2AA);
+
+    // 3. Comparar: SELIC > IPCA+2%?
+    const selicMaior = indiceSelic > indiceIpcaMais2;
+
+    // 4. Retornar o menor índice
+    const indiceSelecionado = selicMaior ? indiceIpcaMais2 : indiceSelic;
+    const tipoIndice = selicMaior ? 'ipca' : 'selic';
+
+    let periodo = '';
+    if (dadosSelic.length > 0) {
+        periodo = `01/08/2025 a ${dadosSelic[dadosSelic.length - 1].data}`;
+    }
+
+    return {
+        indiceSelecionado,      // O menor (que será aplicado)
+        tipoIndice,             // 'selic' ou 'ipca'
+        indiceSelic,            // SELIC isolada
+        indiceIpcaMais2,        // IPCA + 2% a.a
+        selicMaior,             // true se SELIC > IPCA+2%
+        quantidadeMeses: dadosIpca.quantidadeMeses,
+        periodo,
+        percentualSelic: ((indiceSelic - 1) * 100).toFixed(4),
+        percentualIpcaMais2: ((indiceIpcaMais2 - 1) * 100).toFixed(4),
+        percentualJuros2AA: (juros2AA * 100).toFixed(4)
+    };
 }
 
 function alertarErroBCB() {
