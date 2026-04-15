@@ -8,14 +8,6 @@ function gerarCabecalhoProcesso(dados, resultados, dataAtual) {
     const tipoCalculo = tipos[dados.tipoCalculo] || "Não definido";
     const natureza = dados.natureza === 'alimentar' ? 'Alimentar' : 'Comum';
 
-    const secaoRRA = (resultados.rraTotal && resultados.rraTotal !== 0)
-        ? `<tr>
-            <td><strong>RRA</strong></td>
-            <td>${resultados.rraTotal} meses</td>
-            <td></td><td></td>
-           </tr>`
-        : '';
-
     let datasBase = 'Não informado';
     if (dados.valoresPrincipais?.length > 0) {
         const datasUnicas = [...new Set(
@@ -63,7 +55,6 @@ function gerarCabecalhoProcesso(dados, resultados, dataAtual) {
                         <td><strong>Data do Cálculo</strong></td>
                         <td>${dataAtual}</td>
                     </tr>
-                    ${secaoRRA}
                 </tbody>
             </table>
         </div>
