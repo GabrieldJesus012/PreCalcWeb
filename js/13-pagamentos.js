@@ -883,8 +883,11 @@ function calcularIRAdvogado(item, saldo) {
 }
 
 function calcularIRSindicato(item, saldo) {
+    if (!item.incidenciaIR) return 0; 
+
     if (item.tipoTributacao === 'pj') return saldo * 0.015;
     if (item.aliquotaFixaIR) return saldo * item.aliquotaFixaIR;
+
     return saldo * 0.015;
 }
 

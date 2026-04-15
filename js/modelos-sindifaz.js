@@ -10,7 +10,7 @@ function configurarSindiFaz() {
             ["JUAREZ CHAVES DE AZEVEDO JUNIOR - SOCIEDADE INDIVIDUAL DE ADVOCACIA", "PJ", 0.013333333]
         ],
         advogadosSucumbenciais: [
-                ["FURTADO COELHO ADVOGADOS ASSOCIADOS", "PJ", 0.02, true]
+                ["FURTADO COELHO ADVOGADOS ASSOCIADOS Suc.", "PJ", 0.02, true]
         ],
         sindicatos: [
                 ["Sindifaz", 0.01, "nao"]
