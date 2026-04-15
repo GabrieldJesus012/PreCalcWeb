@@ -54,7 +54,7 @@ function calcularHerdeiros(dados, valortotatt, valorprincatt, valorjurosatt, det
         
         // Composição inicial
         const { principal, juros, rra } = calcularComposicaoInicialHerdeiro(
-            dados, valorBaseHerdeiro, valorTotalHerdeiro, percentualHerdeiro, contexto
+            dados, valorBaseHerdeiro, valorTotalHerdeiro, contexto
         );
         
         // Honorários e Sindicatos
@@ -104,7 +104,7 @@ function calcularHerdeiros(dados, valortotatt, valorprincatt, valorjurosatt, det
             valorTotal: valorTotalHerdeiro,
             principal: valorprincatt * percentualHerdeiro,
             juros: valorjurosatt * percentualHerdeiro,
-            rra: contexto.rraTotal !== 0 ? arredondarRRA(contexto.rraTotal * percentualHerdeiro) : 0
+            rra: contexto.rraTotal !== 0 ? arredondarRRA(contexto.rraTotal) : 0
         };
         
         return {
@@ -163,7 +163,7 @@ function calcularHerdeiros(dados, valortotatt, valorprincatt, valorjurosatt, det
 // FUNÇÕES AUXILIARES HERDEIROS
 // ====================================
 
-function calcularComposicaoInicialHerdeiro(dados, valorBase, valorTotal, percentualHerdeiro, ctx) {
+function calcularComposicaoInicialHerdeiro(dados, valorBase, valorTotal, ctx) {
     let principal, juros;
     
     if (ctx.temTributacaoIR && dados.tributacaoIR) {
@@ -178,9 +178,9 @@ function calcularComposicaoInicialHerdeiro(dados, valorBase, valorTotal, percent
     let rra;
     if (ctx.isParcial) {
         const proporcao = valorBase / valorTotal;
-        rra = ctx.rraTotal !== 0 ? arredondarRRA(ctx.rraTotal * percentualHerdeiro * proporcao) : 0;
+        rra = ctx.rraTotal !== 0 ? arredondarRRA(ctx.rraTotal * proporcao) : 0;
     } else {
-        rra = ctx.rraTotal !== 0 ? arredondarRRA(ctx.rraTotal * percentualHerdeiro) : 0;
+        rra = ctx.rraTotal !== 0 ? arredondarRRA(ctx.rraTotal) : 0;
     }
     
     return { principal, juros, rra };
@@ -197,12 +197,12 @@ function recalcularPrincipalJurosRRAHerdeiro(dados, valorBase, valorTotal, perce
         }
         
         const proporcao = valorBase / valorTotal;
-        rra = ctx.rraTotal !== 0 ? arredondarRRA(ctx.rraTotal * percentualHerdeiro * proporcao) : 0;
+        rra = ctx.rraTotal !== 0 ? arredondarRRA(ctx.rraTotal * proporcao) : 0;
         juros = undefined;
-        
+
     } else if (ctx.isParcial) {
         const proporcao = valorBase / valorTotal;
-        
+
         if (ctx.temTributacaoIR && dados.tributacaoIR) {
             principal = dados.tributacaoIR.principalTributado * percentualHerdeiro * proporcao;
             juros = dados.tributacaoIR.jurosTributado * percentualHerdeiro * proporcao;
@@ -210,8 +210,8 @@ function recalcularPrincipalJurosRRAHerdeiro(dados, valorBase, valorTotal, perce
             principal = valorBase * ctx.percentualprinc;
             juros = valorBase * ctx.percentualjur;
         }
-        
-        rra = ctx.rraTotal !== 0 ? arredondarRRA(ctx.rraTotal * percentualHerdeiro * proporcao) : 0;
+
+        rra = ctx.rraTotal !== 0 ? arredondarRRA(ctx.rraTotal * proporcao) : 0;
     }
     
     return { principal, juros, rra };
