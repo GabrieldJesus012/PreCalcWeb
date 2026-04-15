@@ -83,6 +83,30 @@ body {
     border-bottom: 3px solid var(--primary-gold);
 }
 
+.header-tribunal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--primary-gold);
+    background: rgba(197, 165, 114, 0.10);
+    border: 1px solid rgba(197, 165, 114, 0.30);
+    border-radius: 20px;
+    padding: 5px 16px;
+    margin-bottom: 2px;
+    position: relative;
+    z-index: 1;
+}
+
+.header-tribunal-badge::before {
+    content: '⚖';
+    font-size: 0.85rem;
+    opacity: 0.85;
+}
+
 .header::before {
     content: '';
     position: absolute;
@@ -95,9 +119,9 @@ body {
 
 .header h1 {
     font-family: var(--font-heading);
-    font-size: 2.6rem;
+    font-size: 1.9rem;
     font-weight: 700;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     letter-spacing: -0.3px;
     position: relative;
     z-index: 1;
@@ -112,6 +136,7 @@ body {
     opacity: 0.2;
 }
 
+
 /* Sistema de Tabs */
 .tabs-container {
     background: var(--white);
@@ -124,18 +149,24 @@ body {
 
 .tabs-nav {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
     margin: 0;
     padding: 0 12px;
+}
+
+.tabs-nav::-webkit-scrollbar {
+    display: none;
 }
 
 .tab-button {
     background: transparent;
     border: none;
     border-bottom: 3px solid transparent;
-    padding: 16px 22px;
+    padding: 13px 16px;
     cursor: pointer;
-    font-size: 13.5px;
+    font-size: 12.5px;
     font-weight: 600;
     color: #718096;
     transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
@@ -143,6 +174,7 @@ body {
     font-family: var(--font-primary);
     letter-spacing: 0.15px;
     margin-bottom: -1px;
+    flex-shrink: 0;
 }
 
 .tab-button:hover {
