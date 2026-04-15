@@ -1898,7 +1898,7 @@
                         <input type="text" id="cessionarioNome${index}" placeholder="Nome do Cessionário">
                     </div>
                     <div class="input-group">
-                        <label>Percentual Cedido (ex: 0.1 = 10% do precatório): </label>
+                        <label id="labelPercentual${index}">Percentual Cedido (ex: 0.1 = 10% do precatório): </label>
                         <input type="number" id="cessaoPercentual${index}" step="0.01" min="0" max="1" placeholder="0.00">
                     </div>
                 </div>
@@ -1990,12 +1990,22 @@
         function atualizarCedentes(index) {
             const tipoCessao = $(`cessaoTipo${index}`)?.value;
             const cedenteSelect = $(`cedenteNome${index}`);
-            
-            if (tipoCessao && cedenteSelect) {
-                cedenteSelect.innerHTML = criarOpcoesCedente(tipoCessao, index);
-                
-                const opcoes = cedenteSelect.querySelectorAll('option');
-                if (opcoes.length === 2) cedenteSelect.selectedIndex = 1;
+            const labelPercentual = document.getElementById(`labelPercentual${index}`);
+            const tipo = $(`cessaoTipo${index}`)?.value;
+
+            if (labelPercentual) {
+                if (tipoCessao && cedenteSelect) {
+                    cedenteSelect.innerHTML = criarOpcoesCedente(tipoCessao, index);
+                    
+                    const opcoes = cedenteSelect.querySelectorAll('option');
+                    if (opcoes.length === 2) cedenteSelect.selectedIndex = 1;
+                }
+                    
+                if (tipo === 'cessaoherdeiro') {
+                    labelPercentual.textContent = 'Percentual Cedido (sobre o valor do herdeiro):';
+                } else {
+                    labelPercentual.textContent = 'Percentual Cedido (ex: 0.1 = 10% do precatório):';
+                }
             }
         }
 
@@ -2544,6 +2554,7 @@
 
             Object.values(percentuaisCedentes).forEach(({ total, cessoes, cedente, tipo }) => {
                 if (tipo === 'cessaobenPrincipal') return; // beneficiário sem percentual fixo
+                if (tipo === 'cessaoherdeiro') return;
                 const maximo = obterMaximo(tipo, cedente);
                 if (maximo > 0 && total > maximo + 0.0001) {
                     erros.push(

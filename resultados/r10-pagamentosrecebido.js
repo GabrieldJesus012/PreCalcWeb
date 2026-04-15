@@ -13,13 +13,6 @@ function gerarSecaoPagamentosOcorridos(resultados, dados) {
         <div class="deducoes-acessorias">
             <div class="table-container">
                 <h3>💳 Pagamentos Ocorridos</h3>
-                <div class="explicacao-juridica">
-                    <div class="titulo">Entenda os Pagamentos Ocorridos</div>
-                    <p><strong>Valores Pagos:</strong> Montantes que já foram pagos aos beneficiários em datas anteriores.</p>
-                    <p><strong>Atualização Monetária:</strong> Os valores foram corrigidos desde a data do pagamento até a data de atualização do cálculo.</p>
-                    <p><strong>Desconto Necessário:</strong> Estes valores devem ser deduzidos dos montantes devidos atualmente.</p>
-                </div>
-                
                 <table>
                     <tr>
                         <th>Beneficiário</th>
@@ -214,7 +207,7 @@ function gerarDemonstrativoSaldoRemanescente(resultados) {
                     ${gerarLinhaTotal(totaisComPagamento)}
                 </table>
                 
-                <div style="margin-top: 15px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+                <div class="success-box" style="margin-top: 5px;margin-bottom: 5px; padding: 10px; border-radius: 4px;background-color:#fff3cd; color:#856404;">
                     <strong>⚠️ Observação:</strong> Os valores de IR e Previdência serão calculados sobre o saldo remanescente.
                 </div>
             </div>
@@ -402,7 +395,7 @@ function gerarLinhasCessionarios(cessionarios) {
 
 function gerarLinhaTotal(totais) {
     return `
-        <tr class="highlight">
+        <tr class="highlight-green">
             <td><strong>TOTAL</strong></td>
             <td><strong>R$ ${formatarMoeda(totais.totalValorBruto)}</strong></td>
             <td><strong>R$ ${formatarMoeda(totais.totalPagamento)}</strong></td>
