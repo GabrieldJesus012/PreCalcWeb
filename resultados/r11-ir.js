@@ -94,21 +94,22 @@ function gerarDetalheIR(resultados, dados, temPrevidencia, temCessoes) {
             ${percentualTotalAdv > 0 ? `
             <tr>
                 <th>(-) HONORÁRIOS CONTRATUAIS (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
-                <td>R$ ${formatarMoeda(resultados.baseIRHonora)}</td>
+                <td>(-) R$ ${formatarMoeda(resultados.principal * percentualTotalAdv)}</td>
             </tr>` : ''}
             ${percentualTotalSind > 0 ? `
             <tr>
                 <th>(-) SINDICATOS (${(percentualTotalSind * 100).toFixed(2)}%):</th>
-                <td>R$ ${formatarMoeda(resultados.baseIRSindi)}</td>
+                <td>(-) R$ ${formatarMoeda(resultados.principal * percentualTotalSind)}</td>
             </tr>` : ''}
+            ${(percentualTotalAdv > 0 || percentualTotalSind > 0) ? `
             <tr>
                 <th>Rendimento Tributável:</th>
                 <td>R$ ${formatarMoeda(resultados.baseIRSindi)}</td>
-            </tr>
+            </tr>` : ''}
             ${isAcordo && resultados.percentualDesagioIR > 0 ? `
             <tr>
                 <th>(-) Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
-                <td>R$ ${formatarMoeda(resultados.baseIRSindi * percentualDesagio)}</td>
+                <td>(-) R$ ${formatarMoeda(resultados.baseIRSindi * percentualDesagio)}</td>
             </tr>
             <tr>
                 <th>Rendimento Tributável após deságio:</th>
@@ -123,8 +124,8 @@ function gerarDetalheIR(resultados, dados, temPrevidencia, temCessoes) {
                 <td>R$ ${formatarMoeda(resultados.rendimentoMensal)}</td>
             </tr>
             <tr>
-                <th>(-) Desconto Simplificado:</th>
-                <td>R$ ${formatarMoeda(resultados.descontoSimplificado)}</td>
+                <th>${resultados.descontoSimplificado > 607.20 ? '(-) Previdência Mensal:' : '(-) Desconto Simplificado:'}</th>
+                <td>(-) R$ ${formatarMoeda(resultados.descontoSimplificado)}</td>
             </tr>
             ${resultados.baseIRRRA < 0 ? `
             <tr class="total-row">
@@ -269,21 +270,22 @@ function gerarDetalheIRHerdeirosSemCessao(herdeiros, dados, valorBase, temPrevid
             ${percentualTotalAdv > 0 ? `
             <tr>
                 <th>(-) HONORÁRIOS CONTRATUAIS (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
-                <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRHonora)}</td>
+                <td>(-) R$ ${formatarMoeda(primeiroHerdeiro.principal * percentualTotalAdv)}</td>
             </tr>` : ''}
             ${percentualTotalSind > 0 ? `
             <tr>
                 <th>(-) SINDICATOS (${(percentualTotalSind * 100).toFixed(2)}%):</th>
-                <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRSindi)}</td>
+                <td>(-) R$ ${formatarMoeda(primeiroHerdeiro.principal * percentualTotalSind)}</td>
             </tr>` : ''}
+            ${(percentualTotalAdv > 0 || percentualTotalSind > 0) ? `
             <tr>
                 <th>Rendimento Tributável:</th>
                 <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRSindi)}</td>
-            </tr>
+            </tr>` : ''}
             ${isAcordo && percentualDesagio > 0 ? `
             <tr>
                 <th>(-) Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
-                <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRSindi * percentualDesagio)}</td>
+                <td>(-) R$ ${formatarMoeda(primeiroHerdeiro.baseIRSindi * percentualDesagio)}</td>
             </tr>
             <tr>
                 <th>Rendimento Tributável após deságio:</th>
@@ -298,8 +300,8 @@ function gerarDetalheIRHerdeirosSemCessao(herdeiros, dados, valorBase, temPrevid
                 <td>R$ ${formatarMoeda(primeiroHerdeiro.rendimentoMensal)}</td>
             </tr>
             <tr>
-                <th>(-) Desconto Simplificado:</th>
-                <td>R$ ${formatarMoeda(primeiroHerdeiro.descontoSimplificado)}</td>
+                <th>${primeiroHerdeiro.descontoSimplificado > 607.20 ? '(-) Previdência Mensal:' : '(-) Desconto Simplificado:'}</th>
+                <td>(-) R$ ${formatarMoeda(primeiroHerdeiro.descontoSimplificado)}</td>
             </tr>
             ${primeiroHerdeiro.baseIRRRA < 0 ? `
             <tr class="total-row">
@@ -400,21 +402,22 @@ function gerarDetalheIRHerdeiros(herdeiros, dados, valorBase, temPrevidencia, te
             ${percentualTotalAdv > 0 ? `
             <tr>
                 <th>(-) HONORÁRIOS CONTRATUAIS (${(percentualTotalAdv * 100).toFixed(2)}%):</th>
-                <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRHonora)}</td>
+                <td>(-) R$ ${formatarMoeda(primeiroHerdeiro.principal * percentualTotalAdv)}</td>
             </tr>` : ''}
             ${percentualTotalSind > 0 ? `
             <tr>
                 <th>(-) SINDICATOS (${(percentualTotalSind * 100).toFixed(2)}%):</th>
-                <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRSindi)}</td>
+                <td>(-) R$ ${formatarMoeda(primeiroHerdeiro.principal * percentualTotalSind)}</td>
             </tr>` : ''}
+            ${(percentualTotalAdv > 0 || percentualTotalSind > 0) ? `
             <tr>
                 <th>Rendimento Tributável:</th>
                 <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRSindi)}</td>
-            </tr>
+            </tr>` : ''}
             ${isAcordo && percentualDesagio > 0 ? `
             <tr>
                 <th>(-) Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
-                <td>R$ ${formatarMoeda(primeiroHerdeiro.baseIRSindi * percentualDesagio)}</td>
+                <td>(-) R$ ${formatarMoeda(primeiroHerdeiro.baseIRSindi * percentualDesagio)}</td>
             </tr>
             <tr>
                 <th>Rendimento Tributável após deságio:</th>
@@ -429,8 +432,8 @@ function gerarDetalheIRHerdeiros(herdeiros, dados, valorBase, temPrevidencia, te
                 <td>R$ ${formatarMoeda(primeiroHerdeiro.rendimentoMensal)}</td>
             </tr>
             <tr>
-                <th>(-) Desconto Simplificado:</th>
-                <td>R$ ${formatarMoeda(primeiroHerdeiro.descontoSimplificado)}</td>
+                <th>${primeiroHerdeiro.descontoSimplificado > 607.20 ? '(-) Previdência Mensal:' : '(-) Desconto Simplificado:'}</th>
+                <td>(-) R$ ${formatarMoeda(primeiroHerdeiro.descontoSimplificado)}</td>
             </tr>
             ${primeiroHerdeiro.baseIRRRA < 0 ? `
             <tr class="total-row">
