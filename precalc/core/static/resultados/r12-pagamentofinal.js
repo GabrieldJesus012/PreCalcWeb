@@ -22,13 +22,7 @@ function gerarSecoesPagamentos(resultados, dados) {
 function gerarTabelaPagamentosAcordo(resultados, dados) {
     if (dados.tipoCalculo !== 'acordo') return '';
     
-    let adesoes;
-    if (typeof obterAdesaoAcordo === 'function') {
-        adesoes = obterAdesaoAcordo();
-    } else {
-        adesoes = dados.adesaoAcordo || {};
-    }
-
+    const adesoes = obterAdesaoAcordo();
     const percentualDesagio = dados.percentualAcordo || 0;
     const pagamentosAcordo = [];
     
@@ -417,7 +411,7 @@ function coletarCessionariosAcordo(adesoes, dados, resultados, percentualDesagio
         }
 
         // Cessionários de sindicatos
-        if (cessao.tipo === 'cessaoSind') {
+        if (cessao.tipo === 'cessaoSindicato') {
             adicionarCessionarioSindicatoAcordo(cessao, resultados, percentualDesagio, pagamentosAcordo);
         }
     });
@@ -881,12 +875,12 @@ function gerarSecaoCessionariosBeneficiario(resultados, dados) {
                         ${linhasCessionarios}
                     </tbody>
                     <tfoot>
-                        <tr class="linha-gold">
-                            <td class="bold">TOTAL CESSIONÁRIOS</td>
-                            <td class="bold">R$ ${formatarMoeda(totalDevido)}</td>
-                            <td class="bold">R$ ${formatarMoeda(totalPrevidencia)}</td>
-                            <td class="bold">R$ ${formatarMoeda(totalIR)}</td>
-                            <td class="bold">R$ ${formatarMoeda(totalLiquido)}</td>
+                        <tr class="highlight-green">
+                            <td><strong>TOTAL CESSIONÁRIOS</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totalDevido)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totalPrevidencia)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totalIR)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totalLiquido)}</strong></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -919,18 +913,11 @@ function montarTabelaHerdeiro(herdeiro, pagamentosHerdeiro, isPreferencia, total
         ? (herdeiro.isPreferenciaParcial ? ' (Preferência Parcial)' : ' (Preferência Total)') 
         : ' (Ordem Cronológica)';
 
-    const notaTributacao = totalHerdeiros === 1 ? `
-        <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
-            <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-            <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nª 15.270, DE 11 DE NOVEMBRO DE 2025</p>
-            <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
-        </div>
-    ` : '';
 
     return `
         <div class="pagamentos-finais" style="margin-bottom: 20px;">
             <div class="table-container">
-                <h3>📊 Pagamentos - ${herdeiro.nome}${statusHerdeiro}</h3>
+                <h3>Pagamentos - ${herdeiro.nome}${statusHerdeiro}</h3>
                 <table>
                     <thead>
                         <tr>
@@ -943,16 +930,15 @@ function montarTabelaHerdeiro(herdeiro, pagamentosHerdeiro, isPreferencia, total
                     </thead>
                     <tbody>${linhas}</tbody>
                     <tfoot>
-                        <tr class="linha-gold">
-                            <td class="bold">TOTAL</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.totalDevido)}</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.totalPrevidencia)}</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.totalIR)}</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.totalLiquido)}</td>
+                        <tr class="highlight-green">
+                            <td><strong>TOTAL</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.totalDevido)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.totalPrevidencia)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.totalIR)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.totalLiquido)}</strong></td>
                         </tr>
                     </tfoot>
                 </table>
-                ${notaTributacao}
             </div>
         </div>
     `;
@@ -987,12 +973,12 @@ function montarTabelaHonorariosSucumbenciais(pagamentos) {
                     </thead>
                     <tbody>${linhas}</tbody>
                     <tfoot>
-                        <tr class="linha-gold">
-                            <td class="bold">Total Honorários Sucumbenciais</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.totalDevido)}</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.totalPrevidencia)}</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.totalIR)}</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.totalLiquido)}</td>
+                        <tr class="highlight-green">
+                            <td><strong>Total Honorários Sucumbenciais</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.totalDevido)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.totalPrevidencia)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.totalIR)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.totalLiquido)}</strong></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -1005,7 +991,7 @@ function montarResumoGeral(totais) {
     return `
         <div class="pagamentos-finais" style="margin-top: 30px;">
             <div class="table-container">
-                <h3>🎯 RESUMO GERAL DE TODOS OS PAGAMENTOS</h3>
+                <h3>RESUMO GERAL DE TODOS OS PAGAMENTOS</h3>
                 <table style="background-color: #f8f9fa;">
                     <thead>
                         <tr style="background-color: #e9ecef;">
@@ -1017,21 +1003,15 @@ function montarResumoGeral(totais) {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr class="linha-gold">
-                            <td class="bold">TOTAL FINAL</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.totalDevido)}</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.totalPrevidencia)}</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.totalIR)}</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.totalLiquido)}</td>
+                        <tr class="highlight-green" style="font-weight: bold; font-size: 1.1em;">
+                            <td><strong>TOTAL FINAL</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.totalDevido)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.totalPrevidencia)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.totalIR)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.totalLiquido)}</strong></td>
                         </tr>
                     </tbody>
                 </table>
-                <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
-                    <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-                    <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nª 15.270, DE 11 DE NOVEMBRO DE 2025</p>
-                    <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
-                    <p style="margin: 5px 0;"><strong>Sindicatos:</strong> Tributação conforme Art. 27, da Lei nº 10.833/03 ou alíquota fixa quando aplicável</p>
-                </div>
             </div>
         </div>
     `;
@@ -1082,11 +1062,11 @@ function montarTabelasAcordo(pagamentosAcordo, percentualDesagio) {
                 </thead>
                 <tbody>${linhasCalculo}</tbody>
                 <tfoot>
-                    <tr class="linha-gold">
-                        <td class="bold">TOTAL</strong></td>
-                        <td class="bold">R$ ${formatarMoeda(totais.valorDevido)}</td>
-                        <td class="bold">R$ ${formatarMoeda(totais.valorDesagio)}</td>
-                        <td class="bold">R$ ${formatarMoeda(totais.valorAposDesagio)}</td>
+                    <tr class="highlight">
+                        <td><strong>TOTAL</strong></td>
+                        <td><strong>R$ ${formatarMoeda(totais.valorDevido)}</strong></td>
+                        <td><strong>R$ ${formatarMoeda(totais.valorDesagio)}</strong></td>
+                        <td><strong>R$ ${formatarMoeda(totais.valorAposDesagio)}</strong></td>
                     </tr>
                 </tfoot>
             </table>
@@ -1094,7 +1074,7 @@ function montarTabelasAcordo(pagamentosAcordo, percentualDesagio) {
         <div class="pagamentos-acordo">
             <!-- 2ª TABELA: Valores Finais para Pagamento -->
             <div class="table-container">
-                <h3>💰 Pagamento do Acordo</h3>
+                <h3>Pagamento do Acordo</h3>
                 <table>
                     <thead>
                         <tr>
@@ -1108,83 +1088,25 @@ function montarTabelasAcordo(pagamentosAcordo, percentualDesagio) {
                     </thead>
                     <tbody>${linhasPagamento}</tbody>
                     <tfoot>
-                        <tr class="linha-gold">
-                            <td class="bold">TOTAL</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.valorAposDesagio)}</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.previdencia)}</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.ir)}</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.valorLiquido)}</td>
-                            <td class="bold">-</td>
+                        <tr class="highlight-green">
+                            <td><strong>TOTAL</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.valorAposDesagio)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.previdencia)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.ir)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.valorLiquido)}</strong></td>
+                            <td><strong>-</strong></td>
                         </tr>
                     </tfoot>
                 </table>
-                <div class="res-nota-legal" style="margin-top: 8px;">
-                    <strong>⚖️ Informações do Acordo:</strong><br>
-                    <strong>Deságio aplicado:</strong> ${(percentualDesagio * 100).toFixed(2)}% sobre o valor devido &nbsp;·&nbsp;
-                    <strong>Tributos calculados:</strong> Sobre o valor após deságio &nbsp;·&nbsp;
-                    Apenas credores que aderiram ao acordo aparecem nesta tabela
+                <div style="margin-top: 15px; padding: 10px; background-color: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">
+                    <h4>⚖️ Informações do Acordo:</h4>
+                    <p style="margin: 5px 0;"><strong>Deságio aplicado:</strong> ${(percentualDesagio * 100).toFixed(2)}% sobre o valor devido</p>
+                    <p style="margin: 5px 0;"><strong>Tributos calculados:</strong> Sobre o valor após deságio</p>
+                    <p style="margin: 5px 0;"><strong>Apenas credores que aderiram</strong> ao acordo aparecem nesta tabela</p>
                 </div>
             </div>
         </div>
     `;
-}
-
-function coletarPagamentosAcordoParaSalvar(resultados, dados) {
-    const adesoes = dados.adesaoAcordo || {};
-    const percentualDesagio = dados.percentualAcordo || 0;
-    const pagamentosAcordo = [];
-
-    if (adesoes.beneficiario && resultados.valorBeneficiarioFinal > 0) {
-        const p = criarPagamentoAcordo(`${dados.beneficiario} (Beneficiário)`, resultados.valorBeneficiarioAposCessoes, percentualDesagio, resultados.valorPrevidenciaBeneficiario, resultados.valorIRBeneficiario, resultados.rraComDesagio || resultados.rrapagamento);
-        pagamentosAcordo.push({ credor: p.credor, valorDevido: p.valorAposDesagio, previdencia: p.previdencia, ir: p.ir, valorLiquido: p.valorLiquido });
-    }
-
-    if (resultados.temHerdeiros) {
-        (adesoes.herdeiros || []).forEach(index => {
-            const herdeiro = resultados.herdeiros?.[index];
-            if (herdeiro?.valorLiquido > 0) {
-                const valores = extrairValoresHerdeiro(herdeiro);
-                const p = criarPagamentoAcordo(`${herdeiro.nome} (Herdeiro)`, valores.valorDevido, percentualDesagio, valores.previdencia, valores.ir, herdeiro.rraComDesagio || herdeiro.rrapagamento);
-                pagamentosAcordo.push({ credor: p.credor, valorDevido: p.valorAposDesagio, previdencia: p.previdencia, ir: p.ir, valorLiquido: p.valorLiquido });
-            }
-        });
-    }
-
-    (adesoes.advogados || []).forEach(index => {
-        const adv = resultados.honorarios?.[index];
-        if (adv?.valorBrutoAdvogado > 0) {
-            const p = criarPagamentoAcordo(`${adv.nome} (Adv. ${adv.tipo})`, adv.valorBrutoAdvogado, percentualDesagio, 0, adv.irAdvogado || 0, '-');
-            pagamentosAcordo.push({ credor: p.credor, valorDevido: p.valorAposDesagio, previdencia: p.previdencia, ir: p.ir, valorLiquido: p.valorLiquido });
-        }
-    });
-
-    if (resultados.honorariosSucumbenciais?.temHonorariosSucumbenciais) {
-        (adesoes.advogadosSucumbenciais || []).forEach(index => {
-            const adv = resultados.honorariosSucumbenciais.honorarios?.[index];
-            if (adv?.valorBrutoAdvogado > 0) {
-                const p = criarPagamentoAcordo(`${adv.nome} (Adv. Sucumb. ${adv.tipo})`, adv.valorBrutoAdvogado, percentualDesagio, 0, adv.irAdvogado || 0, '-');
-                pagamentosAcordo.push({ credor: p.credor, valorDevido: p.valorAposDesagio, previdencia: p.previdencia, ir: p.ir, valorLiquido: p.valorLiquido });
-            }
-        });
-    }
-
-    (adesoes.sindicatos || []).forEach(index => {
-        const sind = resultados.sindicatos?.[index];
-        if (sind?.valorBrutoSindicato > 0) {
-            const p = criarPagamentoAcordo(`${sind.nome} (Sindicato)`, sind.valorBrutoSindicato, percentualDesagio, 0, sind.irSindicato || 0, '-');
-            pagamentosAcordo.push({ credor: p.credor, valorDevido: p.valorAposDesagio, previdencia: p.previdencia, ir: p.ir, valorLiquido: p.valorLiquido });
-        }
-    });
-
-    coletarCessionariosAcordo(adesoes, dados, resultados, percentualDesagio, pagamentosAcordo);
-    
-    return pagamentosAcordo.map(p => ({
-        credor: p.credor,
-        valorDevido: p.valorAposDesagio || p.valorDevido,
-        previdencia: p.previdencia,
-        ir: p.ir,
-        valorLiquido: p.valorLiquido
-    }));
 }
 
 function montarTabelaPagamentosSemHerdeiros(todosPagamentos, totais) {
@@ -1208,7 +1130,7 @@ function montarTabelaPagamentosSemHerdeiros(todosPagamentos, totais) {
     return `
         <div class="pagamentos-finais">
             <div class="table-container">
-                <h3>💰 Resumo de Pagamentos</h3>
+                <h3>Resumo de Pagamentos</h3>
                 <table>
                     <thead>
                         <tr>
@@ -1221,21 +1143,15 @@ function montarTabelaPagamentosSemHerdeiros(todosPagamentos, totais) {
                     </thead>
                     <tbody>${linhas}</tbody>
                     <tfoot>
-                        <tr class="linha-gold">
-                            <td class="bold">TOTAL</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.totalDevido)}</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.totalPrevidencia)}</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.totalIR)}</td>
-                            <td class="bold">R$ ${formatarMoeda(totais.totalLiquido)}</td>
+                        <tr class="highlight-green">
+                            <td><strong>TOTAL</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.totalDevido)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.totalPrevidencia)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.totalIR)}</strong></td>
+                            <td><strong>R$ ${formatarMoeda(totais.totalLiquido)}</strong></td>
                         </tr>
                     </tfoot>
                 </table>
-                <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
-                    <h4>📋 Notas sobre Tributação do Imposto de Renda:</h4>
-                    <p style="margin: 5px 0;"><strong>Advogados Pessoa Física (PF):</strong> 🏦 LEI Nª 15.270, DE 11 DE NOVEMBRO DE 2025</p>
-                    <p style="margin: 5px 0;"><strong>Advogados Pessoa Jurídica (PJ):</strong> 🏦 DECRETO 9.580, art 714</p>
-                    <p style="margin: 5px 0;"><strong>Sindicatos:</strong> Tributação conforme Art. 27, da Lei nº 10.833/03 ou alíquota fixa quando aplicável</p>
-                </div>
             </div>
         </div>
     `;
