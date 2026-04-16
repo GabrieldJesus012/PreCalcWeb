@@ -958,7 +958,7 @@
                 ir: $('incidenciaIR').value === 'sim',
                 previdencia: $('incidenciaPrevidencia').value === 'sim',
                 tipoPrevidencia: $('tipoPrevidencia').value,
-                aliquotaFixa: parseFloat($('aliquotaFixa').value) || 0,
+                aliquotaFixa: parsearPercentualCampo($('aliquotaFixa').value),
                 rra: parseFloat(rra) || 0
             };
 
