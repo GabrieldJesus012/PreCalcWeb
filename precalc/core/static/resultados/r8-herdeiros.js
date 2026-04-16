@@ -20,9 +20,7 @@ function gerarSecaoHerdeiros(resultados, dados) {
         sum + (totalRealHerdeiros * sind.percentual), 0
     );
     const totalLiquido = totalRealHerdeiros - totalHonorarios - totalSindicatos;
-    const totalRRA = (rraTotal !== 0 && valortotatt > 0)
-        ? Math.round((totalRealHerdeiros * rraTotal) / valortotatt)
-        : 0;
+    const totalRRA = rraTotal || 0;
 
     // Flags para colunas opcionais
     const temHonorarios = totalHonorarios > 0;
@@ -39,9 +37,7 @@ function gerarSecaoHerdeiros(resultados, dados) {
             sum + (valorBruto * sind.percentual), 0
         );
         const valorLiquido = valorBruto - honorarioTotal - sindicatoTotal;
-        const rra = (rraTotal !== 0 && valortotatt > 0) 
-            ? Math.round((valorBruto * rraTotal) / valortotatt) 
-            : 0;
+        const rra = rraTotal || 0;
         
         return `
             <tr>
