@@ -195,7 +195,7 @@ function recalcularPrincipalJurosRRAHerdeiro(dados, valorBase, valorTotal, perce
         } else {
             principal = valorBase * ctx.percentualprinc;
         }
-        
+
         const proporcao = valorBase / valorTotal;
         rra = ctx.rraTotal !== 0 ? arredondarRRA(ctx.rraTotal * proporcao) : 0;
         juros = undefined;

@@ -126,6 +126,11 @@ function gerarDetalheIR(resultados, dados, temPrevidencia, temCessoes) {
                 <th>(-) Desconto Simplificado:</th>
                 <td>R$ ${formatarMoeda(resultados.descontoSimplificado)}</td>
             </tr>
+            ${resultados.baseIRRRA < 0 ? `
+            <tr class="total-row">
+                <th><strong>Base de Cálculo Mensal:</strong></th>
+                <td><strong>R$ 0,00</strong></td>
+            </tr>` : `
             <tr>
                 <th><strong>Base de Cálculo Mensal:</strong></th>
                 <td><strong>R$ ${formatarMoeda(resultados.baseIRRRA)}</strong></td>
@@ -150,7 +155,7 @@ function gerarDetalheIR(resultados, dados, temPrevidencia, temCessoes) {
             <tr class="total-row">
                 <th>TOTAL A SER RECOLHIDO (${arredondarRRA(resultados.rraComDesagio || resultados.rrapagamento)} meses):</th>
                 <td><strong>R$ ${formatarMoeda(resultados.valorIR)}</strong></td>
-            </tr>
+            </tr>`}
             ${distribuicaoCessoes}
         </table>
     `;
@@ -296,6 +301,11 @@ function gerarDetalheIRHerdeirosSemCessao(herdeiros, dados, valorBase, temPrevid
                 <th>(-) Desconto Simplificado:</th>
                 <td>R$ ${formatarMoeda(primeiroHerdeiro.descontoSimplificado)}</td>
             </tr>
+            ${primeiroHerdeiro.baseIRRRA < 0 ? `
+            <tr class="total-row">
+                <th><strong>Base de Cálculo Mensal:</strong></th>
+                <td><strong>R$ 0,00</strong></td>
+            </tr>` : `
             <tr>
                 <th><strong>Base de Cálculo Mensal:</strong></th>
                 <td><strong>R$ ${formatarMoeda(primeiroHerdeiro.baseIRRRA)}</strong></td>
@@ -320,11 +330,7 @@ function gerarDetalheIRHerdeirosSemCessao(herdeiros, dados, valorBase, temPrevid
             <tr class="total-row">
                 <th>TOTAL A SER RECOLHIDO (${arredondarRRA(primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento)} meses):</th>
                 <td><strong>R$ ${formatarMoeda(primeiroHerdeiro.valorIR)}</strong></td>
-            </tr>
-            <tr style="border-top: 1px solid #dee2e6;">
-                <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
-            </tr>
-            ${distribuicaoHerdeiros}
+            </tr>`}
         </table>
     `;
 }
@@ -426,6 +432,11 @@ function gerarDetalheIRHerdeiros(herdeiros, dados, valorBase, temPrevidencia, te
                 <th>(-) Desconto Simplificado:</th>
                 <td>R$ ${formatarMoeda(primeiroHerdeiro.descontoSimplificado)}</td>
             </tr>
+            ${primeiroHerdeiro.baseIRRRA < 0 ? `
+            <tr class="total-row">
+                <th><strong>Base de Cálculo Mensal:</strong></th>
+                <td><strong>R$ 0,00</strong></td>
+            </tr>` : `
             <tr>
                 <th><strong>Base de Cálculo Mensal:</strong></th>
                 <td><strong>R$ ${formatarMoeda(primeiroHerdeiro.baseIRRRA)}</strong></td>
@@ -450,11 +461,12 @@ function gerarDetalheIRHerdeiros(herdeiros, dados, valorBase, temPrevidencia, te
             <tr class="total-row">
                 <th>TOTAL A SER RECOLHIDO (${arredondarRRA(primeiroHerdeiro.rraComDesagio || primeiroHerdeiro.rrapagamento)} meses):</th>
                 <td><strong>R$ ${formatarMoeda(primeiroHerdeiro.valorIR)}</strong></td>
-            </tr>
+            </tr>`}
+            ${primeiroHerdeiro.cessoesHerdeiro && primeiroHerdeiro.cessoesHerdeiro.length > 0 ? `
             <tr style="border-top: 1px solid #dee2e6;">
                 <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
             </tr>
-            ${distribuicaoHerdeiros}
+            ${distribuicaoHerdeiros}` : ''}
         </table>
     `;
 }

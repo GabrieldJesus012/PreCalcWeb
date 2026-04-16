@@ -134,57 +134,54 @@ function gerarSecaoBeneficiarioPrincipal(resultados, dados, temPrevidencia, temI
 
 function gerarSecoesHerdeiros(herdeirosFiltrados, dados, temPrevidencia, temIR, tipoPrevidencia, isPreferencia) {
     if (herdeirosFiltrados.length === 0) return [];
-    
-    const baseGroups = agruparHerdeirosPorBase(herdeirosFiltrados);
+
     const secoes = [];
-    
-    baseGroups.forEach((herdeiros, base) => {
-        const valorBase = parseFloat(base);
-        const herdeirosNomes = herdeiros.map(h => h.nome).join(', ');
-        const primeiroHerdeiro = herdeiros[0];
-        const temAlgumParcial = herdeiros.some(h => h.isPreferenciaParcial);
-        
+
+    herdeirosFiltrados.forEach((herdeiro) => {
+        const valorBase = herdeiro.valorTotal;
+
         let secaoPrevidencia = '';
         if (temPrevidencia) {
             if (isPreferencia) {
-                // Preferência: usa funções SemCessao
                 secaoPrevidencia = tipoPrevidencia === 'fixa'
-                    ? gerarDetalhePrevidenciaFixaHerdeirosSemCessao(herdeiros, dados, valorBase)
-                    : gerarDetalhePrevidenciaINSSHerdeirosSemCessao(herdeiros, dados, valorBase);
+                    ? gerarDetalhePrevidenciaFixaHerdeirosSemCessao([herdeiro], dados, valorBase)
+                    : gerarDetalhePrevidenciaINSSHerdeirosSemCessao([herdeiro], dados, valorBase);
             } else {
-                // Ordem: usa funções normais
                 secaoPrevidencia = tipoPrevidencia === 'fixa'
-                    ? gerarDetalhePrevidenciaFixaHerdeiros(herdeiros, dados, valorBase)
-                    : gerarDetalhePrevidenciaINSSHerdeiros(herdeiros, dados, valorBase);
+                    ? gerarDetalhePrevidenciaFixaHerdeiros([herdeiro], dados, valorBase)
+                    : gerarDetalhePrevidenciaINSSHerdeiros([herdeiro], dados, valorBase);
             }
         }
-        
+
         let secaoIR = '';
-        if (temIR && primeiroHerdeiro.rrapagamento !== 0) {
+        if (temIR && herdeiro.rrapagamento !== 0) {
             secaoIR = isPreferencia
-                ? gerarDetalheIRHerdeirosSemCessao(herdeiros, dados, valorBase, temPrevidencia, temAlgumParcial)
-                : gerarDetalheIRHerdeiros(herdeiros, dados, valorBase, temPrevidencia, false);
+                ? gerarDetalheIRHerdeirosSemCessao([herdeiro], dados, valorBase, temPrevidencia, herdeiro.isPreferenciaParcial)
+                : gerarDetalheIRHerdeiros([herdeiro], dados, valorBase, temPrevidencia, false);
         }
-        
+
         if (secaoPrevidencia || secaoIR) {
-            const extraInfo = isPreferencia 
-                ? (temAlgumParcial ? ' <em>(Preferência Parcial)</em>' : ' <em>(Preferência Total)</em>')
+            const extraInfo = isPreferencia
+                ? (herdeiro.isPreferenciaParcial ? ' <em>(Preferência Parcial)</em>' : ' <em>(Preferência Total)</em>')
                 : '';
-            
+
+            const conteudoSecoes = (secaoPrevidencia && secaoIR)
+                ? `<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start;">${secaoPrevidencia}${secaoIR}</div>`
+                : `${secaoPrevidencia}${secaoIR}`;
+
             secoes.push(`
                 <div style="margin-bottom: 16px; padding: 12px 16px; border-bottom: 1px solid var(--sr-gray-mid, #D5D8DC);">
                     <p style="color: #155724; font-style: italic; margin-bottom: 15px;">
-                        <strong>Deduções de:</strong> ${herdeirosNomes}
+                        <strong>Deduções de:</strong> ${herdeiro.nome}
                         <span style="color: #856404;"> - R$ ${formatarMoeda(valorBase)}</span>
                         ${extraInfo}
                     </p>
-                    ${secaoPrevidencia}
-                    ${secaoIR}
+                    ${conteudoSecoes}
                 </div>
             `);
         }
     });
-    
+
     return secoes;
 }
 
