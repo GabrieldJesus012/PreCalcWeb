@@ -10,9 +10,6 @@ function gerarCalculos(dados, resultados, inicioGraca, fimGraca) {
     const temJurosMora = dados.valoresPrincipais?.some(item => 
         item.indices.jurosMora && (resultados.itensCalculados?.find(calc => calc.id === item.id)?.jurosMoraCalculado || 0) > 0
     );
-
-    const notaSelicInformado = temSelicInformado ? gerarNotaSelicInformado(dados, resultados) : '';
-    const notaJurosMora = temJurosMora ? '*Juros calculados de forma simples (até Novembro/2021), conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ, SV nº 17 do STF e a partir de 01.08.2025 juros de 2% ao ano (quando aplicável).' : '';
     
     let memoriaisCalculos = '';
     
@@ -21,17 +18,22 @@ function gerarCalculos(dados, resultados, inicioGraca, fimGraca) {
         
         dados.valoresPrincipais.forEach((item, index) => {
             const itemCalculado = resultados.itensCalculados?.find(calc => calc.id === item.id) || {};
-            const isLast = index === dados.valoresPrincipais.length - 1;
-            memoriaisCalculos += gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado, isLast ? notaSelicInformado : '', isLast ? notaJurosMora : '');
+            const temSelicItem = (item.tipoSelic === 'valor' && item.valorSelic > 0) || 
+                                (item.tipoSelic === 'percentual' && item.percentualSelic > 0);
+            const notaItem = temSelicItem ? gerarNotaSelicInformado(dados, resultados, item) : '';
+
+            memoriaisCalculos += gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado, notaItem, temJurosMora);
         });
     }
-
-    return memoriaisCalculos;
+    
+    return `
+        ${memoriaisCalculos}
+    `;
 }
 
 // ========== FUNÇÕES AUXILIARES DE GERAR CALCULOS==========
 
-function gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado,notaSelicInformado = '', notaJurosMora = '') {
+function gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado, notaItem = '', temJurosMora = false) {
     const indices = obterIndicesItem(itemCalculado);
     const valoresCalculados = calcularValoresPassoAPasso(item, itemCalculado, indices);
     const periodoGraca = `Graça Constitucional: ${inicioGracaFormatado} a ${fimGracaFormatado}`;
@@ -80,9 +82,9 @@ function gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGraca
             
             ${totalDoItem}
 
-            ${(notaSelicInformado || notaJurosMora) ? `
-            <div class="res-nota-legal">
-                ${notaSelicInformado}${notaJurosMora}
+            ${(notaItem || temJurosMora) ? `
+            <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
+                ${notaItem}${temJurosMora ? '*Juros calculados de forma simples (até Novembro/2021), conforme art. 1º da Lei nº 12.703/2012; art. 1º, "F", da Lei nº 9.494/1997; art. 100, § 12º da CF/88, Art.22 da Resolução 303 do CNJ, SV nº 17 do STF e a partir de 01.08.2025 juros de 2% ao ano (quando aplicável).' : ''}
             </div>` : ''}
         </div>
     `;
@@ -442,8 +444,7 @@ function gerarNotaSelicInformado(dados, resultados) {
         const dataFimSelic = dataFim > dataCorteSelicPEC ? dataCorteSelicPEC : dataFim;
 
         // Período de graça do orçamento
-        const inicioGraca = resultados.inicioGraca ? new Date(resultados.inicioGraca) : null;
-        const fimGraca = resultados.fimGraca ? new Date(resultados.fimGraca) : null;
+        const { inicioGraca, fimGraca } = calcularPeriodoGraca(dados.anoOrcamento);
         const inicioGracaLabel = `${String(inicioGraca.getMonth() + 1).padStart(2, '0')}/${inicioGraca.getFullYear()}`;
         const fimGracaLabel = `${String(fimGraca.getMonth() + 1).padStart(2, '0')}/${fimGraca.getFullYear()}`;
 
@@ -457,3 +458,105 @@ function gerarNotaSelicInformado(dados, resultados) {
     
     return `*${notasItens}.<br>`;
 }
+
+// RESUMO DO CALCULO
+
+function gerarResumoCalculos(resultados, dados) {
+    const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
+    const temTributacaoMista = resultados.tributacaoIR?.isento > 0 && 
+                            resultados.tributacaoIR?.principalTributado > 0;
+    
+    // ⬇️ VERIFICAR SE TEM SELIC SEPARADA
+    const valorSelicTotal = resultados.valorSelicatt || 0;
+    const temSelic = valorSelicTotal > 0;
+    const percentualSelic = temSelic ? (resultados.percentualselic || 0) : 0;
+
+    // Linhas principais (sempre aparecem)
+    const linhasPrincipais = `
+        <tr>
+            <td>Valor Principal Atualizado</td>
+            <td>R$ ${formatarMoeda(resultados.valorprincatt)}</td>
+            <td>${(resultados.percentualprinc * 100).toFixed(4)}%</td>
+        </tr>
+        ${temTributacaoMista ? `
+        <tr style="color: #666; font-size: 0.92em;">
+            <td style="padding-left: 20px;">↳ Principal Tributável</td>
+            <td>↳ R$ ${formatarMoeda(resultados.tributacaoIR.principalTributado)} (${((resultados.tributacaoIR.principalTributado / resultados.valortotatt) * 100).toFixed(4)}%)</td>
+            <td>-</td>
+        </tr>
+        ` : ''}
+        <tr>
+            <td>Valor Juros Atualizado</td>
+            <td>R$ ${formatarMoeda(resultados.valorjurosatt)}</td>
+            <td>${(resultados.percentualjur * 100).toFixed(4)}%</td>
+        </tr>
+        ${temSelic ? `
+        <tr>
+            <td>Valor Selic Atualizado </td>
+            <td>R$ ${formatarMoeda(valorSelicTotal)}</td>
+            <td>${(percentualSelic * 100).toFixed(4)}%</td>
+        </tr>
+        ` : ''}
+    `;
+
+    // Base de pagamento (varia conforme o tipo)
+    let basesPagamento = '';
+
+    if (dados.somenteHonorarioSucumbencial && dados.tipoCalculo === 'parcial') {
+        // Caso 1: Honorário sucumbencial em pagamento parcial
+        basesPagamento = `
+            <tr class="highlight">
+                <td><strong>Valor Disponível para Pagamento</strong></td>
+                <td><strong>R$ ${formatarMoeda(dados.saldoParcial)}</strong></td>
+                <td><strong>100,00%</strong></td>
+            </tr>
+        `;
+    } else if (temHerdeiros && dados.tipoCalculo === 'preferencia') {
+        // Caso 2: Preferência com herdeiros
+        const herdeirosPreferenciais = resultados.herdeiros.filter(h => h.temPreferencia);
+        
+        if (herdeirosPreferenciais.length > 0) {
+            basesPagamento = `
+                <tr class="highlight">
+                    <td colspan="3"><strong>Base para Pagamento</strong></td>
+                </tr>
+                ${herdeirosPreferenciais.map(h => `
+                    <tr class="highlight">
+                        <td><strong>${h.nome}</strong></td>
+                        <td><strong>R$ ${formatarMoeda(h.valorTotal)}</strong></td>
+                        <td><strong>${((h.valorTotal / resultados.valortotatt) * 100).toFixed(2)}%</strong></td>
+                    </tr>
+                `).join('')}
+            `;
+        }
+    } else {
+        // Caso 3: Ordem cronológica ou sem herdeiros
+        basesPagamento = `
+            <tr class="highlight">
+                <td><strong>Base para Pagamento</strong></td>
+                <td><strong>R$ ${formatarMoeda(resultados.valorBase)}</strong></td>
+                <td><strong>${((resultados.valorBase / resultados.valortotatt) * 100).toFixed(2)}%</strong></td>
+            </tr>
+        `;
+    }
+
+    // ⬇️ CALCULAR PERCENTUAL TOTAL CORRETO
+    const percentualTotal = (resultados.percentualprinc + resultados.percentualjur + percentualSelic) * 100;
+
+    return `
+        <div class="table-container">
+            <h3>📈 Resumo dos Cálculos</h3>
+            <table>
+                <tr><th>Descrição</th><th>Valor</th><th>%</th></tr>
+                ${linhasPrincipais}
+                <tr>
+                    <td><strong>Total Atualizado</strong></td>
+                    <td><strong>R$ ${formatarMoeda(resultados.valortotatt)}</strong></td>
+                    <td><strong>${percentualTotal.toFixed(2)}%</strong></td>
+                </tr>
+                ${basesPagamento}
+            </table>
+        </div>
+    `;
+}
+

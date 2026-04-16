@@ -6,8 +6,11 @@ function gerarSecaoCessoesBeneficiario(resultados, dados) {
     const contexto = extrairContextoBeneficiario(resultados, dados);
     const valoresBeneficiario = calcularValoresBeneficiario(resultados, dados, contexto);
     const valoresCessionarios = calcularValoresCessionarios(resultados, dados, contexto);
+
+    const temAguarda = valoresCessionarios.some(v => v.cessionarioAguarda > 0) || 
+                       valoresBeneficiario.beneficiarioAguarda > 0;
     
-    const linhasCessionarios = gerarLinhasCessionariosBeneficiario(valoresCessionarios, contexto);
+    const linhasCessionarios = gerarLinhasCessionariosBeneficiario(valoresCessionarios, contexto,temAguarda);
     const totais = calcularTotaisBeneficiario(valoresBeneficiario, valoresCessionarios, contexto);
     const alertBox = gerarAlertBoxBeneficiario(resultados, dados, contexto, valoresBeneficiario, totais);
 
@@ -17,7 +20,7 @@ function gerarSecaoCessoesBeneficiario(resultados, dados) {
                 <h3>🔄 Cessões do Beneficiário Principal</h3>
                 <div style="margin-bottom: 20px;">
                     ${gerarCabecalhoBeneficiario(dados, resultados, contexto)}
-                    ${gerarTabelaCessoesBeneficiario(dados, resultados, contexto, valoresBeneficiario, linhasCessionarios, totais)}
+                    ${gerarTabelaCessoesBeneficiario(dados, resultados, contexto, valoresBeneficiario, linhasCessionarios, totais,temAguarda)}
                     ${gerarNotasExplicativas(contexto, dados, resultados)}
                 </div>
                 ${alertBox}
@@ -132,17 +135,20 @@ function calcularValoresCessionarios(resultados, dados, contexto) {
     });
 }
 
-function gerarLinhasCessionariosBeneficiario(valoresCessionarios, contexto){
+function gerarLinhasCessionariosBeneficiario(valoresCessionarios, contexto, temAguarda) {
     return valoresCessionarios.map(({ cessao, valorBrutoCessionario, deducoesCessionario, parteCessionario, cessionarioRecebe, cessionarioAguarda }) => `
-        <tr>
-            <td>${cessao.cessionario}</td>
-            <td>${((cessao.percentual || 0) * 100).toFixed(2)}%</td>
-            <td>R$ ${formatarMoeda(valorBrutoCessionario)}</td>
-            <td>${(contexto.percentualDeducoes * 100).toFixed(2)}%</td>
-            <td>R$ ${formatarMoeda(deducoesCessionario)}</td>
-            <td>R$ ${formatarMoeda(parteCessionario)}</td>
-            <td>R$ ${formatarMoeda(cessionarioRecebe)}</td>
-            <td>R$ ${formatarMoeda(cessionarioAguarda)}</td>
+        <tr style="background:#FEF5E7 !important;">
+            <td style="padding-left:28px; color:var(--sr-orange-dark);">
+                ↳ ${cessao.cessionario}
+                <small style="color:var(--sr-gray);">(Cessionário)</small>
+            </td>
+            <td style="color:var(--sr-orange-dark);">${((cessao.percentual || 0) * 100).toFixed(2)}%</td>
+            <td style="color:var(--sr-orange-dark);">R$ ${formatarMoeda(valorBrutoCessionario)}</td>
+            <td style="color:var(--sr-orange-dark);">R$ ${formatarMoeda(deducoesCessionario)} (${(contexto.percentualDeducoes * 100).toFixed(2)}%)</td>
+            <td style="color:var(--sr-orange-dark);">R$ ${formatarMoeda(parteCessionario)}</td>
+            <td style="color:var(--sr-orange-dark);">R$ ${formatarMoeda(cessionarioRecebe)}</td>
+            ${temAguarda ? `<td style="color:var(--sr-orange-dark);">R$ ${formatarMoeda(cessionarioAguarda)}</td>` : ''}
+        </tr>
         </tr>
     `).join('');
 }
@@ -165,72 +171,61 @@ function gerarCabecalhoBeneficiario(dados, resultados, contexto) {
     
     return `
         <h4>Cessão do Beneficiário: ${dados.beneficiario}</h4>
-        <p><strong>Tipo de Cálculo:</strong> ${dados.tipoCalculo} ${dados.tipoCalculo === 'preferencia' ? '(preferencial)' : '(ordem comum)'}</p>
+        <p><strong>Tipo de Cálculo:</strong> ${dados.tipoCalculo} ${dados.tipoCalculo === 'preferencia' ? '(preferencial)' : '(ordem)'}</p>
         <p><strong>Dívida Total:</strong> R$ ${formatarMoeda(dividaTotalAtualizada)}</p>
         <p><strong>Total Cedido:</strong> ${(totalCedido * 100).toFixed(2)}% para: ${listaCessionarios}</p>
         ${temHerdeiros ? `
-        <div style="background-color: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
-            <p style="color: #004085; margin: 0;">
-                <strong>ℹ️ Nota:</strong> O beneficiário faleceu, deixando ${resultados.herdeiros.length} herdeiro(s). 
-                Os valores remanescentes do beneficiário serão distribuídos entre os herdeiros.
-            </p>
-        </div>
-        ` : ''}
+        <div class="success-box" style="margin-bottom: 10px; padding: 8px 12px; background-color:#EBF4FB; color:#155A8A;">
+            <strong>ℹ️</strong> Beneficiário falecido — valores distribuídos entre ${resultados.herdeiros.length} herdeiro(s).
+        </div>` : ''}
     `;
 }
 
-function gerarTabelaCessoesBeneficiario(dados, resultados, contexto, valoresBeneficiario, linhasCessionarios, totais) {
+function gerarTabelaCessoesBeneficiario(dados, resultados, contexto, valoresBeneficiario, linhasCessionarios, totais, temAguarda) {
     const { percentualDeducoes, temHerdeiros } = contexto;
     const { valorBrutoBeneficiario, deducoesBeneficiario, parteBeneficiario, beneficiarioRecebe, beneficiarioAguarda } = valoresBeneficiario;
 
     return `
         <table>
             <tr>
-                <th rowspan="2">Beneficiário</th>
-                <th rowspan="2">%</th>
-                <th rowspan="2">Valor Bruto</th>
-                <th colspan="2" style="text-align: center; background-color: #f8f9fa;">Deduções Acessórias</th>
-                <th rowspan="2">Valor Líquido*</th>
-                <th rowspan="2">Recebe Agora*</th>
-                <th rowspan="2">Aguarda Ordem</th>
-            </tr>
-            <tr>
-                <th style="background-color: #f8f9fa;">% Total</th>
-                <th style="background-color: #f8f9fa;">Valor</th>
+                <th>Beneficiário</th>
+                <th>%</th>
+                <th>Valor Bruto</th>
+                <th>Deduções Acessórias</th>
+                <th>Valor Líquido*</th>
+                <th>Recebe Agora*</th>
+                ${temAguarda ? '<th>Aguarda Ordem</th>' : ''}
             </tr>
             ${resultados.percentualBeneficiarioFinal > 0 ? `
             <tr>
                 <td>${dados.beneficiario}${temHerdeiros ? ' †' : ''}</td>
                 <td>${(resultados.percentualBeneficiarioFinal * 100).toFixed(2)}%</td>
                 <td>R$ ${formatarMoeda(valorBrutoBeneficiario)}</td>
-                <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
-                <td>R$ ${formatarMoeda(deducoesBeneficiario)}</td>
+                <td>R$ ${formatarMoeda(deducoesBeneficiario)} (${(percentualDeducoes * 100).toFixed(2)}%)</td>
                 <td>R$ ${formatarMoeda(parteBeneficiario)}</td>
                 <td>R$ ${formatarMoeda(beneficiarioRecebe)}</td>
-                <td>R$ ${formatarMoeda(beneficiarioAguarda)}</td>
+                ${temAguarda ? `<td>R$ ${formatarMoeda(beneficiarioAguarda)}</td>` : ''}
             </tr>
             ` : `
             <tr style="background-color: #f8f9fa;">
-                <td><em>${dados.beneficiario} (cedeu tudo)</em></td>
-                <td>0.00%</td>
-                <td>R$ 0,00</td>
-                <td>0.00%</td>
-                <td>R$ 0,00</td>
-                <td>R$ 0,00</td>
-                <td>R$ 0,00</td>
-                <td>R$ 0,00</td>
+                <td style="color:var(--sr-gray); font-style:italic;">${dados.beneficiario} (cedeu tudo)</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+                ${temAguarda ? '<td>—</td>' : ''}
             </tr>
             `}
             ${linhasCessionarios}
-            <tr class="highlight" style="background-color: #f8f9fa; font-weight: bold; border-top: 2px solid #dee2e6;">
+            <tr class="highlight">
                 <td>TOTAL</td>
                 <td>100.00%</td>
                 <td>R$ ${formatarMoeda(totais.totalValorBruto)}</td>
-                <td>${(percentualDeducoes * 100).toFixed(2)}%</td>
-                <td>R$ ${formatarMoeda(totais.totalDeducoes)}</td>
+                <td><strong>R$ ${formatarMoeda(totais.totalDeducoes)} (${(percentualDeducoes * 100).toFixed(2)}%)</strong></td>
                 <td>R$ ${formatarMoeda(totais.totalLiquido)}</td>
                 <td>R$ ${formatarMoeda(totais.totalRecebe)}</td>
-                <td>R$ ${formatarMoeda(totais.totalAguarda)}</td>
+                ${temAguarda ? `<td><strong>R$ ${formatarMoeda(totais.totalAguarda)}</strong></td>` : ''}
             </tr>
         </table>
     `;
@@ -240,18 +235,16 @@ function gerarNotasExplicativas(contexto, dados, resultados) {
     const { percentualTotalAdv, percentualTotalSind, percentualDeducoes, isParcial, temHerdeiros } = contexto;
 
     return `
-        <div style="padding: 8px; margin: 10px 0; font-size: 0.85em; color: #666;">
-            <p style="margin: 0;">
-                <strong>📝 Deduções Acessórias:</strong> 
-                Honorários (${(percentualTotalAdv * 100).toFixed(2)}%) + 
-                Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%) = 
-                ${(percentualDeducoes * 100).toFixed(2)}%
-            </p>
-            <p style="margin: 5px 0 0 0;">
-                <strong>* Valor Líquido/Recebe Agora:</strong> Valores após a dedução de honorários e sindicatos. 
-                ${isParcial ? 'Valores calculados sobre o pagamento parcial.' : ''}
-                ${temHerdeiros ? 'Para o beneficiário falecido, este valor será distribuído entre os herdeiros.' : ''}
-            </p>
+        <div class="success-box" style="margin-top: 10px; padding: 10px; border-radius: 4px; font-size: 0.85em;">
+            <strong>📝 Deduções Acessórias:</strong> 
+            Honorários (${(percentualTotalAdv * 100).toFixed(2)}%) + 
+            Sindicatos (${(percentualTotalSind * 100).toFixed(2)}%) = 
+            ${(percentualDeducoes * 100).toFixed(2)}%
+            <br>
+            
+            <strong>* Valor Líquido/Recebe Agora:</strong> Valores após a dedução de honorários e sindicatos. 
+            ${isParcial ? 'Valores calculados sobre o pagamento parcial.' : ''}
+            ${temHerdeiros ? 'Para o beneficiário falecido, este valor será distribuído entre os herdeiros.' : ''}
         </div>
     `;
 }
@@ -262,7 +255,7 @@ function gerarAlertBoxBeneficiario(resultados, dados, contexto, valoresBeneficia
 
     if (isPreferenciasParcial) {
         return `
-            <div class="warning-box" style="margin-top: 10px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
+            <div class="success-box" style="margin-top: 10px; padding: 10px; border-radius: 4px; background-color: #fff3cd; color: #856404;">
                 <strong>ℹ️ Preferência Parcial:</strong><br>
                 • <strong>Teto da preferência:</strong> R$ ${formatarMoeda(resultados.valorBase)}<br>
                 • <strong>Pagamento imediato:</strong> R$ ${formatarMoeda(temHerdeiros ? 0 : beneficiarioRecebe)} ${temHerdeiros ? '(beneficiário falecido - valor vai para herdeiros)' : '(só para o beneficiário)'}<br>
@@ -273,17 +266,17 @@ function gerarAlertBoxBeneficiario(resultados, dados, contexto, valoresBeneficia
 
     if (isParcial) {
         return `
-            <div class="warning-box" style="margin-top: 10px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
+            <div class="success-box" style="margin-top: 10px; padding: 10px; border-radius: 4px; background-color: #fff3cd; color: #856404;">
                 <strong>⚠️ Pagamento Parcial:</strong><br>
                 • <strong>Dívida total:</strong> R$ ${formatarMoeda(contexto.dividaTotalAtualizada)}<br>
-                • <strong>Valor do pagamento:</strong> R$ ${formatarMoeda(resultados.valorBase)}<br>
+                • <strong>Valor do pagamento:</strong> R$ ${formatarMoeda(resultados.valorBase)}
             </div>
         `;
     }
 
     if (temHerdeiros) {
         return `
-            <div class="warning-box" style="margin-top: 10px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
+            <div class="success-box" style="margin-top: 10px; padding: 10px; border-radius: 4px; background-color: #fff3cd; color: #856404;">
                 <strong>⚠️ Beneficiário Falecido:</strong><br>
                 • Os valores do beneficiário serão distribuídos entre os ${resultados.herdeiros.length} herdeiro(s)<br>
                 • ${dados.tipoCalculo === 'preferencia' ? 'Herdeiros com preferência receberão conforme o teto estabelecido' : 'Distribuição seguirá ordem cronológica'}
@@ -292,7 +285,7 @@ function gerarAlertBoxBeneficiario(resultados, dados, contexto, valoresBeneficia
     }
 
     return `
-        <div class="success-box" style="margin-top: 10px; padding: 12px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;">
+        <div class="success-box" style="margin-top: 10px; padding: 10px; border-radius: 4px;">
             <strong>✅ Pagamento Integral:</strong> Todos os beneficiários recebem integralmente.
         </div>
     `;

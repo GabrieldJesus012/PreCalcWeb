@@ -1,8 +1,4 @@
 function gerarCabecalhoProcesso(dados, resultados, dataAtual) {
-    const secaoRRA = (resultados.rraTotal && resultados.rraTotal !== 0)
-        ? `<tr><td>Rendimentos Recebidos Acumuladamente Total (RRA):</td><td>${resultados.rraTotal} meses</td></tr>`
-        : '';
-
     const tipos = {
         ordem: "Ordem Cronológica",
         preferencia: "Preferencial",
@@ -10,40 +6,56 @@ function gerarCabecalhoProcesso(dados, resultados, dataAtual) {
         parcial: "Parcial"
     };
     const tipoCalculo = tipos[dados.tipoCalculo] || "Não definido";
+    const natureza = dados.natureza === 'alimentar' ? 'Alimentar' : 'Comum';
 
-    const natureza = dados.natureza === 'alimentar' ? '⚖️ Alimentar' : '⚖️ Comum';
-
-    let secaoDataBase = '<tr><td>Data-base do cálculo homologado na execução</td><td>Não informado</td></tr>';
-    
-    if (dados.valoresPrincipais && dados.valoresPrincipais.length > 0) {
+    let datasBase = 'Não informado';
+    if (dados.valoresPrincipais?.length > 0) {
         const datasUnicas = [...new Set(
             dados.valoresPrincipais
-                .filter(item => item.mesBase && item.anoBase)
-                .map(item => `${item.mesBase}/${item.anoBase}`)
+                .filter(i => i.mesBase && i.anoBase)
+                .map(i => `${i.mesBase}/${i.anoBase}`)
         )];
-        
-        if (datasUnicas.length > 0) {
-            const label = datasUnicas.length === 1 
-                ? 'Data-base do cálculo homologado na execução'
-                : 'Datas-base dos cálculos homologados';
-            secaoDataBase = `<tr><td>${label}</td><td>${datasUnicas.join(', ')}</td></tr>`;
-        }
+        if (datasUnicas.length > 0) datasBase = datasUnicas.join(', ');
     }
-    
+
     return `
         <div class="table-container">
             <h3>📋 Identificação do Processo</h3>
-            <table>
-                <tr><th>Descrição</th><th>Informação</th></tr>
-                <tr><td>Número do Processo</td><td>${dados.numProcesso || 'Não informado'}</td></tr>
-                <tr><td>Ano do orçamento do Precatório</td><td>${dados.anoOrcamento || 'Não informado'}</td></tr>
-                <tr><td>Natureza do Processo</td><td>${natureza}</td></tr>
-                ${secaoRRA}
-                ${secaoDataBase}
-                <tr><td>Beneficiário Principal</td><td>${dados.beneficiario || 'Não informado'}</td></tr>
-                <tr><td>Devedor</td><td>${dados.credor || 'Não informado'}</td></tr>
-                <tr><td>Data do Cálculo</td><td>${dataAtual}</td></tr>
-                <tr><td>Tipo de Cálculo</td><td>${tipoCalculo}</td></tr>
+            <table class="tabela-id-processo">
+                <colgroup>
+                    <col style="width:22%">
+                    <col style="width:28%">
+                    <col style="width:22%">
+                    <col style="width:28%">
+                </colgroup>
+                <tbody>
+                    <tr>
+                        <td><strong>Número do Processo</strong></td>
+                        <td>${dados.numProcesso || 'Não informado'}</td>
+                        <td><strong>Natureza</strong></td>
+                        <td>${natureza}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Ano do Orçamento</strong></td>
+                        <td>${dados.anoOrcamento || 'Não informado'}</td>
+                        <td><strong>Data-base</strong></td>
+                        <td>${datasBase}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Beneficiário Principal</strong></td>
+                        <td colspan="3">${dados.beneficiario || 'Não informado'}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Devedor</strong></td>
+                        <td colspan="3">${dados.credor || 'Não informado'}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tipo de Cálculo</strong></td>
+                        <td>${tipoCalculo}</td>
+                        <td><strong>Data do Cálculo</strong></td>
+                        <td>${dataAtual}</td>
+                    </tr>
+                </tbody>
             </table>
         </div>
     `;
@@ -106,7 +118,7 @@ function gerarDemonstrativoValores(dados, resultados, dataAtual) {
         : '-';
 
     return `
-        <div class="table-container">
+        <div class="table-container table-container-orange">
             <h3>💰 Demonstrativo de Atualização Monetária</h3>
             <table>
                 <tr>
@@ -139,59 +151,62 @@ function gerarDemonstrativoValores(dados, resultados, dataAtual) {
                     <td>${(resultados.percentualselic * 100).toFixed(4)}%</td>
                 </tr>
                 ` : ''}
-                <tr class="linha-gold">
-                    <td class="bold">Total Atualizado</td>
-                    <td class="right bold">R$ ${formatarMoeda(valorTotalOriginal)}</td>
-                    <td class="right bold">${indiceTotal}</td>
-                    <td class="right bold">R$ ${formatarMoeda(resultados.valortotatt)}</td>
-                    <td class="right bold">100,00%</td>
+                <tr class="highlight">
+                    <td><strong>Total Atualizado</strong></td>
+                    <td><strong>R$ ${formatarMoeda(valorTotalOriginal)}</strong></td>
+                    <td><strong>${indiceTotal}</strong></td>
+                    <td><strong>R$ ${formatarMoeda(resultados.valortotatt)}</strong></td>
+                    <td><strong>100.00%</strong></td>
                 </tr>
                 ${gerarLinhaBase(resultados, dados)}
             </table>
-            <div class="res-nota-legal">
-                * Atualização Monetária conforme Resolução CNJ nº 303/2019, com índices de correção monetária, conforme caput do Art. 21-A e Emendas Constitucionais nº 62, 113 e 136.
-                Período de Correção: Os valores foram atualizados desde a base <strong>${textoDataBase}</strong> até <strong>${dataAtual}</strong>.
+            <div class="success-box" style="margin-top: 15px; padding: 10px; border-radius: 4px;">
+                Atualização Monetária conforme Resolução CNJ nº 303/2019, com índices de correção monetária, conforme caput do Art.21- A e Emendas Constitucionais nº 62, 113 e 136. - <strong>Período de Correção</strong>: Os valores foram atualizados desde a base <strong>${textoDataBase}</strong> até <strong>${dataAtual}</strong>.
             </div>
         </div>
     `;
 }
+
 
 function gerarLinhaBase(resultados, dados) {
     const temHerdeiros = resultados.temHerdeiros && resultados.herdeiros.length > 0;
 
     if (dados.somenteHonorarioSucumbencial && dados.tipoCalculo === 'parcial') {
         return `
-            <tr class="linha-gold">
-                <td class="bold">Valor Disponível para Pagamento</td>
-                <td class="right muted">—</td>
-                <td class="right muted">—</td>
-                <td class="right bold">R$ ${formatarMoeda(dados.saldoParcial)}</td>
-                <td class="right bold">100,00%</td>
+            <tr class="highlight-green">
+                <td><strong>Valor Disponível para Pagamento</strong></td>
+                <td colspan="3"><strong>R$ ${formatarMoeda(dados.saldoParcial)}</strong></td>
+                <td><strong>100.00%</strong></td>
             </tr>
         `;
     } else if (temHerdeiros && dados.tipoCalculo === 'preferencia') {
         const herdeirosPreferenciais = resultados.herdeiros.filter(h => h.temPreferencia);
         if (herdeirosPreferenciais.length > 0) {
-            return herdeirosPreferenciais.map(h => `
-                <tr class="linha-gold">
-                    <td class="bold">Base para Pagamento — ${h.nome}</td>
-                    <td class="right muted">—</td>
-                    <td class="right muted">—</td>
-                    <td class="right bold">R$ ${formatarMoeda(h.valorTotal)}</td>
-                    <td class="right bold">${((h.valorTotal / resultados.valortotatt) * 100).toFixed(2)}%</td>
+            return `
+                <tr class="highlight-green">
+                    <td colspan="5"><strong>Base para Pagamento</strong></td>
                 </tr>
-            `).join('');
+                ${herdeirosPreferenciais.map(h => `
+                    <tr class="highlight-green">
+                        <td><strong>${h.nome}</strong></td>
+                        <td colspan="2"><strong>R$ ${formatarMoeda(h.valorTotal)}</strong></td>
+                        <td><strong>R$ ${formatarMoeda(h.valorTotal)}</strong></td>
+                        <td><strong>${((h.valorTotal / resultados.valortotatt) * 100).toFixed(2)}%</strong></td>
+                    </tr>
+                `).join('')}
+            `;
         }
     } else {
         return `
-            <tr class="linha-gold">
-                <td class="bold">Base para Pagamento</td>
-                <td class="right muted">—</td>
-                <td class="right muted">—</td>
-                <td class="right bold">R$ ${formatarMoeda(resultados.valorBase)}</td>
-                <td class="right bold">${((resultados.valorBase / resultados.valortotatt) * 100).toFixed(2)}%</td>
+            <tr class="highlight-green">
+                <td><strong>Base para Pagamento</strong></td>
+                <td>-</td>
+                <td>-</td>
+                <td><strong>R$ ${formatarMoeda(resultados.valorBase)}</strong></td>
+                <td><strong>${((resultados.valorBase / resultados.valortotatt) * 100).toFixed(2)}%</strong></td>
             </tr>
         `;
     }
     return '';
 }
+

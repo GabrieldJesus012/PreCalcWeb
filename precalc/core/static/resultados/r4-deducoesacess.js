@@ -16,18 +16,22 @@ function gerarSecaoDeducoesAcessorias(resultados, dados) {
         ? gerarSecaoHonorarios(resultados, dados, honorariosParaMostrar, temHerdeiros)
         : '';
 
-    const conteudo = (secaoSindicatos && secaoHonorarios)
-        ? `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start;">
-               <div>${secaoSindicatos}</div>
-               <div>${secaoHonorarios}</div>
-           </div>`
-        : `${secaoSindicatos}${secaoHonorarios}`;
-
     return `
         <div class="deducoes-acessorias">
             <div class="table-container">
                 <h3>📄➖ Deduções Acessórias</h3>
-                ${conteudo}
+                <div class="success-box" style="margin-bottom: 5px;margin-top: 5px; padding: 10px; border-radius: 4px;">
+                    <p><strong>Contribuições Sindicais:</strong> Percentual devido aos sindicatos quando aplicável.</p>
+                    <p><strong>Honorários Advocatícios:</strong> Percentual devido aos advogados conforme contrato.</p>
+                </div>
+
+                <div style="margin-bottom:16px;">
+                ${secaoSindicatos}
+                </div>
+                
+                <div style="margin-bottom:16px;">
+                    ${secaoHonorarios}
+                </div>
             </div>
         </div>
     `;
@@ -47,18 +51,17 @@ function obterHonorariosParaExibir(resultados, temHerdeiros) {
             if (h.honorarios && h.honorarios.length > 0) {
                 h.honorarios.forEach(a => {
                     if (!honorariosMap.has(a.nome)) {
-                        honorariosMap.set(a.nome, {
-                            nome: a.nome,
-                            tipo: a.tipo,
-                            percentual: a.percentual
-                        });
+                        honorariosMap.set(a.nome, a.nome);
                     }
                 });
             }
         });
-        
-        honorariosParaMostrar = Array.from(honorariosMap.values());
+
+        // ✅ Buscar dados COMPLETOS (com cessoesAdv e cessionarios) de resultados.honorarios
+        const nomes = honorariosMap;
+        honorariosParaMostrar = (resultados.honorarios || []).filter(a => nomes.has(a.nome));
         temHonorarios = honorariosParaMostrar.length > 0;
+
     } else {
         temHonorarios = resultados.honorarios && resultados.honorarios.length > 0;
         honorariosParaMostrar = resultados.honorarios || [];
@@ -71,86 +74,187 @@ function gerarSecaoSindicatos(resultados, dados) {
     const isParcial = dados.tipoCalculo === 'parcial';
     const baseCalculoSindicato = isParcial ? resultados.valorBase : resultados.valortotatt;
     
-    const linhasSindicatos = resultados.sindicatos.map(s => `
-        <tr>
-            <td>${s.nome}</td>
-            <td class="right">R$ ${formatarMoeda(baseCalculoSindicato)}</td>
-            <td class="right">${(s.percentual * 100).toFixed(2)}%</td>
-            <td class="right bold">R$ ${formatarMoeda(s.valorBruto)}</td>
-        </tr>
-    `).join('');
+    const linhasSindicatos = resultados.sindicatos.map(s => {
+        const temCessoes = s.cessoesSind?.length > 0;
+        const percentualSindicato = s.percentualSindicato || 0;
+        const valorSindicato = s.valorBrutoSindicato || 0;
+
+        let linhas = '';
+
+        if (temCessoes) {
+            if (percentualSindicato === 0) {
+                // Cedeu tudo
+                linhas = `
+                    <tr style="background:#F8F9FA !important;">
+                        <td style="color:var(--sr-gray); font-style:italic;">
+                            ${s.nome}
+                            <small>(cedeu integralmente — valor original: R$ ${formatarMoeda(s.valorBruto)})</small>
+                        </td>
+                        <td style="color:var(--sr-gray);">—</td>
+                        <td style="color:var(--sr-gray);">—</td>
+                        <td style="color:var(--sr-gray);">—</td>
+                    </tr>
+                `;
+            } else {
+                // Cedeu parcialmente
+                linhas = `
+                    <tr>
+                        <td>${s.nome}</td>
+                        <td>R$ ${formatarMoeda(baseCalculoSindicato)}</td>
+                        <td>${(percentualSindicato * 100).toFixed(2)}%</td>
+                        <td>R$ ${formatarMoeda(valorSindicato)}</td>
+                    </tr>
+                `;
+            }
+
+            // Cessionários
+            (s.cessionarios || []).forEach(c => {
+                linhas += `
+                    <tr style="background:#FEF5E7 !important;">
+                        <td style="padding-left:28px; color:var(--sr-orange-dark);">
+                            ↳ ${c.nome}
+                            <small style="color:var(--sr-gray);">(Cessionário de ${s.nome})</small>
+                        </td>
+                        <td style="color:var(--sr-gray); font-size:12px;">—</td>
+                        <td style="color:var(--sr-orange-dark);">${(c.percentual * 100).toFixed(2)}%</td>
+                        <td style="color:var(--sr-orange-dark);">R$ ${formatarMoeda(c.valorBruto)}</td>
+                    </tr>
+                `;
+            });
+
+        } else {
+            // Sem cessão
+            linhas = `
+                <tr>
+                    <td>${s.nome}</td>
+                    <td>R$ ${formatarMoeda(baseCalculoSindicato)}</td>
+                    <td>${(s.percentual * 100).toFixed(2)}%</td>
+                    <td>R$ ${formatarMoeda(s.valorBruto)}</td>
+                </tr>
+            `;
+        }
+
+        return linhas;
+    }).join('');
     
     const totalSindicatos = resultados.sindicatos.reduce((sum, s) => sum + s.valorBruto, 0);
     
     return `
-        <div class="res-subsecao">🏛️ Sindicatos</div>
+        <h3>🏛️ Sindicatos</h3>
         <table>
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th class="right">Base</th>
-                    <th class="right">%</th>
-                    <th class="right">Valor</th>
-                </tr>
-            </thead>
-            <tbody>${linhasSindicatos}</tbody>
-            <tfoot>
-                <tr class="linha-gold">
-                    <td colspan="3" class="bold">Total Sindicatos</td>
-                    <td class="right bold">R$ ${formatarMoeda(totalSindicatos)}</td>
-                </tr>
-            </tfoot>
+            <tr>
+                <th>Nome Sindicato</th>
+                <th>Base de Cálculo</th>
+                <th>Percentual</th>
+                <th>Valor Bruto</th>
+            </tr>
+            ${linhasSindicatos}
+            <tr class="highlight deducoes-total">
+                <td colspan="3"><strong>TOTAL SINDICATOS</strong></td>
+                <td><strong>R$ ${formatarMoeda(totalSindicatos)}</strong></td>
+            </tr>
         </table>
     `;
 }
 
 function gerarSecaoHonorarios(resultados, dados, honorariosParaMostrar, temHerdeiros) {
     const baseGroups = agruparPorBaseCalculo(resultados, dados, temHerdeiros);
+    const isPreferencia = dados.tipoCalculo === 'preferencia';
+    const isParcial = dados.tipoCalculo === 'parcial';
     const secoes = [];
-    
+
     baseGroups.forEach((herdeiros, base) => {
         const valorBase = (base === 'PRINCIPAL') ? herdeiros[0].valorTotal : parseFloat(base);
-        const herdeirosNomes = herdeiros.map(h => h.nome).join(', ');
-        
-        const subtitulo = dados.tipoCalculo === 'preferencia' && valorBase < resultados.valortotatt
-            ? '👩‍💼 Honorários Contratuais — Preferência'
-            : '👩‍💼 Honorários Contratuais';
+        const herdeirosNomes = base === 'PRINCIPAL'
+            ? 'Beneficiário Principal'
+            : herdeiros.map(h => h.nome).join(', ');
 
-        const linhasAdvogados = honorariosParaMostrar.map(a => `
-            <tr>
-                <td>${a.nome}</td>
-                <td class="muted">${a.tipo}</td>
-                <td class="right">${(a.percentual * 100).toFixed(2)}%</td>
-                <td class="right bold">R$ ${formatarMoeda(valorBase * a.percentual)}</td>
-            </tr>
-        `).join('');
+        const isPreferenciaParcial = isPreferencia && 
+        base !== 'PRINCIPAL' &&
+        herdeiros.some(h => h.isPreferenciaParcial);
 
-        const totalPercentual = honorariosParaMostrar.reduce((sum, h) => sum + h.percentual, 0);
-        const totalValor = valorBase * totalPercentual;
+        const titulo = isPreferenciaParcial
+            ? '👩‍💼 Advogados (H.Contratuais) — Honorários da Preferência'
+            : '👩‍💼 Advogados (H.Contratuais)';
+
+        let totalPercentual = 0;
+        let totalValor = 0;
+        let linhas = '';
+
+        honorariosParaMostrar.forEach(a => {
+            const valorHonorario = valorBase * a.percentual;
+            const temCessoes = a.cessoesAdv?.length > 0;
+            const percentualAdvogado = temCessoes
+                ? a.percentual - a.percentualCessionarioAdv
+                : a.percentual;
+            const valorAdvogado = valorBase * percentualAdvogado;
+
+            totalPercentual += a.percentual;
+            totalValor += valorHonorario;
+
+            // Linha do advogado
+            if (temCessoes && percentualAdvogado === 0) {
+                linhas += `
+                    <tr style="background:#F8F9FA !important;">
+                        <td style="color:var(--sr-gray); font-style:italic;">
+                            ${a.nome} <small style="color:var(--sr-gray);">(${a.tipo})</small>
+                            <small>(cedeu integralmente — valor original: R$ ${formatarMoeda(valorHonorario)})</small>
+                        </td>
+                        <td style="color:var(--sr-gray);">—</td>
+                        <td style="color:var(--sr-gray);">—</td>
+                        <td style="color:var(--sr-gray);">—</td>
+                        <td style="color:var(--sr-gray);">—</td>
+                    </tr>
+                `;
+            } else {
+                linhas += `
+                    <tr>
+                        <td>${a.nome} <small style="color:var(--sr-gray);">(${a.tipo})</small></td>
+                        <td>R$ ${formatarMoeda(valorBase)}</td>
+                        <td>${(percentualAdvogado * 100).toFixed(2)}%</td>
+                        <td>R$ ${formatarMoeda(valorAdvogado)}</td>
+                    </tr>
+                `;
+            }
+
+            // Cessionários
+            if (temCessoes) {
+                (a.cessionarios || []).forEach(c => {
+                    const aguarda = isPreferenciaParcial;
+                    linhas += `
+                        <tr style="background:#FEF5E7 !important;">
+                            <td style="padding-left:28px; color:var(--sr-orange-dark);">
+                                ↳ ${c.nome}
+                                <small style="color:var(--sr-gray);">(Cessionário de ${a.nome})${aguarda ? ' — <em>aguarda</em>' : ''}</small>
+                            </td>
+                            <td style="color:var(--sr-gray); font-size:12px;">—</td>
+                            <td style="color:var(--sr-orange-dark);">${(c.percentual * 100).toFixed(2)}%</td>
+                            <td style="color:var(--sr-orange-dark);">R$ ${formatarMoeda(c.valorBruto || (valorBase * c.percentual))}</td>
+                        </tr>
+                    `;
+                });
+            }
+        });
 
         secoes.push(`
-            <div class="res-subsecao">${subtitulo}</div>
-            <div style="font-size:11px; color:#6c757d; margin: 4px 0 8px; padding: 0 2px;">
-                Base: <strong>R$ ${formatarMoeda(valorBase)}</strong>
-                ${herdeirosNomes !== 'Beneficiário Principal' ? ` — ${herdeirosNomes}` : ''}
-            </div>
+            <h3>${titulo}</h3>
+            <p style="color:#155724; font-style:italic; padding: 8px 16px;">
+                Valores calculados sobre: R$ ${formatarMoeda(valorBase)}
+                <span style="color:#856404;"> — ${herdeirosNomes}</span>
+            </p>
             <table>
-                <thead>
-                    <tr>
-                        <th>Advogado</th>
-                        <th>Tipo</th>
-                        <th class="right">%</th>
-                        <th class="right">Valor</th>
-                    </tr>
-                </thead>
-                <tbody>${linhasAdvogados}</tbody>
-                <tfoot>
-                    <tr class="linha-gold">
-                        <td colspan="2" class="bold">Total Honorários</td>
-                        <td class="right bold">${(totalPercentual * 100).toFixed(2)}%</td>
-                        <td class="right bold">R$ ${formatarMoeda(totalValor)}</td>
-                    </tr>
-                </tfoot>
+                <tr>
+                    <th>Nome Advogado / Cessionário</th>
+                    <th>Base de Cálculo</th>
+                    <th>Percentual</th>
+                    <th>Valor Bruto</th>
+                </tr>
+                ${linhas}
+                <tr class="highlight deducoes-total">
+                    <td colspan="2"><strong>TOTAL HONORÁRIOS</strong></td>
+                    <td><strong>${(totalPercentual * 100).toFixed(2)}%</strong></td>
+                    <td><strong>R$ ${formatarMoeda(totalValor)}</strong></td>
+                </tr>
             </table>
         `);
     });
