@@ -305,28 +305,28 @@
                             </div>
                         </div>
                         <h3>🏦 Impostos e Contribuições</h3>
-                        <div class="date-row">
-                            <div class="input-group">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px; align-items: start;">
+                            <div class="input-group" style="margin-bottom:0;">
                                 <label for="incidenciaIR">Incidência de IR:</label>
                                 <select id="incidenciaIR">
                                     <option value="sim">Sim</option>
                                     <option value="nao">Não</option>
                                 </select>
                             </div>
-                            <div class="input-group">
+                            <div class="input-group" style="margin-bottom:0;">
                                 <label for="incidenciaPrevidencia">Incidência de Previdência:</label>
                                 <select id="incidenciaPrevidencia">
                                     <option value="sim">Sim</option>
                                     <option value="nao">Não</option>
                                 </select>
                             </div>
-                        </div>
-                        <div class="input-group" id="tipoPrevidenciaDiv" style="display: none;">
-                            <label for="tipoPrevidencia">Tipo de Previdência:</label>
-                            <select id="tipoPrevidencia">
-                                <option value="inss">INSS</option>
-                                <option value="fixa">Alíquota Fixa</option>
-                            </select>
+                            <div class="input-group" id="tipoPrevidenciaDiv" style="display: none; margin-bottom:0;">
+                                <label for="tipoPrevidencia">Tipo de Previdência:</label>
+                                <select id="tipoPrevidencia">
+                                    <option value="inss">INSS</option>
+                                    <option value="fixa">Alíquota Fixa</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="input-group" id="aliquotaFixaDiv" style="display: none;">
                             <label for="aliquotaFixa">Alíquota Fixa (ex: 0.14 para 14%):</label>
@@ -3083,7 +3083,7 @@
             <div class="divider"></div>
             
             <div class="footer-meta">
-                2026 • PreCalc v4.2
+                2026 • PreCalc v4.3
             </div>
         </div>
     </footer>
