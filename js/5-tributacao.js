@@ -234,9 +234,9 @@ function calcularPrevidenciaIsolada(dados, principalBase, rrapagamento) {
 }
 
 function calcularINSS(base) {
-    if (base <= 1518.00) return base * 0.075;
-    else if (base <= 2793.88) return 1518 * 0.075 + (base - 1518) * 0.09;
-    else if (base <= 4190.83) return 1518 * 0.075 + 1275.88 * 0.09 + (base - 2793.88) * 0.12;
-    else if (base <= 8157.41) return 1518 * 0.075 + 1275.88 * 0.09 + 1396.95 * 0.12 + (base - 4190.83) * 0.14;
-    else return 951.63; // Teto
+    if (base <= 1621.00) return base * 0.075;
+    else if (base <= 2902.84) return 1621.00 * 0.075 + (base - 1621.00) * 0.09;
+    else if (base <= 4354.27) return 1621.00 * 0.075 + (2902.84 - 1621.00) * 0.09 + (base - 2902.84) * 0.12;
+    else if (base <= 8475.55) return 1621.00 * 0.075 + (2902.84 - 1621.00) * 0.09 + (4354.27 - 2902.84) * 0.12 + (base - 4354.27) * 0.14;
+    else return 988.10; 
 }
