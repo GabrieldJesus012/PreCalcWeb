@@ -153,20 +153,26 @@
                 <div class="form-section">
                     <div class="form-group">
                         <h3>📅 Datas-base de cálculos</h3>
-                        <div class="input-group">
-                            <label for="dataatualizacao">Data de Atualização:</label>
-                            <input type="date" name="" id="dataatualizacao" style="margin-bottom:8px;" >
-                            <label for="anoOrcamento">Ano do Orçamento:</label>
-                            <input type="number" id="anoOrcamento" placeholder="Ano do Orçamento">
-                        </div>
-                        <h3>💰 Informações Financeiras</h3>
+                        <div class="date-row">
                             <div class="input-group">
-                                <label for="descricaoPrincipal">Descrição:</label>
-                                <input type="text" id="descricaoPrincipal" placeholder="Ex: Salários">
+                                <label for="dataatualizacao">Data de Atualização:</label>
+                                <input type="date" id="dataatualizacao">
                             </div>
                             <div class="input-group">
-                                <label for="dataBase">Data Base:</label>
-                                <input type="date" id="dataBase">
+                                <label for="anoOrcamento">Ano do Orçamento:</label>
+                                <input type="number" id="anoOrcamento" placeholder="Ex: 2026">
+                            </div>
+                        </div>
+                        <h3>💰 Informações Financeiras</h3>
+                            <div class="date-row">
+                                <div class="input-group">
+                                    <label for="descricaoPrincipal">Descrição:</label>
+                                    <input type="text" id="descricaoPrincipal" placeholder="Ex: Salários">
+                                </div>
+                                <div class="input-group">
+                                    <label for="dataBase">Data Base:</label>
+                                    <input type="date" id="dataBase">
+                                </div>
                             </div>
                             <div class="date-row" style="display: none;">
                                 <div class="input-group">
@@ -239,32 +245,34 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="input-group">
-                                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-                                    <label for="rra" style="margin:0;">RRA (meses):</label>
-                                    <span style="cursor:pointer; color:var(--primary-gold); font-size:1.1em;" 
-                                        onclick="toggleCalculadoraRRA()" title="Calcular meses entre datas">🗓️</span>
-                                </div>
-                                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                                    <input type="number" id="rra" value="0" min="0" style="flex:1;">
-                                    <div id="calculadoraRRA" style="display:none; gap:6px; align-items:center; flex-wrap:wrap;">
-                                        <input type="date" id="rraDataInicial" style="padding:6px; font-size:0.8em; width:140px;">
-                                        <input type="date" id="rraDataFinal" style="padding:6px; font-size:0.8em; width:140px;">
-                                        <button type="button" class="btn-sindifaz" onclick="calcularEUsarRRA()">✓</button>
+                            <div class="date-row" style="align-items:start;">
+                                <div class="input-group">
+                                    <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+                                        <label for="rra" style="margin:0;">RRA (meses):</label>
+                                        <span style="cursor:pointer; color:var(--primary-gold); font-size:1.1em;"
+                                            onclick="toggleCalculadoraRRA()" title="Calcular meses entre datas">🗓️</span>
+                                    </div>
+                                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                        <input type="number" id="rra" value="0" min="0" style="width:90px;">
+                                        <div id="calculadoraRRA" style="display:none; gap:6px; align-items:center; flex-wrap:wrap;">
+                                            <input type="date" id="rraDataInicial" style="padding:6px; font-size:0.8em; width:140px;">
+                                            <input type="date" id="rraDataFinal" style="padding:6px; font-size:0.8em; width:140px;">
+                                            <button type="button" class="btn-sindifaz" onclick="calcularEUsarRRA()">✓</button>
+                                        </div>
+                                    </div>
+                                    <div id="rraResultadoInline" style="display:none; margin-top:4px; font-size:0.82em;
+                                        color:var(--primary-navy); font-weight:600;">
                                     </div>
                                 </div>
-                                <div id="rraResultadoInline" style="display:none; margin-top:4px; font-size:0.82em; 
-                                    color:var(--primary-navy); font-weight:600;">
+                                <div class="input-group">
+                                    <label for="tipoUsoHonorario">Uso nos Honorários:</label>
+                                    <select id="tipoUsoHonorario">
+                                        <option value="ambos" selected>Contratual e sucumbencial</option>
+                                        <option value="contratual">Somente contratual</option>
+                                        <option value="sucumbencial">Somente sucumbencial</option>
+                                        <option value="nenhum">Não usar nos honorários</option>
+                                    </select>
                                 </div>
-                            </div>
-                            <div class="input-group">
-                                <label for="tipoUsoHonorario">Tipo de Uso do item para Honorários:</label>
-                                <select id="tipoUsoHonorario">
-                                    <option value="ambos" selected>Ambos (contratual e sucumbencial)</option>
-                                    <option value="contratual">Honorário contratual apenas</option>
-                                    <option value="sucumbencial">Honorário sucumbencial apenas</option>
-                                    <option value="nenhum">Não usado para honorários</option>
-                                </select>
                             </div>
                         <div class="subsecao-colapsavel">
                             <div class="subsecao-header" onclick="toggleSubsecao(this)">
@@ -1509,8 +1517,8 @@
                     { id: 'Nome', label: 'Nome', type: 'text', placeholder: 'Nome do herdeiro' },
                     { id: 'Percentual', label: 'Percentual (ex: 1/3 ou 0.3333)', type: 'text', placeholder: '1/3' },
                     { id: 'Preferencia', label: 'Tem direito à preferência?', type: 'select', condicional: 'preferencia', containerId: 'Container', options: [
-                        { value: 'sim', text: 'Sim' },
-                        { value: 'nao', text: 'Não' }
+                        { value: 'nao', text: 'Não' },
+                        { value: 'sim', text: 'Sim' }
                     ]}
                 ]
             }
