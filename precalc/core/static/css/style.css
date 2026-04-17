@@ -445,9 +445,22 @@ body {
     font-size: 1.2em;
 }
 
+.grupo-beneficiario {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+    align-items: start;
+}
+
+.grupo-beneficiario.com-tipo {
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
 .tipo-beneficiario {
     display: none;
 }
+
 .tipo-beneficiario.show {
     display: block;
 }
@@ -1053,6 +1066,7 @@ tr.highlight {
     grid-template-columns: 1fr 1fr;
     gap: 15px;
     margin-bottom: 15px;
+    align-items: start;
 }
 
 .valor-selic-group label {

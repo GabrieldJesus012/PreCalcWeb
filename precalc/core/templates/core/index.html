@@ -51,6 +51,7 @@
             </div>
 
             <!-- Tab 1: Informações Gerais -->
+            <!-- Tab 1: Informações Gerais -->
             <div id="tab1" class="tab-content active">
                 <form id="calculatorForm" class="form-section">
                     <div class="form-group">
@@ -83,20 +84,22 @@
                                 ⏳ Carregando base de dados...
                             </div>
                         </div>
-                        <div class="input-group">
-                            <label for="beneficiario">Beneficiário Principal:</label>
-                            <input type="text" id="beneficiario" placeholder="Nome do beneficiário principal">
-                        </div>
-                        <div class="input-group tipo-beneficiario" id="tipoBeneficiarioGroup">
-                            <label>Tipo do Beneficiário:</label>
-                            <select id="tipoBeneficiario">
-                                <option value="pf">Pessoa Física (PF)</option>
-                                <option value="pj">Pessoa Jurídica (PJ)</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label for="credor">Devedor:</label>
-                            <input type="text" id="credor" placeholder="Nome do Devedor">
+                        <div class="grupo-beneficiario" id="grupoBeneficiario">
+                            <div class="input-group" style="margin-bottom:0;">
+                                <label for="beneficiario">Beneficiário Principal:</label>
+                                <input type="text" id="beneficiario" placeholder="Nome do beneficiário principal">
+                            </div>
+                            <div class="input-group tipo-beneficiario" id="tipoBeneficiarioGroup" style="margin-bottom:0;">
+                                <label>Tipo do Beneficiário:</label>
+                                <select id="tipoBeneficiario">
+                                    <option value="pf">Pessoa Física (PF)</option>
+                                    <option value="pj">Pessoa Jurídica (PJ)</option>
+                                </select>
+                            </div>
+                            <div class="input-group" style="margin-bottom:0;">
+                                <label for="credor">Devedor:</label>
+                                <input type="text" id="credor" placeholder="Nome do Devedor">
+                            </div>
                         </div>
                         <h3>⚖️ Configurações do Processo</h3>
                         <div class="input-group">
@@ -143,20 +146,26 @@
                 <div class="form-section">
                     <div class="form-group">
                         <h3>📅 Datas-base de cálculos</h3>
-                        <div class="input-group">
-                            <label for="dataatualizacao">Data de Atualização:</label>
-                            <input type="date" name="" id="dataatualizacao" style="margin-bottom:8px;" >
-                            <label for="anoOrcamento">Ano do Orçamento:</label>
-                            <input type="number" id="anoOrcamento" placeholder="Ano do Orçamento">
-                        </div>
-                        <h3>💰 Informações Financeiras</h3>
+                        <div class="date-row">
                             <div class="input-group">
-                                <label for="descricaoPrincipal">Descrição:</label>
-                                <input type="text" id="descricaoPrincipal" placeholder="Ex: Salários">
+                                <label for="dataatualizacao">Data de Atualização:</label>
+                                <input type="date" id="dataatualizacao">
                             </div>
                             <div class="input-group">
-                                <label for="dataBase">Data Base:</label>
-                                <input type="date" id="dataBase">
+                                <label for="anoOrcamento">Ano do Orçamento:</label>
+                                <input type="number" id="anoOrcamento" placeholder="Ex: 2026">
+                            </div>
+                        </div>
+                        <h3>💰 Informações Financeiras</h3>
+                            <div class="date-row">
+                                <div class="input-group">
+                                    <label for="descricaoPrincipal">Descrição:</label>
+                                    <input type="text" id="descricaoPrincipal" placeholder="Ex: Salários">
+                                </div>
+                                <div class="input-group">
+                                    <label for="dataBase">Data Base:</label>
+                                    <input type="date" id="dataBase">
+                                </div>
                             </div>
                             <div class="date-row" style="display: none;">
                                 <div class="input-group">
@@ -229,32 +238,34 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="input-group">
-                                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-                                    <label for="rra" style="margin:0;">RRA (meses):</label>
-                                    <span style="cursor:pointer; color:var(--primary-gold); font-size:1.1em;" 
-                                        onclick="toggleCalculadoraRRA()" title="Calcular meses entre datas">🗓️</span>
-                                </div>
-                                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                                    <input type="number" id="rra" value="0" min="0" style="flex:1;">
-                                    <div id="calculadoraRRA" style="display:none; gap:6px; align-items:center; flex-wrap:wrap;">
-                                        <input type="date" id="rraDataInicial" style="padding:6px; font-size:0.8em; width:140px;">
-                                        <input type="date" id="rraDataFinal" style="padding:6px; font-size:0.8em; width:140px;">
-                                        <button type="button" class="btn-sindifaz" onclick="calcularEUsarRRA()">✓</button>
+                            <div class="date-row" style="align-items:start;">
+                                <div class="input-group">
+                                    <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+                                        <label for="rra" style="margin:0;">RRA (meses):</label>
+                                        <span style="cursor:pointer; color:var(--primary-gold); font-size:1.1em;"
+                                            onclick="toggleCalculadoraRRA()" title="Calcular meses entre datas">🗓️</span>
+                                    </div>
+                                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                        <input type="number" id="rra" value="0" min="0" style="width:90px;">
+                                        <div id="calculadoraRRA" style="display:none; gap:6px; align-items:center; flex-wrap:wrap;">
+                                            <input type="date" id="rraDataInicial" style="padding:6px; font-size:0.8em; width:140px;">
+                                            <input type="date" id="rraDataFinal" style="padding:6px; font-size:0.8em; width:140px;">
+                                            <button type="button" class="btn-sindifaz" onclick="calcularEUsarRRA()">✓</button>
+                                        </div>
+                                    </div>
+                                    <div id="rraResultadoInline" style="display:none; margin-top:4px; font-size:0.82em;
+                                        color:var(--primary-navy); font-weight:600;">
                                     </div>
                                 </div>
-                                <div id="rraResultadoInline" style="display:none; margin-top:4px; font-size:0.82em; 
-                                    color:var(--primary-navy); font-weight:600;">
+                                <div class="input-group">
+                                    <label for="tipoUsoHonorario">Uso nos Honorários:</label>
+                                    <select id="tipoUsoHonorario">
+                                        <option value="ambos" selected>Contratual e sucumbencial</option>
+                                        <option value="contratual">Somente contratual</option>
+                                        <option value="sucumbencial">Somente sucumbencial</option>
+                                        <option value="nenhum">Não usar nos honorários</option>
+                                    </select>
                                 </div>
-                            </div>
-                            <div class="input-group">
-                                <label for="tipoUsoHonorario">Tipo de Uso do item para Honorários:</label>
-                                <select id="tipoUsoHonorario">
-                                    <option value="ambos" selected>Ambos (contratual e sucumbencial)</option>
-                                    <option value="contratual">Honorário contratual apenas</option>
-                                    <option value="sucumbencial">Honorário sucumbencial apenas</option>
-                                    <option value="nenhum">Não usado para honorários</option>
-                                </select>
                             </div>
                         <div class="subsecao-colapsavel">
                             <div class="subsecao-header" onclick="toggleSubsecao(this)">
@@ -287,28 +298,28 @@
                             </div>
                         </div>
                         <h3>🏦 Impostos e Contribuições</h3>
-                        <div class="date-row">
-                            <div class="input-group">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px; align-items: start;">
+                            <div class="input-group" style="margin-bottom:0;">
                                 <label for="incidenciaIR">Incidência de IR:</label>
                                 <select id="incidenciaIR">
                                     <option value="sim">Sim</option>
                                     <option value="nao">Não</option>
                                 </select>
                             </div>
-                            <div class="input-group">
+                            <div class="input-group" style="margin-bottom:0;">
                                 <label for="incidenciaPrevidencia">Incidência de Previdência:</label>
                                 <select id="incidenciaPrevidencia">
                                     <option value="sim">Sim</option>
                                     <option value="nao">Não</option>
                                 </select>
                             </div>
-                        </div>
-                        <div class="input-group" id="tipoPrevidenciaDiv" style="display: none;">
-                            <label for="tipoPrevidencia">Tipo de Previdência:</label>
-                            <select id="tipoPrevidencia">
-                                <option value="inss">INSS</option>
-                                <option value="fixa">Alíquota Fixa</option>
-                            </select>
+                            <div class="input-group" id="tipoPrevidenciaDiv" style="display: none; margin-bottom:0;">
+                                <label for="tipoPrevidencia">Tipo de Previdência:</label>
+                                <select id="tipoPrevidencia">
+                                    <option value="inss">INSS</option>
+                                    <option value="fixa">Alíquota Fixa</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="input-group" id="aliquotaFixaDiv" style="display: none;">
                             <label for="aliquotaFixa">Alíquota Fixa (ex: 0.14 para 14%):</label>
@@ -556,9 +567,10 @@
 
         function toggleTipoBeneficiario() {
             const natureza = $('natureza').value;
-            const grupo = $('tipoBeneficiarioGroup');
-            grupo.classList.toggle('show', natureza === 'comum');
-            if (natureza !== 'comum') $('tipoBeneficiario').value = 'pf';
+            const isComum = natureza === 'comum';
+            $('tipoBeneficiarioGroup').classList.toggle('show', isComum);
+            $('grupoBeneficiario').classList.toggle('com-tipo', isComum);
+            if (!isComum) $('tipoBeneficiario').value = 'pf';
         }
 
         function atualizarVisibilidadePreferencia() {
@@ -1017,7 +1029,7 @@
         // ====================================
 
         let valoresPrincipais = [];
-        function adicionarValorPrincipal() {
+        function adicionarValorPrincipal(silencioso = false) {
             const mesBase = $('mesBase').value;
             const anoBase = $('anoBase').value;
             const valorPrincipal = parseFloat($('valorPrincipal').value) || 0;
@@ -1032,8 +1044,8 @@
             const mesReferenciaSelic = $('mesReferenciaSelic').value;
 
             if (!anoBase || (!valorPrincipal && !valorJuros)) {
-                alert('Preencha o ano base e pelo menos um valor (principal, juros)');
-                return;
+                if (!silencioso) alert('Preencha o ano base e pelo menos um valor (principal, juros)');
+                return false;
             }
 
             const indices = { 
@@ -1058,8 +1070,8 @@
 
                 if ((existeFixa && tributacao.tipoPrevidencia === 'inss') ||
                     (existeINSS && tributacao.tipoPrevidencia === 'fixa')) {
-                    alert('❌ Todos os itens devem seguir o mesmo padrão de previdência (fixa ou INSS).');
-                    return;
+                    if (!silencioso) alert('❌ Todos os itens devem seguir o mesmo padrão de previdência (fixa ou INSS).');
+                    return false;
                 }
             }
 
@@ -1087,7 +1099,7 @@
                 v.valorJuros === valorJuros
             );
 
-            if (duplicata) {
+            if (!silencioso && duplicata) {
                 if (!confirm(`⚠️ Já existe um item cadastrado com a mesma data base (${mesBase}/${anoBase}) e mesmos valores.\n\nDeseja adicionar mesmo assim?`)) {
                     return;
                 }
@@ -1097,9 +1109,12 @@
             renderizarValoresPrincipais();
             limparFormularioPrincipal();
 
-            alert("✅ Valor cadastrado com sucesso!");
+            if (!silencioso) {
+                alert("✅ Valor cadastrado com sucesso!");
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
 
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return true;
         }
 
         // ====================================
@@ -1809,8 +1824,8 @@
                     { id: 'Nome', label: 'Nome', type: 'text', placeholder: 'Nome do herdeiro' },
                     { id: 'Percentual', label: 'Percentual (ex: 1/3 ou 0.3333)', type: 'text', placeholder: '1/3' },
                     { id: 'Preferencia', label: 'Tem direito à preferência?', type: 'select', condicional: 'preferencia', containerId: 'Container', options: [
-                        { value: 'sim', text: 'Sim' },
-                        { value: 'nao', text: 'Não' }
+                        { value: 'nao', text: 'Não' },
+                        { value: 'sim', text: 'Sim' }
                     ]}
                 ]
             }
@@ -1826,15 +1841,17 @@
                     const numerador = parseFloat(partes[0].trim());
                     const denominador = parseFloat(partes[1].trim());
                     if (!isNaN(numerador) && !isNaN(denominador) && denominador !== 0) {
-                        return numerador / denominador;
+                        const resultado = numerador / denominador;
+                        return resultado > 1 ? resultado / 100 : resultado;
                     }
                 }
                 return 0;
             }
             
-            // Formato decimal normal
+            // Formato decimal normal — se > 1, assume percentual inteiro (ex: 50 = 50%)
             const num = parseFloat(str.replace(',', '.'));
-            return isNaN(num) ? 0 : num;
+            if (isNaN(num)) return 0;
+            return num > 1 ? num / 100 : num;
         }
         
         function criarCampo(campo, prefixo, index) {
@@ -2878,8 +2895,18 @@
             }
 
             if (!valoresPrincipais || valoresPrincipais.length === 0) {
-                alert("⚠️ Você precisa adicionar pelo menos um Valor Principal antes de calcular!");
-                return;
+                const anoBase = $('anoBase').value;
+                const valorPrincipal = parseFloat($('valorPrincipal').value) || 0;
+                const valorJuros = parseFloat($('valorJuros').value) || 0;
+
+                if (anoBase && (valorPrincipal || valorJuros)) {
+                    adicionarValorPrincipal(true);
+                }
+
+                if (!valoresPrincipais || valoresPrincipais.length === 0) {
+                    alert("⚠️ Você precisa adicionar pelo menos um Valor Principal antes de calcular!");
+                    return;
+                }
             }
             
             const dados = coletarDados();

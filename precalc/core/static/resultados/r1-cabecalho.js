@@ -189,7 +189,8 @@ function gerarLinhaBase(resultados, dados) {
                 ${herdeirosPreferenciais.map(h => `
                     <tr class="highlight-green">
                         <td><strong>${h.nome}</strong></td>
-                        <td colspan="2"><strong>R$ ${formatarMoeda(h.valorTotal)}</strong></td>
+                        <td></td>
+                        <td></td>
                         <td><strong>R$ ${formatarMoeda(h.valorTotal)}</strong></td>
                         <td><strong>${((h.valorTotal / resultados.valortotatt) * 100).toFixed(2)}%</strong></td>
                     </tr>
