@@ -93,20 +93,22 @@
                                 ⏳ Carregando base de dados...
                             </div>
                         </div>
-                        <div class="input-group">
-                            <label for="beneficiario">Beneficiário Principal:</label>
-                            <input type="text" id="beneficiario" placeholder="Nome do beneficiário principal">
-                        </div>
-                        <div class="input-group tipo-beneficiario" id="tipoBeneficiarioGroup">
-                            <label>Tipo do Beneficiário:</label>
-                            <select id="tipoBeneficiario">
-                                <option value="pf">Pessoa Física (PF)</option>
-                                <option value="pj">Pessoa Jurídica (PJ)</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label for="credor">Devedor:</label>
-                            <input type="text" id="credor" placeholder="Nome do Devedor">
+                        <div class="grupo-beneficiario" id="grupoBeneficiario">
+                            <div class="input-group" style="margin-bottom:0;">
+                                <label for="beneficiario">Beneficiário Principal:</label>
+                                <input type="text" id="beneficiario" placeholder="Nome do beneficiário principal">
+                            </div>
+                            <div class="input-group tipo-beneficiario" id="tipoBeneficiarioGroup" style="margin-bottom:0;">
+                                <label>Tipo do Beneficiário:</label>
+                                <select id="tipoBeneficiario">
+                                    <option value="pf">Pessoa Física (PF)</option>
+                                    <option value="pj">Pessoa Jurídica (PJ)</option>
+                                </select>
+                            </div>
+                            <div class="input-group" style="margin-bottom:0;">
+                                <label for="credor">Devedor:</label>
+                                <input type="text" id="credor" placeholder="Nome do Devedor">
+                            </div>
                         </div>
                         <h3>⚖️ Configurações do Processo</h3>
                         <div class="input-group">
@@ -534,9 +536,10 @@
 
         function toggleTipoBeneficiario() {
             const natureza = $('natureza').value;
-            const grupo = $('tipoBeneficiarioGroup');
-            grupo.classList.toggle('show', natureza === 'comum');
-            if (natureza !== 'comum') $('tipoBeneficiario').value = 'pf';
+            const isComum = natureza === 'comum';
+            $('tipoBeneficiarioGroup').classList.toggle('show', isComum);
+            $('grupoBeneficiario').classList.toggle('com-tipo', isComum);
+            if (!isComum) $('tipoBeneficiario').value = 'pf';
         }
 
         function atualizarVisibilidadePreferencia() {
