@@ -1516,22 +1516,24 @@
         function parsearPercentual(valor) {
             if (!valor && valor !== 0) return 0;
             const str = String(valor).trim();
-            
+
             if (str.includes('/')) {
                 const partes = str.split('/');
                 if (partes.length === 2) {
                     const numerador = parseFloat(partes[0].trim());
                     const denominador = parseFloat(partes[1].trim());
                     if (!isNaN(numerador) && !isNaN(denominador) && denominador !== 0) {
-                        return numerador / denominador;
+                        const resultado = numerador / denominador;
+                        return resultado > 1 ? resultado / 100 : resultado;
                     }
                 }
                 return 0;
             }
-            
-            // Formato decimal normal
+
+            // Formato decimal normal — se > 1, assume percentual inteiro (ex: 50 = 50%)
             const num = parseFloat(str.replace(',', '.'));
-            return isNaN(num) ? 0 : num;
+            if (isNaN(num)) return 0;
+            return num > 1 ? num / 100 : num;
         }
         
         function criarCampo(campo, prefixo, index) {
