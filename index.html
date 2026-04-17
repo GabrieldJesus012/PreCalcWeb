@@ -927,7 +927,7 @@
         // ====================================
 
         let valoresPrincipais = [];
-        function adicionarValorPrincipal() {
+        function adicionarValorPrincipal(silencioso = false) {
             const mesBase = $('mesBase').value;
             const anoBase = $('anoBase').value;
             const valorPrincipal = parseFloat($('valorPrincipal').value) || 0;
@@ -942,14 +942,14 @@
             const mesReferenciaSelic = $('mesReferenciaSelic').value;
 
             if (!anoBase || (!valorPrincipal && !valorJuros)) {
-                alert('Preencha o ano base e pelo menos um valor (principal, juros)');
-                return;
+                if (!silencioso) alert('Preencha o ano base e pelo menos um valor (principal, juros)');
+                return false;
             }
 
-            const indices = { 
-                cnj: $('principalCNJ').checked, 
-                selic: $('principalSELIC').checked, 
-                ipcae: $('principalIPCAE').checked, 
+            const indices = {
+                cnj: $('principalCNJ').checked,
+                selic: $('principalSELIC').checked,
+                ipcae: $('principalIPCAE').checked,
                 jurosMora: $('principalJurosMora').checked,
                 ipca: $('principalIPCA').checked,
             };
@@ -968,8 +968,8 @@
 
                 if ((existeFixa && tributacao.tipoPrevidencia === 'inss') ||
                     (existeINSS && tributacao.tipoPrevidencia === 'fixa')) {
-                    alert('❌ Todos os itens devem seguir o mesmo padrão de previdência (fixa ou INSS).');
-                    return;
+                    if (!silencioso) alert('❌ Todos os itens devem seguir o mesmo padrão de previdência (fixa ou INSS).');
+                    return false;
                 }
             }
 
@@ -989,16 +989,16 @@
                 tipoUsoHonorario,
             };
 
-            const duplicata = valoresPrincipais.find(v => 
-                v.mesBase === mesBase && 
+            const duplicata = valoresPrincipais.find(v =>
+                v.mesBase === mesBase &&
                 v.anoBase === parseInt(anoBase) &&
                 v.valorPrincipal === valorPrincipal &&
                 v.valorJuros === valorJuros
             );
 
-            if (duplicata) {
+            if (!silencioso && duplicata) {
                 if (!confirm(`⚠️ Já existe um item cadastrado com a mesma data base (${mesBase}/${anoBase}) e mesmos valores.\n\nDeseja adicionar mesmo assim?`)) {
-                    return;
+                    return false;
                 }
             }
 
@@ -1006,9 +1006,12 @@
             renderizarValoresPrincipais();
             limparFormularioPrincipal();
 
-            alert("✅ Valor cadastrado com sucesso!");
+            if (!silencioso) {
+                alert("✅ Valor cadastrado com sucesso!");
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
 
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return true;
         }
 
         // ====================================
@@ -2626,8 +2629,18 @@
             }
 
             if (!valoresPrincipais || valoresPrincipais.length === 0) {
-                alert("⚠️ Você precisa adicionar pelo menos um Valor Principal antes de calcular!");
-                return;
+                const anoBase = $('anoBase').value;
+                const valorPrincipal = parseFloat($('valorPrincipal').value) || 0;
+                const valorJuros = parseFloat($('valorJuros').value) || 0;
+
+                if (anoBase && (valorPrincipal || valorJuros)) {
+                    adicionarValorPrincipal(true);
+                }
+
+                if (!valoresPrincipais || valoresPrincipais.length === 0) {
+                    alert("⚠️ Você precisa adicionar pelo menos um Valor Principal antes de calcular!");
+                    return;
+                }
             }
             
             const dados = coletarDados();
@@ -3062,7 +3075,7 @@
             <div class="divider"></div>
             
             <div class="footer-meta">
-                2026 • PreCalc v4.0
+                2026 • PreCalc v4.2
             </div>
         </div>
     </footer>
