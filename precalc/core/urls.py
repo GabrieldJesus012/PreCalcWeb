@@ -10,4 +10,6 @@ urlpatterns = [
     path('carregar/<int:pk>/', views.carregar, name='carregar'),
     path('feedback/', views.feedback, name='feedback'),
     path('buscar-processo/', views.buscar_processo, name='buscar_processo'),
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
 ]

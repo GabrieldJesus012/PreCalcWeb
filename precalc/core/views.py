@@ -5,11 +5,15 @@ from datetime import date
 import json
 from core.calculos.base import calcular_valores
 from core.models import Calculo, CalculoCredor
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect
 
+@login_required
 def index(request):
     return render(request, 'core/index.html')
 
-
+@login_required
 def historico(request):
     calculos = Calculo.objects.all()
 
@@ -73,7 +77,8 @@ def formatar_data_graca(data_str):
         return f"{meses[d.month-1]}/{d.year}"
     except:
         return data_str
-    
+
+@login_required
 def resultado(request, pk):
     calculo = get_object_or_404(Calculo, pk=pk)
     dados = calculo.dados_entrada
@@ -107,6 +112,7 @@ def carregar(request, pk):
     dados['dataAtualizacao'] = calculo.data_atualizacao.strftime('%Y-%m-%d') if calculo.data_atualizacao else ''
     return JsonResponse(dados)
 
+@login_required
 @csrf_exempt
 def calcular(request):
     if request.method != 'POST':
@@ -272,3 +278,26 @@ def buscar_processo(request):
         })
     except Processo.DoesNotExist:
         return JsonResponse({'erro': 'Processo não encontrado'}, status=404)
+    
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('index')
+    
+    erro = None
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user:
+            login(request, user)
+            return redirect('index')
+        else:
+            erro = 'Usuário ou senha incorretos'
+    
+    return render(request, 'core/login.html', {'erro': erro})
+
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')
+

@@ -1,0 +1,144 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PreCalc — Login</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #f0f3f4;
+        }
+
+        .login-box {
+            background: white;
+            border-radius: 8px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-header h1 {
+            color: #1a2b4a;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .login-header p {
+            color: #6c757d;
+            font-size: 13px;
+        }
+
+        .login-faixa {
+            height: 4px;
+            background: linear-gradient(90deg, #b8962e, #d4af5a, #b8962e);
+            border-radius: 2px;
+            margin-bottom: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #1a2b4a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #1a1a2e;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #1a2b4a;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: #1a2b4a;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-login:hover {
+            background: #2c3e5a;
+        }
+
+        .erro {
+            background: #fdf0f0;
+            border: 1px solid #f5c6cb;
+            border-left: 3px solid #dc3545;
+            color: #721c24;
+            padding: 10px 14px;
+            border-radius: 4px;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .footer-login {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 11px;
+            color: #adb5bd;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <div class="login-header">
+            <h1>⚖️ PreCalc</h1>
+            <p>Sistema de Cálculo de Precatórios</p>
+        </div>
+        <div class="login-faixa"></div>
+
+        {% if erro %}
+        <div class="erro">{{ erro }}</div>
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Usuário</label>
+                <input type="text" name="username" autofocus placeholder="Digite seu usuário">
+            </div>
+            <div class="form-group">
+                <label>Senha</label>
+                <input type="password" name="password" placeholder="Digite sua senha">
+            </div>
+            <button type="submit" class="btn-login">Entrar</button>
+        </form>
+
+    </div>
+</body>
+</html>

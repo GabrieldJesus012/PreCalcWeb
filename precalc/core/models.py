@@ -1,5 +1,5 @@
 from django.db import models
-
+from django.contrib.auth.models import User
 
 class Calculo(models.Model):
     # Identificação
@@ -147,3 +147,48 @@ class Processo(models.Model):
 
     def __str__(self):
         return f"{self.numero} - {self.beneficiario}"
+    
+class PerfilUsuario(models.Model):
+    PERFIS = [
+        ('admin', 'Administrador'),
+        ('contador_tjpi', 'Contador TJPI'),
+        ('usuario_padrao', 'Usuário Padrão'),
+    ]
+
+    usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil')
+    perfil = models.CharField(max_length=20, choices=PERFIS, default='usuario_padrao')
+    calculos_mes = models.IntegerField(default=0)  # contador mensal
+    mes_referencia = models.DateField(null=True, blank=True)  # mês do contador
+
+    class Meta:
+        verbose_name = 'Perfil de Usuário'
+        verbose_name_plural = 'Perfis de Usuários'
+
+    def __str__(self):
+        return f"{self.usuario.username} — {self.get_perfil_display()}"
+
+    def pode_calcular(self):
+        if self.perfil in ('admin', 'contador_tjpi'):
+            return True
+        # Usuário padrão — verifica limite mensal
+        from datetime import date
+        hoje = date.today()
+        mes_atual = date(hoje.year, hoje.month, 1)
+        if self.mes_referencia != mes_atual:
+            self.calculos_mes = 0
+            self.mes_referencia = mes_atual
+            self.save()
+        return self.calculos_mes < 5
+
+    def pode_buscar_processo(self):
+        return self.perfil in ('admin', 'contador_tjpi')
+
+    def registrar_calculo(self):
+        from datetime import date
+        hoje = date.today()
+        mes_atual = date(hoje.year, hoje.month, 1)
+        if self.mes_referencia != mes_atual:
+            self.calculos_mes = 0
+            self.mes_referencia = mes_atual
+        self.calculos_mes += 1
+        self.save()
