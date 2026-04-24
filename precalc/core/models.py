@@ -101,3 +101,49 @@ class Feedback(models.Model):
 
     def __str__(self):
         return f"{self.get_tipo_display()} - {self.data_envio.strftime('%d/%m/%Y')}"
+    
+    
+class IndiceMonetario(models.Model):
+    TIPOS = [
+        ('ipca', 'IPCA'),
+        ('ipca_e', 'IPCA-E'),
+        ('selic', 'SELIC'),
+        ('cnj', 'CNJ/JE'),
+        ('juros_mora_alimentar', 'Juros de Mora Alimentar'),
+        ('juros_mora_comum', 'Juros de Mora Comum'),
+    ]
+
+    tipo = models.CharField(max_length=25, choices=TIPOS)
+    ano = models.IntegerField()
+    mes = models.IntegerField()  # 1-12
+    valor = models.DecimalField(max_digits=12, decimal_places=8)  # percentual mensal ex: 0.00412
+
+    class Meta:
+        unique_together = ('tipo', 'ano', 'mes')
+        ordering = ['tipo', 'ano', 'mes']
+        verbose_name = 'Índice Monetário'
+        verbose_name_plural = 'Índices Monetários'
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} {self.mes:02d}/{self.ano}: {self.valor}"
+
+
+class Processo(models.Model):
+    numero = models.CharField(max_length=100, unique=True)
+    beneficiario = models.CharField(max_length=200, blank=True)
+    credor = models.CharField(max_length=200, blank=True)
+    natureza = models.CharField(max_length=20, blank=True)
+    ano_orcamento = models.IntegerField(null=True, blank=True)
+    data_base = models.DateField(null=True, blank=True)
+    valor_principal = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    valor_juros = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    dados_extras = models.JSONField(default=dict, blank=True)  # outros campos do CSV
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['numero']
+        verbose_name = 'Processo'
+        verbose_name_plural = 'Processos'
+
+    def __str__(self):
+        return f"{self.numero} - {self.beneficiario}"

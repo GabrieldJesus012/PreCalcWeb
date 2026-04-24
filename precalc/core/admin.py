@@ -2,6 +2,16 @@ from django.contrib import admin
 from django.db.models import Sum
 from core.models import Calculo, CalculoCredor
 from core.models import Calculo, CalculoCredor, Feedback
+from core.models import IndiceMonetario
+
+
+@admin.register(IndiceMonetario)
+class IndiceMonetarioAdmin(admin.ModelAdmin):
+    list_display = ['tipo', 'mes', 'ano', 'valor']
+    list_filter = ['tipo', 'ano']
+    search_fields = ['tipo']
+    ordering = ['tipo', 'ano', 'mes']
+    list_per_page = 50
 
 @admin.register(Feedback)
 class FeedbackAdmin(admin.ModelAdmin):
