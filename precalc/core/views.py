@@ -250,3 +250,25 @@ def feedback(request):
         return JsonResponse({'ok': True})
     except Exception as e:
         return JsonResponse({'erro': str(e)}, status=500)
+    
+def buscar_processo(request):
+    numero = request.GET.get('numero', '').strip()
+    if not numero:
+        return JsonResponse({'erro': 'Número não informado'}, status=400)
+    
+    try:
+        from core.models import Processo
+        p = Processo.objects.get(numero=numero)
+        return JsonResponse({
+            'numero': p.numero,
+            'exequente': p.beneficiario,
+            'executado': p.credor,
+            'natureza': p.natureza,
+            'orcamento': str(p.ano_orcamento) if p.ano_orcamento else '',
+            'dataCalculo': p.data_base.strftime('%d/%m/%Y') if p.data_base else '',
+            'principal': str(p.valor_principal).replace('.', ',') if p.valor_principal else '',
+            'juros': str(p.valor_juros).replace('.', ',') if p.valor_juros else '',
+            'rra': str(p.dados_extras.get('rra', '')) if p.dados_extras else '',
+        })
+    except Processo.DoesNotExist:
+        return JsonResponse({'erro': 'Processo não encontrado'}, status=404)

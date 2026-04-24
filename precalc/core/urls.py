@@ -9,4 +9,5 @@ urlpatterns = [
     path('resultado/<int:pk>/', views.resultado, name='resultado'),
     path('carregar/<int:pk>/', views.carregar, name='carregar'),
     path('feedback/', views.feedback, name='feedback'),
+    path('buscar-processo/', views.buscar_processo, name='buscar_processo'),
 ]
