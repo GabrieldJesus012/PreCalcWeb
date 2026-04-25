@@ -401,6 +401,16 @@
                             <h4>⚠️ Importante</h4>
                             <p>Selecione abaixo apenas as pessoas/entidades que aderiram ao acordo. O cálculo será realizado somente para os selecionados.</p>
                         </div>
+
+                         <div style="margin-bottom: 15px;">
+                            <button type="button"  class="btn-sindifaz"  onclick="aplicarPadraoSindifaz(true)">
+                                Sindifaz 2026 (com ALT)
+                            </button>
+                            
+                            <button type="button"  class="btn-sindifaz"  onclick="aplicarPadraoSindifaz(false)">
+                                Sindifaz 2026 (sem ALT)
+                            </button>
+                        </div>
                         
                         <h3>🤝 Quem Aderiu ao Acordo?</h3>
                         <div id="acordoContainer">
@@ -2377,6 +2387,41 @@
         // ====================================
         // Acordo
         // ====================================
+
+         function aplicarPadraoSindifaz(comAlt) {
+            const nomesPadraoComAlt = [
+                "DOMUS OCTANTE I FIDC LTDA",
+                "PEDRA AZUL FIDC NP",
+                "FLAVIA CEOLIN LOPES PIANA",
+                "TABARÉ FIDC - cessionaria da FJ",
+                "ISA MARIA LEME OPPENHEIMER BORGES",
+                "ALT LEGAL CLAIMS FIDC",
+                "TABARE FIDC NP",
+                "ZEFIROS I FIDC NP"
+            ];
+
+            const nomesPadraoSemAlt = nomesPadraoComAlt.filter(nome => 
+                nome !== "ALT LEGAL CLAIMS FIDC"
+            );
+
+            const lista = comAlt ? nomesPadraoComAlt : nomesPadraoSemAlt;
+
+            // percorre todos os itens da tela
+            document.querySelectorAll('.acordo-item').forEach(item => {
+                const nome = item.querySelector('.acordo-name')?.innerText.trim();
+                const checkbox = item.querySelector('.acordo-checkbox');
+
+                if (!checkbox) return;
+
+                if (lista.includes(nome)) {
+                    checkbox.checked = true;
+                    item.classList.add('selected');
+                } else {
+                    checkbox.checked = false;
+                    item.classList.remove('selected');
+                }
+            });
+        }
 
         function atualizarAdesaoAcordo() {
             const container = document.getElementById('acordoContainer');
