@@ -27,6 +27,9 @@
         .topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         .vazio { text-align: center; padding: 60px; color: #666; background: white; border-radius: 12px; }
         .resultado-info { font-size: 0.85em; color: #666; margin-bottom: 12px; }
+        .usuario-badge { background: #e8edf5; color: #1a2b4a; padding: 2px 8px; border-radius: 10px; font-size: 0.75em; font-weight: 600; }
+        .topo-info { display: flex; align-items: center; gap: 12px; font-size: 0.85em; color: #666; }
+        .btn-logout { background: #dc3545; color: white; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 0.82em; }
     </style>
 </head>
 <body>
@@ -40,7 +43,11 @@
     <div class="historico-container">
         <div class="topo">
             <h2>📋 Histórico de Cálculos</h2>
-            <a href="/" class="btn-ver" style="text-decoration: none; padding: 10px 20px;">➕ Novo Cálculo</a>
+            <div class="topo-info">
+                <span>👤 {{ request.user.username }}</span>
+                <a href="/" class="btn-ver" style="text-decoration: none; padding: 10px 20px;">➕ Novo Cálculo</a>
+                <a href="/logout/" class="btn-logout">Sair</a>
+            </div>
         </div>
 
         <div class="filtros-form">
@@ -92,6 +99,15 @@
                         <label>Data Fim</label>
                         <input type="date" name="data_fim" value="{{ filtros.data_fim }}">
                     </div>
+                    <div class="filtro-group">
+                        <label>Usuário</label>
+                        <select name="usuario">
+                            <option value="">Todos</option>
+                            {% for u in usuarios %}
+                            <option value="{{ u.username }}" {% if filtros.usuario == u.username %}selected{% endif %}>{{ u.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
                 <div class="filtros-acoes">
                     <button type="submit" class="btn-buscar">🔍 Buscar</button>
@@ -112,6 +128,7 @@
                     <th>Natureza</th>
                     <th>Tipo</th>
                     <th>Total Atualizado</th>
+                    <th>Usuário</th>
                     <th>Data</th>
                     <th></th>
                 </tr>
@@ -126,6 +143,7 @@
                     <td><span class="badge badge-{{ c.natureza }}">{{ c.natureza|capfirst }}</span></td>
                     <td>{{ c.tipo_calculo|capfirst }}</td>
                     <td><span class="valor-fmt" data-valor="{{ c.valor_total }}"></span></td>
+                    <td><span class="usuario-badge">{{ c.usuario.username|default:"—" }}</span></td>
                     <td>{{ c.data_calculo|date:"d/m/Y H:i" }}</td>
                     <td>
                         <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">

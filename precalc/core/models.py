@@ -1,8 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class Calculo(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='calculos')
     # Identificação
+    
     numero_processo = models.CharField(max_length=100, blank=True)
     beneficiario = models.CharField(max_length=200, blank=True)
     credor = models.CharField(max_length=200, blank=True)
@@ -192,3 +196,8 @@ class PerfilUsuario(models.Model):
             self.mes_referencia = mes_atual
         self.calculos_mes += 1
         self.save()
+
+@receiver(post_save, sender=User)
+def criar_perfil_usuario(sender, instance, created, **kwargs):
+    if created:
+        PerfilUsuario.objects.create(usuario=instance)

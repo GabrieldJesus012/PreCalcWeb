@@ -15,7 +15,14 @@ def index(request):
 
 @login_required
 def historico(request):
-    calculos = Calculo.objects.all()
+    # Usuário padrão não acessa
+    try:
+        if request.user.perfil.perfil == 'usuario_padrao':
+            return redirect('index')
+    except:
+        pass
+    
+    calculos = Calculo.objects.select_related('usuario').all()
 
     processo = request.GET.get('processo', '')
     beneficiario = request.GET.get('beneficiario', '')
@@ -26,6 +33,7 @@ def historico(request):
     valor_max = request.GET.get('valor_max', '')
     data_ini = request.GET.get('data_ini', '')
     data_fim = request.GET.get('data_fim', '')
+    usuario_filtro = request.GET.get('usuario', '')
 
     if processo:
         calculos = calculos.filter(numero_processo__icontains=processo)
@@ -51,11 +59,18 @@ def historico(request):
         calculos = calculos.filter(data_calculo__date__gte=data_ini)
     if data_fim:
         calculos = calculos.filter(data_calculo__date__lte=data_fim)
+    if usuario_filtro:
+        calculos = calculos.filter(usuario__username__icontains=usuario_filtro)
+    
+    # Lista de usuários para o filtro
+    from django.contrib.auth.models import User
+    usuarios = User.objects.filter(calculos__isnull=False).distinct()
 
     return render(request, 'core/historico.html', {
         'calculos': calculos[:100],
         'total': calculos.count(),
-        'filtros': request.GET
+        'filtros': request.GET,
+        'usuarios': usuarios,
     })
 
 def formatar_moeda(valor):
@@ -117,6 +132,14 @@ def carregar(request, pk):
 def calcular(request):
     if request.method != 'POST':
         return JsonResponse({'erro': 'Método não permitido'}, status=405)
+    
+    # Verificar perfil
+    try:
+        perfil = request.user.perfil
+        if not perfil.pode_calcular():
+            return JsonResponse({'erro': 'Limite de 5 cálculos mensais atingido. Faça upgrade para continuar.'}, status=403)
+    except:
+        pass  # Se não tem perfil, permite calcular
 
     try:
         dados = json.loads(request.body)
@@ -145,6 +168,7 @@ def calcular(request):
 
         # Salvar cabeçalho
         calculo = Calculo.objects.create(
+            usuario=request.user, 
             numero_processo=dados.get('numProcesso', ''),
             beneficiario=dados.get('beneficiario', ''),
             credor=dados.get('credor', ''),
@@ -169,6 +193,12 @@ def calcular(request):
             dados_entrada=dados,
             resultado_completo=resultado
         )
+        
+        # Registrar cálculo no perfil
+        try:
+            request.user.perfil.registrar_calculo()
+        except:
+            pass
 
         resultado['_id'] = calculo.pk
         return JsonResponse(resultado)
@@ -256,8 +286,16 @@ def feedback(request):
         return JsonResponse({'ok': True})
     except Exception as e:
         return JsonResponse({'erro': str(e)}, status=500)
-    
+
+@login_required
 def buscar_processo(request):
+    # Verificar perfil
+    try:
+        if not request.user.perfil.pode_buscar_processo():
+            return JsonResponse({'erro': 'Sem permissão para buscar processos.'}, status=403)
+    except:
+        pass
+    
     numero = request.GET.get('numero', '').strip()
     if not numero:
         return JsonResponse({'erro': 'Número não informado'}, status=400)

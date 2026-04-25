@@ -3,7 +3,14 @@ from django.db.models import Sum
 from core.models import Calculo, CalculoCredor
 from core.models import Calculo, CalculoCredor, Feedback
 from core.models import IndiceMonetario
+from core.models import PerfilUsuario
 
+@admin.register(PerfilUsuario)
+class PerfilUsuarioAdmin(admin.ModelAdmin):
+    list_display = ['usuario', 'perfil', 'calculos_mes', 'mes_referencia']
+    list_filter = ['perfil']
+    search_fields = ['usuario__username', 'usuario__email']
+    list_editable = ['perfil']
 
 @admin.register(IndiceMonetario)
 class IndiceMonetarioAdmin(admin.ModelAdmin):
@@ -30,8 +37,8 @@ class CalculoCredorInline(admin.TabularInline):
 
 @admin.register(Calculo)
 class CalculoAdmin(admin.ModelAdmin):
-    list_display = ['numero_processo', 'beneficiario', 'credor', 'natureza', 'tipo_calculo', 'data_base', 'valor_total_fmt', 'indice_total', 'total_pago', 'data_calculo']
-    list_filter = ['natureza', 'tipo_calculo', 'tem_herdeiros', 'tem_honorario_sucumbencial', 'data_calculo']
+    list_display = ['numero_processo', 'beneficiario', 'credor', 'natureza', 'tipo_calculo', 'usuario', 'valor_total_fmt', 'total_pago', 'indice_total', 'data_base', 'data_calculo']
+    list_filter = ['natureza', 'tipo_calculo', 'usuario','tem_herdeiros', 'tem_honorario_sucumbencial', 'data_calculo']
     search_fields = ['numero_processo', 'beneficiario', 'credor']
     readonly_fields = ['data_calculo', 'dados_entrada', 'resultado_completo']
     inlines = [CalculoCredorInline]
