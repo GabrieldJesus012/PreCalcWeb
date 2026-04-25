@@ -11,7 +11,12 @@ from django.shortcuts import redirect
 
 @login_required
 def index(request):
-    return render(request, 'core/index.html')
+    try:
+        perfil = request.user.perfil.perfil
+    except:
+        perfil = 'usuario_padrao'
+    
+    return render(request, 'core/index.html', {'perfil': perfil})
 
 @login_required
 def historico(request):
@@ -106,7 +111,10 @@ def resultado(request, pk):
     indice_principal = round(float(calculo.valor_principal) / hist_principal, 6) if hist_principal else 1
     indice_juros = round(float(calculo.valor_juros) / hist_juros, 6) if hist_juros else 1
     indice_total = round(float(calculo.valor_total) / hist_total, 6) if hist_total else 1
-
+    try:
+        perfil = request.user.perfil.perfil
+    except:
+        perfil = 'usuario_padrao'
     return render(request, 'core/resultado.html', {
         'calculo': calculo,
         'dados': dados,
@@ -118,7 +126,8 @@ def resultado(request, pk):
         'inicio_graca': formatar_data_graca(resultados.get('inicioGraca', '')),
         'fim_graca': formatar_data_graca(resultados.get('fimGraca', '')),
         'dados_json': json.dumps(dados),
-        'resultados_json': json.dumps(resultados)
+        'resultados_json': json.dumps(resultados),
+        'perfil': perfil,
     })
 
 def carregar(request, pk):

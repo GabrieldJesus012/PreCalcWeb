@@ -59,9 +59,11 @@
                         <div class="input-group">
                             <div class="label-with-button">
                                 <label for="numprocesso">Processo:</label>
+                                {% if perfil != 'usuario_padrao' %}
                                 <button type="button" class="btn-sindifaz" onclick="abrirModalModelos(this)" title="Carregar modelo">
                                     📋 Modelos
                                 </button>
+                                {% endif %}
                             </div>
                             <div class="modal-overlay" id="modalModelos">
                                 <div class="modal-resumo">
@@ -76,9 +78,11 @@
                             </div>
                             <div style="display: flex; gap: 10px; align-items: center;">
                                 <input type="text" id="numprocesso" placeholder="Número do processo" style="flex: 1;">
+                                {% if perfil != 'usuario_padrao' %}
                                 <button type="button" class="btn-add" onclick="buscarDadosProcesso()" style="white-space: nowrap; padding: 8px 16px;">
                                     🔍 Buscar
                                 </button>
+                                {% endif %}
                             </div>
                             <div id="statusCarregamento" style="margin-top: 5px; font-size: 12px; color: #666;">
                             </div>
@@ -471,9 +475,11 @@
         <!-- Botões -->
         <div class="btn-container">
             <button type="button" class="btn btn-secondary" onclick="limparFormulario()">🗑️ Limpar Formulário</button>
+            {% if perfil != 'usuario_padrao' %}
             <button type="button" class="btn btn-secondary" onclick="window.location.href='/historico/'">
                 📋 HISTÓRICO
             </button>
+            {% endif %}
             <button type="button" class="btn" onclick="calcular()">🧮 Calcular Valores</button>
         </div>
 
