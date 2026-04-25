@@ -10,7 +10,7 @@ function configurarSindiFaz() {
             ["JUAREZ CHAVES DE AZEVEDO JUNIOR - SOCIEDADE INDIVIDUAL DE ADVOCACIA", "PJ", 0.013333333]
         ],
         advogadosSucumbenciais: [
-                ["FURTADO COELHO ADVOGADOS ASSOCIADOS", "PJ", 0.02, true]
+                ["FURTADO COELHO ADVOGADOS ASSOCIADOS Suc.", "PJ", 0.02, true]
         ],
         sindicatos: [
                 ["Sindifaz", 0.01, "nao"]
@@ -20,9 +20,9 @@ function configurarSindiFaz() {
             ["cessaoAdv", "FURTADO COELHO ADVOGADOS ASSOCIADOS", "DOMUS OCTANTE I FIDC LTDA", 0.02],
             ["cessaoAdv", "ADAUTO FORTES ADVOGADOS ASSOCIADOS", "LAGUZ I FIDC NP", 0.0063],
             ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "LAGUZ I FIDC NP", 0.01],
-            ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "REAG LEGAL CLAIMS FIDC NP", 0.01],
+            ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "PEDRA AZUL FIDC NP", 0.01],
             ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "FLAVIA CEOLIN LOPES PIANA", 0.00444],
-            ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "FJ CONSULTORIA LTDA", 0.001653],
+            ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "TABARÉ FIDC - cessionaria da FJ", 0.001653],
             ["cessaoAdv", "FRANCINETTI DA ROCHA RIBEIRO DE LIRA", "ISA MARIA LEME OPPENHEIMER BORGES", 0.003907],
             ["cessaoAdv", "JUAREZ CHAVES DE AZEVEDO JUNIOR - SOCIEDADE INDIVIDUAL DE ADVOCACIA", "ALT LEGAL CLAIMS FIDC", 0.0035],
             ["cessaoSindicato", "Sindifaz", "TABARE FIDC NP", 0.005],
