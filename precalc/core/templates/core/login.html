@@ -5,60 +5,70 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PreCalc — Login</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background: #f0f3f4;
+            background: #1a2b4a;
+            font-family: 'Segoe UI', system-ui, sans-serif;
         }
 
-        .login-box {
-            background: white;
-            border-radius: 8px;
-            padding: 40px;
+        .login-wrapper {
             width: 100%;
-            max-width: 400px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            max-width: 420px;
+            padding: 20px;
         }
 
-        .login-header {
+        .login-topo {
             text-align: center;
             margin-bottom: 32px;
         }
 
-        .login-header h1 {
-            color: #1a2b4a;
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 4px;
+        .login-topo h1 {
+            font-size: 36px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
         }
 
-        .login-header p {
-            color: #6c757d;
+        .login-topo p {
             font-size: 13px;
+            color: rgba(255,255,255,0.45);
         }
 
         .login-faixa {
-            height: 4px;
+            height: 3px;
             background: linear-gradient(90deg, #b8962e, #d4af5a, #b8962e);
             border-radius: 2px;
-            margin-bottom: 32px;
+            margin-top: 20px;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 8px;
+            padding: 32px;
         }
 
         .form-group {
             margin-bottom: 20px;
         }
 
+        .form-group:last-of-type {
+            margin-bottom: 24px;
+        }
+
         .form-group label {
             display: block;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
-            color: #1a2b4a;
+            color: #6c757d;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
             margin-bottom: 6px;
         }
 
@@ -66,28 +76,28 @@
             width: 100%;
             padding: 10px 14px;
             border: 1px solid #dee2e6;
-            border-radius: 4px;
+            border-radius: 5px;
             font-size: 14px;
             color: #1a1a2e;
-            box-sizing: border-box;
             transition: border-color 0.2s;
+            outline: none;
         }
 
         .form-group input:focus {
-            outline: none;
             border-color: #1a2b4a;
         }
 
         .btn-login {
             width: 100%;
-            padding: 12px;
+            padding: 11px;
             background: #1a2b4a;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
+            letter-spacing: 0.3px;
             transition: background 0.2s;
         }
 
@@ -105,40 +115,34 @@
             font-size: 13px;
             margin-bottom: 20px;
         }
-
-        .footer-login {
-            text-align: center;
-            margin-top: 24px;
-            font-size: 11px;
-            color: #adb5bd;
-        }
     </style>
 </head>
 <body>
-    <div class="login-box">
-        <div class="login-header">
-            <h1>⚖️ PreCalc</h1>
+    <div class="login-wrapper">
+        <div class="login-topo">
+            <h1>PreCalc</h1>
             <p>Sistema de Cálculo de Precatórios</p>
+            <div class="login-faixa"></div>
         </div>
-        <div class="login-faixa"></div>
 
-        {% if erro %}
-        <div class="erro">{{ erro }}</div>
-        {% endif %}
+        <div class="login-card">
+            {% if erro %}
+            <div class="erro">{{ erro }}</div>
+            {% endif %}
 
-        <form method="POST">
-            {% csrf_token %}
-            <div class="form-group">
-                <label>Usuário</label>
-                <input type="text" name="username" autofocus placeholder="Digite seu usuário">
-            </div>
-            <div class="form-group">
-                <label>Senha</label>
-                <input type="password" name="password" placeholder="Digite sua senha">
-            </div>
-            <button type="submit" class="btn-login">Entrar</button>
-        </form>
-
+            <form method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Usuário</label>
+                    <input type="text" name="username" autofocus placeholder="Digite seu usuário">
+                </div>
+                <div class="form-group">
+                    <label>Senha</label>
+                    <input type="password" name="password" placeholder="Digite sua senha">
+                </div>
+                <button type="submit" class="btn-login">Entrar</button>
+            </form>
+        </div>
     </div>
 </body>
 </html>
