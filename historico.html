@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PreCalc — Histórico</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="resultados/resultadostyle.css">
 <style>
 :root {
     --navy: #1A2332;
@@ -307,7 +309,7 @@ async function carregarHistorico(filtros = {}) {
         });
         // Extrair valor total dos dados_entrada se disponível
         const valorTotal = c.valor_total 
-        ? 'R$ ' + parseFloat(c.valor_total).toLocaleString('pt-BR', {minimumFractionDigits:2})
+        ? 'R$ ' + parseFloat(c.valor_total).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})
         : '—';
 
         return `
@@ -369,7 +371,13 @@ window.verCalculo = async function(id) {
     const dt = new Date(data.data_calculo).toLocaleString('pt-BR');
     document.getElementById('modalTitulo').textContent = `${data.num_processo || 'Processo'} — ${data.beneficiario || ''}`;
     document.getElementById('modalMeta').textContent = `Calculado por ${data.contador_nome} em ${dt}`;
-    document.getElementById('modalContent').innerHTML = data.html_resultado || '<p style="padding:32px;text-align:center;color:#999;">Resultado não disponível.</p>';
+    
+    // Injetar com div .results para herdar o CSS
+    document.getElementById('modalContent').innerHTML = `
+        <div class="results" style="padding:20px;">
+            ${data.html_resultado}
+        </div>
+    `;
     document.getElementById('modalVer').classList.add('open');
 };
 
@@ -378,21 +386,36 @@ window.fecharModal = function() {
     _calculoAtual = null;
 };
 
+function abrirJanelaImpressao(html, processo) {
+    const w = window.open('', '_blank', 'width=1200,height=800');
+    w.document.write(`<!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <title>PreCalc — ${processo || 'Resultado'}</title>
+        <link rel="stylesheet" href="${window.location.origin}/style.css">
+        <link rel="stylesheet" href="${window.location.origin}/resultados/resultadostyle.css">
+        <link rel="stylesheet" href="${window.location.origin}/print.css" media="print">
+    </head>
+    <body>
+        <div class="results">${html}</div>
+        <script>
+            window.addEventListener('load', () => setTimeout(() => window.print(), 1000));
+        <\/script>
+    </body>
+    </html>`);
+    w.document.close();
+}
+
 window.imprimirModal = function() {
     if (!_calculoAtual) return;
-    const w = window.open('', '_blank', 'width=1200,height=800');
-    w.document.write(`<html><head><title>PreCalc</title><link rel="stylesheet" href="resultados/resultadostyle.css"></head><body class="results">${_calculoAtual.html_resultado}</body></html>`);
-    w.document.close();
-    setTimeout(() => w.print(), 1500);
+    abrirJanelaImpressao(_calculoAtual.html_resultado, _calculoAtual.num_processo);
 };
 
 window.imprimirCalculo = async function(id) {
     const data = await buscarCalculo(id);
     if (!data) return;
-    const w = window.open('', '_blank', 'width=1200,height=800');
-    w.document.write(`<html><head><title>PreCalc</title><link rel="stylesheet" href="resultados/resultadostyle.css"></head><body class="results">${data.html_resultado}</body></html>`);
-    w.document.close();
-    setTimeout(() => w.print(), 1500);
+    abrirJanelaImpressao(data.html_resultado, data.num_processo);
 };
 
 window.exportarExcelModal = function() {
