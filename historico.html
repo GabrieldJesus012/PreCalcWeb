@@ -270,8 +270,8 @@ async function carregarHistorico(filtros = {}) {
     tbody.innerHTML = '<tr><td colspan="9" class="loading-row">⏳ Carregando...</td></tr>';
 
     let query = supabase
-        .from('calculos')
-        .select('id, num_processo, beneficiario, credor, tipo_calculo, contador_nome, data_calculo, dados_entrada')
+    .from('calculos')
+    .select('id, num_processo, beneficiario, credor, natureza, tipo_calculo, valor_total, contador_nome, data_calculo')
         .order('data_calculo', { ascending: false })
         .limit(300);
 
@@ -306,9 +306,9 @@ async function carregarHistorico(filtros = {}) {
             hour:'2-digit', minute:'2-digit'
         });
         // Extrair valor total dos dados_entrada se disponível
-        const valorTotal = c.dados_entrada?.valortotatt 
-            ? 'R$ ' + parseFloat(c.dados_entrada.valortotatt).toLocaleString('pt-BR', {minimumFractionDigits:2})
-            : '—';
+        const valorTotal = c.valor_total 
+        ? 'R$ ' + parseFloat(c.valor_total).toLocaleString('pt-BR', {minimumFractionDigits:2})
+        : '—';
 
         return `
             <tr>
