@@ -22,11 +22,13 @@ function exibirResultados(resultados, dados) {
     container.innerHTML = html;
     navegarParaResultados();
 
-    if (window.supabase && window.userAtual) {
+        if (window.supabase && window.userAtual) {
         setTimeout(async () => {
             try {
+                console.log('💾 Tentando salvar...', window.userAtual);
                 const htmlResultado = container.innerHTML;
-                await window.supabase.from('calculos').insert({
+                
+                const { data, error } = await window.supabase.from('calculos').insert({
                     contador_id: window.userAtual.id,
                     contador_nome: window.userAtual.nome,
                     num_processo: dados.numProcesso || null,
@@ -37,11 +39,21 @@ function exibirResultados(resultados, dados) {
                     dados_entrada: dados,
                     html_resultado: htmlResultado
                 });
-                console.log('✅ Salvo no histórico');
+
+                if (error) {
+                    console.error('❌ Erro ao salvar:', error);
+                } else {
+                    console.log('✅ Salvo com sucesso:', data);
+                }
             } catch(e) {
-                console.warn('⚠️ Erro ao salvar:', e);
+                console.error('❌ Exceção:', e);
             }
-        }, 500); 
+        }, 500);
+    } else {
+        console.warn('⚠️ supabase ou userAtual não disponível:', { 
+            supabase: !!window.supabase, 
+            userAtual: window.userAtual 
+        });
     }
 }
 
