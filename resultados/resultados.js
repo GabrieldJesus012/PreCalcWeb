@@ -22,40 +22,35 @@ function exibirResultados(resultados, dados) {
     container.innerHTML = html;
     navegarParaResultados();
 
-        if (window.supabase && window.userAtual) {
+    // Capturar valor ANTES do setTimeout
+    const valorTotal = resultados.valortotatt || 0;
+    const htmlResultado = container.innerHTML;
+
+    console.log('💾 valor_total capturado:', valorTotal); // verificar aqui
+
+    if (window.supabase && window.userAtual) {
         setTimeout(async () => {
             try {
-                console.log('💾 Tentando salvar...', window.userAtual);
-                const htmlResultado = container.innerHTML;
-                
                 const { data, error } = await window.supabase.from('calculos').insert({
                     contador_id: window.userAtual.id,
                     contador_nome: window.userAtual.nome,
                     num_processo: dados.numProcesso || null,
                     beneficiario: dados.beneficiario || null,
                     credor: dados.credor || null,
-                    natureza: dados.natureza || null,           
+                    natureza: dados.natureza || null,
                     tipo_calculo: dados.tipoCalculo || null,
                     ano_orcamento: dados.anoOrcamento || null,
-                    valor_total: resultados.valortotatt || null, 
+                    valor_total: valorTotal,   
                     dados_entrada: dados,
-                    html_resultado: htmlResultado
+                    html_resultado: htmlResultado 
                 });
 
-                if (error) {
-                    console.error('❌ Erro ao salvar:', error);
-                } else {
-                    console.log('✅ Salvo com sucesso:', data);
-                }
+                if (error) console.error('❌ Erro ao salvar:', error);
+                else console.log('✅ Salvo:', valorTotal);
             } catch(e) {
                 console.error('❌ Exceção:', e);
             }
         }, 500);
-    } else {
-        console.warn('⚠️ supabase ou userAtual não disponível:', { 
-            supabase: !!window.supabase, 
-            userAtual: window.userAtual 
-        });
     }
 }
 
