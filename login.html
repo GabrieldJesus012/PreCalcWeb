@@ -259,9 +259,7 @@ window.fazerLogin = async function() {
         }
 
         // Verificar senha com bcrypt
-        // Normalizar $2a$ para $2b$ (ambos são bcrypt válidos)
-        const hashNormalizado = contador.senha_hash.replace(/^\$2a\$/, '$2b$');
-        const senhaCorreta = await bcrypt.compare(senha, hashNormalizado);
+        const senhaCorreta = await bcrypt.compare(senha, contador.senha_hash);
 
         if (!senhaCorreta) {
             throw new Error('Senha incorreta');
