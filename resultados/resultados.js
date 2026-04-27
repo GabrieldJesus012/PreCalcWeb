@@ -21,6 +21,28 @@ function exibirResultados(resultados, dados) {
     
     container.innerHTML = html;
     navegarParaResultados();
+
+    if (window.supabase && window.userAtual) {
+        setTimeout(async () => {
+            try {
+                const htmlResultado = container.innerHTML;
+                await window.supabase.from('calculos').insert({
+                    contador_id: window.userAtual.id,
+                    contador_nome: window.userAtual.nome,
+                    num_processo: dados.numProcesso || null,
+                    beneficiario: dados.beneficiario || null,
+                    credor: dados.credor || null,
+                    tipo_calculo: dados.tipoCalculo || null,
+                    ano_orcamento: dados.anoOrcamento || null,
+                    dados_entrada: dados,
+                    html_resultado: htmlResultado
+                });
+                console.log('✅ Salvo no histórico');
+            } catch(e) {
+                console.warn('⚠️ Erro ao salvar:', e);
+            }
+        }, 500); 
+    }
 }
 
 function gerarVisualizacaoSucumbencial(resultados, dados, contexto) {
