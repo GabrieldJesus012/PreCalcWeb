@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PreCalc — Acesso</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root {
+    --navy: #1A2332;
+    --navy-mid: #243447;
+    --blue: #1E6EA6;
+    --blue-light: #EBF4FB;
+    --gold: #C5A572;
+    --gold-pale: #F5F1E8;
+    --red: #991B1B;
+    --red-light: #FEF2F2;
+    --gray-200: #E5E7EB;
+    --gray-400: #9CA3AF;
+    --gray-600: #6B7280;
+    --gray-800: #1F2937;
+    --white: #FFFFFF;
+    --border: #E5E7EB;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: linear-gradient(135deg, #1A2332 0%, #243447 60%, #1E3A5F 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.login-box {
+    background: var(--white);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 420px;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+}
+
+.login-header {
+    background: var(--navy);
+    padding: 32px 36px 28px;
+    text-align: center;
+    position: relative;
+}
+
+.login-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--gold);
+}
+
+.login-logo {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--white);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.login-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 0.5px;
+}
+
+.login-tribunal {
+    font-size: 11px;
+    color: var(--gold);
+    margin-top: 8px;
+    letter-spacing: 0.3px;
+}
+
+.login-body {
+    padding: 32px 36px;
+}
+
+.field {
+    margin-bottom: 18px;
+}
+
+.field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--gray-600);
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+}
+
+.field input {
+    width: 100%;
+    height: 42px;
+    padding: 0 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    color: var(--gray-800);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.field input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(30,110,166,0.12);
+}
+
+.field input.error {
+    border-color: var(--red);
+    background: var(--red-light);
+}
+
+.error-msg {
+    display: none;
+    background: var(--red-light);
+    border-left: 3px solid var(--red);
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--red);
+    margin-bottom: 16px;
+}
+
+.error-msg.show { display: block; }
+
+.btn-login {
+    width: 100%;
+    height: 44px;
+    background: var(--blue);
+    color: var(--white);
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'IBM Plex Sans', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-login:hover { background: #155A8A; }
+.btn-login:disabled { background: var(--gray-400); cursor: not-allowed; }
+
+.login-footer {
+    text-align: center;
+    padding: 16px 36px 24px;
+    font-size: 11.5px;
+    color: var(--gray-400);
+    border-top: 1px solid var(--border);
+}
+
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="login-box">
+    <div class="login-header">
+        <div class="login-logo">PreCalc</div>
+        <div class="login-sub">Sistema de Cálculo de Precatórios</div>
+        <div class="login-tribunal">Tribunal de Justiça do Piauí</div>
+    </div>
+
+    <div class="login-body">
+        <div class="error-msg" id="errorMsg">
+            Usuário ou senha inválidos.
+        </div>
+
+        <div class="field">
+            <label>E-mail</label>
+            <input type="email" id="email" placeholder="seu@tjpi.jus.br" autocomplete="email">
+        </div>
+
+        <div class="field">
+            <label>Senha</label>
+            <input type="password" id="senha" placeholder="••••••••" autocomplete="current-password">
+        </div>
+
+        <button class="btn-login" id="btnLogin" onclick="fazerLogin()">
+            <span id="btnTexto">Entrar</span>
+            <div class="spinner" id="spinner"></div>
+        </button>
+    </div>
+
+    <div class="login-footer">
+        Acesso restrito a servidores autorizados.<br>
+        Em caso de problemas, contate o administrador.
+    </div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import bcrypt from 'https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/+esm';
+
+// ⚠️ Substituir pelas suas credenciais do Supabase
+const SUPABASE_URL = 'https://SEU_PROJETO.supabase.co';
+const SUPABASE_KEY = 'SUA_CHAVE_ANONIMA';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Verificar se já está logado
+const sessao = sessionStorage.getItem('precalc_user');
+if (sessao) {
+    window.location.href = 'index.html';
+}
+
+window.fazerLogin = async function() {
+    const email = document.getElementById('email').value.trim();
+    const senha = document.getElementById('senha').value;
+    const btn = document.getElementById('btnLogin');
+    const spinner = document.getElementById('spinner');
+    const btnTexto = document.getElementById('btnTexto');
+    const errorMsg = document.getElementById('errorMsg');
+
+    if (!email || !senha) {
+        errorMsg.textContent = 'Preencha e-mail e senha.';
+        errorMsg.classList.add('show');
+        return;
+    }
+
+    // Loading
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    btnTexto.textContent = 'Verificando...';
+    errorMsg.classList.remove('show');
+
+    try {
+        // Buscar usuário no banco
+        const { data: contador, error } = await supabase
+            .from('contadores')
+            .select('*')
+            .eq('email', email)
+            .eq('ativo', true)
+            .single();
+
+        if (error || !contador) {
+            throw new Error('Usuário não encontrado');
+        }
+
+        // Verificar senha com bcrypt
+        // Normalizar $2a$ para $2b$ (ambos são bcrypt válidos)
+        const hashNormalizado = contador.senha_hash.replace(/^\$2a\$/, '$2b$');
+        const senhaCorreta = await bcrypt.compare(senha, hashNormalizado);
+
+        if (!senhaCorreta) {
+            throw new Error('Senha incorreta');
+        }
+
+        // Salvar sessão
+        sessionStorage.setItem('precalc_user', JSON.stringify({
+            id: contador.id,
+            nome: contador.nome,
+            email: contador.email
+        }));
+
+        // Redirecionar para o sistema
+        window.location.href = 'index.html';
+
+    } catch (err) {
+        errorMsg.textContent = 'Usuário ou senha inválidos.';
+        errorMsg.classList.add('show');
+        document.getElementById('email').classList.add('error');
+        document.getElementById('senha').classList.add('error');
+    } finally {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        btnTexto.textContent = 'Entrar';
+    }
+}
+
+// Enter para logar
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') window.fazerLogin();
+});
+</script>
+
+</body>
+</html>
