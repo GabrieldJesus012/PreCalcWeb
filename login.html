@@ -247,16 +247,18 @@ window.fazerLogin = async function() {
 
     try {
         // Buscar usuário no banco
-        const { data: contador, error } = await supabase
-            .from('contadores')
-            .select('*')
-            .eq('email', email)
-            .eq('ativo', true)
-            .single();
+        const { data: contadores, error } = await supabase
+        .from('contadores')
+        .select('*')
+        .eq('email', email)
+        .eq('ativo', true)
+        .limit(1);
 
-        if (error || !contador) {
+        if (error || !contadores?.length) {
             throw new Error('Usuário não encontrado');
         }
+
+        const contador = contadores[0];
 
         // Verificar senha com bcrypt
         const senhaCorreta = await bcrypt.compare(senha, contador.senha_hash);
