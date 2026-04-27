@@ -34,8 +34,10 @@ function exibirResultados(resultados, dados) {
                     num_processo: dados.numProcesso || null,
                     beneficiario: dados.beneficiario || null,
                     credor: dados.credor || null,
+                    natureza: dados.natureza || null,           
                     tipo_calculo: dados.tipoCalculo || null,
                     ano_orcamento: dados.anoOrcamento || null,
+                    valor_total: resultados.valortotatt || null, 
                     dados_entrada: dados,
                     html_resultado: htmlResultado
                 });
