@@ -26,8 +26,6 @@ function exibirResultados(resultados, dados) {
     const valorTotal = resultados.valortotatt || 0;
     const htmlResultado = container.innerHTML;
 
-    console.log('💾 valor_total capturado:', valorTotal); // verificar aqui
-
     if (window.supabase && window.userAtual) {
         setTimeout(async () => {
             try {
@@ -46,7 +44,6 @@ function exibirResultados(resultados, dados) {
                 });
 
                 if (error) console.error('❌ Erro ao salvar:', error);
-                else console.log('✅ Salvo:', valorTotal);
             } catch(e) {
                 console.error('❌ Exceção:', e);
             }

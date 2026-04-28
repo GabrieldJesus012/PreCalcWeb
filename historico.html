@@ -257,9 +257,10 @@ let _calculoAtual = null;
 
 // Carregar contadores para o filtro
 async function carregarContadores() {
-    const { data } = await supabase.from('contadores').select('nome').order('nome');
-    console.log(data);
-    if (!data) return;
+    const { data } = await supabase
+        .from('contadores_nomes')
+        .select('nome');
+    if (!data?.length) return;
     const sel = document.getElementById('filtroContador');
     data.forEach(c => {
         const opt = document.createElement('option');
