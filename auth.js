@@ -1,4 +1,3 @@
-// auth.js — carregar ANTES do script principal
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 const SUPABASE_URL = 'https://wzmuswrjobxbfmddqkda.supabase.co';
@@ -6,13 +5,19 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 window.supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Verificar sessão
-const sessao = sessionStorage.getItem('precalc_user');
-if (!sessao) { window.location.href = 'login.html'; }
-window.userAtual = JSON.parse(sessao || '{}');
+// Verificar sessão — checar os dois storages
+const sessao = sessionStorage.getItem('precalc_user') || localStorage.getItem('precalc_user');
 
-// Sair
+if (!sessao) {
+    window.location.href = 'login.html';
+} else {
+    // Garantir que sessionStorage também tem (caso veio só do localStorage)
+    sessionStorage.setItem('precalc_user', sessao);
+    window.userAtual = JSON.parse(sessao);
+}
+
 window.sairDoSistema = function() {
     sessionStorage.removeItem('precalc_user');
+    localStorage.removeItem('precalc_user');
     window.location.href = 'login.html';
 };
