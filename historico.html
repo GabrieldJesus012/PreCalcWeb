@@ -231,7 +231,6 @@ tbody tr:hover td { background:var(--blue-light); }
             <div class="modal-actions">
                 <button class="btn-modal btn-modal-imprimir" onclick="imprimirModal()">🖨️ Imprimir</button>
                 <button class="btn-modal btn-modal-excel" onclick="exportarExcelModal()">📊 Excel</button>
-                <button class="btn-modal btn-modal-editar" onclick="editarModal()">✏️ Recalcular</button>
             </div>
             <button class="btn-fechar" onclick="fecharModal()">✕ Fechar</button>
         </div>
@@ -332,7 +331,6 @@ async function carregarHistorico(filtros = {}) {
                             <button class="btn-acao btn-imprimir" onclick="imprimirCalculo('${c.id}')">🖨️</button>
                         </div>
                         <div class="acoes-row">
-                            <button class="btn-acao btn-editar" onclick="recarregarCalculo('${c.id}')">✏️ Recalc.</button>
                             <button class="btn-acao btn-excel" onclick="exportarExcelCalculo('${c.id}')">📊</button>
                         </div>
                     </div>
