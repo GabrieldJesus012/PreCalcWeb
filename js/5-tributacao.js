@@ -209,6 +209,13 @@ function calcularPrevidenciaIsolada(dados, principalBase, rrapagamento) {
     if (tipoPrevidencia === 'fixa') {
         valorPrevidencia = principalBase * aliquotaFixa;
         aliquotaEfetiva = aliquotaFixa;
+    } else if (tipoPrevidencia === 'inssapos') {
+        const base = rrapagamento === 0 ? principalBase : principalBase / rrapagamento;
+        const TETO_INSS = 8475.55;
+        const excedente = Math.max(0, base - TETO_INSS);
+        const resultadoINSS = calcularINSSApos(base);
+        valorPrevidencia = resultadoINSS * (rrapagamento || 1);
+        aliquotaEfetiva = excedente > 0 ? resultadoINSS / excedente : 0;
     } else {
         const base = rrapagamento === 0 ? principalBase : principalBase / rrapagamento;
         const resultadoINSS = calcularINSS(base);
@@ -239,4 +246,13 @@ function calcularINSS(base) {
     else if (base <= 4354.27) return 1621.00 * 0.075 + (2902.84 - 1621.00) * 0.09 + (base - 2902.84) * 0.12;
     else if (base <= 8475.55) return 1621.00 * 0.075 + (2902.84 - 1621.00) * 0.09 + (4354.27 - 2902.84) * 0.12 + (base - 4354.27) * 0.14;
     else return 988.10; 
+}
+
+function calcularINSSApos(base) {
+    const TETO_INSS = 8475.55;
+    
+    if (base <= TETO_INSS) return 0; 
+    
+    const excedente = base - TETO_INSS;
+    return calcularINSS(excedente); 
 }

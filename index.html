@@ -331,6 +331,7 @@
                                 <label for="tipoPrevidencia">Tipo de Previdência:</label>
                                 <select id="tipoPrevidencia">
                                     <option value="inss">INSS</option>
+                                    <option value="inssapos">INSS - Aposentadoria/Pensionista</option>
                                     <option value="fixa">Alíquota Fixa</option>
                                 </select>
                             </div>
@@ -981,10 +982,17 @@
             if (tributacao.previdencia) {
                 const existeFixa = valoresPrincipais.some(item => item.tributacao.previdencia && item.tributacao.tipoPrevidencia === 'fixa');
                 const existeINSS = valoresPrincipais.some(item => item.tributacao.previdencia && item.tributacao.tipoPrevidencia === 'inss');
+                const existeINSSApos = valoresPrincipais.some(item => item.tributacao.previdencia && item.tributacao.tipoPrevidencia === 'inssapos');
 
-                if ((existeFixa && tributacao.tipoPrevidencia === 'inss') ||
-                    (existeINSS && tributacao.tipoPrevidencia === 'fixa')) {
-                    if (!silencioso) alert('❌ Todos os itens devem seguir o mesmo padrão de previdência (fixa ou INSS).');
+                const tipoAtual = tributacao.tipoPrevidencia;
+
+                const conflito = 
+                    (existeFixa && tipoAtual !== 'fixa') ||
+                    (existeINSS && tipoAtual !== 'inss') ||
+                    (existeINSSApos && tipoAtual !== 'inssapos');
+
+                if (conflito) {
+                    if (!silencioso) alert('❌ Todos os itens devem seguir o mesmo padrão de previdência (fixa, INSS ou INSS Aposentadoria/Pensionista).');
                     return false;
                 }
             }
@@ -1052,6 +1060,8 @@
                 if (valor.tributacao.previdencia) {
                     if (valor.tributacao.tipoPrevidencia === 'fixa') {
                         tributacaoTexto.push(`PREV: ${(valor.tributacao.aliquotaFixa * 100).toFixed(2)}%`);
+                    } else if (valor.tributacao.tipoPrevidencia === 'inssapos') {
+                        tributacaoTexto.push('PREV: INSS Apos/Pensionista');
                     } else {
                         tributacaoTexto.push('PREV: INSS');
                     }

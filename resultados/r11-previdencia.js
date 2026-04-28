@@ -64,9 +64,16 @@ function gerarDetalhePrevidenciaFixa(resultados, dados, temCessoes) {
 }
 
 function gerarDetalhePrevidenciaINSS(resultados, dados, temCessoes) {
+    const TETO_INSS = 8475.55;
+    const tipoPrevidencia = dados.valoresPrincipais?.find(
+        item => item.tributacao?.tipoPrevidencia
+    )?.tributacao.tipoPrevidencia || 'inss';
+    const isApos = tipoPrevidencia === 'inssapos';
+
     const isAcordo = dados.tipoCalculo === 'acordo';
     const percentualDesagio = dados.percentualAcordo || 0;
     const base = resultados.rrapagamento === 0 ? resultados.principal : resultados.principal / resultados.rrapagamento;
+    const excedente = isApos ? Math.max(0, base - TETO_INSS) : null;
     
     let valorSemDesagio = resultados.valorPrevidencia;
     let valorDesagio = 0;
@@ -114,13 +121,27 @@ function gerarDetalhePrevidenciaINSS(resultados, dados, temCessoes) {
                 <th>Base INSS por RRA:</th>
                 <td>R$ ${formatarMoeda(base)}</td>
             </tr>` : ''}
+            ${isApos ? `
+            <tr>
+                <th>(-) Teto INSS:</th>
+                <td>(-) R$ ${formatarMoeda(TETO_INSS)}</td>
+            </tr>
+            <tr>
+                <th>Base excedente:</th>
+                <td>R$ ${formatarMoeda(excedente)}</td>
+            </tr>` : ''}
+            ${excedente !== null && excedente <= 0 ? `
+            <tr class="total-row">
+                <th>Previdência:</th>
+                <td><strong>R$ 0,00 (abaixo do teto)</strong></td>
+            </tr>` : `
             <tr>
                 <th>Alíquota Efetiva INSS:</th>
                 <td>${(resultados.aliquotaEfetiva * 100).toFixed(2)}%</td>
             </tr>
             <tr>
                 <th>Valor INSS por RRA:</th>
-                <td>R$ ${formatarMoeda(valorSemDesagio / (resultados.rrapagamento || 1))} ${base > 8157.41 ? '(TETO)' : ''}</td>
+                <td>R$ ${formatarMoeda(valorSemDesagio / (resultados.rrapagamento || 1))} ${!isApos && base > 8475.55 ? '(TETO)' : ''}</td>
             </tr>
             <tr ${!isAcordo ? 'class="total-row"' : ''}>
                 <th>Valor Previdência ${isAcordo ? 'sem Deságio' : ''}:</th>
@@ -134,7 +155,7 @@ function gerarDetalhePrevidenciaINSS(resultados, dados, temCessoes) {
             <tr class="total-row">
                 <th>Valor Previdência com Deságio:</th>
                 <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
-            </tr>` : ''}
+            </tr>` : ''}`}
             ${distribuicaoCessoes}
         </table>
     `;
@@ -190,12 +211,20 @@ function gerarDetalhePrevidenciaFixaHerdeirosSemCessao(herdeiros, dados, valorBa
 }
 
 function gerarDetalhePrevidenciaINSSHerdeirosSemCessao(herdeiros, dados, valorBase) {
+    const TETO_INSS = 8475.55;
+    const tipoPrevidencia = dados.valoresPrincipais?.find(
+        item => item.tributacao?.tipoPrevidencia
+    )?.tributacao.tipoPrevidencia || 'inss';
+    const isApos = tipoPrevidencia === 'inssapos';
+
     const primeiroHerdeiro = herdeiros[0];
     const isAcordo = dados.tipoCalculo === 'acordo';
     const percentualDesagio = dados.percentualAcordo || 0;
     
     const base = primeiroHerdeiro.rrapagamento === 0 ? primeiroHerdeiro.principal : primeiroHerdeiro.principal / primeiroHerdeiro.rrapagamento;
     
+    const excedente = isApos ? Math.max(0, base - TETO_INSS) : null;
+
     let valorSemDesagio = primeiroHerdeiro.valorPrevidencia;
     let valorComDesagio = primeiroHerdeiro.valorPrevidencia;
     
@@ -229,13 +258,27 @@ function gerarDetalhePrevidenciaINSSHerdeirosSemCessao(herdeiros, dados, valorBa
                 <th>Base INSS por RRA:</th>
                 <td>R$ ${formatarMoeda(base)}</td>
             </tr>` : ''}
+            ${isApos ? `
+            <tr>
+                <th>(-) Teto INSS:</th>
+                <td>(-) R$ ${formatarMoeda(TETO_INSS)}</td>
+            </tr>
+            <tr>
+                <th>Base excedente:</th>
+                <td>R$ ${formatarMoeda(excedente)}</td>
+            </tr>` : ''}
+            ${excedente !== null && excedente <= 0 ? `
+            <tr class="total-row">
+                <th>Previdência:</th>
+                <td><strong>R$ 0,00 (abaixo do teto)</strong></td>
+            </tr>` : `
             <tr>
                 <th>Alíquota Efetiva INSS:</th>
                 <td>${(primeiroHerdeiro.aliquotaEfetiva * 100).toFixed(2)}%</td>
             </tr>
             <tr>
                 <th>Valor INSS por RRA:</th>
-                <td>R$ ${formatarMoeda(valorSemDesagio / (primeiroHerdeiro.rrapagamento || 1))} ${base > 8157.41 ? '(TETO)' : ''}</td>
+                <td>R$ ${formatarMoeda(valorSemDesagio / (primeiroHerdeiro.rrapagamento || 1))} ${!isApos && base > 8475.55 ? '(TETO)' : ''}</td>
             </tr>
             <tr ${!isAcordo ? 'class="total-row"' : ''}>
                 <th>Valor Previdência${isAcordo ? ' sem Deságio' : ''}:</th>
@@ -245,7 +288,7 @@ function gerarDetalhePrevidenciaINSSHerdeirosSemCessao(herdeiros, dados, valorBa
             <tr class="total-row">
                 <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                 <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
-            </tr>` : ''}
+            </tr>` : ''}`}
         </table>
     `;
 }
@@ -336,11 +379,18 @@ function gerarDetalhePrevidenciaFixaHerdeiros(herdeiros, dados, valorBase) {
 }
 
 function gerarDetalhePrevidenciaINSSHerdeiros(herdeiros, dados, valorBase) {
+    const TETO_INSS = 8475.55;
+    const tipoPrevidencia = dados.valoresPrincipais?.find(
+        item => item.tributacao?.tipoPrevidencia
+    )?.tributacao.tipoPrevidencia || 'inss';
+    const isApos = tipoPrevidencia === 'inssapos';
+
     const primeiroHerdeiro = herdeiros[0];
     const isAcordo = dados.tipoCalculo === 'acordo';
     const percentualDesagio = dados.percentualAcordo || 0;
     
     const base = primeiroHerdeiro.rrapagamento === 0 ? primeiroHerdeiro.principal : primeiroHerdeiro.principal / primeiroHerdeiro.rrapagamento;
+    const excedente = isApos ? Math.max(0, base - TETO_INSS) : null;
     
     let valorSemDesagio = primeiroHerdeiro.valorPrevidencia;
     let valorComDesagio = primeiroHerdeiro.valorPrevidencia;
@@ -406,13 +456,27 @@ function gerarDetalhePrevidenciaINSSHerdeiros(herdeiros, dados, valorBase) {
                 <th>Base INSS por RRA:</th>
                 <td>R$ ${formatarMoeda(base)}</td>
             </tr>` : ''}
+            ${isApos ? `
+            <tr>
+                <th>(-) Teto INSS:</th>
+                <td>(-) R$ ${formatarMoeda(TETO_INSS)}</td>
+            </tr>
+            <tr>
+                <th>Base excedente:</th>
+                <td>R$ ${formatarMoeda(excedente)}</td>
+            </tr>` : ''}
+            ${excedente !== null && excedente <= 0 ? `
+            <tr class="total-row">
+                <th>Previdência:</th>
+                <td><strong>R$ 0,00 (abaixo do teto)</strong></td>
+            </tr>` : `
             <tr>
                 <th>Alíquota Efetiva INSS:</th>
                 <td>${(primeiroHerdeiro.aliquotaEfetiva * 100).toFixed(2)}%</td>
             </tr>
             <tr>
                 <th>Valor INSS por RRA:</th>
-                <td>R$ ${formatarMoeda(valorSemDesagio / (primeiroHerdeiro.rrapagamento || 1))} ${base > 8157.41 ? '(TETO)' : ''}</td>
+                <td>R$ ${formatarMoeda(valorSemDesagio / (primeiroHerdeiro.rrapagamento || 1))} ${!isApos && base > 8475.55 ? '(TETO)' : ''}</td>
             </tr>
             <tr ${!isAcordo ? 'class="total-row"' : ''}>
                 <th>Valor Previdência${isAcordo ? ' sem Deságio' : ''}:</th>
@@ -422,8 +486,8 @@ function gerarDetalhePrevidenciaINSSHerdeiros(herdeiros, dados, valorBase) {
             <tr class="total-row">
                 <th>Valor Previdência com Deságio ${(percentualDesagio * 100).toFixed(2)}%:</th>
                 <td><strong>R$ ${formatarMoeda(valorComDesagio)}</strong></td>
-            </tr>` : ''}
-            ${primeiroHerdeiro.cessoesHerdeiro && primeiroHerdeiro.cessoesHerdeiro.length > 0 ? `
+            </tr>` : ''}`}
+            ${primeiroHerdeiro.cessoesHerdeiro?.length > 0 ? `
             <tr style="border-top: 1px solid #dee2e6;">
                 <th colspan="2" style="background-color: #f8f9fa; font-weight: bold;">📊 Distribuição:</th>
             </tr>
