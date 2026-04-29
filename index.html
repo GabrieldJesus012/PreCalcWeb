@@ -979,10 +979,17 @@
             if (tributacao.previdencia) {
                 const existeFixa = valoresPrincipais.some(item => item.tributacao.previdencia && item.tributacao.tipoPrevidencia === 'fixa');
                 const existeINSS = valoresPrincipais.some(item => item.tributacao.previdencia && item.tributacao.tipoPrevidencia === 'inss');
+                const existeINSSApos = valoresPrincipais.some(item => item.tributacao.previdencia && item.tributacao.tipoPrevidencia === 'inssapos');
 
-                if ((existeFixa && tributacao.tipoPrevidencia === 'inss') ||
-                    (existeINSS && tributacao.tipoPrevidencia === 'fixa')) {
-                    if (!silencioso) alert('❌ Todos os itens devem seguir o mesmo padrão de previdência (fixa ou INSS).');
+                const tipoAtual = tributacao.tipoPrevidencia;
+
+                const conflito = 
+                    (existeFixa && tipoAtual !== 'fixa') ||
+                    (existeINSS && tipoAtual !== 'inss') ||
+                    (existeINSSApos && tipoAtual !== 'inssapos');
+
+                if (conflito) {
+                    if (!silencioso) alert('❌ Todos os itens devem seguir o mesmo padrão de previdência (fixa, INSS ou INSS Aposentadoria/Pensionista).');
                     return false;
                 }
             }
