@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PreCalc — Acesso</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+    --navy: #1A2332;
+    --blue: #1E6EA6;
+    --blue-light: #EBF4FB;
+    --gold: #C5A572;
+    --red: #991B1B;
+    --red-light: #FEF2F2;
+    --gray-400: #9CA3AF;
+    --gray-600: #6B7280;
+    --gray-800: #1F2937;
+    --white: #FFFFFF;
+    --border: #E5E7EB;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: linear-gradient(135deg, #1A2332 0%, #243447 60%, #1E3A5F 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.login-box {
+    background: var(--white);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 420px;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+}
+
+.login-header {
+    background: var(--navy);
+    padding: 32px 36px 28px;
+    text-align: center;
+    position: relative;
+}
+.login-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--gold);
+}
+.login-logo { font-size: 28px; font-weight: 600; color: var(--white); margin-bottom: 4px; }
+.login-sub { font-size: 12px; color: rgba(255,255,255,0.45); }
+.login-tribunal { font-size: 11px; color: var(--gold); margin-top: 8px; }
+
+.login-body { padding: 32px 36px; }
+
+.field { margin-bottom: 18px; }
+.field label { display: block; font-size: 12px; font-weight: 500; color: var(--gray-600); margin-bottom: 6px; }
+.field input {
+    width: 100%; height: 42px; padding: 0 14px;
+    border: 1px solid var(--border); border-radius: 6px;
+    font-size: 14px; font-family: 'IBM Plex Sans', sans-serif;
+    color: var(--gray-800); outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(30,110,166,0.12); }
+.field input.error { border-color: var(--red); background: var(--red-light); }
+
+.error-msg {
+    display: none; background: var(--red-light);
+    border-left: 3px solid var(--red); border-radius: 4px;
+    padding: 10px 14px; font-size: 13px; color: var(--red); margin-bottom: 16px;
+}
+.error-msg.show { display: block; }
+
+.btn-login {
+    width: 100%; height: 44px; background: var(--blue); color: var(--white);
+    border: none; border-radius: 6px; font-size: 14px; font-weight: 500;
+    font-family: 'IBM Plex Sans', sans-serif; cursor: pointer;
+    transition: background 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-login:hover { background: #155A8A; }
+.btn-login:disabled { background: var(--gray-400); cursor: not-allowed; }
+
+.login-footer {
+    text-align: center; padding: 16px 36px 24px;
+    font-size: 11.5px; color: var(--gray-400); border-top: 1px solid var(--border);
+}
+
+.spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
+    border-radius: 50%; animation: spin 0.7s linear infinite; display: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* MODAL TROCAR SENHA */
+.modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); z-index: 500;
+    align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+    background: var(--white); border-radius: 10px;
+    width: 100%; max-width: 400px; overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+}
+.modal-header {
+    background: var(--navy); padding: 18px 24px;
+    color: white; font-size: 15px; font-weight: 600;
+    border-bottom: 3px solid var(--gold);
+}
+.modal-body { padding: 24px; }
+.modal-body p { font-size: 13px; color: var(--gray-600); margin-bottom: 20px; line-height: 1.6; }
+.modal-footer {
+    padding: 16px 24px; background: #F9FAFB;
+    border-top: 1px solid var(--border); display: flex; justify-content: flex-end;
+}
+.btn-confirmar {
+    padding: 10px 24px; background: var(--blue); color: white;
+    border: none; border-radius: 6px; font-size: 13px; font-weight: 500;
+    font-family: 'IBM Plex Sans', sans-serif; cursor: pointer;
+}
+.btn-confirmar:hover { background: #155A8A; }
+
+.senha-req { font-size: 11.5px; color: var(--gray-400); margin-top: 6px; }
+.senha-req.ok { color: #1A6B3C; }
+</style>
+</head>
+<body>
+
+<div class="login-box">
+    <div class="login-header">
+        <div class="login-logo">PreCalc</div>
+        <div class="login-sub">Sistema de Cálculo de Precatórios</div>
+        <div class="login-tribunal">Tribunal de Justiça do Piauí</div>
+    </div>
+
+    <div class="login-body">
+        <div class="error-msg" id="errorMsg">Usuário ou senha inválidos.</div>
+
+        <div class="field">
+            <label>Usuário</label>
+            <input type="text" id="usuario" placeholder="seu.usuario" autocomplete="username">
+        </div>
+
+        <div class="field">
+            <label>Senha</label>
+            <input type="password" id="senha" placeholder="••••••••" autocomplete="current-password">
+        </div>
+
+        <button class="btn-login" id="btnLogin" onclick="fazerLogin()">
+            <span id="btnTexto">Entrar</span>
+            <div class="spinner" id="spinner"></div>
+        </button>
+    </div>
+
+    <div class="login-footer">
+        Acesso restrito a servidores autorizados.<br>
+        Em caso de problemas, contate o administrador.
+    </div>
+</div>
+
+<!-- MODAL TROCAR SENHA -->
+<div class="modal-overlay" id="modalTrocarSenha">
+    <div class="modal-box">
+        <div class="modal-header">🔐 Altere sua senha</div>
+        <div class="modal-body">
+            <p>Este é seu primeiro acesso. Por segurança, defina uma senha pessoal antes de continuar.</p>
+
+            <div class="field">
+                <label>Nova Senha</label>
+                <input type="password" id="novaSenha" placeholder="Mínimo 6 caracteres"
+                    oninput="verificarSenha()">
+                <div class="senha-req" id="reqSenha">Mínimo 6 caracteres</div>
+            </div>
+
+            <div class="field" style="margin-bottom:0;">
+                <label>Confirmar Nova Senha</label>
+                <input type="password" id="confirmarSenha" placeholder="Repita a senha"
+                    oninput="verificarSenha()">
+                <div class="senha-req" id="reqConfirmar"></div>
+            </div>
+
+            <div class="error-msg" id="errorModalMsg" style="margin-top:14px;margin-bottom:0;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-confirmar" onclick="trocarSenha()">Confirmar e Entrar</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const SUPABASE_URL = 'https://wzmuswrjobxbfmddqkda.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6bXVzd3Jqb2J4YmZtZGRxa2RhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyODk0OTIsImV4cCI6MjA5Mjg2NTQ5Mn0.3DptbVZS76WTOPOJTZeFbBz7XHVYGsBCsLIffd9xItc';
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Verificar se já está logado
+const sessao = sessionStorage.getItem('precalc_user') || localStorage.getItem('precalc_user');
+if (sessao) window.location.href = 'index.html';
+
+let _contadorLogado = null;
+
+window.fazerLogin = async function() {
+    const usuario = document.getElementById('usuario').value.trim();
+    const senha = document.getElementById('senha').value;
+    const btn = document.getElementById('btnLogin');
+    const spinner = document.getElementById('spinner');
+    const btnTexto = document.getElementById('btnTexto');
+    const errorMsg = document.getElementById('errorMsg');
+
+    if (!usuario || !senha) {
+        errorMsg.textContent = 'Preencha usuário e senha.';
+        errorMsg.classList.add('show');
+        return;
+    }
+
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    btnTexto.textContent = 'Verificando...';
+    errorMsg.classList.remove('show');
+    document.getElementById('usuario').classList.remove('error');
+    document.getElementById('senha').classList.remove('error');
+
+    try {
+        const { data, error } = await supabase.rpc('verificar_contador', {
+            p_usuario: usuario,
+            p_senha: senha
+        });
+
+        if (error || !data?.length) throw new Error('Inválido');
+
+        _contadorLogado = data[0];
+
+        // Primeira vez — mostrar modal de troca de senha
+        if (!_contadorLogado.senha_alterada) {
+            document.getElementById('modalTrocarSenha').classList.add('open');
+            return;
+        }
+
+        // Login normal
+        salvarSessaoEIr(_contadorLogado);
+
+    } catch (err) {
+        errorMsg.textContent = 'Usuário ou senha inválidos.';
+        errorMsg.classList.add('show');
+        document.getElementById('usuario').classList.add('error');
+        document.getElementById('senha').classList.add('error');
+    } finally {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        btnTexto.textContent = 'Entrar';
+    }
+};
+
+window.verificarSenha = function() {
+    const nova = document.getElementById('novaSenha').value;
+    const confirmar = document.getElementById('confirmarSenha').value;
+    const req = document.getElementById('reqSenha');
+    const reqConf = document.getElementById('reqConfirmar');
+
+    req.textContent = nova.length >= 6 ? '✓ Tamanho ok' : 'Mínimo 6 caracteres';
+    req.className = 'senha-req' + (nova.length >= 6 ? ' ok' : '');
+
+    if (confirmar) {
+        reqConf.textContent = nova === confirmar ? '✓ Senhas iguais' : 'Senhas não coincidem';
+        reqConf.className = 'senha-req' + (nova === confirmar ? ' ok' : '');
+    }
+};
+
+window.trocarSenha = async function() {
+    const nova = document.getElementById('novaSenha').value;
+    const confirmar = document.getElementById('confirmarSenha').value;
+    const errorModal = document.getElementById('errorModalMsg');
+
+    errorModal.classList.remove('show');
+
+    if (nova.length < 6) {
+        errorModal.textContent = 'A senha deve ter no mínimo 6 caracteres.';
+        errorModal.classList.add('show');
+        return;
+    }
+
+    if (nova !== confirmar) {
+        errorModal.textContent = 'As senhas não coincidem.';
+        errorModal.classList.add('show');
+        return;
+    }
+
+    try {
+        // Gerar hash via função SQL
+        const { data, error } = await supabase.rpc('alterar_senha_contador', {
+            p_id: _contadorLogado.id,
+            p_nova_senha: nova
+        });
+
+        if (error) throw error;
+
+        salvarSessaoEIr(_contadorLogado);
+
+    } catch (err) {
+        errorModal.textContent = 'Erro ao alterar senha. Tente novamente.';
+        errorModal.classList.add('show');
+        console.error(err);
+    }
+};
+
+function salvarSessaoEIr(contador) {
+    const sessao = JSON.stringify({
+        id: contador.id,
+        nome: contador.nome,
+        email: contador.email,
+        usuario: contador.usuario
+    });
+    sessionStorage.setItem('precalc_user', sessao);
+    localStorage.setItem('precalc_user', sessao);
+    window.location.href = 'index.html';
+}
+
+// Enter para logar
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !document.getElementById('modalTrocarSenha').classList.contains('open')) {
+        window.fazerLogin();
+    }
+});
+</script>
+
+</body>
+</html>
