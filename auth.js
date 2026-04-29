@@ -21,3 +21,10 @@ window.sairDoSistema = function() {
     localStorage.removeItem('precalc_user');
     window.location.href = 'login.html';
 };
+
+document.addEventListener('DOMContentLoaded', () => {
+    const el = document.getElementById('headerUserNome');
+    if (el && window.userAtual?.nome) {
+        el.textContent = `👤 ${window.userAtual.nome}`;
+    }
+});

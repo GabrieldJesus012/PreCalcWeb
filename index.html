@@ -46,6 +46,18 @@
             <div class="header-tribunal-badge">Tribunal de Justiça do Estado do Piauí</div>
             <h1>PreCalc</h1>
             <p>Sistema de Cálculo de Precatórios</p>
+            <div style="position:absolute; bottom:16px; right:20px; display:flex; align-items:center; gap:10px;">
+                <span style="font-size:12px; color:rgba(255,255,255,0.6);" id="headerUserNome"></span>
+                <button onclick="sairDoSistema()" style="
+                    font-size:12px; color:rgba(255,255,255,0.5);
+                    background:none; border:1px solid rgba(255, 255, 255, 0.2);
+                    padding:4px 12px; cursor:pointer;
+                    font-family:var(--font-primary);
+                " onmouseover="this.style.color='white';this.style.borderColor='rgba(255,255,255,0.5)'"
+                onmouseout="this.style.color='rgba(255,255,255,0.5)';this.style.borderColor='rgba(255,255,255,0.2)'">
+                    Sair
+                </button>
+            </div>
         </div>
 
         <div class="tabs-container">
