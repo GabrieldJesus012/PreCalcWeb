@@ -246,7 +246,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Sessão
-const sessao = sessionStorage.getItem('precalc_user') || localStorage.getItem('precalc_user');
+const sessao = sessionStorage.getItem('precalc_user');
 if (!sessao) { window.location.href = 'login.html'; }
 if (!sessionStorage.getItem('precalc_user')) sessionStorage.setItem('precalc_user', sessao);
 const user = JSON.parse(sessao);

@@ -320,7 +320,7 @@ function salvarSessaoEIr(contador) {
         usuario: contador.usuario
     });
     sessionStorage.setItem('precalc_user', sessao);
-    localStorage.setItem('precalc_user', sessao);
+    localStorage.removeItem('precalc_user'); 
     window.location.href = 'index.html';
 }
 

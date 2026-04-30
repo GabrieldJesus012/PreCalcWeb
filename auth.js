@@ -5,14 +5,14 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 window.supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Verificar sessão — checar os dois storages
-const sessao = sessionStorage.getItem('precalc_user') || localStorage.getItem('precalc_user');
+// Verificar sessão — só sessionStorage (limpa ao fechar browser)
+const sessao = sessionStorage.getItem('precalc_user');
 
 if (!sessao) {
+    // Limpar localStorage legado e redirecionar
+    localStorage.removeItem('precalc_user');
     window.location.href = 'login.html';
 } else {
-    // Garantir que sessionStorage também tem (caso veio só do localStorage)
-    sessionStorage.setItem('precalc_user', sessao);
     window.userAtual = JSON.parse(sessao);
 }
 
