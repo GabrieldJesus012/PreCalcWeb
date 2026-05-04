@@ -153,7 +153,15 @@
                             </select>
                         </div>
                         <div class="input-group" id="tetoPreferencia" style="display: none;">
-                            <label>Teto de Preferência (R$):</label>
+                            <div class="label-with-button">
+                                <label>Valor da Preferência (R$):</label>
+                                <button type="button" class="btn-sindifaz" onclick="aplicarTetoPreferencia(5)">
+                                    5× Teto (R$ 42.377,75)
+                                </button>
+                                <button type="button" class="btn-sindifaz" onclick="aplicarTetoPreferencia(3)">
+                                    3× Teto (R$ 25.426,65)
+                                </button>
+                            </div>
                             <input type="number" id="tetoPreferenciaPrincipal" step="0.01" placeholder="0.00">
                         </div>
                         <div class="input-group" id="percentualAcordo" style="display: none;">
@@ -568,6 +576,12 @@
             for (let i = 0; i < quant; i++) {
                 toggleDisplay($(`herdPreferenciaContainer${i}`), tipo === 'preferencia', '');
             }
+        }
+
+        function aplicarTetoPreferencia(multiplicador) {
+            const TETO_INSS = 8475.55;
+            const valor = TETO_INSS * multiplicador;
+            document.getElementById('tetoPreferenciaPrincipal').value = valor.toFixed(2);
         }
 
         function atualizarVisibilidadePreferenciaSucumbencial() {
