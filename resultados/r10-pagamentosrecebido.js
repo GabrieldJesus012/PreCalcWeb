@@ -159,6 +159,11 @@ function formatarIndices(indices) {
     if (indices.cnj && indices.cnj !== 1) {
         detalhes.push(`CNJ: ${indices.cnj.toFixed(6)}`);
     }
+
+    if (indices.jurosMora && indices.jurosMora > 0) {
+        const percentualMora = (indices.jurosMora * 100).toFixed(4);
+        detalhes.push(`J.Mora: ${percentualMora}%`);
+    }
     
     if (indices.selic && indices.selic !== 1) {
         const percentualSelic = ((indices.selic - 1) * 100).toFixed(2);
@@ -167,11 +172,6 @@ function formatarIndices(indices) {
     
     if (indices.ipcae && indices.ipcae !== 1) {
         detalhes.push(`IPCA - E: ${indices.ipcae.toFixed(6)}`);
-    }
-    
-    if (indices.jurosMora && indices.jurosMora > 0) {
-        const percentualMora = (indices.jurosMora * 100).toFixed(4);
-        detalhes.push(`J.Mora: ${percentualMora}%`);
     }
 
     if (indices.ipca && indices.ipca !== 1) {
