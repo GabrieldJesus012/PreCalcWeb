@@ -155,6 +155,8 @@ function calcularValorOriginalComDetalhes(pag, pagamentoOriginal) {
 
 function formatarIndices(indices) {
     const detalhes = [];
+    let temJurosMora = false;
+    let temJuros2AA = false;
     
     if (indices.cnj && indices.cnj !== 1) {
         detalhes.push(`CNJ: ${indices.cnj.toFixed(6)}`);
@@ -162,7 +164,8 @@ function formatarIndices(indices) {
 
     if (indices.jurosMora && indices.jurosMora > 0) {
         const percentualMora = (indices.jurosMora * 100).toFixed(4);
-        detalhes.push(`J.Mora: ${percentualMora}%`);
+        detalhes.push(`J.Mora: ${percentualMora}%*`);
+        temJurosMora = true;
     }
     
     if (indices.selic && indices.selic !== 1) {
@@ -171,7 +174,7 @@ function formatarIndices(indices) {
     }
     
     if (indices.ipcae && indices.ipcae !== 1) {
-        detalhes.push(`IPCA - E: ${indices.ipcae.toFixed(6)}`);
+        detalhes.push(`IPCA-E: ${indices.ipcae.toFixed(6)}`);
     }
 
     if (indices.ipca && indices.ipca !== 1) {
@@ -180,10 +183,21 @@ function formatarIndices(indices) {
 
     if (indices.juros2AA && indices.juros2AA > 0) {
         const percentualJuros = (indices.juros2AA * 100).toFixed(4);
-        detalhes.push(`Juros 2%a.a.: ${percentualJuros}%`);
+        detalhes.push(`Juros 2%a.a.: ${percentualJuros}%**`);
+        temJuros2AA = true;
     }
+
+    const obs = [];
+    if (temJurosMora) obs.push(`* J.Mora aplicado apenas sobre o principal`);
+    if (temJuros2AA) obs.push(`** Juros 2%a.a. aplicado apenas sobre o principal`);
     
-    return detalhes.length > 0 ? detalhes.join(' | ') : 'Sem correção';
+    const obsHtml = obs.length > 0 
+        ? `<br><small style="color:#888; font-size:0.82em;">${obs.join('<br>')}</small>` 
+        : '';
+
+    return detalhes.length > 0 
+        ? detalhes.join(' | ') + obsHtml
+        : 'Sem correção';
 }
 
 // SALDO REMANCESCENTE
