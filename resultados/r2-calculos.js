@@ -22,7 +22,7 @@ function gerarCalculos(dados, resultados, inicioGraca, fimGraca) {
                                 (item.tipoSelic === 'percentual' && item.percentualSelic > 0);
             const notaItem = temSelicItem ? gerarNotaSelicInformado(dados, resultados, item) : '';
 
-            memoriaisCalculos += gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado, notaItem, temJurosMora);
+            memoriaisCalculos += gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado, notaItem, temJurosMora,inicioGraca, fimGraca);
         });
     }
     
@@ -33,7 +33,7 @@ function gerarCalculos(dados, resultados, inicioGraca, fimGraca) {
 
 // ========== FUNÇÕES AUXILIARES DE GERAR CALCULOS==========
 
-function gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado, notaItem = '', temJurosMora = false) {
+function gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGracaFormatado, fimGracaFormatado, notaItem = '', temJurosMora = false, inicioGraca, fimGraca) {
     const indices = obterIndicesItem(itemCalculado);
     const valoresCalculados = calcularValoresPassoAPasso(item, itemCalculado, indices);
     const periodoGraca = `Graça Constitucional: ${inicioGracaFormatado} a ${fimGracaFormatado}`;
@@ -76,7 +76,7 @@ function gerarMemorialItem(item, itemCalculado, index, isSingleItem, inicioGraca
             
             ${gerarTabelaPrincipal(item, indices, valoresCalculados, inicioGracaFormatado, fimGracaFormatado, itemCalculado)}
             
-            ${temAlgumJuros ? gerarTabelaJuros(item, indices, valoresCalculados, inicioGracaFormatado, fimGracaFormatado, itemCalculado) : ''}
+            ${temAlgumJuros ? gerarTabelaJuros(item, indices, valoresCalculados, inicioGracaFormatado, fimGracaFormatado, itemCalculado, inicioGraca, fimGraca) : ''}
             
             ${valorSelicFinal > 0 ? gerarTabelaSelic(itemCalculado, valoresCalculados) : ''}
             
@@ -259,7 +259,7 @@ function gerarTabelaPrincipal(item, indices, valores, inicioGracaFormatado, fimG
     `;
 }
 
-function gerarTabelaJuros(item, indices, valores, inicioGracaFormatado, fimGracaFormatado, itemCalculado) {
+function gerarTabelaJuros(item, indices, valores, inicioGracaFormatado, fimGracaFormatado, itemCalculado,inicioGraca, fimGraca) {
     let etapa = 2;
     
     const detalhePEC = itemCalculado.detalhamentoPEC || {};
@@ -282,16 +282,24 @@ function gerarTabelaJuros(item, indices, valores, inicioGracaFormatado, fimGraca
     const dataFimCNJ = new Date(2021, 10, 30); // Nov/2021
     
     // Período de graça como datas
-    const [diaIG, mesIG, anoIG] = inicioGracaFormatado.split('/');
-    const [diaFG, mesFG, anoFG] = fimGracaFormatado.split('/');
-    const dataInicioGraca = new Date(parseInt(anoIG), parseInt(mesIG) - 1, 1);
-    const dataFimGraca = new Date(parseInt(anoFG), parseInt(mesFG) - 1, 1);
+    const dataInicioGraca = inicioGraca;
+    const dataFimGraca = fimGraca;
     
     // Graça intercepta período CNJ se início da graça está entre dataBase e Nov/2021
     const gracaInterceptaCNJ = dataInicioGraca > dataBase && dataInicioGraca <= dataFimCNJ;
-    
+
+    // Labels dos períodos antes e após a graça
+    const dataAntesGraca = new Date(dataInicioGraca);
+    dataAntesGraca.setMonth(dataAntesGraca.getMonth() - 1);
+    const labelAntesGraca = `${String(dataAntesGraca.getMonth() + 1).padStart(2,'0')}/${dataAntesGraca.getFullYear()}`;
+
+    const dataAposGraca = new Date(dataFimGraca);
+    dataAposGraca.setMonth(dataAposGraca.getMonth() + 1);
+    const labelAposGraca = `${String(dataAposGraca.getMonth() + 1).padStart(2,'0')}/${dataAposGraca.getFullYear()}`;
+
     const periodoJurosMora = gracaInterceptaCNJ
-        ? `${dataBaseLabel} até Nov/2021 (excluindo graça: ${inicioGracaFormatado} até ${fimGracaFormatado})`
+        ? `${dataBaseLabel} até Nov/2021<br><small style="color:#666;font-size:0.85em;">
+        excluído graça: ${inicioGracaFormatado} a ${fimGracaFormatado}</small>`
         : `${dataBaseLabel} até Nov/2021`;
     
     return `
@@ -315,7 +323,9 @@ function gerarTabelaJuros(item, indices, valores, inicioGracaFormatado, fimGraca
             <tr>
                 <td>${etapa++}. Juros de Mora - Poupança</td>
                 <td>${periodoJurosMora}</td>
-                <td>Principal CNJ × ${(indices.jurosMora * 100).toFixed(4)}%*</td>
+                <td>
+                    Principal CNJ × ${(indices.jurosMora * 100).toFixed(4)}%*
+                </td>
                 <td>R$ ${formatarMoeda(valores.valorJurosMora)}</td>
             </tr>
             <tr>
