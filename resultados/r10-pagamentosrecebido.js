@@ -97,7 +97,19 @@ function gerarLinhasPagamentos(pagamentosPorBeneficiario, cessionarios, dados) {
                         ${detalhamentoGrid}
                     </td>
                     <td>${indicesTexto}</td>
-                    <td><strong>R$ ${formatarMoeda(pag.valorAtualizado.total)}</strong></td>
+                    <td>
+                        <strong style="font-size: 1.05em;">R$ ${formatarMoeda(pag.valorAtualizado.total)}</strong>
+                        <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; margin-top: 6px; font-size: 0.85em; color: #666;">
+                            <span>Principal:</span>
+                            <span style="text-align: right;">R$ ${formatarMoeda(pag.valorAtualizado.principal)}</span>
+                            <span>Juros:</span>
+                            <span style="text-align: right;">R$ ${formatarMoeda(pag.valorAtualizado.juros)}</span>
+                            ${pag.valorAtualizado.selic > 0 ? `
+                            <span>SELIC:</span>
+                            <span style="text-align: right;">R$ ${formatarMoeda(pag.valorAtualizado.selic)}</span>
+                            ` : ''}
+                        </div>
+                    </td>
                 </tr>
             `;
         });
