@@ -74,7 +74,9 @@ function calcularHonorariosSucumbenciais(dados, valorTotalDivida, totaisPorTipo 
         ) || [];
         
         const percentualCessionarioAdv = cessaoAdv.reduce((sum, c) => sum + c.percentual, 0);
-        const percentualAdvogado = Math.max(0, adv.percentual - percentualCessionarioAdv) / adv.percentual;
+        const percentualAdvogado = adv.percentual > 0
+            ? Math.max(0, adv.percentual - percentualCessionarioAdv) / adv.percentual
+            : 1; // sem cessões de percentual, advogado recebe tudo
         
         const valorAdvogadoAposCessoes = valorBrutoTotal * percentualAdvogado;
         const valorCessionariosTotal = valorBrutoTotal * percentualCessionarioAdv;

@@ -61,6 +61,9 @@ function gerarVisualizacaoSucumbencial(resultados, dados, contexto) {
         ${gerarSecaoPagamentosOcorridos(resultados, dados)}
         ${gerarDemonstrativoSaldoRemanescente(resultados)}
         ${gerarTabelaHonorariosSucumbenciais(resultados, dados)}
+
+        ${gerarSecoesPagamentos(resultados, dados)}
+        
         ${gerarNotasTributacao()}
         
         ${gerarSecaoNotasExplicativas()}

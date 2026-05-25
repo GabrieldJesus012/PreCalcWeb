@@ -284,6 +284,12 @@ function coletarTodosPagamentos(resultados, dados) {
 function coletarTodosPagamentosSemHerdeiros(resultados, dados) {
     const pagamentos = [];
 
+    // Se é só honorário sucumbencial, pular beneficiário e demais
+    if (dados.somenteHonorarioSucumbencial) {
+        adicionarHonorariosSucumbenciaisSemHerdeiros(resultados, dados, pagamentos);
+        return pagamentos;
+    }
+
     // Beneficiário
     if (resultados.valorBeneficiarioFinal > 0) {
         pagamentos.push({
@@ -787,7 +793,7 @@ function adicionarHonorariosSucumbenciaisSemHerdeiros(resultados, dados, pagamen
 
     const isPreferencia = dados.tipoCalculo === 'preferencia';
 
-    resultados.honorariosSucumbenciais.honorarios.forEach(adv => {
+    resultados.honorariosSucumbenciais.honorarios.forEach((adv, i) => {
         const { deveReceberAdvogado, deveReceberCessionarios } = verificarRecebimentoSucumbencial(adv, isPreferencia);
         
         if (deveReceberAdvogado && adv.valorBrutoAdvogado > 0) {
@@ -799,7 +805,7 @@ function adicionarHonorariosSucumbenciaisSemHerdeiros(resultados, dados, pagamen
                 valorLiquido: adv.valorLiquidoAdvogado || 0
             });
         }
-
+        
         if (deveReceberCessionarios && adv.cessionarios?.length > 0) {
             adv.cessionarios.forEach(cessionario => {
                 if (cessionario.valorLiquido > 0) {
