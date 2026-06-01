@@ -12,21 +12,22 @@ function calcularIRIsolado(dados, valortotatt, valorBase, principalBase, valorPr
     };
     
     const temIR = dados.valoresPrincipais?.some(item => item.tributacao?.ir === true);
+
+    if (!temIR) return resultadoVazio;
     
-    // Early return - sem IR ou sem RRA (PF)
-    if (!temIR || (dados.tipoBeneficiario !== 'pj' && rrapagamentoRecalculado === 0)) {
-        return resultadoVazio;
-    }
+    const baseTributavel = dados.natureza === 'comum'
+    ? (dados.tributacaoIR?.principalTributado ?? 0) + (dados.tributacaoIR?.jurosTributado ?? 0)
+    : principalBase; // alimentar usa só o principal (RRA)
     
     const percentualTotalAdv = dados.advogados.reduce((sum, adv) => sum + adv.percentual, 0);
     const percentualTotalSind = dados.tipoCalculo === 'preferencia' ? 0 : 
         dados.sindicatos.reduce((sum, sind) => sum + sind.percentual, 0);
     
-    // PESSOA JURÍDICA
+    // PESSOA JURÍDICA comum
     if (dados.natureza === 'comum' && dados.tipoBeneficiario === 'pj') {
-        const baseIRPJ = valortotatt * (1 - percentualTotalAdv - percentualTotalSind);
-        let valorIR = baseIRPJ * 0.03;
+        const baseIRPJ = baseTributavel  * (1 - percentualTotalAdv - percentualTotalSind);
         const percentualDesagio = dados.percentualAcordo || 0;
+        let valorIR = baseIRPJ * 0.03;
         
         if (dados.tipoCalculo === 'acordo') {
             valorIR = valorIR * (1 - percentualDesagio);
@@ -44,7 +45,37 @@ function calcularIRIsolado(dados, valortotatt, valorBase, principalBase, valorPr
             baseIRRRA: 1
         };
     }
-    
+
+    // PESSOA FÍSICA — natureza comum 
+    if (dados.natureza === 'comum') {
+        const baseIRHonora = baseTributavel * (1 - percentualTotalAdv);
+        const baseIRSindi = baseIRHonora - (baseTributavel * percentualTotalSind);
+        const percentualDesagioIR = dados.percentualAcordo || 0;
+        const principalComDesagio = dados.tipoCalculo === 'acordo'
+            ? baseIRSindi * (1 - percentualDesagioIR)
+            : baseIRSindi;
+
+        const valorIR = calcularIR(principalComDesagio);
+
+        return {
+            ...resultadoVazio,
+            valorIR,
+            aliquotaIR: obterAliquotaIR(principalComDesagio),
+            baseIRHonora,
+            baseIRSindi,
+            baseIRPrev: principalComDesagio,
+            principalComDesagio,
+            percentualDesagioIR,
+            baseIRRRA: principalComDesagio,
+            valorIRUnitario: valorIR,
+            valorIRSemDesconto: valorIR
+        };
+    }
+
+    // PESSOA FÍSICA — natureza alimentar
+
+    if (rrapagamentoRecalculado === 0) return resultadoVazio;
+
     // PESSOA FÍSICA
     const baseIRHonora = principalBase - (principalBase * percentualTotalAdv);
     const baseIRSindi = baseIRHonora - (principalBase * percentualTotalSind);
