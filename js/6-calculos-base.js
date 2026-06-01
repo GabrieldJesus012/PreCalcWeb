@@ -291,8 +291,13 @@ function totalizarTributacao(itensCalculados) {
         
         // ========== TRIBUTAÇÃO PREVIDÊNCIA ==========
         if (item.tributacao.previdencia) {
-            totais.principalTributadoPrevidencia += item.valorAtualizado.principal;
-            totais.jurosTributadoPrevidencia += item.valorAtualizado.juros;
+            if (item.principalTributacao !== undefined && item.jurosTributacao !== undefined) {
+                totais.principalTributadoPrevidencia += item.principalTributacao;
+                totais.jurosTributadoPrevidencia += item.jurosTributacao;
+            } else {
+                totais.principalTributadoPrevidencia += item.valorAtualizado.principal;
+                totais.jurosTributadoPrevidencia += item.valorAtualizado.juros;
+            }
         } else {
             totais.isentoPrevidencia += item.valorAtualizado.principal + 
                                         item.valorAtualizado.juros + 

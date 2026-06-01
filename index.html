@@ -2878,6 +2878,7 @@
             const valorBase = calcularValorBase(dados, valortotatt, totaisPorTipo);
 
             const temTributacaoIR = dados.valoresPrincipais?.some(item => item.tributacao?.ir) || false;
+            const temPrevidencia = dados.valoresPrincipais?.some(item => item.tributacao?.previdencia) || false;
             let principal, jurosBase;
             
             if (temTributacaoIR && dados.tributacaoIR) {
@@ -2886,6 +2887,15 @@
                 
                 principal = valorBase * (percentualPrincipalTributadoIR / 100);
                 jurosBase = valorBase * (percentualJurosTributadoIR / 100);
+            } else if (temPrevidencia && dados.tributacaoPrevidencia) {
+                // Usar base tributável da previdência — inclui SELIC incorporada
+                const totalTributavelPrevidencia = dados.tributacaoPrevidencia.principalTributado + 
+                                                dados.tributacaoPrevidencia.jurosTributado;
+                const proporcaoPrinc = totalTributavelPrevidencia > 0 
+                    ? dados.tributacaoPrevidencia.principalTributado / totalTributavelPrevidencia 
+                    : percentualprinc;
+                principal = totalTributavelPrevidencia * proporcaoPrinc;
+                jurosBase = valorBase * percentualjur;
             } else {
                 principal = valorBase * percentualprinc;
                 jurosBase = valorBase * percentualjur;
